@@ -13,9 +13,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useMutation, useQuery } from "convex/react"
 import { MessageCircle, Plus, Send, User, Zap } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
-import { useQuery, useMutation } from "convex/react"
+import { useEffect, useRef, useState } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc } from "../../convex/_generated/dataModel"
 
