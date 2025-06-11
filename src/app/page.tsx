@@ -1,9 +1,24 @@
 "use client"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  Authenticated,
+  SignInButton,
+  SignOutButton,
+  Unauthenticated,
+  UserDropdown,
+} from "@/components/auth"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,17 +28,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { MessageCircle, Plus, Send, User, Zap } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
-import { useQuery, useMutation } from "convex/react"
-import {
-  Authenticated,
-  Unauthenticated,
-  SignInButton,
-  SignOutButton,
-  UserDropdown,
-} from "@/components/auth"
 import { useAuth } from "@/hooks/useAuth"
+import { useMutation, useQuery } from "convex/react"
+import {
+  ChevronRight,
+  LogOut,
+  MessageCircle,
+  Plus,
+  Send,
+  Settings,
+  User,
+  Zap,
+} from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc, Id } from "../../convex/_generated/dataModel"
 
@@ -180,6 +197,7 @@ function ChatInterface() {
     null,
   )
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const { user, signOut } = useAuth()
 
   // Get threads for user
   const threads = useQuery(api.threads.list)
@@ -314,6 +332,64 @@ function ChatInterface() {
                 )}
               </div>
             </ScrollArea>
+
+            {/* User Profile Section */}
+            <Separator />
+            <div className="p-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 px-2 py-1.5 h-auto hover:bg-accent"
+                  >
+                    <Avatar className="h-8 w-8">
+                      {user?.image && (
+                        <AvatarImage src={user.image} alt={user.name || ""} />
+                      )}
+                      <AvatarFallback className="bg-primary/10">
+                        <User className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-start text-sm flex-1 min-w-0">
+                      <span className="font-medium truncate w-full text-left">
+                        {user?.name || "User"}
+                      </span>
+                      <span className="text-xs text-muted-foreground truncate w-full text-left">
+                        {user?.email || ""}
+                      </span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" side="right" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user?.name || "User"}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email || ""}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <a href="/profile" className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Profile settings</span>
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => signOut()}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {/* Main Chat Area */}

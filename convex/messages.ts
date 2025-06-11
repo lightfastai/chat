@@ -1,16 +1,16 @@
+import { openai } from "@ai-sdk/openai"
+import { getAuthUserId } from "@convex-dev/auth/server"
+import { streamText } from "ai"
 import { v } from "convex/values"
-import {
-  mutation,
-  query,
-  internalMutation,
-  internalAction,
-  internalQuery,
-} from "./_generated/server.js"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
-import { openai } from "@ai-sdk/openai"
-import { streamText } from "ai"
-import { getAuthUserId } from "@convex-dev/auth/server"
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server.js"
 
 export const list = query({
   args: {

@@ -2,10 +2,10 @@ import type { Metadata } from "next"
 import "./globals.css"
 import { ConvexClientProvider } from "@/lib/ConvexProvider"
 import { cn } from "@/lib/utils"
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { fonts } from "../lib/fonts"
-import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server"
 
 export const metadata: Metadata = {
   title: "Chat App",

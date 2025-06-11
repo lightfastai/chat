@@ -1,12 +1,12 @@
 "use client"
 
-import { Authenticated, Unauthenticated, AuthLoading } from "convex/react"
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { AuthLoading, Authenticated, Unauthenticated } from "convex/react"
 
 interface AuthWrapperProps {
   children: React.ReactNode

@@ -1,8 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { LogIn } from "lucide-react"
 import { useAuthActions } from "@convex-dev/auth/react"
+import { LogIn } from "lucide-react"
 
 interface SignInButtonProps {
   className?: string

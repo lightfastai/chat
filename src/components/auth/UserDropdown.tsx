@@ -10,9 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, ChevronDown, Settings, LogOut } from "lucide-react"
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useQuery } from "convex/react"
+import { ChevronDown, LogOut, Settings, User } from "lucide-react"
 import { api } from "../../../convex/_generated/api"
 
 interface UserDropdownProps {

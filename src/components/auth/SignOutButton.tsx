@@ -1,9 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { LogOut } from "lucide-react"
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useConvexAuth } from "convex/react"
+import { LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface SignOutButtonProps {

@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation"
-import { getCurrentUser, isAuthenticated } from "@/lib/auth"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { User, Calendar } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getCurrentUser, isAuthenticated } from "@/lib/auth"
+import { Calendar, User } from "lucide-react"
+import { redirect } from "next/navigation"
 
 export default async function ProfilePage() {
   // Check authentication on the server side

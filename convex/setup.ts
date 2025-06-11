@@ -1,5 +1,5 @@
-import { internalMutation } from "./_generated/server"
 import type { Id } from "./_generated/dataModel"
+import { internalMutation } from "./_generated/server"
 
 /**
  * Setup function for preview deployments

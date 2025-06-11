@@ -1,7 +1,7 @@
 "use server"
 
 import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server"
-import { fetchQuery, fetchMutation } from "convex/nextjs"
+import { fetchMutation, fetchQuery } from "convex/nextjs"
 import { api } from "../../convex/_generated/api"
 
 /**
