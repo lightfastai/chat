@@ -13,6 +13,7 @@ import {
   query,
 } from "./_generated/server.js"
 
+import { getModelById } from "../src/lib/ai/models.js"
 // Import shared types and utilities
 import {
   ALL_MODEL_IDS,
@@ -244,10 +245,7 @@ export const createThreadAndSend = mutation({
 })
 
 // Helper to get file URLs in an internal context
-async function getFileWithUrl(
-  ctx: { runQuery: typeof internalQuery },
-  fileId: Id<"files">,
-) {
+async function getFileWithUrl(ctx: any, fileId: Id<"files">) {
   // Use internal query to get file with URL
   const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId })
   return file
@@ -270,7 +268,7 @@ type MultimodalContent =
 
 // Helper function to build message content with attachments
 async function buildMessageContent(
-  ctx: { runQuery: typeof internalQuery },
+  ctx: any,
   text: string,
   attachmentIds?: Id<"files">[],
   provider?: "openai" | "anthropic",
@@ -281,7 +279,7 @@ async function buildMessageContent(
   }
 
   // Build content array with text and files
-  const content = [{ type: "text" as const, text }]
+  const content: any[] = [{ type: "text", text }]
 
   // Fetch each file with its URL
   for (const fileId of attachmentIds) {
@@ -293,13 +291,13 @@ async function buildMessageContent(
       if (provider === "openai") {
         // OpenAI uses 'image' type with URL string
         content.push({
-          type: "image" as const,
+          type: "image",
           image: file.url,
         })
       } else {
         // Claude uses 'image' type with URL string
         content.push({
-          type: "image" as const,
+          type: "image",
           image: file.url,
         })
       }
@@ -308,11 +306,11 @@ async function buildMessageContent(
     else if (file.fileType === "application/pdf" && provider === "anthropic") {
       // Claude supports PDFs as documents
       content.push({
-        type: "document" as const,
+        type: "document",
         document: {
           title: file.fileName,
           source: {
-            type: "url" as const,
+            type: "url",
             url: file.url,
           },
         },
@@ -320,9 +318,17 @@ async function buildMessageContent(
     }
     // For other file types, add as text description
     else {
+      // For PDFs on OpenAI or other unsupported files
+      let description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`
+
+      // Add helpful context for PDFs on OpenAI
+      if (file.fileType === "application/pdf" && provider === "openai") {
+        description += " - Note: PDF content analysis requires Claude models."
+      }
+
       content.push({
-        type: "text" as const,
-        text: `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`,
+        type: "text",
+        text: description,
       })
     }
   }
@@ -367,15 +373,32 @@ export const generateAIResponse = internalAction({
         { threadId: args.threadId },
       )
 
+      // Prepare system prompt based on model capabilities
+      let systemPrompt =
+        "You are a helpful AI assistant in a chat conversation. Be concise and friendly."
+
+      // Check if this model supports vision
+      const modelConfig = getModelById(args.modelId)
+      const hasVisionSupport = modelConfig?.features.vision ?? false
+
+      if (hasVisionSupport) {
+        if (provider === "anthropic") {
+          systemPrompt +=
+            " You can view and analyze images (JPEG, PNG, GIF, WebP) and PDF documents directly. For other file types, you'll receive a text description. When users ask about an attached file, provide detailed analysis of what you can see."
+        } else {
+          systemPrompt +=
+            " You can view and analyze images (JPEG, PNG, GIF, WebP) directly. For PDFs and other file types, you'll receive a text description. When asked about a PDF, politely explain that you can see it's attached but cannot analyze its contents - suggest using Claude models for PDF analysis. For images, provide detailed analysis of what you can see."
+        }
+      } else {
+        systemPrompt +=
+          " IMPORTANT: You cannot view images or files directly with GPT-3.5 Turbo. When users share files and ask about them, you must clearly state: 'I can see you've uploaded [filename], but I'm unable to view or analyze images with GPT-3.5 Turbo. To analyze images or documents, please switch to GPT-4o, GPT-4o Mini, or any Claude model using the model selector below the input box.' Be helpful by acknowledging what files they've shared based on the descriptions you receive."
+      }
+
       // Prepare messages for AI SDK v5 with multimodal support
-      const messages: Array<{
-        role: "system" | "user" | "assistant"
-        content: MultimodalContent
-      }> = [
+      const messages: any[] = [
         {
           role: "system",
-          content:
-            "You are a helpful AI assistant in a chat conversation. Be concise and friendly. When users share images or files, you can view and analyze them directly.",
+          content: systemPrompt,
         },
       ]
 
