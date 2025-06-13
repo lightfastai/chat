@@ -21,6 +21,8 @@ The development workflow integrates:
 ### 2. Git Worktree Setup
 
 #### Automated Setup (Recommended)
+
+##### Standard Setup
 ```bash
 # Use the automated setup script for complete worktree initialization
 ./scripts/setup-worktree.sh <feature_name>
@@ -36,6 +38,33 @@ The development workflow integrates:
 
 # Example:
 ./scripts/setup-worktree.sh add-dark-mode
+```
+
+##### Multi-Instance Setup (Advanced)
+```bash
+# Use the enhanced multi-instance script for concurrent development
+./scripts/setup-worktree-multi.sh <feature_name> [options]
+
+# This enhanced script additionally:
+# - Auto-assigns unique ports for Next.js and Convex
+# - Configures independent Convex environments
+# - Supports local, cloud dev, or preview deployments
+# - Enables running multiple worktrees simultaneously
+# - Updates package.json with custom port scripts
+
+# Examples:
+./scripts/setup-worktree-multi.sh add-dark-mode
+./scripts/setup-worktree-multi.sh fix-auth --port 3005 --local-convex
+./scripts/setup-worktree-multi.sh new-feature --preview-convex
+
+# Available options:
+# --port <port>           Custom Next.js port (default: auto-assigned)
+# --convex-port <port>    Custom Convex port (default: auto-assigned)  
+# --local-convex          Use local Convex deployment
+# --preview-convex        Use Convex preview deployment
+
+# Using pnpm scripts:
+pnpm worktree:multi my-feature --local-convex
 ```
 
 #### Manual Setup (Advanced)
@@ -486,6 +515,70 @@ git pull origin main
 - Use `pnpm dev:all` for concurrent development or run in separate terminals
 - Convex provides real-time database updates and subscriptions
 - Environment variables must be synced between Next.js and Convex
+
+### Multi-Instance Development
+- **Concurrent worktree development**: Run multiple feature branches simultaneously
+- **Auto-assigned ports**: Next.js (3001+) and Convex (3211+) ports automatically assigned
+- **Independent Convex environments**: Each worktree can use local, cloud dev, or preview deployments
+- **Isolated configuration**: Each worktree has its own `.env.local` and `package.json` scripts
+
+#### Multi-Instance Setup Options
+
+##### 1. Local Convex Deployments
+```bash
+# Use local Convex backend (fastest, no cloud quotas)
+./scripts/setup-worktree-multi.sh feature-name --local-convex
+```
+- Runs Convex backend locally on your machine
+- Faster code sync and no bandwidth quotas
+- Independent data from cloud deployments
+- Requires `convex dev --local` command
+
+##### 2. Cloud Dev Deployments
+```bash
+# Use cloud development deployment (default)
+./scripts/setup-worktree-multi.sh feature-name
+```
+- Each team member gets one cloud dev deployment
+- Shared with other worktrees using same dev deployment
+- Requires environment variable sync
+
+##### 3. Preview Deployments (Convex Pro)
+```bash
+# Use branch-specific preview deployment
+./scripts/setup-worktree-multi.sh feature-name --preview-convex
+```
+- Creates independent deployment per Git branch
+- Automatically cleaned up after 14 days
+- Requires Convex Pro plan
+- Perfect for isolated feature testing
+
+#### Port Management
+- **Automatic assignment**: Script finds next available ports starting from 3001 (Next.js) and 3211 (Convex)
+- **Custom ports**: Use `--port` and `--convex-port` for specific assignments
+- **Conflict resolution**: Script checks for port availability using `lsof`
+- **Port tracking**: Each worktree documents its assigned ports in `.env.local`
+
+#### Concurrent Development Workflow
+```bash
+# Terminal 1: Feature A
+cd worktrees/feature-a
+pnpm run dev:multi  # Runs on ports 3001/3211
+
+# Terminal 2: Feature B  
+cd worktrees/feature-b
+pnpm run dev:multi  # Runs on ports 3002/3212
+
+# Terminal 3: Feature C
+cd worktrees/feature-c
+pnpm run dev:multi  # Runs on ports 3003/3213
+```
+
+Each instance runs independently with:
+- Unique Next.js port for frontend access
+- Independent Convex backend (local or cloud)
+- Isolated environment variables and configuration
+- Separate data and state management
 
 ### Quality Assurance
 - **No testing framework configured** - relies on TypeScript + Biome
