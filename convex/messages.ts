@@ -1,5 +1,5 @@
-import { anthropic } from "@ai-sdk/anthropic"
-import { openai } from "@ai-sdk/openai"
+import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
+import { createOpenAI, openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { streamText } from "ai"
 import { v } from "convex/values"
@@ -262,21 +262,18 @@ export const generateAIResponse = internalAction({
       const isThinking = isThinkingMode(args.modelId as ModelId)
 
       // Get user's API keys if available
-      // TODO: Uncomment when Convex API is regenerated
-      // const userApiKeys = await ctx.runMutation(
-      //   internal.userSettings.getDecryptedApiKeys,
-      //   { userId: thread.userId },
-      // )
+      const userApiKeys = await ctx.runMutation(
+        internal.userSettings.getDecryptedApiKeys,
+        { userId: thread.userId },
+      )
 
       // Generate unique stream ID
       const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
       // Determine if user's API key will be used
-      // TODO: Enable this logic when userApiKeys is properly implemented
-      const willUseUserApiKey = false
-      // const willUseUserApiKey =
-      //   (provider === "anthropic" && userApiKeys && userApiKeys.anthropic) ||
-      //   (provider === "openai" && userApiKeys && userApiKeys.openai)
+      const willUseUserApiKey =
+        (provider === "anthropic" && userApiKeys && userApiKeys.anthropic) ||
+        (provider === "openai" && userApiKeys && userApiKeys.openai)
 
       // Create initial AI message placeholder
       messageId = await ctx.runMutation(
@@ -317,11 +314,16 @@ export const generateAIResponse = internalAction({
       )
 
       // Choose the appropriate model using user's API key if available, otherwise fall back to global
-      // TODO: Implement user API key selection when Convex API is regenerated
       const selectedModel =
         provider === "anthropic"
-          ? anthropic(actualModelName)
-          : openai(actualModelName)
+          ? userApiKeys?.anthropic
+            ? createAnthropic({ apiKey: userApiKeys.anthropic })(
+                actualModelName,
+              )
+            : anthropic(actualModelName)
+          : userApiKeys?.openai
+            ? createOpenAI({ apiKey: userApiKeys.openai })(actualModelName)
+            : openai(actualModelName)
 
       // Stream response using AI SDK v5 with full stream for reasoning support
       const streamOptions: Parameters<typeof streamText>[0] = {

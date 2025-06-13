@@ -1,4 +1,4 @@
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI, openai } from "@ai-sdk/openai"
 import { generateText } from "ai"
 import { v } from "convex/values"
 import { internal } from "./_generated/api.js"
@@ -34,15 +34,15 @@ export const generateTitle = internalAction({
       }
 
       // Get user's API keys if available
-      // TODO: Uncomment when Convex API is regenerated
-      // const userApiKeys = await ctx.runMutation(
-      //   internal.userSettings.getDecryptedApiKeys,
-      //   { userId: thread.userId },
-      // )
+      const userApiKeys = await ctx.runMutation(
+        internal.userSettings.getDecryptedApiKeys,
+        { userId: thread.userId },
+      )
 
       // Use user's OpenAI key if available, otherwise fall back to global
-      // TODO: Implement user API key selection when Convex API is regenerated
-      const model = openai("gpt-4o-mini")
+      const model = userApiKeys?.openai
+        ? createOpenAI({ apiKey: userApiKeys.openai })("gpt-4o-mini")
+        : openai("gpt-4o-mini")
 
       // Use gpt-4o-mini for fast title generation with AI SDK v5
       const { text } = await generateText({

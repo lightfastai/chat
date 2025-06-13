@@ -20,6 +20,7 @@ import type * as messages from "../messages.js";
 import type * as setup from "../setup.js";
 import type * as threads from "../threads.js";
 import type * as titles from "../titles.js";
+import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 
 /**
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   setup: typeof setup;
   threads: typeof threads;
   titles: typeof titles;
+  userSettings: typeof userSettings;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

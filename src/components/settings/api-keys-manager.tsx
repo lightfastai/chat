@@ -11,11 +11,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-// import { api } from "../../../convex/_generated/api"
-// import { useMutation, useQuery } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { Eye, EyeOff, Key, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { api } from "../../../convex/_generated/api"
 
 export function ApiKeysManager() {
   const [showOpenAI, setShowOpenAI] = useState(false)
@@ -25,16 +25,9 @@ export function ApiKeysManager() {
   const [isUpdating, setIsUpdating] = useState(false)
 
   // Get user settings to check if they have API keys
-  // TODO: Uncomment when Convex API is regenerated
-  // const userSettings = useQuery(api.userSettings.getUserSettings)
-  // const updateApiKeys = useMutation(api.userSettings.updateApiKeys)
-  // const removeApiKey = useMutation(api.userSettings.removeApiKey)
-  const userSettings = { hasOpenAIKey: false, hasAnthropicKey: false }
-  const updateApiKeys = async (_args: {
-    openaiKey?: string
-    anthropicKey?: string
-  }) => {}
-  const removeApiKey = async (_args: { provider: "openai" | "anthropic" }) => {}
+  const userSettings = useQuery(api.userSettings.getUserSettings)
+  const updateApiKeys = useMutation(api.userSettings.updateApiKeys)
+  const removeApiKey = useMutation(api.userSettings.removeApiKey)
 
   const handleSaveApiKeys = async () => {
     if (!openaiKey && !anthropicKey) {
