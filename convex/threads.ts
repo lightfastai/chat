@@ -53,6 +53,9 @@ export const list = query({
       lastMessageAt: v.number(),
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
+      // Branch relationship tracking
+      parentThreadId: v.optional(v.id("threads")),
+      branchFromMessageId: v.optional(v.id("messages")),
       // Thread-level usage tracking (denormalized for performance)
       usage: v.optional(
         v.object({
@@ -108,6 +111,9 @@ export const get = query({
       lastMessageAt: v.number(),
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
+      // Branch relationship tracking
+      parentThreadId: v.optional(v.id("threads")),
+      branchFromMessageId: v.optional(v.id("messages")),
       // Thread-level usage tracking (denormalized for performance)
       usage: v.optional(
         v.object({
@@ -167,6 +173,9 @@ export const getByClientId = query({
       lastMessageAt: v.number(),
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
+      // Branch relationship tracking
+      parentThreadId: v.optional(v.id("threads")),
+      branchFromMessageId: v.optional(v.id("messages")),
       // Thread-level usage tracking (denormalized for performance)
       usage: v.optional(
         v.object({
