@@ -13,13 +13,8 @@ export function BackButton({ fallbackHref = "/", children }: BackButtonProps) {
   const router = useRouter()
 
   const handleBack = () => {
-    // Check if there's history to go back to
-    if (window.history.length > 1) {
-      router.back()
-    } else {
-      // Fallback to specific route if no history
-      router.push(fallbackHref)
-    }
+    // Always navigate to the fallback route (chat) instead of browser history
+    router.push(fallbackHref)
   }
 
   return (
@@ -29,8 +24,12 @@ export function BackButton({ fallbackHref = "/", children }: BackButtonProps) {
       onClick={handleBack}
       className="gap-2 text-muted-foreground hover:text-foreground"
     >
-      <ArrowLeft className="h-4 w-4" />
-      {children || "Back"}
+      {children || (
+        <>
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </>
+      )}
     </Button>
   )
 }
