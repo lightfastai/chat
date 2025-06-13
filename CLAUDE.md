@@ -22,7 +22,7 @@ The development workflow integrates:
 
 #### Automated Setup (Recommended)
 
-##### Standard Setup
+##### Standard Setup with Isolated Convex Environment
 ```bash
 # Use the automated setup script for complete worktree initialization
 ./scripts/setup-worktree.sh <username>/<feature_name>
@@ -32,12 +32,26 @@ The development workflow integrates:
 # - Creates worktree at worktrees/<feature_name>
 # - Creates branch <username>/<feature_name>
 # - Installs dependencies with pnpm install
-# - Copies .env.local configuration
+# - Pulls environment variables from Vercel (if available)
+# - Creates isolated Convex dev deployment
+# - Updates environment variables with isolated Convex URLs
 # - Syncs environment variables to Convex
 # - Provides next steps guidance
 
 # Example:
 ./scripts/setup-worktree.sh jeevanpillay/add-dark-mode
+
+# To skip isolated Convex deployment and use shared environment:
+./scripts/setup-worktree.sh jeevanpillay/fix-bug --no-isolated-convex
+```
+
+##### Cleanup Worktree
+```bash
+# Use the cleanup script to remove worktree and optionally Convex deployment
+./scripts/cleanup-worktree.sh <feature_name>
+
+# Example:
+./scripts/cleanup-worktree.sh add-dark-mode
 ```
 
 ##### Multi-Instance Setup (Advanced)
@@ -437,6 +451,26 @@ git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 git worktree remove worktrees/<feature_name>
 ```
 
+### Isolated Convex Environment Issues
+```bash
+# Convex deployment creation fails
+# Solution: Check Convex authentication
+npx convex whoami
+npx convex login
+
+# Environment variables not updating
+# Solution: Check .env.local exists and has correct format
+cat .env.local | grep CONVEX
+
+# Multiple deployments conflict
+# Solution: Each worktree should have unique deployment name
+# Format: <feature_name>-dev
+
+# Cleanup Convex deployments
+# Note: Dev deployments are auto-cleaned after 7 days of inactivity
+# Manual cleanup via dashboard: https://dashboard.convex.dev/
+```
+
 ### Vercel CLI Issues
 ```bash
 # Commands require confirmation
@@ -521,6 +555,27 @@ git pull origin main
 - Use `pnpm dev:all` for concurrent development or run in separate terminals
 - Convex provides real-time database updates and subscriptions
 - Environment variables must be synced between Next.js and Convex
+
+### Isolated Convex Environments
+The automated worktree setup now supports **isolated Convex dev deployments** for each feature branch:
+
+#### Benefits
+- **True parallel development**: Multiple developers can work simultaneously without database conflicts
+- **Isolated data**: Each feature has its own database state
+- **No interference**: Real-time subscriptions don't conflict between features
+- **Clean testing**: Test features in isolation without side effects
+
+#### How It Works
+1. **Automatic setup**: `./scripts/setup-worktree.sh` creates isolated deployment by default
+2. **Vercel integration**: Pulls latest environment variables from Vercel
+3. **URL replacement**: Updates `NEXT_PUBLIC_CONVEX_URL` to point to isolated deployment
+4. **Environment sync**: Copies other env vars (API keys, etc.) to new deployment
+
+#### Opting Out
+For simpler features that don't need isolation:
+```bash
+./scripts/setup-worktree.sh username/feature --no-isolated-convex
+```
 
 ### Multi-Instance Development
 - **Concurrent worktree development**: Run multiple feature branches simultaneously

@@ -22,18 +22,24 @@ log_error() { echo -e "${RED}❌ $1${NC}"; }
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 <username>/<feature_name>"
+    echo "Usage: $0 <username>/<feature_name> [options]"
     echo ""
     echo "Creates a new worktree for feature development with automated setup:"
     echo "  - Creates worktree at worktrees/<feature_name>"
     echo "  - Creates branch <username>/<feature_name>"
     echo "  - Installs dependencies with pnpm"
-    echo "  - Sets up Convex configuration"
+    echo "  - Sets up isolated Convex dev environment"
     echo "  - Syncs environment variables"
+    echo ""
+    echo "Options:"
+    echo "  --no-isolated-convex    Skip creating isolated Convex deployment"
+    echo "                          (uses existing shared dev deployment)"
     echo ""
     echo "Branch name must follow the format: <username>/<feature_name>"
     echo ""
-    echo "Example: $0 jeevanpillay/add-dark-mode"
+    echo "Examples:"
+    echo "  $0 jeevanpillay/add-dark-mode"
+    echo "  $0 alice/fix-auth --no-isolated-convex"
     exit 1
 }
 
@@ -52,6 +58,11 @@ validate_branch_name() {
     return 0
 }
 
+# Check for help flag
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    show_usage
+fi
+
 # Check if branch name provided
 if [ -z "$1" ]; then
     log_error "Branch name is required"
@@ -63,6 +74,22 @@ BRANCH_NAME="$1"
 if ! validate_branch_name "$BRANCH_NAME"; then
     exit 1
 fi
+
+# Parse options
+CREATE_ISOLATED_CONVEX=true
+shift # Remove branch name from arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --no-isolated-convex)
+            CREATE_ISOLATED_CONVEX=false
+            shift
+            ;;
+        *)
+            log_error "Unknown option: $1"
+            show_usage
+            ;;
+    esac
+done
 
 # Extract feature name for worktree directory
 FEATURE_NAME="${BRANCH_NAME#*/}"
@@ -116,32 +143,90 @@ else
     exit 1
 fi
 
-# Check if .env.local exists in project root
-if [ -f "$PROJECT_ROOT/.env.local" ]; then
-    log_info "Copying environment configuration..."
-    cp "$PROJECT_ROOT/.env.local" ".env.local"
-    log_success "Environment configuration copied"
+# Pull environment variables from Vercel
+log_info "Pulling environment variables from Vercel..."
+if command -v vercel > /dev/null 2>&1; then
+    # Try to pull env vars from Vercel
+    if vercel env pull .env.local --yes 2>/dev/null; then
+        log_success "Environment variables pulled from Vercel"
+    else
+        log_warning "Failed to pull environment variables from Vercel"
+        # Fall back to copying from project root if exists
+        if [ -f "$PROJECT_ROOT/.env.local" ]; then
+            log_info "Copying environment configuration from project root..."
+            cp "$PROJECT_ROOT/.env.local" ".env.local"
+            log_success "Environment configuration copied"
+        else
+            log_error "No .env.local found and Vercel pull failed"
+            log_info "You need to create .env.local with required environment variables"
+            exit 1
+        fi
+    fi
 else
-    log_warning ".env.local not found in project root"
-    log_info "You may need to create .env.local with required environment variables"
+    log_warning "Vercel CLI not found"
+    # Fall back to copying from project root if exists
+    if [ -f "$PROJECT_ROOT/.env.local" ]; then
+        log_info "Copying environment configuration from project root..."
+        cp "$PROJECT_ROOT/.env.local" ".env.local"
+        log_success "Environment configuration copied"
+    else
+        log_error ".env.local not found in project root and Vercel CLI not available"
+        exit 1
+    fi
 fi
 
-# Set up Convex if npx convex is available
-log_info "Setting up Convex configuration..."
-if command -v npx > /dev/null 2>&1; then
-    # Check if convex.json exists in project root
-    if [ -f "$PROJECT_ROOT/convex.json" ]; then
-        log_info "Convex configuration found, syncing environment variables..."
-        
-        # Run the environment sync script
-        if [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
-            bash "$PROJECT_ROOT/scripts/sync-env.sh"
-            log_success "Environment variables synced to Convex"
-        else
-            log_warning "Environment sync script not found, skipping env sync"
-        fi
+# Copy convex.json if it exists
+if [ -f "$PROJECT_ROOT/convex.json" ]; then
+    cp "$PROJECT_ROOT/convex.json" .
+fi
+
+# Set up Convex deployment
+if [ "$CREATE_ISOLATED_CONVEX" = true ]; then
+    log_info "Setting up isolated Convex dev deployment..."
+else
+    log_info "Setting up shared Convex dev deployment..."
+fi
+
+if command -v npx > /dev/null 2>&1 && [ "$CREATE_ISOLATED_CONVEX" = true ]; then
+    # Create a name for the isolated deployment
+    DEV_NAME="${FEATURE_NAME}-dev"
+    
+    log_info "Preparing for isolated Convex deployment: $DEV_NAME"
+    
+    # Check if Convex directory exists
+    if [ ! -d "$PROJECT_ROOT/convex" ]; then
+        log_error "Convex directory not found. Please ensure convex/ exists in the project root"
+        exit 1
+    fi
+    
+    # Copy Convex functions
+    cp -r "$PROJECT_ROOT/convex" .
+    
+    # Create a marker in .env.local for isolated deployment
+    echo "" >> .env.local
+    echo "# Isolated Convex deployment (to be configured)" >> .env.local
+    echo "CONVEX_DEPLOYMENT=$DEV_NAME" >> .env.local
+    
+    log_warning "Automatic isolated Convex deployment requires interactive setup"
+    log_info ""
+    log_info "To create an isolated Convex deployment, follow these steps:"
+    log_info "1. cd $WORKTREE_PATH"
+    log_info "2. Run: npx convex dev"
+    log_info "3. When prompted:"
+    log_info "   - Choose 'create a new project'"
+    log_info "   - Name it: $DEV_NAME"
+    log_info "4. Once created, the new Convex URL will be automatically set in .env.local"
+    log_info "5. Run: pnpm env:sync (to sync other env vars to the new deployment)"
+    log_info ""
+    log_success "Worktree prepared for isolated Convex deployment"
+elif command -v npx > /dev/null 2>&1 && [ "$CREATE_ISOLATED_CONVEX" = false ]; then
+    # Use shared Convex deployment - just sync environment variables
+    if [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
+        log_info "Syncing environment variables to shared Convex deployment..."
+        bash "$PROJECT_ROOT/scripts/sync-env.sh"
+        log_success "Environment variables synced to Convex"
     else
-        log_warning "Convex configuration not found, you may need to run 'npx convex dev' first"
+        log_warning "Environment sync script not found"
     fi
 else
     log_warning "npx not available, skipping Convex setup"
@@ -158,4 +243,11 @@ log_info "3. Make your changes and commit"
 log_info "4. Push with: git push -u origin $BRANCH_NAME"
 log_info ""
 log_info "To clean up later:"
-log_info "git worktree remove $WORKTREE_PATH"
+log_info "1. Remove the worktree: git worktree remove $WORKTREE_PATH"
+if [ "$CREATE_ISOLATED_CONVEX" = true ]; then
+    log_info "2. Delete the Convex dev deployment (optional):"
+    log_info "   Use ./scripts/cleanup-worktree.sh $FEATURE_NAME"
+    log_info ""
+    log_info "Note: The isolated Convex deployment ($DEV_NAME) will remain active"
+    log_info "until manually deleted. This allows you to preserve data if needed."
+fi
