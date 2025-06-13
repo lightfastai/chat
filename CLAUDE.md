@@ -18,6 +18,13 @@ The development workflow integrates:
 # Issues should be descriptive and include acceptance criteria
 ```
 
+**Task Planning & PR Description Management**:
+- Use GitHub PR descriptions as the primary task planner and tracker
+- Create todo lists for complex features using TodoWrite tool
+- Continuously reference and update PR descriptions throughout development
+- Link all tasks back to issue acceptance criteria
+- Update PR descriptions with progress, blockers, and completion status
+
 ### 2. Git Worktree Setup
 
 #### Automated Setup (Recommended)
@@ -116,6 +123,16 @@ git push -u origin jeevanpillay/<feature_name>
 # Link to original issue
 # Include test plan and deployment notes
 ```
+
+**PR Description as Task Planner**:
+- Use PR description as the central task planning and tracking document
+- Include todo lists with checkboxes for task progress visualization
+- Reference todo list progress and completion status
+- Include detailed test plan with acceptance criteria verification
+- Document any blockers or issues encountered during development
+- Add deployment notes and environment considerations
+- Link to related issues and maintain traceability
+- Update PR description continuously as development progresses
 
 ### 6. Deployment Monitoring
 ```bash
