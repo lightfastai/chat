@@ -13,9 +13,54 @@ The development workflow integrates:
 ## End-to-End Feature Development Workflow
 
 ### 1. Issue Creation & Planning
+
+#### Using Issue Templates
+The repository provides three Claude Code-optimized issue templates:
+
+1. **Feature Request** - For new features and enhancements
+   ```bash
+   # When creating a feature request:
+   # 1. Use clear "What needs to be done?" language
+   # 2. Include file references like @src/components/chat/ChatInput.tsx
+   # 3. Define browser-testable success criteria
+   # 4. Add technical hints for faster implementation
+   ```
+
+2. **Bug Report** - For browser-specific issues
+   ```bash
+   # When reporting bugs:
+   # 1. Describe what's broken in the browser
+   # 2. Reference specific components with @-mentions
+   # 3. Include console errors if any
+   # 4. List browsers where issue was verified
+   ```
+
+3. **Quick Task** - For simple, straightforward tasks
+   ```bash
+   # For quick tasks:
+   # 1. Brief task description
+   # 2. File location (can use @src/path/to/file.tsx)
+   # 3. How to test in browser
+   ```
+
+#### File References in Issues
+Use @ symbol to reference files directly:
+- `@src/components/chat/ChatInput.tsx` - Specific component files
+- `@convex/messages.ts` - Backend files
+- `@package.json` - Configuration files
+- `@CLAUDE.md` - Documentation
+
+This helps Claude Code navigate directly to relevant files when picking up an issue.
+
+#### Creating Issues via GitHub CLI
 ```bash
-# Use GitHub MCP to create issues
-# Issues should be descriptive and include acceptance criteria
+# List available templates
+gh issue create --repo lightfastai/chat
+
+# Create with specific template
+gh issue create --template feature_request.md
+
+# Or use GitHub web UI which will show template chooser
 ```
 
 **Task Planning & PR Description Management**:
@@ -201,6 +246,58 @@ git status  # Ensure clean working tree with latest changes
 # 4. Commit and push
 # 5. Monitor new deployment
 ```
+
+## Complete Workflow Example
+
+Here's a real example of the full workflow using issue templates:
+
+### Example: Adding Dark Mode Feature
+
+1. **Create Issue with Template**
+   ```bash
+   # Via GitHub UI: Click "New Issue" → Select "Feature Request"
+   # Fill out template:
+   ```
+   ```markdown
+   ## What needs to be done?
+   Add a dark mode toggle to the application that persists user preference
+   
+   ## Success looks like
+   - [ ] Toggle button in header next to user menu
+   - [ ] Theme persists across page refreshes
+   - [ ] Smooth transition between themes
+   - [ ] All components properly styled for dark mode
+   
+   ## Technical hints
+   - Start with: @src/app/layout.tsx for theme provider
+   - Related to: @src/components/ui components need dark variants
+   - Uses: next-themes library (already in @package.json)
+   
+   ## Browser testing required
+   - [ ] Works on Chrome/Edge/Safari
+   - [ ] No console errors
+   - [ ] Theme toggle animates smoothly
+   ```
+
+2. **Claude Code picks up the issue**
+   - Sees @-mentions and navigates directly to layout.tsx
+   - Checks package.json to confirm next-themes is available
+   - Reviews UI components for theming approach
+
+3. **Create worktree and implement**
+   ```bash
+   ./scripts/setup-worktree.sh jeevanpillay/add-dark-mode
+   cd worktrees/add-dark-mode
+   pnpm dev:all
+   # Implementation happens here...
+   ```
+
+4. **Create PR with comprehensive description**
+   - Links to issue
+   - Updates task list as work progresses
+   - Documents any challenges or decisions
+
+This workflow ensures Claude Code has all context needed to implement features efficiently.
 
 ## Project Specifics
 
