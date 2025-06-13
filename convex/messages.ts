@@ -6,6 +6,8 @@ import { v } from "convex/values"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
 import {
+  type ActionCtx,
+  type MutationCtx,
   internalAction,
   internalMutation,
   internalQuery,
@@ -245,10 +247,7 @@ export const createThreadAndSend = mutation({
 })
 
 // Helper to get file URLs in an internal context
-async function getFileWithUrl(
-  ctx: any, // Convex action context
-  fileId: Id<"files">,
-) {
+async function getFileWithUrl(ctx: ActionCtx, fileId: Id<"files">) {
   // Use internal query to get file with URL
   const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId })
   return file
@@ -267,7 +266,7 @@ type MultimodalContent = string | Array<TextPart | ImagePart | FilePart>
 
 // Helper function to build message content with attachments
 async function buildMessageContent(
-  ctx: any, // Convex action context
+  ctx: ActionCtx,
   text: string,
   attachmentIds?: Id<"files">[],
   provider?: "openai" | "anthropic",
@@ -756,15 +755,7 @@ export const completeStreamingMessage = internalMutation({
 
 // Helper function to update thread usage totals
 async function updateThreadUsage(
-  ctx: {
-    db: {
-      get: (id: Id<"threads">) => Promise<Doc<"threads"> | null>
-      patch: (
-        id: Id<"threads">,
-        fields: Partial<Doc<"threads">>,
-      ) => Promise<void>
-    }
-  },
+  ctx: MutationCtx,
   threadId: Id<"threads">,
   model: string,
   messageUsage: {
