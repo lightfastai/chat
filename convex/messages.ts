@@ -48,6 +48,7 @@ export const list = query({
       isComplete: v.optional(v.boolean()),
       thinkingStartedAt: v.optional(v.number()),
       thinkingCompletedAt: v.optional(v.number()),
+      attachments: v.optional(v.array(v.id("files"))),
       thinkingContent: v.optional(v.string()),
       isThinking: v.optional(v.boolean()),
       hasThinkingContent: v.optional(v.boolean()),
@@ -99,6 +100,7 @@ export const send = mutation({
     threadId: v.id("threads"),
     body: v.string(),
     modelId: v.optional(modelIdValidator), // Use the validated modelId
+    attachments: v.optional(v.array(v.id("files"))), // Add attachments support
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -140,6 +142,7 @@ export const send = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
+      attachments: args.attachments,
     })
 
     // Schedule AI response using the modelId
@@ -147,6 +150,7 @@ export const send = mutation({
       threadId: args.threadId,
       userMessage: args.body,
       modelId: modelId,
+      attachments: args.attachments,
     })
 
     // Check if this is the first user message in the thread (for title generation)
@@ -175,6 +179,7 @@ export const createThreadAndSend = mutation({
     clientId: v.string(),
     body: v.string(),
     modelId: v.optional(modelIdValidator),
+    attachments: v.optional(v.array(v.id("files"))), // Add attachments support
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
@@ -217,6 +222,7 @@ export const createThreadAndSend = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
+      attachments: args.attachments,
     })
 
     // Schedule AI response
@@ -224,6 +230,7 @@ export const createThreadAndSend = mutation({
       threadId,
       userMessage: args.body,
       modelId: modelId,
+      attachments: args.attachments,
     })
 
     // Schedule title generation (this is the first message)
@@ -242,6 +249,7 @@ export const generateAIResponse = internalAction({
     threadId: v.id("threads"),
     userMessage: v.string(),
     modelId: modelIdValidator, // Use validated modelId
+    attachments: v.optional(v.array(v.id("files"))),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -272,19 +280,42 @@ export const generateAIResponse = internalAction({
         { threadId: args.threadId },
       )
 
+      // Get attachment information if provided
+      let attachmentContext = ""
+      if (args.attachments && args.attachments.length > 0) {
+        const files = await ctx.runQuery(internal.files.getFilesInternal, {
+          fileIds: args.attachments,
+        })
+
+        attachmentContext = "\n\nAttached files:\n"
+        for (const file of files) {
+          if (file) {
+            attachmentContext += `- ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)`
+            if (file.metadata?.extractedText) {
+              attachmentContext += `\nContent: ${file.metadata.extractedText.substring(0, 1000)}${file.metadata.extractedText.length > 1000 ? "..." : ""}`
+            }
+            attachmentContext += "\n"
+          }
+        }
+      }
+
       // Prepare messages for AI SDK v5 - using standard format
       const messages = [
         {
           role: "system" as const,
           content:
-            "You are a helpful AI assistant in a chat conversation. Be concise and friendly.",
+            "You are a helpful AI assistant in a chat conversation. Be concise and friendly. When users share files, acknowledge them and provide relevant assistance based on their content.",
         },
-        ...recentMessages.map((msg) => ({
+        ...recentMessages.map((msg, index) => ({
           role:
             msg.messageType === "user"
               ? ("user" as const)
               : ("assistant" as const),
-          content: msg.body,
+          content:
+            msg.body +
+            (msg.messageType === "user" && index === recentMessages.length - 1
+              ? attachmentContext
+              : ""),
         })),
       ]
 
