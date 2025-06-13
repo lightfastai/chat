@@ -298,6 +298,7 @@ export const generateAIResponse = internalAction({
       console.log(
         `Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
       )
+      console.log(`Web search enabled: ${args.webSearchEnabled}`)
 
       // Choose the appropriate model using the actual model name
       const selectedModel =
@@ -314,6 +315,14 @@ export const generateAIResponse = internalAction({
 
       // Only enable web search tools if explicitly requested
       if (args.webSearchEnabled) {
+        console.log(`Enabling web search tools for ${provider}`)
+
+        // Check if EXA_API_KEY is available
+        const exaApiKey = process.env.EXA_API_KEY
+        if (!exaApiKey) {
+          console.error("EXA_API_KEY not found - web search will fail")
+        }
+
         streamOptions.tools = {
           web_search: {
             description:
@@ -533,7 +542,37 @@ export const generateAIResponse = internalAction({
         threadId: args.threadId,
       })
     } catch (error) {
-      console.error("Error generating response:", error)
+      const provider = getProviderFromModelId(args.modelId as ModelId)
+      console.error(
+        `Error generating ${provider} response with model ${args.modelId}:`,
+        error,
+      )
+
+      // Add specific error details for debugging
+      if (error instanceof Error) {
+        console.error(`Error name: ${error.name}`)
+        console.error(`Error message: ${error.message}`)
+        if (error.stack) {
+          console.error(`Error stack: ${error.stack.substring(0, 500)}...`)
+        }
+      }
+
+      // Check for common API key issues
+      if (provider === "openai") {
+        const openaiKey = process.env.OPENAI_API_KEY
+        console.log(`OpenAI API key present: ${!!openaiKey}`)
+        console.log(
+          `OpenAI API key format valid: ${openaiKey?.startsWith("sk-") || false}`,
+        )
+      }
+
+      if (provider === "anthropic") {
+        const anthropicKey = process.env.ANTHROPIC_API_KEY
+        console.log(`Anthropic API key present: ${!!anthropicKey}`)
+        console.log(
+          `Anthropic API key format valid: ${anthropicKey?.startsWith("sk-ant-") || false}`,
+        )
+      }
 
       try {
         // If we have a messageId, update it with error, otherwise create new error message

@@ -100,7 +100,11 @@ export function useChat() {
   // Use messages directly - Convex optimistic updates handle everything
   const allMessages = messages
 
-  const handleSendMessage = async (message: string, modelId: string, webSearchEnabled?: boolean) => {
+  const handleSendMessage = async (
+    message: string,
+    modelId: string,
+    webSearchEnabled?: boolean,
+  ) => {
     if (!message.trim()) return
 
     try {

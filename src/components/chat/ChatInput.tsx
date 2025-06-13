@@ -17,11 +17,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { DEFAULT_MODEL_ID, getAllModels, getModelById } from "@/lib/ai"
-import { Loader2, Send, Globe } from "lucide-react"
+import { Globe, Loader2, Send } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 interface ChatInputProps {
-  onSendMessage: (message: string, modelId: string, webSearchEnabled?: boolean) => Promise<void> | void
+  onSendMessage: (
+    message: string,
+    modelId: string,
+    webSearchEnabled?: boolean,
+  ) => Promise<void> | void
   isLoading?: boolean
   placeholder?: string
   disabled?: boolean
@@ -135,7 +139,7 @@ const ChatInputComponent = ({
   }, [])
 
   const handleWebSearchToggle = useCallback(() => {
-    setWebSearchEnabled(prev => !prev)
+    setWebSearchEnabled((prev) => !prev)
   }, [])
 
   // Memoize computed values
@@ -226,10 +230,9 @@ const ChatInputComponent = ({
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>
-                        {webSearchEnabled 
+                        {webSearchEnabled
                           ? "Web search enabled - AI can search the web for current information"
-                          : "Enable web search for current information"
-                        }
+                          : "Enable web search for current information"}
                       </p>
                     </TooltipContent>
                   </Tooltip>
