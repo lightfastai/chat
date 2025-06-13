@@ -14,6 +14,7 @@
     "env:sync": "./scripts/sync-env.sh",
     "env:check": "npx convex env list",
     "setup": "pnpm install && pnpm env:sync && echo '✅ Setup complete! Run: pnpm dev (Terminal 1) && pnpm convex:dev (Terminal 2)'",
+    "worktree": "./scripts/setup-worktree.sh",
     "dev:all": "concurrently \"pnpm dev\" \"pnpm convex:dev\" --names \"NEXT,CONVEX\" --prefix-colors \"blue,green\"",
     "logs": "npx convex logs"
   },

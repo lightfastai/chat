@@ -19,6 +19,26 @@ The development workflow integrates:
 ```
 
 ### 2. Git Worktree Setup
+
+#### Automated Setup (Recommended)
+```bash
+# Use the automated setup script for complete worktree initialization
+./scripts/setup-worktree.sh <feature_name>
+
+# This script automatically:
+# - Ensures main branch is up-to-date
+# - Creates worktree at worktrees/<feature_name>
+# - Creates branch jeevanpillay/<feature_name>
+# - Installs dependencies with pnpm install
+# - Copies .env.local configuration
+# - Syncs environment variables to Convex
+# - Provides next steps guidance
+
+# Example:
+./scripts/setup-worktree.sh add-dark-mode
+```
+
+#### Manual Setup (Advanced)
 ```bash
 # IMPORTANT: Start with up-to-date main branch
 git checkout main
@@ -28,6 +48,18 @@ git pull origin main
 mkdir -p worktrees
 git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 
+# Change to worktree directory
+cd worktrees/<feature_name>
+
+# Install dependencies
+pnpm install
+
+# Copy environment configuration
+cp ../../.env.local .env.local
+
+# Sync environment variables to Convex
+pnpm env:sync
+
 # Note: Claude Code can only access child directories of the working directory
 # Worktree will be created at: worktrees/<feature_name>/
 # New branch is based on current main, so main must be up-to-date
@@ -35,8 +67,16 @@ git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 
 ### 3. Development Cycle
 ```bash
-# Install dependencies (if needed)
-pnpm install
+# Navigate to your worktree (if not already there)
+cd worktrees/<feature_name>
+
+# Start development servers (choose one option):
+# Option 1: Concurrent development (recommended)
+pnpm dev:all
+
+# Option 2: Separate terminals
+# Terminal 1: pnpm dev              # Next.js development server
+# Terminal 2: pnpm convex:dev       # Convex backend development server
 
 # Make code changes
 # ... implement feature ...
