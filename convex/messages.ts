@@ -3,6 +3,8 @@ import { openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { streamText } from "ai"
 import { v } from "convex/values"
+import Exa from "exa-js"
+import { z } from "zod"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
 import {
@@ -303,6 +305,25 @@ export const generateAIResponse = internalAction({
         model: selectedModel,
         messages: messages,
         temperature: 0.7,
+        tools: {
+          web_search: {
+            description:
+              "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
+            parameters: z.object({
+              query: z
+                .string()
+                .describe("The search query to find relevant web results"),
+              numResults: z
+                .number()
+                .optional()
+                .describe("Number of results to return (1-10, default 5)"),
+              includeText: z
+                .boolean()
+                .optional()
+                .describe("Whether to include full text content from results"),
+            }),
+          },
+        },
       }
 
       // For Claude 4.0 thinking mode, enable thinking/reasoning
@@ -347,6 +368,102 @@ export const generateAIResponse = internalAction({
             chunk: chunk.text,
             chunkId,
           })
+        } else if (
+          chunk.type === "tool-call" &&
+          chunk.toolName === "web_search"
+        ) {
+          // Handle web search tool calls
+          console.log("Web search tool called with args:", chunk.args)
+
+          try {
+            // Perform web search directly using Exa
+            const exaApiKey = process.env.EXA_API_KEY
+            if (!exaApiKey) {
+              throw new Error("EXA_API_KEY not configured")
+            }
+
+            const exa = new Exa(exaApiKey)
+            const query = chunk.args.query as string
+            const numResults = (chunk.args.numResults as number) || 5
+            const includeText = (chunk.args.includeText as boolean) ?? true
+
+            const searchOptions = {
+              numResults,
+            } as any
+
+            if (includeText) {
+              searchOptions.text = {
+                maxCharacters: 1000,
+                includeHtmlTags: false,
+              }
+              searchOptions.highlights = {
+                numSentences: 3,
+                highlightsPerUrl: 2,
+              }
+            }
+
+            const response = await exa.search(query, searchOptions)
+
+            const searchResults = {
+              success: true,
+              results: response.results.map((result) => ({
+                id: result.id,
+                url: result.url,
+                title: result.title || "",
+                text: result.text,
+                highlights: (result as any).highlights,
+                publishedDate: result.publishedDate,
+                author: result.author,
+                score: result.score,
+              })),
+              autopromptString: response.autopromptString,
+            }
+
+            if (searchResults.success && searchResults.results) {
+              const searchSummary =
+                `\n\n**🔍 Web Search Results for "${chunk.args.query}"**\n\n` +
+                searchResults.results
+                  .slice(0, 3)
+                  .map(
+                    (result, i) =>
+                      `**${i + 1}. ${result.title}**\n${result.url}\n${result.text ? `${result.text.slice(0, 250)}...` : "No preview available"}\n`,
+                  )
+                  .join("\n")
+
+              fullContent += searchSummary
+
+              // Generate unique chunk ID for the search results
+              const chunkId = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+              // Append search results as a chunk
+              await ctx.runMutation(internal.messages.appendStreamChunk, {
+                messageId,
+                chunk: searchSummary,
+                chunkId,
+              })
+            } else {
+              const errorMessage = `\n\n*❌ Web search failed: No results found*\n\n`
+              fullContent += errorMessage
+
+              const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+              await ctx.runMutation(internal.messages.appendStreamChunk, {
+                messageId,
+                chunk: errorMessage,
+                chunkId,
+              })
+            }
+          } catch (error) {
+            console.error("Error executing web search:", error)
+            const errorMessage = `\n\n*❌ Web search error: ${error instanceof Error ? error.message : "Unknown error"}*\n\n`
+            fullContent += errorMessage
+
+            const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            await ctx.runMutation(internal.messages.appendStreamChunk, {
+              messageId,
+              chunk: errorMessage,
+              chunkId,
+            })
+          }
         } else if (chunk.type === "reasoning" && chunk.text) {
           // Claude 4.0 native reasoning tokens
           if (!hasThinking) {

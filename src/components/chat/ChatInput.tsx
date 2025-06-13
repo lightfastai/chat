@@ -20,7 +20,6 @@ import { DEFAULT_MODEL_ID, getAllModels, getModelById } from "@/lib/ai"
 import { Loader2, Send } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
-
 interface ChatInputProps {
   onSendMessage: (message: string, modelId: string) => Promise<void> | void
   isLoading?: boolean
@@ -227,7 +226,7 @@ const ChatInputComponent = ({
           </div>
         </div>
 
-        {/* Bottom section for future features */}
+        {/* Bottom section for status */}
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-2">
             {isLoading && (
