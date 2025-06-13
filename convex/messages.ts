@@ -247,10 +247,25 @@ export const generateAIResponse = internalAction({
   handler: async (ctx, args) => {
     let messageId: Id<"messages"> | null = null
     try {
+      // Get thread and user information
+      const thread = await ctx.runQuery(internal.messages.getThreadById, {
+        threadId: args.threadId,
+      })
+      if (!thread) {
+        throw new Error("Thread not found")
+      }
+
       // Derive provider and other settings from modelId
       const provider = getProviderFromModelId(args.modelId as ModelId)
       const actualModelName = getActualModelName(args.modelId as ModelId)
       const isThinking = isThinkingMode(args.modelId as ModelId)
+
+      // Get user's API keys if available
+      // TODO: Uncomment when Convex API is regenerated
+      // const userApiKeys = await ctx.runMutation(
+      //   internal.userSettings.getDecryptedApiKeys,
+      //   { userId: thread.userId },
+      // )
 
       // Generate unique stream ID
       const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -292,7 +307,8 @@ export const generateAIResponse = internalAction({
         `Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
       )
 
-      // Choose the appropriate model using the actual model name
+      // Choose the appropriate model using user's API key if available, otherwise fall back to global
+      // TODO: Implement user API key selection when Convex API is regenerated
       const selectedModel =
         provider === "anthropic"
           ? anthropic(actualModelName)
@@ -982,5 +998,27 @@ export const clearGenerationFlag = internalMutation({
     await ctx.db.patch(args.threadId, {
       isGenerating: false,
     })
+  },
+})
+
+// Internal query to get thread by ID
+export const getThreadById = internalQuery({
+  args: {
+    threadId: v.id("threads"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("threads"),
+      userId: v.id("users"),
+      title: v.string(),
+      createdAt: v.number(),
+      lastMessageAt: v.number(),
+      isGenerating: v.optional(v.boolean()),
+      isTitleGenerating: v.optional(v.boolean()),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.threadId)
   },
 })

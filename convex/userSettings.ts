@@ -1,0 +1,217 @@
+import { getAuthUserId } from "@convex-dev/auth/server"
+import { ConvexError, v } from "convex/values"
+import { internalMutation, mutation, query } from "./_generated/server"
+
+// Simple encryption utilities (in production, use proper encryption)
+// Note: This is a basic implementation - in production, use a proper encryption service
+// const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default-key-change-me"
+
+function encrypt(text: string): string {
+  // Simple base64 encoding - replace with proper encryption in production
+  return Buffer.from(text).toString("base64")
+}
+
+function decrypt(encryptedText: string): string {
+  // Simple base64 decoding - replace with proper decryption in production
+  return Buffer.from(encryptedText, "base64").toString()
+}
+
+// Get user settings
+export const getUserSettings = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new ConvexError("Unauthorized")
+    }
+
+    const settings = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first()
+
+    if (!settings) {
+      return null
+    }
+
+    // Return settings without decrypted API keys for security
+    return {
+      _id: settings._id,
+      userId: settings.userId,
+      preferences: settings.preferences,
+      createdAt: settings.createdAt,
+      updatedAt: settings.updatedAt,
+      hasOpenAIKey: !!settings.apiKeys?.openai,
+      hasAnthropicKey: !!settings.apiKeys?.anthropic,
+    }
+  },
+})
+
+// Update user API keys
+export const updateApiKeys = mutation({
+  args: {
+    openaiKey: v.optional(v.string()),
+    anthropicKey: v.optional(v.string()),
+  },
+  handler: async (ctx, { openaiKey, anthropicKey }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new ConvexError("Unauthorized")
+    }
+
+    const existingSettings = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first()
+
+    const now = Date.now()
+
+    // Prepare encrypted API keys
+    const apiKeys: { openai?: string; anthropic?: string } = {}
+
+    if (openaiKey) {
+      apiKeys.openai = encrypt(openaiKey)
+    } else if (existingSettings?.apiKeys?.openai) {
+      // Keep existing key if not updating
+      apiKeys.openai = existingSettings.apiKeys.openai
+    }
+
+    if (anthropicKey) {
+      apiKeys.anthropic = encrypt(anthropicKey)
+    } else if (existingSettings?.apiKeys?.anthropic) {
+      // Keep existing key if not updating
+      apiKeys.anthropic = existingSettings.apiKeys.anthropic
+    }
+
+    if (existingSettings) {
+      // Update existing settings
+      await ctx.db.patch(existingSettings._id, {
+        apiKeys,
+        updatedAt: now,
+      })
+    } else {
+      // Create new settings
+      await ctx.db.insert("userSettings", {
+        userId,
+        apiKeys,
+        createdAt: now,
+        updatedAt: now,
+      })
+    }
+
+    return { success: true }
+  },
+})
+
+// Update user preferences
+export const updatePreferences = mutation({
+  args: {
+    defaultModel: v.optional(
+      v.union(
+        // OpenAI models
+        v.literal("gpt-4o-mini"),
+        v.literal("gpt-4o"),
+        v.literal("gpt-3.5-turbo"),
+        // Anthropic models
+        v.literal("claude-sonnet-4-20250514"),
+        v.literal("claude-sonnet-4-20250514-thinking"),
+        v.literal("claude-3-5-sonnet-20241022"),
+        v.literal("claude-3-haiku-20240307"),
+      ),
+    ),
+    preferredProvider: v.optional(
+      v.union(v.literal("openai"), v.literal("anthropic")),
+    ),
+  },
+  handler: async (ctx, { defaultModel, preferredProvider }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new ConvexError("Unauthorized")
+    }
+
+    const existingSettings = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first()
+
+    const now = Date.now()
+    const preferences = {
+      defaultModel,
+      preferredProvider,
+    }
+
+    if (existingSettings) {
+      // Update existing settings
+      await ctx.db.patch(existingSettings._id, {
+        preferences,
+        updatedAt: now,
+      })
+    } else {
+      // Create new settings
+      await ctx.db.insert("userSettings", {
+        userId,
+        preferences,
+        createdAt: now,
+        updatedAt: now,
+      })
+    }
+
+    return { success: true }
+  },
+})
+
+// Remove specific API key
+export const removeApiKey = mutation({
+  args: {
+    provider: v.union(v.literal("openai"), v.literal("anthropic")),
+  },
+  handler: async (ctx, { provider }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new ConvexError("Unauthorized")
+    }
+
+    const existingSettings = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first()
+
+    if (!existingSettings) {
+      throw new ConvexError("Settings not found")
+    }
+
+    const apiKeys = { ...existingSettings.apiKeys }
+    delete apiKeys[provider]
+
+    await ctx.db.patch(existingSettings._id, {
+      apiKeys,
+      updatedAt: Date.now(),
+    })
+
+    return { success: true }
+  },
+})
+
+// Internal function to get decrypted API keys (for use in other Convex functions)
+export const getDecryptedApiKeys = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const settings = await ctx.db
+      .query("userSettings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first()
+
+    if (!settings?.apiKeys) {
+      return null
+    }
+
+    return {
+      openai: settings.apiKeys.openai
+        ? decrypt(settings.apiKeys.openai)
+        : undefined,
+      anthropic: settings.apiKeys.anthropic
+        ? decrypt(settings.apiKeys.anthropic)
+        : undefined,
+    }
+  },
+})
