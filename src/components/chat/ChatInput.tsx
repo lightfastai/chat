@@ -16,9 +16,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useFileDrop } from "@/hooks/useFileDrop"
 import { DEFAULT_MODEL_ID, getAllModels, getModelById } from "@/lib/ai"
 import { useMutation } from "convex/react"
-import { FileText, Image, Loader2, Paperclip, Send, X } from "lucide-react"
+import {
+  FileIcon,
+  FileText,
+  Image,
+  Loader2,
+  Paperclip,
+  Send,
+  X,
+} from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { api } from "../../../convex/_generated/api"
@@ -58,7 +67,6 @@ const ChatInputComponent = ({
   const [selectedModelId, setSelectedModelId] =
     useState<string>(DEFAULT_MODEL_ID)
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
-  const [isDragging, setIsDragging] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -191,37 +199,11 @@ const ChatInputComponent = ({
     [attachments, generateUploadUrl, createFile],
   )
 
-  // Drag and drop handlers
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }, [])
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-  }, [])
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }, [])
-
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsDragging(false)
-
-      const files = e.dataTransfer.files
-      if (files.length > 0) {
-        await handleFileUpload(files)
-      }
-    },
-    [handleFileUpload],
-  )
+  // Use the file drop hook
+  const { isDragging, dragHandlers } = useFileDrop({
+    onDrop: handleFileUpload,
+    disabled: disabled || isUploading,
+  })
 
   const handleFileInputChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,51 +292,37 @@ const ChatInputComponent = ({
     [message, isSending, disabled, isLoading],
   )
 
+  // Helper function to format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
   return (
-    <div
-      className={`p-4 flex-shrink-0 ${className}`}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-    >
-      <div className="max-w-3xl mx-auto">
+    <div className={`p-4 flex-shrink-0 ${className}`} {...dragHandlers}>
+      <div className="max-w-3xl mx-auto relative">
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-md border-2 border-dashed border-primary animate-in fade-in-0 duration-200">
+            <div className="text-center">
+              <Paperclip className="w-8 h-8 mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium">Drop files here</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                PDF, images, and documents supported
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <div className="flex-1 min-w-0">
+            {/* Main input container */}
             <div
-              className={`w-full rounded-md border flex flex-col transition-all ${isLoading ? "opacity-75 cursor-not-allowed" : ""} ${isDragging ? "border-primary bg-primary/5" : ""}`}
+              className={`w-full border flex flex-col transition-all ${
+                attachments.length > 0 ? "rounded-t-md" : "rounded-md"
+              } ${isLoading ? "opacity-75 cursor-not-allowed" : ""}`}
             >
-              {/* Attachments display */}
-              {attachments.length > 0 && (
-                <div className="p-2 border-b">
-                  <div className="flex flex-wrap gap-2">
-                    {attachments.map((attachment) => (
-                      <div
-                        key={attachment.id}
-                        className="flex items-center gap-1 px-2 py-1 bg-secondary rounded-md text-xs"
-                      >
-                        {attachment.type.startsWith("image/") ? (
-                          <Image className="w-3 h-3" />
-                        ) : (
-                          <FileText className="w-3 h-3" />
-                        )}
-                        <span className="max-w-[100px] truncate">
-                          {attachment.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeAttachment(attachment.id)}
-                          className="ml-1 hover:text-destructive"
-                          disabled={isUploading}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Textarea area - grows with content up to max height */}
               <div
                 className="flex-1"
@@ -463,6 +431,50 @@ const ChatInputComponent = ({
                 </Tooltip>
               </div>
             </div>
+
+            {/* Attachments container - appears below input */}
+            {attachments.length > 0 && (
+              <div className="w-full border-l border-r border-b rounded-b-md bg-secondary/20 p-3 transition-all animate-in slide-in-from-top-1 duration-200">
+                <div className="flex flex-wrap gap-2">
+                  {attachments.map((attachment) => {
+                    const isImage = attachment.type.startsWith("image/")
+                    const isPdf = attachment.type === "application/pdf"
+
+                    return (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center gap-2 px-3 py-2 bg-background rounded-md border text-sm group hover:border-foreground/20 transition-colors"
+                      >
+                        {isImage ? (
+                          <Image className="w-4 h-4 text-muted-foreground" />
+                        ) : isPdf ? (
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <FileIcon className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate max-w-[150px] font-medium">
+                            {attachment.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(attachment.size)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(attachment.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-destructive/10 rounded"
+                          disabled={isUploading}
+                          aria-label={`Remove ${attachment.name}`}
+                        >
+                          <X className="w-3 h-3 text-destructive" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
