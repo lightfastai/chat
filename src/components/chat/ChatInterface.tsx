@@ -33,7 +33,16 @@ export function ChatInterface() {
   // Handle branching from a message
   const handleBranch = useCallback(
     async (messageId: string) => {
-      if (!currentThread?._id) return
+      if (!currentThread?._id) {
+        console.warn("Cannot branch: no thread ID", currentThread)
+        return
+      }
+
+      // Check if this looks like a clientId (nanoid format) vs Convex ID
+      if (currentThread._id.length < 30) {
+        console.warn("Cannot branch: thread ID appears to be a clientId", currentThread._id)
+        return
+      }
 
       try {
         const clientId = nanoid()
