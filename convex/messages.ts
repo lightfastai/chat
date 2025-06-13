@@ -324,6 +324,8 @@ export const generateAIResponse = internalAction({
           console.error("EXA_API_KEY not found - web search will fail")
         }
 
+        console.log("Creating web_search tool schema...")
+        
         streamOptions.tools = {
           web_search: {
             description:
@@ -332,17 +334,11 @@ export const generateAIResponse = internalAction({
               query: z
                 .string()
                 .describe("The search query to find relevant web results"),
-              numResults: z
-                .number()
-                .default(5)
-                .describe("Number of results to return (1-10, default 5)"),
-              includeText: z
-                .boolean()
-                .default(true)
-                .describe("Whether to include full text content from results"),
             }),
           },
         }
+        
+        console.log("Web search tool schema created successfully")
       }
 
       // For Claude 4.0 thinking mode, enable thinking/reasoning
@@ -417,8 +413,8 @@ export const generateAIResponse = internalAction({
 
             const exa = new Exa(exaApiKey)
             const query = chunk.args.query as string
-            const numResults = (chunk.args.numResults as number) || 5
-            const includeText = (chunk.args.includeText as boolean) ?? true
+            const numResults = 5 // Fixed to 5 results for simplicity
+            const includeText = true // Always include text for better results
 
             const searchOptions = {
               numResults,
