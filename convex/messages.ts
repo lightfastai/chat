@@ -1,7 +1,7 @@
 import { anthropic } from "@ai-sdk/anthropic"
 import { openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
-import { streamText } from "ai"
+import { streamText, tool } from "ai"
 import { v } from "convex/values"
 import Exa from "exa-js"
 import { z } from "zod"
@@ -23,6 +23,71 @@ import {
   getProviderFromModelId,
   isThinkingMode,
 } from "../src/lib/ai/types.js"
+
+// Create web search tool using proper AI SDK v5 pattern
+function createWebSearchTool() {
+  return tool({
+    description: "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
+    parameters: z.object({
+      query: z.string().describe("The search query to find relevant web results"),
+    }),
+    execute: async ({ query }) => {
+      console.log(`Executing web search for: "${query}"`)
+      
+      const exaApiKey = process.env.EXA_API_KEY
+      if (!exaApiKey) {
+        throw new Error("EXA_API_KEY not configured")
+      }
+
+      try {
+        const exa = new Exa(exaApiKey)
+        const numResults = 5
+        const searchOptions = {
+          numResults,
+          text: {
+            maxCharacters: 1000,
+            includeHtmlTags: false,
+          },
+          highlights: {
+            numSentences: 3,
+            highlightsPerUrl: 2,
+          }
+        } as any
+
+        const response = await exa.search(query, searchOptions)
+
+        const results = response.results.map((result: any) => ({
+          id: result.id,
+          url: result.url,
+          title: result.title || "",
+          text: result.text,
+          highlights: result.highlights,
+          publishedDate: result.publishedDate,
+          author: result.author,
+          score: result.score,
+        }))
+
+        console.log(`Web search found ${results.length} results`)
+
+        return {
+          success: true,
+          query,
+          results: results.slice(0, 3), // Return top 3 results
+          totalResults: results.length,
+        }
+      } catch (error) {
+        console.error("Web search error:", error)
+        return {
+          success: false,
+          query,
+          error: error instanceof Error ? error.message : "Unknown error",
+          results: [],
+          totalResults: 0,
+        }
+      }
+    },
+  })
+}
 
 // Create validators from the shared types
 const modelIdValidator = v.union(...ALL_MODEL_IDS.map((id) => v.literal(id)))
@@ -324,21 +389,11 @@ export const generateAIResponse = internalAction({
           console.error("EXA_API_KEY not found - web search will fail")
         }
 
-        console.log("Creating web_search tool schema...")
-        
+        console.log("Creating web_search tool...")
         streamOptions.tools = {
-          web_search: {
-            description:
-              "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
-            parameters: z.object({
-              query: z
-                .string()
-                .describe("The search query to find relevant web results"),
-            }),
-          },
+          web_search: createWebSearchTool(),
         }
-        
-        console.log("Web search tool schema created successfully")
+        console.log("Web search tool created successfully")
       }
 
       // For Claude 4.0 thinking mode, enable thinking/reasoning
