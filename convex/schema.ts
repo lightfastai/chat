@@ -31,9 +31,6 @@ export default defineSchema({
     lastMessageAt: v.number(),
     isTitleGenerating: v.optional(v.boolean()),
     isGenerating: v.optional(v.boolean()),
-    // Branch relationship tracking
-    parentThreadId: v.optional(v.id("threads")), // Parent thread if this is a branch
-    branchFromMessageId: v.optional(v.id("messages")), // Message this thread branched from
     // Thread-level usage tracking (denormalized for performance)
     usage: v.optional(
       v.object({
@@ -69,6 +66,14 @@ export default defineSchema({
     messageType: v.union(v.literal("user"), v.literal("assistant")),
     model: v.optional(modelProviderValidator),
     modelId: v.optional(modelIdValidator),
+    
+    // v0.dev-style branching system
+    branchId: v.string(), // "main", "b1", "b2", etc.
+    parentMessageId: v.optional(v.id("messages")), // Previous message in conversation
+    branchFromMessageId: v.optional(v.id("messages")), // Original message this branched from
+    branchSequence: v.number(), // 0 for main, 1-9 for branches (max 10 total)
+    
+    // Streaming support
     isStreaming: v.optional(v.boolean()),
     streamId: v.optional(v.string()),
     isComplete: v.optional(v.boolean()),
@@ -89,6 +94,7 @@ export default defineSchema({
     thinkingContent: v.optional(v.string()),
     isThinking: v.optional(v.boolean()),
     hasThinkingContent: v.optional(v.boolean()),
+    
     // Token usage tracking per message
     usage: v.optional(
       v.object({
@@ -101,6 +107,8 @@ export default defineSchema({
     ),
   })
     .index("by_thread", ["threadId"])
+    .index("by_thread_branch", ["threadId", "branchId"])
+    .index("by_branch_from", ["branchFromMessageId"])
     .index("by_stream_id", ["streamId"]),
 
   feedback: defineTable({

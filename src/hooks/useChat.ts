@@ -85,6 +85,9 @@ export function useChat() {
           timestamp: now,
           isStreaming: false,
           isComplete: true,
+          // Branch fields for optimistic update
+          branchId: "main",
+          branchSequence: 0,
         }
 
         // Create new array with optimistic message at the beginning

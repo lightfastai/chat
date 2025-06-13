@@ -2,15 +2,10 @@
 
 import { useChat } from "@/hooks/useChat"
 import { useResumableChat } from "@/hooks/useResumableStream"
-import { useMutation } from "convex/react"
-import { nanoid } from "nanoid"
-import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo } from "react"
-import { api } from "../../../convex/_generated/api"
-import type { Doc, Id } from "../../../convex/_generated/dataModel"
+import type { Doc } from "../../../convex/_generated/dataModel"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
-import { ThreadBreadcrumb } from "./ThreadBreadcrumb"
 
 type Message = Doc<"messages">
 
@@ -21,45 +16,15 @@ export function ChatInterface() {
     handleSendMessage,
     emptyState,
     isDisabled,
-    currentThread,
   } = useChat()
 
-  // Router for navigation
-  const router = useRouter()
-
-  // Mutation for creating branch
-  const createBranch = useMutation(api.threads.createBranch)
-
-  // Handle branching from a message
+  // TODO: Implement v0.dev-style branching logic here
   const handleBranch = useCallback(
     async (messageId: string) => {
-      if (!currentThread?._id) {
-        console.warn("Cannot branch: no thread ID", currentThread)
-        return
-      }
-
-      // Check if this looks like a clientId (nanoid format) vs Convex ID
-      if (currentThread._id.length < 30) {
-        console.warn("Cannot branch: thread ID appears to be a clientId", currentThread._id)
-        return
-      }
-
-      try {
-        const clientId = nanoid()
-        const newThreadId = await createBranch({
-          parentThreadId: currentThread._id,
-          branchFromMessageId: messageId as Id<"messages">,
-          title: "Branched conversation",
-          clientId,
-        })
-
-        // Navigate to the new branched thread
-        router.push(`/chat/${newThreadId}`)
-      } catch (error) {
-        console.error("Failed to create branch:", error)
-      }
+      console.log("Branch functionality to be implemented", messageId)
+      // Will implement edit/retry functionality here
     },
-    [currentThread?._id, createBranch, router],
+    [],
   )
 
   // Manage resumable streams
@@ -107,7 +72,6 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full">
-      <ThreadBreadcrumb thread={currentThread} />
       <ChatMessages
         messages={enhancedMessages}
         emptyState={emptyState}

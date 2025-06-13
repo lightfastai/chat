@@ -32,6 +32,7 @@ const modelProviderValidator = v.union(
 export const list = query({
   args: {
     threadId: v.id("threads"),
+    branchId: v.optional(v.string()), // Default to "main" if not specified
   },
   returns: v.array(
     v.object({
@@ -43,6 +44,11 @@ export const list = query({
       messageType: v.union(v.literal("user"), v.literal("assistant")),
       model: v.optional(modelProviderValidator),
       modelId: v.optional(v.string()), // Keep as string for flexibility but validate in handler
+      // Branch fields
+      branchId: v.string(),
+      branchSequence: v.number(),
+      parentMessageId: v.optional(v.id("messages")),
+      branchFromMessageId: v.optional(v.id("messages")),
       isStreaming: v.optional(v.boolean()),
       streamId: v.optional(v.string()),
       isComplete: v.optional(v.boolean()),
@@ -86,9 +92,13 @@ export const list = query({
       return []
     }
 
+    const branchId = args.branchId || "main"
+    
     return await ctx.db
       .query("messages")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .withIndex("by_thread_branch", (q) => 
+        q.eq("threadId", args.threadId).eq("branchId", branchId)
+      )
       .order("desc")
       .take(50)
   },
@@ -99,6 +109,8 @@ export const send = mutation({
     threadId: v.id("threads"),
     body: v.string(),
     modelId: v.optional(modelIdValidator), // Use the validated modelId
+    branchId: v.optional(v.string()), // Default to "main"
+    parentMessageId: v.optional(v.id("messages")), // For chaining messages
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -133,6 +145,7 @@ export const send = mutation({
     const provider = getProviderFromModelId(modelId as ModelId)
 
     // Insert user message after setting generation flag
+    const branchId = args.branchId || "main"
     await ctx.db.insert("messages", {
       threadId: args.threadId,
       body: args.body,
@@ -140,6 +153,10 @@ export const send = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
+      // Branch fields
+      branchId: branchId,
+      branchSequence: 0, // Always 0 for main branch messages
+      parentMessageId: args.parentMessageId,
     })
 
     // Schedule AI response using the modelId
@@ -147,6 +164,7 @@ export const send = mutation({
       threadId: args.threadId,
       userMessage: args.body,
       modelId: modelId,
+      branchId: branchId,
     })
 
     // Check if this is the first user message in the thread (for title generation)
@@ -217,6 +235,9 @@ export const createThreadAndSend = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
+      // Branch fields - always start with main branch
+      branchId: "main",
+      branchSequence: 0,
     })
 
     // Schedule AI response
@@ -224,6 +245,7 @@ export const createThreadAndSend = mutation({
       threadId,
       userMessage: args.body,
       modelId: modelId,
+      branchId: "main",
     })
 
     // Schedule title generation (this is the first message)
@@ -242,6 +264,7 @@ export const generateAIResponse = internalAction({
     threadId: v.id("threads"),
     userMessage: v.string(),
     modelId: modelIdValidator, // Use validated modelId
+    branchId: v.optional(v.string()), // Default to "main"
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -256,6 +279,7 @@ export const generateAIResponse = internalAction({
       const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
       // Create initial AI message placeholder
+      const branchId = args.branchId || "main"
       messageId = await ctx.runMutation(
         internal.messages.createStreamingMessage,
         {
@@ -263,6 +287,7 @@ export const generateAIResponse = internalAction({
           streamId,
           provider,
           modelId: args.modelId,
+          branchId: branchId,
         },
       )
 
@@ -487,10 +512,12 @@ export const createStreamingMessage = internalMutation({
     streamId: v.string(),
     provider: modelProviderValidator,
     modelId: modelIdValidator,
+    branchId: v.optional(v.string()),
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
     const now = Date.now()
+    const branchId = args.branchId || "main"
     return await ctx.db.insert("messages", {
       threadId: args.threadId,
       body: "", // Will be updated as chunks arrive
@@ -505,6 +532,9 @@ export const createStreamingMessage = internalMutation({
       streamVersion: 0, // Initialize version counter
       lastChunkId: undefined, // Initialize last chunk ID
       modelId: args.modelId,
+      // Branch fields
+      branchId: branchId,
+      branchSequence: 0, // Always 0 for main branch messages
     })
   },
 })
@@ -765,6 +795,9 @@ export const createErrorMessage = internalMutation({
       isComplete: true,
       thinkingStartedAt: now,
       thinkingCompletedAt: now,
+      // Branch fields
+      branchId: "main", // Error messages always go to main branch
+      branchSequence: 0,
     })
 
     return null
