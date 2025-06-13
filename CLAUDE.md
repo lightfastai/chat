@@ -25,25 +25,25 @@ The development workflow integrates:
 ##### Standard Setup
 ```bash
 # Use the automated setup script for complete worktree initialization
-./scripts/setup-worktree.sh <feature_name>
+./scripts/setup-worktree.sh <username>/<feature_name>
 
 # This script automatically:
 # - Ensures main branch is up-to-date
 # - Creates worktree at worktrees/<feature_name>
-# - Creates branch jeevanpillay/<feature_name>
+# - Creates branch <username>/<feature_name>
 # - Installs dependencies with pnpm install
 # - Copies .env.local configuration
 # - Syncs environment variables to Convex
 # - Provides next steps guidance
 
 # Example:
-./scripts/setup-worktree.sh add-dark-mode
+./scripts/setup-worktree.sh jeevanpillay/add-dark-mode
 ```
 
 ##### Multi-Instance Setup (Advanced)
 ```bash
 # Use the enhanced multi-instance script for concurrent development
-./scripts/setup-worktree-multi.sh <feature_name> [options]
+./scripts/setup-worktree-multi.sh <username>/<feature_name> [options]
 
 # This enhanced script additionally:
 # - Auto-assigns unique ports for Next.js and Convex
@@ -53,9 +53,9 @@ The development workflow integrates:
 # - Updates package.json with custom port scripts
 
 # Examples:
-./scripts/setup-worktree-multi.sh add-dark-mode
-./scripts/setup-worktree-multi.sh fix-auth --port 3005 --local-convex
-./scripts/setup-worktree-multi.sh new-feature --preview-convex
+./scripts/setup-worktree-multi.sh jeevanpillay/add-dark-mode
+./scripts/setup-worktree-multi.sh alice/fix-auth --port 3005 --local-convex
+./scripts/setup-worktree-multi.sh bob/new-feature --preview-convex
 
 # Available options:
 # --port <port>           Custom Next.js port (default: auto-assigned)
@@ -64,7 +64,7 @@ The development workflow integrates:
 # --preview-convex        Use Convex preview deployment
 
 # Using pnpm scripts:
-pnpm worktree:multi my-feature --local-convex
+pnpm worktree:multi alice/my-feature --local-convex
 ```
 
 #### Manual Setup (Advanced)
@@ -326,13 +326,19 @@ vercel inspect <deployment_url>
 
 All feature branches must follow the pattern:
 ```
-jeevanpillay/<feature_name>
+<username>/<feature_name>
 ```
+
+The worktree setup scripts validate this format and require:
+- Username: letters, numbers, hyphens, and underscores only
+- Feature name: letters, numbers, hyphens, and underscores only
+- Separator: forward slash (/)
 
 Examples:
 - `jeevanpillay/add-dark-mode`
-- `jeevanpillay/fix-chat-threading`
-- `jeevanpillay/improve-ai-responses`
+- `alice/fix-chat-threading`  
+- `bob/improve-ai-responses`
+- `team-lead/new-auth-system`
 
 ## Commit Message Format
 

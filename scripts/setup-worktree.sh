@@ -22,30 +22,53 @@ log_error() { echo -e "${RED}❌ $1${NC}"; }
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 <feature_name>"
+    echo "Usage: $0 <username>/<feature_name>"
     echo ""
     echo "Creates a new worktree for feature development with automated setup:"
     echo "  - Creates worktree at worktrees/<feature_name>"
-    echo "  - Creates branch jeevanpillay/<feature_name>"
+    echo "  - Creates branch <username>/<feature_name>"
     echo "  - Installs dependencies with pnpm"
     echo "  - Sets up Convex configuration"
     echo "  - Syncs environment variables"
     echo ""
-    echo "Example: $0 add-dark-mode"
+    echo "Branch name must follow the format: <username>/<feature_name>"
+    echo ""
+    echo "Example: $0 jeevanpillay/add-dark-mode"
     exit 1
 }
 
-# Check if feature name provided
+# Function to validate branch name format
+validate_branch_name() {
+    local branch_name="$1"
+    
+    # Check if branch name follows username/feature pattern
+    if [[ ! "$branch_name" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid branch name format: '$branch_name'"
+        log_error "Branch name must follow the pattern: <username>/<feature_name>"
+        log_error "Examples: jeevanpillay/add-dark-mode, alice/fix-auth, bob/new-feature"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Check if branch name provided
 if [ -z "$1" ]; then
-    log_error "Feature name is required"
+    log_error "Branch name is required"
     show_usage
 fi
 
-FEATURE_NAME="$1"
-BRANCH_NAME="jeevanpillay/$FEATURE_NAME"
+BRANCH_NAME="$1"
+# Validate branch name format
+if ! validate_branch_name "$BRANCH_NAME"; then
+    exit 1
+fi
+
+# Extract feature name for worktree directory
+FEATURE_NAME="${BRANCH_NAME#*/}"
 WORKTREE_PATH="$WORKTREE_DIR/$FEATURE_NAME"
 
-log_info "Setting up worktree for feature: $FEATURE_NAME"
+log_info "Setting up worktree for branch: $BRANCH_NAME"
 
 # Ensure we're in the project root
 cd "$PROJECT_ROOT"

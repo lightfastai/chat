@@ -26,15 +26,17 @@ log_error() { echo -e "${RED}❌ $1${NC}"; }
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 <feature_name> [options]"
+    echo "Usage: $0 <username>/<feature_name> [options]"
     echo ""
     echo "Creates a new worktree for feature development with automated setup:"
     echo "  - Creates worktree at worktrees/<feature_name>"
-    echo "  - Creates branch jeevanpillay/<feature_name>"
+    echo "  - Creates branch <username>/<feature_name>"
     echo "  - Installs dependencies with pnpm"
     echo "  - Configures unique ports for multi-instance development"
     echo "  - Sets up independent Convex environment"
     echo "  - Syncs environment variables"
+    echo ""
+    echo "Branch name must follow the format: <username>/<feature_name>"
     echo ""
     echo "Options:"
     echo "  --port <port>           Custom Next.js port (default: auto-assigned)"
@@ -43,10 +45,43 @@ show_usage() {
     echo "  --preview-convex        Use Convex preview deployment"
     echo ""
     echo "Examples:"
-    echo "  $0 add-dark-mode"
-    echo "  $0 fix-auth --port 3005 --local-convex"
-    echo "  $0 new-feature --preview-convex"
+    echo "  $0 jeevanpillay/add-dark-mode"
+    echo "  $0 alice/fix-auth --port 3005 --local-convex"
+    echo "  $0 bob/new-feature --preview-convex"
     exit 1
+}
+
+# Function to validate branch name format
+validate_branch_name() {
+    local branch_name="$1"
+    
+    # Check if branch name follows username/feature pattern
+    if [[ ! "$branch_name" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid branch name format: '$branch_name'"
+        log_error "Branch name must follow the pattern: <username>/<feature_name>"
+        log_error "Examples: jeevanpillay/add-dark-mode, alice/fix-auth, bob/new-feature"
+        return 1
+    fi
+    
+    # Extract username and feature name
+    local username="${branch_name%/*}"
+    local feature="${branch_name#*/}"
+    
+    # Validate username (no empty, no special chars except - and _)
+    if [[ -z "$username" || ! "$username" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid username: '$username'"
+        log_error "Username must contain only letters, numbers, hyphens, and underscores"
+        return 1
+    fi
+    
+    # Validate feature name (no empty, no special chars except - and _)
+    if [[ -z "$feature" || ! "$feature" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid feature name: '$feature'"
+        log_error "Feature name must contain only letters, numbers, hyphens, and underscores"
+        return 1
+    fi
+    
+    return 0
 }
 
 # Function to find next available port
@@ -71,7 +106,7 @@ get_worktree_count() {
 }
 
 # Parse command line arguments
-FEATURE_NAME=""
+BRANCH_NAME=""
 CUSTOM_PORT=""
 CUSTOM_CONVEX_PORT=""
 USE_LOCAL_CONVEX=false
@@ -103,10 +138,10 @@ while [[ $# -gt 0 ]]; do
             show_usage
             ;;
         *)
-            if [ -z "$FEATURE_NAME" ]; then
-                FEATURE_NAME="$1"
+            if [ -z "$BRANCH_NAME" ]; then
+                BRANCH_NAME="$1"
             else
-                log_error "Multiple feature names provided"
+                log_error "Multiple branch names provided"
                 show_usage
             fi
             shift
@@ -114,16 +149,22 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if feature name provided
-if [ -z "$FEATURE_NAME" ]; then
-    log_error "Feature name is required"
+# Check if branch name provided
+if [ -z "$BRANCH_NAME" ]; then
+    log_error "Branch name is required"
     show_usage
 fi
 
-BRANCH_NAME="jeevanpillay/$FEATURE_NAME"
+# Validate branch name format
+if ! validate_branch_name "$BRANCH_NAME"; then
+    exit 1
+fi
+
+# Extract feature name for worktree directory
+FEATURE_NAME="${BRANCH_NAME#*/}"
 WORKTREE_PATH="$WORKTREE_DIR/$FEATURE_NAME"
 
-log_info "Setting up worktree for feature: $FEATURE_NAME"
+log_info "Setting up worktree for branch: $BRANCH_NAME"
 
 # Ensure we're in the project root
 cd "$PROJECT_ROOT"
