@@ -479,9 +479,46 @@ git push origin main
 git pull origin main
 ```
 
+## Issue Templates
+
+The project includes Claude Code-optimized issue templates designed for efficient AI-assisted development:
+
+### Available Templates
+1. **Feature Request** - For new features and enhancements
+   - Action-oriented language ("What needs to be done?")
+   - Browser-focused success criteria
+   - File path hints for navigation
+   - Browser testing checklist
+
+2. **Bug Report** - For reporting browser issues
+   - Browser-specific reproduction steps
+   - Component path hints
+   - Console error sections
+   - Browser verification checkboxes
+
+3. **Quick Task** - For simple, straightforward tasks
+   - Minimal three-field structure
+   - Task description, file location, test method
+   - No unnecessary boilerplate
+
+### Key Design Principles
+- **Browser-only focus**: No OS/environment fields
+- **AI-friendly language**: Clear, actionable descriptions
+- **Path hints**: Help Claude Code navigate efficiently
+- **Minimal friction**: Only essential fields required
+
+### Creating Issues
+When creating issues, choose the appropriate template to provide Claude Code with:
+- Clear starting points (file paths)
+- Specific success criteria
+- Browser-testable outcomes
+- No irrelevant environment details
+
 ## Project Structure
 
 ```
+├── .github/
+│   └── ISSUE_TEMPLATE/    # Claude Code-optimized issue templates
 ├── src/
 │   ├── app/            # Next.js App Router pages
 │   ├── components/     # React components
