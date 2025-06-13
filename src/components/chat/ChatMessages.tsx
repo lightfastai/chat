@@ -16,6 +16,7 @@ interface ChatMessagesProps {
     title?: string
     description?: string
   }
+  onBranch?: (messageId: string) => void
 }
 
 export function ChatMessages({
@@ -27,6 +28,7 @@ export function ChatMessages({
     description:
       "Start a conversation with our AI assistant. Messages stream in real-time!",
   },
+  onBranch,
 }: ChatMessagesProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
@@ -154,7 +156,12 @@ export function ChatMessages({
             ?.slice()
             .reverse()
             .map((msg) => (
-              <MessageDisplay key={msg._id} message={msg} userName="User" />
+              <MessageDisplay
+                key={msg._id}
+                message={msg}
+                userName="User"
+                onBranch={onBranch}
+              />
             ))}
 
           {isLoading && (

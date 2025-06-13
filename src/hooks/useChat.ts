@@ -165,6 +165,7 @@ export function useChat() {
   return {
     messages: allMessages,
     currentThread,
+    threadId: currentThread?._id,
     isNewChat,
     handleSendMessage,
     emptyState: {

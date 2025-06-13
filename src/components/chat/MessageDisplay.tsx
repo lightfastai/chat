@@ -40,10 +40,15 @@ type Message = Doc<"messages"> & { _streamId?: string | null }
 interface MessageDisplayProps {
   message: Message
   userName: string
+  onBranch?: (messageId: string) => void
 }
 
 // Component to display individual messages with streaming support
-export function MessageDisplay({ message, userName }: MessageDisplayProps) {
+export function MessageDisplay({
+  message,
+  userName,
+  onBranch,
+}: MessageDisplayProps) {
   const [thinkingDuration, setThinkingDuration] = React.useState<number | null>(
     null,
   )
@@ -111,7 +116,14 @@ export function MessageDisplay({ message, userName }: MessageDisplayProps) {
         {/* Show feedback and copy buttons for completed AI messages */}
         {isAI && message.isComplete !== false && !message._streamId && (
           <div className="opacity-0 transition-opacity group-hover/message:opacity-100">
-            <MessageActions message={message} />
+            <MessageActions message={message} onBranch={onBranch} />
+          </div>
+        )}
+
+        {/* Show branch button for user messages */}
+        {!isAI && onBranch && (
+          <div className="opacity-0 transition-opacity group-hover/message:opacity-100">
+            <MessageActions message={message} onBranch={onBranch} />
           </div>
         )}
       </div>

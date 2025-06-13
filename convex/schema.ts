@@ -31,6 +31,9 @@ export default defineSchema({
     lastMessageAt: v.number(),
     isTitleGenerating: v.optional(v.boolean()),
     isGenerating: v.optional(v.boolean()),
+    // Branch relationship tracking
+    parentThreadId: v.optional(v.id("threads")), // Parent thread if this is a branch
+    branchFromMessageId: v.optional(v.id("messages")), // Message this thread branched from
     // Thread-level usage tracking (denormalized for performance)
     usage: v.optional(
       v.object({

@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button"
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard"
 import { cn } from "@/lib/utils"
 import { useMutation, useQuery } from "convex/react"
-import { CheckIcon, ClipboardIcon, ThumbsDown, ThumbsUp } from "lucide-react"
+import {
+  CheckIcon,
+  ClipboardIcon,
+  GitBranch,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react"
 import React from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Doc } from "../../../convex/_generated/dataModel"
@@ -13,9 +19,14 @@ import { FeedbackModal } from "./FeedbackModal"
 interface MessageActionsProps {
   message: Doc<"messages">
   className?: string
+  onBranch?: (messageId: string) => void
 }
 
-export function MessageActions({ message, className }: MessageActionsProps) {
+export function MessageActions({
+  message,
+  className,
+  onBranch,
+}: MessageActionsProps) {
   const [showFeedbackModal, setShowFeedbackModal] = React.useState(false)
   const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 })
 
@@ -50,6 +61,10 @@ export function MessageActions({ message, className }: MessageActionsProps) {
     }
   }
 
+  const handleBranch = () => {
+    onBranch?.(message._id)
+  }
+
   return (
     <>
       <div className={cn("flex items-center gap-1", className)}>
@@ -79,6 +94,17 @@ export function MessageActions({ message, className }: MessageActionsProps) {
         >
           <ThumbsDown className="h-3.5 w-3.5" />
         </Button>
+        {onBranch && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleBranch}
+            aria-label="Branch conversation from here"
+          >
+            <GitBranch className="h-4 w-4" />
+          </Button>
+        )}
         {message.body && (
           <Button
             variant="ghost"
