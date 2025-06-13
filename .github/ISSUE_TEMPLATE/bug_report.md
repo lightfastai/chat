@@ -11,8 +11,9 @@ assignees: ''
 
 ## Where to look
 <!-- Help Claude Code find the relevant code -->
+<!-- You can reference files directly like @src/components/chat/ChatMessages.tsx -->
 - URL: `/chat/[threadId]`
-- Component: `src/components/...`
+- Component: `src/components/...` <!-- or @src/components/specific/Component.tsx -->
 - Console error: <!-- paste if any -->
 
 ## How to reproduce

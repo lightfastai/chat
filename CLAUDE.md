@@ -505,14 +505,23 @@ The project includes Claude Code-optimized issue templates designed for efficien
 - **Browser-only focus**: No OS/environment fields
 - **AI-friendly language**: Clear, actionable descriptions
 - **Path hints**: Help Claude Code navigate efficiently
+- **File references**: Support for @-mentioning files (e.g., @src/components/chat/ChatInput.tsx)
 - **Minimal friction**: Only essential fields required
 
 ### Creating Issues
 When creating issues, choose the appropriate template to provide Claude Code with:
-- Clear starting points (file paths)
+- Clear starting points (file paths or @-mentions like @src/app/layout.tsx)
 - Specific success criteria
 - Browser-testable outcomes
 - No irrelevant environment details
+
+#### File References
+You can reference files directly in issues using the @ symbol:
+- `@src/components/chat/ChatInput.tsx` - Reference specific files
+- `@convex/messages.ts` - Reference backend files
+- `@CLAUDE.md` - Reference documentation
+
+This helps Claude Code quickly navigate to relevant files when working on the issue.
 
 ## Project Structure
 

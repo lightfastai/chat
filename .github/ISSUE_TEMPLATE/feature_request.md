@@ -16,8 +16,9 @@ assignees: ''
 
 ## Technical hints
 <!-- Help Claude Code navigate the codebase efficiently -->
+<!-- You can reference files directly like @src/components/chat/ChatInput.tsx -->
 - Start with: `src/components/...`
-- Related to: <!-- existing feature/file -->
+- Related to: <!-- @existing/feature/file.tsx -->
 - Uses: <!-- specific library/pattern already in codebase -->
 
 ## Browser testing required
