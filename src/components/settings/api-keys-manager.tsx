@@ -1,5 +1,6 @@
 "use client"
 
+import { SettingsSection } from "@/components/settings/settings-section"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -10,9 +11,8 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { useMutation, useQuery } from "convex/react"
-import { Eye, EyeOff, Key, Trash2 } from "lucide-react"
+import { Check, ExternalLink, Eye, EyeOff, Key, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { api } from "../../../convex/_generated/api"
@@ -66,197 +66,253 @@ export function ApiKeysManager() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* OpenAI API Key */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Key className="w-5 h-5" />
-              <CardTitle>OpenAI API Key</CardTitle>
-            </div>
-            {userSettings?.hasOpenAIKey && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRemoveApiKey("openai")}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Remove
-              </Button>
-            )}
-          </div>
-          <CardDescription>
-            Use your own OpenAI API key for GPT models (gpt-4o, gpt-4o-mini,
-            gpt-3.5-turbo)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {userSettings?.hasOpenAIKey ? (
-            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-md">
-              <Key className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-green-600">
-                OpenAI API key is configured
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="openai-key">API Key</Label>
-              <div className="relative">
-                <Input
-                  id="openai-key"
-                  type={showOpenAI ? "text" : "password"}
-                  placeholder="sk-..."
-                  value={openaiKey}
-                  onChange={(e) => setOpenaiKey(e.target.value)}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowOpenAI(!showOpenAI)}
-                >
-                  {showOpenAI ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Get your API key from{" "}
-                <a
-                  href="https://platform.openai.com/api-keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:no-underline"
-                >
-                  OpenAI Platform
-                </a>
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Anthropic API Key */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Key className="w-5 h-5" />
-              <CardTitle>Anthropic API Key</CardTitle>
-            </div>
-            {userSettings?.hasAnthropicKey && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRemoveApiKey("anthropic")}
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Remove
-              </Button>
-            )}
-          </div>
-          <CardDescription>
-            Use your own Anthropic API key for Claude models (Claude Sonnet 4,
-            Claude 3.5, Claude Haiku)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {userSettings?.hasAnthropicKey ? (
-            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 rounded-md">
-              <Key className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-green-600">
-                Anthropic API key is configured
-              </span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="anthropic-key">API Key</Label>
-              <div className="relative">
-                <Input
-                  id="anthropic-key"
-                  type={showAnthropic ? "text" : "password"}
-                  placeholder="sk-ant-..."
-                  value={anthropicKey}
-                  onChange={(e) => setAnthropicKey(e.target.value)}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowAnthropic(!showAnthropic)}
-                >
-                  {showAnthropic ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Get your API key from{" "}
-                <a
-                  href="https://console.anthropic.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:no-underline"
-                >
-                  Anthropic Console
-                </a>
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Save Button */}
-      {(openaiKey || anthropicKey) && (
+    <div className="space-y-8">
+      {/* OpenAI Section */}
+      <SettingsSection
+        title="OpenAI"
+        description="Configure your OpenAI API key to use GPT models with your own account."
+      >
         <Card>
-          <CardContent className="pt-6">
-            <Button
-              onClick={handleSaveApiKeys}
-              disabled={isUpdating}
-              className="w-full"
-            >
-              {isUpdating ? "Saving..." : "Save API Keys"}
-            </Button>
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+                  <Key className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">API Key</CardTitle>
+                  <CardDescription className="text-sm">
+                    Access GPT models (gpt-4o, gpt-4o-mini, gpt-3.5-turbo)
+                  </CardDescription>
+                </div>
+              </div>
+              {userSettings?.hasOpenAIKey && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRemoveApiKey("openai")}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remove
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {userSettings?.hasOpenAIKey ? (
+              <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950/20">
+                <Check className="h-4 w-4 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                    API key configured
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    Your OpenAI API key is active and ready to use
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="openai-key" className="text-sm font-medium">
+                    API Key
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="openai-key"
+                      type={showOpenAI ? "text" : "password"}
+                      placeholder="sk-..."
+                      value={openaiKey}
+                      onChange={(e) => setOpenaiKey(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowOpenAI(!showOpenAI)}
+                    >
+                      {showOpenAI ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Get your API key from</span>
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  >
+                    OpenAI Platform
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
+      </SettingsSection>
+
+      {/* Anthropic Section */}
+      <SettingsSection
+        title="Anthropic"
+        description="Configure your Anthropic API key to use Claude models with your own account."
+      >
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
+                  <Key className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">API Key</CardTitle>
+                  <CardDescription className="text-sm">
+                    Access Claude models (Sonnet 4, Claude 3.5, Haiku)
+                  </CardDescription>
+                </div>
+              </div>
+              {userSettings?.hasAnthropicKey && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRemoveApiKey("anthropic")}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remove
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {userSettings?.hasAnthropicKey ? (
+              <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-950/20">
+                <Check className="h-4 w-4 text-green-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                    API key configured
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    Your Anthropic API key is active and ready to use
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="anthropic-key"
+                    className="text-sm font-medium"
+                  >
+                    API Key
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="anthropic-key"
+                      type={showAnthropic ? "text" : "password"}
+                      placeholder="sk-ant-..."
+                      value={anthropicKey}
+                      onChange={(e) => setAnthropicKey(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowAnthropic(!showAnthropic)}
+                    >
+                      {showAnthropic ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Get your API key from</span>
+                  <a
+                    href="https://console.anthropic.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  >
+                    Anthropic Console
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </SettingsSection>
+
+      {/* Save Actions */}
+      {(openaiKey || anthropicKey) && (
+        <div className="flex justify-end border-t pt-6">
+          <Button
+            onClick={handleSaveApiKeys}
+            disabled={isUpdating}
+            className="min-w-24"
+          >
+            {isUpdating ? "Saving..." : "Save"}
+          </Button>
+        </div>
       )}
 
-      <Separator />
-
-      {/* Information Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Security & Privacy</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>
-            • Your API keys are encrypted and stored securely in our database
-          </p>
-          <p>
-            • Keys are only decrypted when making API calls to the respective
-            providers
-          </p>
-          <p>• You can remove your keys at any time</p>
-          <p>
-            • If no personal keys are provided, we'll use our default API keys
-          </p>
-          <p>
-            • Usage and billing are handled directly by the API provider
-            (OpenAI/Anthropic)
-          </p>
-        </CardContent>
-      </Card>
+      {/* Security Information */}
+      <SettingsSection
+        title="Security & Privacy"
+        description="How we handle and protect your API keys."
+      >
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex gap-3">
+                <div className="mt-1">•</div>
+                <div>
+                  Your API keys are encrypted and stored securely in our
+                  database
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="mt-1">•</div>
+                <div>
+                  Keys are only decrypted when making API calls to the
+                  respective providers
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="mt-1">•</div>
+                <div>You can remove your keys at any time from this page</div>
+              </div>
+              <div className="flex gap-3">
+                <div className="mt-1">•</div>
+                <div>
+                  If no personal keys are provided, we'll use our default API
+                  keys
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="mt-1">•</div>
+                <div>
+                  Usage and billing are handled directly by the API provider
+                  (OpenAI/Anthropic)
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </SettingsSection>
     </div>
   )
 }
