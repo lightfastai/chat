@@ -333,11 +333,11 @@ export const generateAIResponse = internalAction({
                 .describe("The search query to find relevant web results"),
               numResults: z
                 .number()
-                .optional()
+                .default(5)
                 .describe("Number of results to return (1-10, default 5)"),
               includeText: z
                 .boolean()
-                .optional()
+                .default(true)
                 .describe("Whether to include full text content from results"),
             }),
           },
