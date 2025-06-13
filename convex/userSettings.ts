@@ -7,13 +7,13 @@ import { internalMutation, mutation, query } from "./_generated/server"
 // const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default-key-change-me"
 
 function encrypt(text: string): string {
-  // Simple base64 encoding - replace with proper encryption in production
-  return Buffer.from(text).toString("base64")
+  // Simple base64 encoding using Web APIs - replace with proper encryption in production
+  return btoa(text)
 }
 
 function decrypt(encryptedText: string): string {
-  // Simple base64 decoding - replace with proper decryption in production
-  return Buffer.from(encryptedText, "base64").toString()
+  // Simple base64 decoding using Web APIs - replace with proper decryption in production
+  return atob(encryptedText)
 }
 
 // Get user settings
