@@ -101,6 +101,7 @@ export const send = mutation({
     threadId: v.id("threads"),
     body: v.string(),
     modelId: v.optional(modelIdValidator), // Use the validated modelId
+    webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -149,6 +150,7 @@ export const send = mutation({
       threadId: args.threadId,
       userMessage: args.body,
       modelId: modelId,
+      webSearchEnabled: args.webSearchEnabled,
     })
 
     // Check if this is the first user message in the thread (for title generation)
@@ -177,6 +179,7 @@ export const createThreadAndSend = mutation({
     clientId: v.string(),
     body: v.string(),
     modelId: v.optional(modelIdValidator),
+    webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
@@ -226,6 +229,7 @@ export const createThreadAndSend = mutation({
       threadId,
       userMessage: args.body,
       modelId: modelId,
+      webSearchEnabled: args.webSearchEnabled,
     })
 
     // Schedule title generation (this is the first message)
@@ -244,6 +248,7 @@ export const generateAIResponse = internalAction({
     threadId: v.id("threads"),
     userMessage: v.string(),
     modelId: modelIdValidator, // Use validated modelId
+    webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -305,7 +310,11 @@ export const generateAIResponse = internalAction({
         model: selectedModel,
         messages: messages,
         temperature: 0.7,
-        tools: {
+      }
+
+      // Only enable web search tools if explicitly requested
+      if (args.webSearchEnabled) {
+        streamOptions.tools = {
           web_search: {
             description:
               "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
@@ -323,7 +332,7 @@ export const generateAIResponse = internalAction({
                 .describe("Whether to include full text content from results"),
             }),
           },
-        },
+        }
       }
 
       // For Claude 4.0 thinking mode, enable thinking/reasoning
