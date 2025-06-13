@@ -7,7 +7,9 @@ import { User } from "lucide-react"
 import React from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Doc } from "../../../convex/_generated/dataModel"
+import { BranchNavigation } from "./BranchNavigation"
 import { MessageActions } from "./MessageActions"
+import { MessageEdit } from "./MessageEdit"
 import { StreamingMessage } from "./StreamingMessage"
 
 // Lightfast logo component
@@ -41,6 +43,16 @@ interface MessageDisplayProps {
   message: Message
   userName: string
   onBranch?: (messageId: string) => void
+  onEdit?: (messageId: string, newContent: string) => void
+  onRetry?: (messageId: string) => void
+  isEditing?: boolean
+  onStartEdit?: (messageId: string) => void
+  onCancelEdit?: () => void
+  branchInfo?: {
+    currentBranch: number
+    totalBranches: number
+    onNavigate: (branchSequence: number) => void
+  }
 }
 
 // Component to display individual messages with streaming support
@@ -48,6 +60,12 @@ export function MessageDisplay({
   message,
   userName,
   onBranch,
+  onEdit,
+  onRetry,
+  isEditing,
+  onStartEdit,
+  onCancelEdit,
+  branchInfo,
 }: MessageDisplayProps) {
   const [thinkingDuration, setThinkingDuration] = React.useState<number | null>(
     null,
@@ -98,33 +116,66 @@ export function MessageDisplay({
       </Avatar>
 
       <div className="flex-1 relative">
-        <StreamingMessage
-          message={message}
-          className="text-sm leading-relaxed"
-          modelName={
-            isAI
-              ? message.modelId
-                ? getModelDisplayName(message.modelId)
-                : message.model
-                  ? getModelDisplayName(message.model)
-                  : "AI Assistant"
-              : undefined
-          }
-          thinkingDuration={thinkingDuration}
-        />
-
-        {/* Show feedback and copy buttons for completed AI messages */}
-        {isAI && message.isComplete !== false && !message._streamId && (
-          <div className="opacity-0 transition-opacity group-hover/message:opacity-100">
-            <MessageActions message={message} onBranch={onBranch} />
+        {/* Show branch navigation if available */}
+        {branchInfo && (
+          <div className="mb-2">
+            <BranchNavigation
+              currentBranch={branchInfo.currentBranch}
+              totalBranches={branchInfo.totalBranches}
+              onNavigate={branchInfo.onNavigate}
+            />
           </div>
         )}
 
-        {/* Show branch button for user messages */}
-        {!isAI && onBranch && (
-          <div className="opacity-0 transition-opacity group-hover/message:opacity-100">
-            <MessageActions message={message} onBranch={onBranch} />
-          </div>
+        {/* Show edit interface or regular message */}
+        {isEditing && !isAI ? (
+          <MessageEdit
+            initialValue={message.body}
+            onSave={(newContent) => onEdit?.(message._id, newContent)}
+            onCancel={() => onCancelEdit?.()}
+          />
+        ) : (
+          <StreamingMessage
+            message={message}
+            className="text-sm leading-relaxed"
+            modelName={
+              isAI
+                ? message.modelId
+                  ? getModelDisplayName(message.modelId)
+                  : message.model
+                    ? getModelDisplayName(message.model)
+                    : "AI Assistant"
+                : undefined
+            }
+            thinkingDuration={thinkingDuration}
+          />
+        )}
+
+        {/* Show actions for messages when not editing */}
+        {!isEditing && (
+          <>
+            {/* Show feedback and retry buttons for completed AI messages */}
+            {isAI && message.isComplete !== false && !message._streamId && (
+              <div className="opacity-0 transition-opacity group-hover/message:opacity-100">
+                <MessageActions 
+                  message={message} 
+                  onBranch={onBranch}
+                  onRetry={onRetry}
+                />
+              </div>
+            )}
+
+            {/* Show edit button for user messages */}
+            {!isAI && (
+              <div className="opacity-0 transition-opacity group-hover/message:opacity-100">
+                <MessageActions 
+                  message={message} 
+                  onBranch={onBranch}
+                  onEdit={onStartEdit}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

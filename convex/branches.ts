@@ -2,13 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server.js"
 
-// Import shared types
-import {
-  ALL_MODEL_IDS,
-} from "../src/lib/ai/types.js"
-
-// Create validator from the shared types
-const modelIdValidator = v.union(...ALL_MODEL_IDS.map((id) => v.literal(id)))
+// No need for model ID validator in this file
 
 // Get all branch variants for a specific message
 export const getBranchVariants = query({
@@ -23,8 +17,8 @@ export const getBranchVariants = query({
       body: v.string(),
       timestamp: v.number(),
       messageType: v.union(v.literal("user"), v.literal("assistant")),
-      branchId: v.string(),
-      branchSequence: v.number(),
+      branchId: v.optional(v.string()),
+      branchSequence: v.optional(v.number()),
       model: v.optional(v.string()),
       modelId: v.optional(v.string()),
     }),
@@ -56,8 +50,8 @@ export const getBranchVariants = query({
     // Include the original message as sequence 0
     const allVariants = [originalMessage, ...variants]
 
-    // Sort by branch sequence
-    allVariants.sort((a, b) => a.branchSequence - b.branchSequence)
+    // Sort by branch sequence (treat undefined as 0)
+    allVariants.sort((a, b) => (a.branchSequence || 0) - (b.branchSequence || 0))
 
     return allVariants.map((msg) => ({
       _id: msg._id,
@@ -77,8 +71,9 @@ export const getBranchVariants = query({
 // Create a branch from a user message (edit functionality)
 export const createUserMessageBranch = mutation({
   args: {
+    threadId: v.id("threads"),
     originalMessageId: v.id("messages"),
-    newBody: v.string(),
+    newContent: v.string(),
   },
   returns: v.object({
     branchMessageId: v.id("messages"),
@@ -104,10 +99,10 @@ export const createUserMessageBranch = mutation({
     }
 
     // Check if content is the same (no need to branch)
-    if (originalMessage.body.trim() === args.newBody.trim()) {
+    if (originalMessage.body.trim() === args.newContent.trim()) {
       return {
         branchMessageId: originalMessage._id,
-        branchSequence: originalMessage.branchSequence,
+        branchSequence: originalMessage.branchSequence || 0,
         totalBranches: 1,
       }
     }
@@ -129,7 +124,7 @@ export const createUserMessageBranch = mutation({
 
     const branchMessageId = await ctx.db.insert("messages", {
       threadId: originalMessage.threadId,
-      body: args.newBody,
+      body: args.newContent,
       timestamp: Date.now(),
       messageType: "user",
       branchId: branchId,
@@ -149,8 +144,8 @@ export const createUserMessageBranch = mutation({
 // Create a branch from an assistant message (retry functionality)
 export const createAssistantMessageBranch = mutation({
   args: {
+    threadId: v.id("threads"),
     originalMessageId: v.id("messages"),
-    modelId: modelIdValidator,
   },
   returns: v.object({
     branchMessageId: v.id("messages"),
@@ -196,7 +191,7 @@ export const createAssistantMessageBranch = mutation({
       timestamp: Date.now(),
       messageType: "assistant",
       model: originalMessage.model,
-      modelId: args.modelId,
+      modelId: originalMessage.modelId,
       branchId: branchId,
       parentMessageId: originalMessage.parentMessageId,
       branchFromMessageId: args.originalMessageId,
@@ -227,8 +222,8 @@ export const getMessagesForBranch = query({
       body: v.string(),
       timestamp: v.number(),
       messageType: v.union(v.literal("user"), v.literal("assistant")),
-      branchId: v.string(),
-      branchSequence: v.number(),
+      branchId: v.optional(v.string()),
+      branchSequence: v.optional(v.number()),
       parentMessageId: v.optional(v.id("messages")),
       branchFromMessageId: v.optional(v.id("messages")),
       model: v.optional(v.string()),

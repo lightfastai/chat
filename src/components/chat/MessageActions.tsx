@@ -7,7 +7,8 @@ import { useMutation, useQuery } from "convex/react"
 import {
   CheckIcon,
   ClipboardIcon,
-  GitBranch,
+  Edit3,
+  RotateCcw,
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react"
@@ -20,12 +21,16 @@ interface MessageActionsProps {
   message: Doc<"messages">
   className?: string
   onBranch?: (messageId: string) => void
+  onEdit?: (messageId: string) => void
+  onRetry?: (messageId: string) => void
 }
 
 export function MessageActions({
   message,
   className,
-  onBranch,
+  onBranch: _onBranch, // Keep for compatibility but don't use
+  onEdit,
+  onRetry,
 }: MessageActionsProps) {
   const [showFeedbackModal, setShowFeedbackModal] = React.useState(false)
   const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 })
@@ -61,50 +66,77 @@ export function MessageActions({
     }
   }
 
-  const handleBranch = () => {
-    onBranch?.(message._id)
+  const handleEdit = () => {
+    onEdit?.(message._id)
   }
+
+  const handleRetry = () => {
+    onRetry?.(message._id)
+  }
+
+  const isUserMessage = message.messageType === "user"
+  const isAssistantMessage = message.messageType === "assistant"
 
   return (
     <>
       <div className={cn("flex items-center gap-1", className)}>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-7 w-7 transition-colors",
-            feedback?.rating === "positive" &&
-              "text-green-600 hover:text-green-700",
-          )}
-          onClick={() => handleFeedback("positive")}
-          aria-label="Like message"
-        >
-          <ThumbsUp className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-7 w-7 transition-colors",
-            feedback?.rating === "negative" &&
-              "text-red-600 hover:text-red-700",
-          )}
-          onClick={() => handleFeedback("negative")}
-          aria-label="Dislike message"
-        >
-          <ThumbsDown className="h-3.5 w-3.5" />
-        </Button>
-        {onBranch && (
+        {/* User message actions */}
+        {isUserMessage && onEdit && (
           <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={handleBranch}
-            aria-label="Branch conversation from here"
+            onClick={handleEdit}
+            aria-label="Edit message"
           >
-            <GitBranch className="h-4 w-4" />
+            <Edit3 className="h-3.5 w-3.5" />
           </Button>
         )}
+
+        {/* Assistant message actions */}
+        {isAssistantMessage && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 transition-colors",
+                feedback?.rating === "positive" &&
+                  "text-green-600 hover:text-green-700",
+              )}
+              onClick={() => handleFeedback("positive")}
+              aria-label="Like message"
+            >
+              <ThumbsUp className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 transition-colors",
+                feedback?.rating === "negative" &&
+                  "text-red-600 hover:text-red-700",
+              )}
+              onClick={() => handleFeedback("negative")}
+              aria-label="Dislike message"
+            >
+              <ThumbsDown className="h-3.5 w-3.5" />
+            </Button>
+            {onRetry && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={handleRetry}
+                aria-label="Retry response"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </>
+        )}
+
+        {/* Copy button for all messages */}
         {message.body && (
           <Button
             variant="ghost"

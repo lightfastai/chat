@@ -45,8 +45,8 @@ export const list = query({
       model: v.optional(modelProviderValidator),
       modelId: v.optional(v.string()), // Keep as string for flexibility but validate in handler
       // Branch fields
-      branchId: v.string(),
-      branchSequence: v.number(),
+      branchId: v.optional(v.string()),
+      branchSequence: v.optional(v.number()),
       parentMessageId: v.optional(v.id("messages")),
       branchFromMessageId: v.optional(v.id("messages")),
       isStreaming: v.optional(v.boolean()),
@@ -94,13 +94,18 @@ export const list = query({
 
     const branchId = args.branchId || "main"
     
-    return await ctx.db
+    // Get all messages for the thread and filter by branchId in memory
+    // This handles the migration case where branchId might be undefined
+    const allMessages = await ctx.db
       .query("messages")
-      .withIndex("by_thread_branch", (q) => 
-        q.eq("threadId", args.threadId).eq("branchId", branchId)
-      )
+      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .order("desc")
-      .take(50)
+      .take(100)
+      
+    // Filter messages by branchId, treating undefined/null as "main"
+    return allMessages
+      .filter(msg => (msg.branchId || "main") === branchId)
+      .slice(0, 50)
   },
 })
 
@@ -153,7 +158,7 @@ export const send = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
-      // Branch fields
+      // Branch fields - provide defaults for optional fields
       branchId: branchId,
       branchSequence: 0, // Always 0 for main branch messages
       parentMessageId: args.parentMessageId,

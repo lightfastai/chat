@@ -68,10 +68,10 @@ export default defineSchema({
     modelId: v.optional(modelIdValidator),
     
     // v0.dev-style branching system
-    branchId: v.string(), // "main", "b1", "b2", etc.
+    branchId: v.optional(v.string()), // "main", "b1", "b2", etc. - optional for migration
     parentMessageId: v.optional(v.id("messages")), // Previous message in conversation
     branchFromMessageId: v.optional(v.id("messages")), // Original message this branched from
-    branchSequence: v.number(), // 0 for main, 1-9 for branches (max 10 total)
+    branchSequence: v.optional(v.number()), // 0 for main, 1-9 for branches (max 10 total)
     
     // Streaming support
     isStreaming: v.optional(v.boolean()),

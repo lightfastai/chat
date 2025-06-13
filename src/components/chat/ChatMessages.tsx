@@ -17,6 +17,11 @@ interface ChatMessagesProps {
     description?: string
   }
   onBranch?: (messageId: string) => void
+  onEdit?: (messageId: string, newContent: string) => void
+  onRetry?: (messageId: string) => void
+  onStartEdit?: (messageId: string) => void
+  onCancelEdit?: () => void
+  editingMessageId?: string
 }
 
 export function ChatMessages({
@@ -29,6 +34,11 @@ export function ChatMessages({
       "Start a conversation with our AI assistant. Messages stream in real-time!",
   },
   onBranch,
+  onEdit,
+  onRetry,
+  onStartEdit,
+  onCancelEdit,
+  editingMessageId,
 }: ChatMessagesProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
@@ -161,6 +171,11 @@ export function ChatMessages({
                 message={msg}
                 userName="User"
                 onBranch={onBranch}
+                onEdit={onEdit}
+                onRetry={onRetry}
+                onStartEdit={onStartEdit}
+                onCancelEdit={onCancelEdit}
+                isEditing={editingMessageId === msg._id}
               />
             ))}
 
