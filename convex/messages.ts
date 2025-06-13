@@ -323,30 +323,24 @@ export const generateAIResponse = internalAction({
           console.error("EXA_API_KEY not found - web search will fail")
         }
 
-        // TEMPORARY FIX: Disable tools for OpenAI until we debug the issue
-        if (provider === "openai") {
-          console.log("WARNING: Web search temporarily disabled for OpenAI due to compatibility issues")
-          // Don't add tools for OpenAI for now
-        } else {
-          streamOptions.tools = {
-            web_search: {
-              description:
-                "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
-              parameters: z.object({
-                query: z
-                  .string()
-                  .describe("The search query to find relevant web results"),
-                numResults: z
-                  .number()
-                  .optional()
-                  .describe("Number of results to return (1-10, default 5)"),
-                includeText: z
-                  .boolean()
-                  .optional()
-                  .describe("Whether to include full text content from results"),
-              }),
-            },
-          }
+        streamOptions.tools = {
+          web_search: {
+            description:
+              "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
+            parameters: z.object({
+              query: z
+                .string()
+                .describe("The search query to find relevant web results"),
+              numResults: z
+                .number()
+                .optional()
+                .describe("Number of results to return (1-10, default 5)"),
+              includeText: z
+                .boolean()
+                .optional()
+                .describe("Whether to include full text content from results"),
+            }),
+          },
         }
       }
 
@@ -536,10 +530,17 @@ export const generateAIResponse = internalAction({
         `V5 stream complete. Full content length: ${fullContent.length}`,
       )
 
-      if (fullContent.trim() === "") {
+      // Don't throw error for empty content when tools are enabled (known AI SDK issue #1831)
+      // OpenAI returns empty content blocks when tools are invoked, which is expected behavior
+      if (fullContent.trim() === "" && !args.webSearchEnabled) {
         throw new Error(
           `${provider} returned empty response - check API key and quota`,
         )
+      }
+      
+      // Log if we have empty content with tools enabled (expected behavior)
+      if (fullContent.trim() === "" && args.webSearchEnabled) {
+        console.log(`${provider} returned empty content with tools enabled - this is expected behavior`)
       }
 
       // Get final usage data
