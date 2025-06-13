@@ -176,6 +176,17 @@ export function ChatMessages({
                 onStartEdit={onStartEdit}
                 onCancelEdit={onCancelEdit}
                 isEditing={editingMessageId === msg._id}
+                branchInfo={
+                  (
+                    msg as Message & {
+                      _branchInfo?: {
+                        currentBranch: number
+                        totalBranches: number
+                        onNavigate: (branchSequence: number) => void
+                      }
+                    }
+                  )._branchInfo
+                }
               />
             ))}
 

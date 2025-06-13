@@ -157,8 +157,8 @@ export function MessageDisplay({
             {/* Show feedback and retry buttons for completed AI messages */}
             {isAI && message.isComplete !== false && !message._streamId && (
               <div className="opacity-0 transition-opacity group-hover/message:opacity-100">
-                <MessageActions 
-                  message={message} 
+                <MessageActions
+                  message={message}
                   onBranch={onBranch}
                   onRetry={onRetry}
                 />
@@ -168,8 +168,8 @@ export function MessageDisplay({
             {/* Show edit button for user messages */}
             {!isAI && (
               <div className="opacity-0 transition-opacity group-hover/message:opacity-100">
-                <MessageActions 
-                  message={message} 
+                <MessageActions
+                  message={message}
                   onBranch={onBranch}
                   onEdit={onStartEdit}
                 />

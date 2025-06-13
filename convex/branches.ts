@@ -1,9 +1,73 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server.js"
 import { internal } from "./_generated/api.js"
+import { mutation, query } from "./_generated/server.js"
+import type { Id } from "./_generated/dataModel.js"
 
 // No need for model ID validator in this file
+
+// Get all conversation branches for a thread
+export const getConversationBranches = query({
+  args: {
+    threadId: v.id("threads"),
+  },
+  returns: v.array(
+    v.object({
+      conversationBranchId: v.string(),
+      branchPoint: v.optional(v.id("messages")),
+      branchFromMessageId: v.optional(v.id("messages")),
+      messageCount: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      return []
+    }
+
+    // Verify thread access
+    const thread = await ctx.db.get(args.threadId)
+    if (!thread || thread.userId !== userId) {
+      return []
+    }
+
+    // Get all messages to find conversation branches
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .collect()
+
+    // Group by conversation branch
+    const branchGroups = new Map<
+      string,
+      {
+        conversationBranchId: string
+        branchPoint: string | undefined
+        branchFromMessageId: string | undefined
+        messageCount: number
+      }
+    >()
+
+    for (const message of allMessages) {
+      const conversationBranchId = message.conversationBranchId || "main"
+      if (!branchGroups.has(conversationBranchId)) {
+        branchGroups.set(conversationBranchId, {
+          conversationBranchId,
+          branchPoint: message.branchPoint,
+          branchFromMessageId: message.branchFromMessageId,
+          messageCount: 0,
+        })
+      }
+      branchGroups.get(conversationBranchId)!.messageCount++
+    }
+
+    return Array.from(branchGroups.values()).map(group => ({
+      ...group,
+      branchPoint: group.branchPoint ? group.branchPoint as Id<"messages"> : undefined,
+      branchFromMessageId: group.branchFromMessageId ? group.branchFromMessageId as Id<"messages"> : undefined,
+    }))
+  },
+})
 
 // Get all branch variants for a specific message
 export const getBranchVariants = query({
@@ -45,14 +109,18 @@ export const getBranchVariants = query({
     // Get all branch variants (including the original)
     const variants = await ctx.db
       .query("messages")
-      .withIndex("by_branch_from", (q) => q.eq("branchFromMessageId", args.messageId))
+      .withIndex("by_branch_from", (q) =>
+        q.eq("branchFromMessageId", args.messageId),
+      )
       .collect()
 
     // Include the original message as sequence 0
     const allVariants = [originalMessage, ...variants]
 
     // Sort by branch sequence (treat undefined as 0)
-    allVariants.sort((a, b) => (a.branchSequence || 0) - (b.branchSequence || 0))
+    allVariants.sort(
+      (a, b) => (a.branchSequence || 0) - (b.branchSequence || 0),
+    )
 
     return allVariants.map((msg) => ({
       _id: msg._id,
@@ -111,12 +179,16 @@ export const createUserMessageBranch = mutation({
     // Count existing branches
     const existingBranches = await ctx.db
       .query("messages")
-      .withIndex("by_branch_from", (q) => q.eq("branchFromMessageId", args.originalMessageId))
+      .withIndex("by_branch_from", (q) =>
+        q.eq("branchFromMessageId", args.originalMessageId),
+      )
       .collect()
 
     // Check branch limit (max 10 total including original)
     if (existingBranches.length >= 9) {
-      throw new Error("Maximum number of branches (10) reached for this message")
+      throw new Error(
+        "Maximum number of branches (10) reached for this message",
+      )
     }
 
     // Create new branch
@@ -174,12 +246,16 @@ export const createAssistantMessageBranch = mutation({
     // Count existing branches
     const existingBranches = await ctx.db
       .query("messages")
-      .withIndex("by_branch_from", (q) => q.eq("branchFromMessageId", args.originalMessageId))
+      .withIndex("by_branch_from", (q) =>
+        q.eq("branchFromMessageId", args.originalMessageId),
+      )
       .collect()
 
     // Check branch limit (max 10 total including original)
     if (existingBranches.length >= 9) {
-      throw new Error("Maximum number of branches (10) reached for this message")
+      throw new Error(
+        "Maximum number of branches (10) reached for this message",
+      )
     }
 
     // Find the user message that this assistant message was responding to
@@ -190,12 +266,14 @@ export const createAssistantMessageBranch = mutation({
       // Find the previous user message in the conversation
       const messages = await ctx.db
         .query("messages")
-        .withIndex("by_thread", (q) => q.eq("threadId", originalMessage.threadId))
+        .withIndex("by_thread", (q) =>
+          q.eq("threadId", originalMessage.threadId),
+        )
         .filter((q) => q.lt(q.field("timestamp"), originalMessage.timestamp))
         .order("desc")
         .take(10)
-      
-      userMessage = messages.find(msg => msg.messageType === "user")
+
+      userMessage = messages.find((msg) => msg.messageType === "user")
     }
 
     if (!userMessage) {
@@ -211,12 +289,23 @@ export const createAssistantMessageBranch = mutation({
     const newBranchSequence = existingBranches.length + 1
     const branchId = `b${newBranchSequence}`
 
+    // Create conversation branch ID for v0.dev-style branching
+    const conversationBranchId = `branch_${Date.now()}_${newBranchSequence}`
+
+    console.log(
+      `🔧 createAssistantMessageBranch: originalMessageId=${args.originalMessageId}, branchSequence=${newBranchSequence}, branchId=${branchId}, conversationBranchId=${conversationBranchId}`,
+    )
+
     // Schedule AI response generation for the new branch
     await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
       threadId: originalMessage.threadId,
       userMessage: userMessage.body,
       modelId: originalMessage.modelId || "gpt-4o-mini",
       branchId: branchId,
+      branchFromMessageId: args.originalMessageId,
+      branchSequence: newBranchSequence,
+      conversationBranchId: conversationBranchId,
+      branchPoint: args.originalMessageId,
     })
 
     // Return branch info (the actual message ID will be created by the scheduled action)
@@ -268,8 +357,8 @@ export const getMessagesForBranch = query({
     // Get all messages for this branch
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_thread_branch", (q) => 
-        q.eq("threadId", args.threadId).eq("branchId", args.branchId)
+      .withIndex("by_thread_branch", (q) =>
+        q.eq("threadId", args.threadId).eq("branchId", args.branchId),
       )
       .order("asc")
       .collect()

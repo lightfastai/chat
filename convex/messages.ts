@@ -49,6 +49,8 @@ export const list = query({
       branchSequence: v.optional(v.number()),
       parentMessageId: v.optional(v.id("messages")),
       branchFromMessageId: v.optional(v.id("messages")),
+      conversationBranchId: v.optional(v.string()),
+      branchPoint: v.optional(v.id("messages")),
       isStreaming: v.optional(v.boolean()),
       streamId: v.optional(v.string()),
       isComplete: v.optional(v.boolean()),
@@ -93,7 +95,7 @@ export const list = query({
     }
 
     const branchId = args.branchId || "main"
-    
+
     // Get all messages for the thread and filter by branchId in memory
     // This handles the migration case where branchId might be undefined
     const allMessages = await ctx.db
@@ -101,10 +103,15 @@ export const list = query({
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .order("desc")
       .take(100)
-      
+
+    // If no specific branchId is requested, return ALL messages for frontend filtering
+    if (!args.branchId) {
+      return allMessages.slice(0, 50)
+    }
+
     // Filter messages by branchId, treating undefined/null as "main"
     return allMessages
-      .filter(msg => (msg.branchId || "main") === branchId)
+      .filter((msg) => (msg.branchId || "main") === branchId)
       .slice(0, 50)
   },
 })
@@ -162,6 +169,8 @@ export const send = mutation({
       branchId: branchId,
       branchSequence: 0, // Always 0 for main branch messages
       parentMessageId: args.parentMessageId,
+      // Conversation branch fields
+      conversationBranchId: "main", // New messages always start in main conversation branch
     })
 
     // Schedule AI response using the modelId
@@ -243,6 +252,8 @@ export const createThreadAndSend = mutation({
       // Branch fields - always start with main branch
       branchId: "main",
       branchSequence: 0,
+      // Conversation branch fields
+      conversationBranchId: "main",
     })
 
     // Schedule AI response
@@ -270,6 +281,10 @@ export const generateAIResponse = internalAction({
     userMessage: v.string(),
     modelId: modelIdValidator, // Use validated modelId
     branchId: v.optional(v.string()), // Default to "main"
+    branchFromMessageId: v.optional(v.id("messages")), // For branch messages
+    branchSequence: v.optional(v.number()), // For branch messages
+    conversationBranchId: v.optional(v.string()), // For conversation branches
+    branchPoint: v.optional(v.id("messages")), // Where conversation branching occurred
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -285,6 +300,13 @@ export const generateAIResponse = internalAction({
 
       // Create initial AI message placeholder
       const branchId = args.branchId || "main"
+      const branchSequence = args.branchSequence || 0
+      const conversationBranchId = args.conversationBranchId || "main"
+
+      console.log(
+        `🔧 generateAIResponse: branchId=${branchId}, branchFromMessageId=${args.branchFromMessageId}, branchSequence=${branchSequence}, conversationBranchId=${conversationBranchId}`,
+      )
+
       messageId = await ctx.runMutation(
         internal.messages.createStreamingMessage,
         {
@@ -293,6 +315,10 @@ export const generateAIResponse = internalAction({
           provider,
           modelId: args.modelId,
           branchId: branchId,
+          branchFromMessageId: args.branchFromMessageId,
+          branchSequence: branchSequence,
+          conversationBranchId: conversationBranchId,
+          branchPoint: args.branchPoint,
         },
       )
 
@@ -309,7 +335,7 @@ export const generateAIResponse = internalAction({
           content:
             "You are a helpful AI assistant in a chat conversation. Be concise and friendly.",
         },
-        ...recentMessages.map((msg: any) => ({
+        ...recentMessages.map((msg) => ({
           role:
             msg.messageType === "user"
               ? ("user" as const)
@@ -518,11 +544,22 @@ export const createStreamingMessage = internalMutation({
     provider: modelProviderValidator,
     modelId: modelIdValidator,
     branchId: v.optional(v.string()),
+    branchFromMessageId: v.optional(v.id("messages")),
+    branchSequence: v.optional(v.number()),
+    conversationBranchId: v.optional(v.string()),
+    branchPoint: v.optional(v.id("messages")),
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
     const now = Date.now()
     const branchId = args.branchId || "main"
+    const branchSequence = args.branchSequence || 0
+    const conversationBranchId = args.conversationBranchId || "main"
+
+    console.log(
+      `🔧 Creating streaming message: branchId=${branchId}, branchFromMessageId=${args.branchFromMessageId}, branchSequence=${branchSequence}, conversationBranchId=${conversationBranchId}`,
+    )
+
     return await ctx.db.insert("messages", {
       threadId: args.threadId,
       body: "", // Will be updated as chunks arrive
@@ -539,7 +576,11 @@ export const createStreamingMessage = internalMutation({
       modelId: args.modelId,
       // Branch fields
       branchId: branchId,
-      branchSequence: 0, // Always 0 for main branch messages
+      branchSequence: branchSequence,
+      branchFromMessageId: args.branchFromMessageId,
+      // Conversation branch fields
+      conversationBranchId: conversationBranchId,
+      branchPoint: args.branchPoint,
     })
   },
 })
@@ -1022,5 +1063,3 @@ export const clearGenerationFlag = internalMutation({
     })
   },
 })
-
-

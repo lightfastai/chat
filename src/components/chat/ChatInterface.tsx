@@ -1,32 +1,261 @@
 "use client"
 
 import { useChat } from "@/hooks/useChat"
+import { useConversationBranches } from "@/hooks/useConversationBranches"
 import { useResumableChat } from "@/hooks/useResumableStream"
 import { useMutation } from "convex/react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { api } from "../../../convex/_generated/api"
-import type { Doc } from "../../../convex/_generated/dataModel"
+import type { Doc, Id } from "../../../convex/_generated/dataModel"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
 
 type Message = Doc<"messages">
 
+let renderCount = 0
+
 export function ChatInterface() {
-  // Use custom chat hook with optimistic updates
-  const {
-    messages,
-    handleSendMessage,
-    emptyState,
-    isDisabled,
-    currentThread,
-  } = useChat()
+  renderCount++
+  const currentRender = renderCount
+  console.log(`🔥 RENDER ${currentRender} - ChatInterface starting`)
 
   // State for editing messages
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
-  
+  const [messageBranches, setMessageBranches] = useState<
+    Record<string, number>
+  >({}) // messageId -> selected branch index for backward compatibility
+
+  // Use custom chat hook with optimistic updates
+  const { messages, handleSendMessage, emptyState, isDisabled, currentThread } =
+    useChat()
+
+  // Use conversation branches hook for clean branch management
+  const branchNavigation = useConversationBranches(messages)
+
+  // State to track message variants for branch navigation
+  const [messageVariants, setMessageVariants] = useState<
+    Map<string, { variants: Message[]; selected: number; total: number }>
+  >(new Map())
+
+  console.log(`🔥 RENDER ${currentRender} - State:`, {
+    messagesCount: messages.length,
+    currentBranch: branchNavigation.currentBranch,
+    branchCount: branchNavigation.branches.length,
+    editingMessageId,
+  })
+
   // Branch mutations
-  const createUserMessageBranch = useMutation(api.branches.createUserMessageBranch)
-  const createAssistantMessageBranch = useMutation(api.branches.createAssistantMessageBranch)
+  const createUserMessageBranch = useMutation(
+    api.branches.createUserMessageBranch,
+  )
+  const createAssistantMessageBranch = useMutation(
+    api.branches.createAssistantMessageBranch,
+  )
+
+  // Get messages for current branch using the clean hook
+  const processedMessages = useMemo(() => {
+    console.log(
+      `🔥 RENDER ${currentRender} - processedMessages useMemo starting`,
+    )
+    console.log("🎯 Raw messages from database:", messages.length)
+
+    // Get messages for the current conversation branch
+    const branchMessages = branchNavigation.getMessagesForBranch(
+      branchNavigation.currentBranch,
+    )
+
+    console.log(
+      `🎯 Branch ${branchNavigation.currentBranch}: ${branchMessages.length} messages`,
+    )
+
+    if (!branchMessages.length) {
+      console.log(
+        `🔥 RENDER ${currentRender} - processedMessages useMemo: no messages, returning empty`,
+      )
+      return []
+    }
+
+    // Handle message-level variants within the branch
+    const messageGroups = new Map<string, Message[]>()
+
+    // Group messages by their branch relationships
+    for (const message of messages) {
+      if (!message.branchFromMessageId) {
+        // Original message
+        if (!messageGroups.has(message._id)) {
+          messageGroups.set(message._id, [])
+        }
+        messageGroups.get(message._id)!.push(message)
+      } else {
+        // Branch variant
+        const originalId = message.branchFromMessageId
+        if (!messageGroups.has(originalId)) {
+          messageGroups.set(originalId, [])
+        }
+        messageGroups.get(originalId)!.push(message)
+      }
+    }
+
+    // Build the final message list with selected variants
+    const result: Message[] = []
+
+    // Get all original messages from branch messages, sorted by timestamp
+    const originalMessages = branchMessages
+      .filter((msg) => !msg.branchFromMessageId)
+      .sort((a, b) => a.timestamp - b.timestamp)
+
+    console.log(
+      "🔍 Found",
+      originalMessages.length,
+      "original messages in branch",
+    )
+
+    for (const originalMessage of originalMessages) {
+      const variants = messageGroups.get(originalMessage._id) || []
+
+      if (variants.length === 0) {
+        console.log(`🔍 No variants found for ${originalMessage._id}, skipping`)
+        continue
+      }
+
+      variants.sort((a, b) => (a.branchSequence || 0) - (b.branchSequence || 0))
+
+      // Select variant (auto-select latest for new branches)
+      const selectedIndex =
+        messageBranches[originalMessage._id] ?? variants.length - 1
+      const selectedMessage =
+        variants[selectedIndex] || variants[variants.length - 1]
+
+      console.log(
+        `🔍 Selected variant ${selectedIndex}/${variants.length} for ${originalMessage._id}:`,
+        selectedMessage._id,
+      )
+
+      result.push(selectedMessage)
+    }
+
+    // Also include conversation branch messages that don't have message-level variants
+    const branchMessages2 = branchMessages.filter(
+      (msg) =>
+        msg.branchFromMessageId && !result.find((r) => r._id === msg._id),
+    )
+
+    console.log(
+      "🔍 Found",
+      branchMessages2.length,
+      "conversation branch messages to add",
+    )
+    result.push(...branchMessages2)
+
+    // Sort by timestamp for display (desc - newest first)
+    result.sort((a, b) => b.timestamp - a.timestamp)
+
+    console.log(
+      `🔥 RENDER ${currentRender} - processedMessages useMemo COMPLETE - returning ${result.length} messages`,
+    )
+
+    return result
+  }, [messages, branchNavigation, messageBranches, currentRender])
+
+  // Update message variants when processed messages change
+  useEffect(() => {
+    console.log(
+      `🔥 RENDER ${currentRender} - useEffect (message variants) starting`,
+    )
+    if (!messages.length) {
+      console.log(
+        `🔥 RENDER ${currentRender} - useEffect (message variants) early return - no messages`,
+      )
+      return
+    }
+
+    const messageGroups = new Map<string, Message[]>()
+
+    // Build groups the same way as in processedMessages
+    for (const message of messages) {
+      if (!message.branchFromMessageId) {
+        if (!messageGroups.has(message._id)) {
+          messageGroups.set(message._id, [])
+        }
+        messageGroups.get(message._id)!.push(message)
+      } else {
+        const originalId = message.branchFromMessageId
+        if (!messageGroups.has(originalId)) {
+          messageGroups.set(originalId, [])
+        }
+        messageGroups.get(originalId)!.push(message)
+      }
+    }
+
+    const newMessageVariants = new Map<
+      string,
+      { variants: Message[]; selected: number; total: number }
+    >()
+    const updatedMessageBranches = { ...messageBranches }
+
+    // Only process original messages (not branches)
+    const originalMessages = messages.filter((msg) => !msg.branchFromMessageId)
+
+    for (const originalMessage of originalMessages) {
+      const variants = messageGroups.get(originalMessage._id) || []
+      if (variants.length === 0) continue
+
+      variants.sort((a, b) => (a.branchSequence || 0) - (b.branchSequence || 0))
+
+      // Auto-select the latest branch variant (highest sequence number)
+      // This ensures newly created branches are automatically shown
+      const currentSelectedIndex = messageBranches[originalMessage._id]
+      let selectedIndex = currentSelectedIndex
+
+      // If no selection exists, or if we have new variants, select the latest one
+      if (
+        currentSelectedIndex === undefined ||
+        variants.length >
+          (newMessageVariants.get(originalMessage._id)?.total || 0)
+      ) {
+        selectedIndex = variants.length - 1 // Select the newest variant
+        updatedMessageBranches[originalMessage._id] = selectedIndex
+        console.log(
+          `🎯 Auto-selecting newest variant for ${originalMessage._id}: index ${selectedIndex}/${variants.length}`,
+        )
+      } else {
+        selectedIndex = currentSelectedIndex
+      }
+
+      if (variants.length > 1) {
+        newMessageVariants.set(originalMessage._id, {
+          variants,
+          selected: selectedIndex,
+          total: variants.length,
+        })
+      }
+    }
+
+    // Update messageBranches if we auto-selected new variants
+    if (
+      JSON.stringify(updatedMessageBranches) !== JSON.stringify(messageBranches)
+    ) {
+      setMessageBranches(updatedMessageBranches)
+    }
+
+    setMessageVariants(newMessageVariants)
+    console.log(
+      `🔥 RENDER ${currentRender} - useEffect (message variants) COMPLETE`,
+    )
+  }, [messages, messageBranches])
+
+  // Auto-switching is now handled by the useConversationBranches hook
+
+  // Handle branch navigation for a specific message
+  const handleBranchNavigate = useCallback(
+    (originalMessageId: string, branchIndex: number) => {
+      setMessageBranches((prev) => ({
+        ...prev,
+        [originalMessageId]: branchIndex,
+      }))
+    },
+    [],
+  )
 
   // Handle editing user messages
   const handleStartEdit = useCallback((messageId: string) => {
@@ -40,12 +269,12 @@ export function ChatInterface() {
   const handleEdit = useCallback(
     async (messageId: string, newContent: string) => {
       if (!currentThread) return
-      
+
       try {
         // Create a new branch with the edited content
         await createUserMessageBranch({
           threadId: currentThread._id,
-          originalMessageId: messageId as any, // Type cast for Convex ID
+          originalMessageId: messageId as Id<"messages">, // Type cast for Convex ID
           newContent,
         })
         setEditingMessageId(null)
@@ -59,28 +288,31 @@ export function ChatInterface() {
   // Handle retrying assistant messages
   const handleRetry = useCallback(
     async (messageId: string) => {
-      if (!currentThread) return
-      
+      console.log("🔄 Retry button clicked for message:", messageId)
+      if (!currentThread) {
+        console.log("❌ No current thread available")
+        return
+      }
+
       try {
+        console.log("🚀 Creating assistant message branch...")
         // Create a new branch by retrying the assistant response
-        await createAssistantMessageBranch({
+        const result = await createAssistantMessageBranch({
           threadId: currentThread._id,
-          originalMessageId: messageId as any, // Type cast for Convex ID
+          originalMessageId: messageId as Id<"messages">, // Type cast for Convex ID
         })
+        console.log("✅ Branch creation successful:", result)
       } catch (error) {
-        console.error("Error creating assistant message branch:", error)
+        console.error("❌ Error creating assistant message branch:", error)
       }
     },
     [currentThread, createAssistantMessageBranch],
   )
 
   // Legacy branch handler (to be removed)
-  const handleBranch = useCallback(
-    async (messageId: string) => {
-      console.log("Legacy branch functionality", messageId)
-    },
-    [],
-  )
+  const handleBranch = useCallback(async (messageId: string) => {
+    console.log("Legacy branch functionality", messageId)
+  }, [])
 
   // Manage resumable streams
   const { activeStreams, startStream, endStream } = useResumableChat()
@@ -114,16 +346,78 @@ export function ChatInterface() {
     )
   }, [messages, activeStreams])
 
-  // Enhance messages with streaming text
+  // Enhance messages with streaming text and branch info
   const enhancedMessages = useMemo(() => {
-    return messages.map((msg: Message) => {
+    console.log("📊 Processing enhanced messages:")
+    console.log("📊 processedMessages count:", processedMessages.length)
+    console.log("📊 messageVariants size:", messageVariants.size)
+    console.log(
+      "📊 messageVariants entries:",
+      Array.from(messageVariants.entries()),
+    )
+
+    return processedMessages.map((msg: Message) => {
       const streamId = activeStreams.get(msg._id)
+
+      // Find the original message ID for branch navigation
+      const originalMessageId = msg.branchFromMessageId || msg._id
+      const variantInfo = messageVariants.get(originalMessageId)
+
+      // Check if this message is part of conversation-level branching
+      const isConversationBranchMessage =
+        msg.branchFromMessageId &&
+        (msg as Message & { conversationBranchId?: string })
+          .conversationBranchId !== "main"
+
+      console.log(
+        `📊 Message ${msg._id}: originalId=${originalMessageId}, variantInfo=`,
+        variantInfo,
+        "isConversationBranch=",
+        isConversationBranchMessage,
+      )
+
+      // For conversation branch messages, create conversation-level navigation
+      let branchInfo = undefined
+      if (isConversationBranchMessage) {
+        // Use the hook's branch navigation for this message
+        const navigation =
+          branchNavigation.getBranchNavigation(originalMessageId)
+        if (navigation) {
+          branchInfo = {
+            currentBranch: navigation.currentIndex,
+            totalBranches: navigation.totalBranches,
+            onNavigate: navigation.onNavigate,
+          }
+        }
+      } else if (variantInfo) {
+        // Regular message-level branching
+        branchInfo = {
+          currentBranch: variantInfo.selected,
+          totalBranches: variantInfo.total,
+          onNavigate: (branchIndex: number) =>
+            handleBranchNavigate(originalMessageId, branchIndex),
+        }
+      }
+
       return {
         ...msg,
         _streamId: streamId || null,
+        _originalMessageId: originalMessageId,
+        _branchInfo: branchInfo,
       }
     })
-  }, [messages, activeStreams])
+  }, [
+    processedMessages,
+    activeStreams,
+    messageVariants,
+    handleBranchNavigate,
+    messages,
+    branchNavigation,
+  ])
+
+  console.log(
+    `🔥 RENDER ${currentRender} - ChatInterface RENDERING with ${enhancedMessages.length} enhanced messages`,
+  )
 
   return (
     <div className="flex flex-col h-full">

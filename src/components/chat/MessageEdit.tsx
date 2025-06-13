@@ -48,15 +48,18 @@ export function MessageEdit({
     }
   }, [value, initialValue, onSave, onCancel])
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSave()
-    } else if (e.key === "Escape") {
-      e.preventDefault()
-      onCancel()
-    }
-  }, [handleSave, onCancel])
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        handleSave()
+      } else if (e.key === "Escape") {
+        e.preventDefault()
+        onCancel()
+      }
+    },
+    [handleSave, onCancel],
+  )
 
   return (
     <div className="space-y-2">
@@ -88,7 +91,8 @@ export function MessageEdit({
           Cancel
         </Button>
         <span className="text-xs text-muted-foreground">
-          Press {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+Enter to save
+          Press {navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+Enter to
+          save
         </span>
       </div>
     </div>

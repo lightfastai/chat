@@ -71,6 +71,10 @@ export function MessageActions({
   }
 
   const handleRetry = () => {
+    console.log(
+      "🎯 Retry button clicked in MessageActions for message:",
+      message._id,
+    )
     onRetry?.(message._id)
   }
 

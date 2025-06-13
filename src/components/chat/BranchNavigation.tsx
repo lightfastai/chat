@@ -16,13 +16,20 @@ export function BranchNavigation({
   onNavigate,
   className = "",
 }: BranchNavigationProps) {
-  if (totalBranches <= 1) return null
+  console.log("🔄 BranchNavigation rendered:", { currentBranch, totalBranches })
+
+  if (totalBranches <= 1) {
+    console.log("🔄 BranchNavigation hidden: totalBranches <= 1")
+    return null
+  }
 
   const canGoPrevious = currentBranch > 0
   const canGoNext = currentBranch < totalBranches - 1
 
   return (
-    <div className={`flex items-center gap-1 text-xs text-muted-foreground ${className}`}>
+    <div
+      className={`flex items-center gap-1 text-xs text-muted-foreground ${className}`}
+    >
       <Button
         variant="ghost"
         size="icon"
@@ -33,11 +40,11 @@ export function BranchNavigation({
       >
         <ChevronLeft className="h-3 w-3" />
       </Button>
-      
+
       <span className="px-1 font-mono">
         {currentBranch + 1}/{totalBranches}
       </span>
-      
+
       <Button
         variant="ghost"
         size="icon"

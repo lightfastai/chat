@@ -55,12 +55,20 @@ export function useChat() {
   // Determine the actual thread to use
   const currentThread = threadByClientId || threadById
 
-  // Get messages for current thread
-  const messages =
+  // Get messages for current thread with branch support
+  const getMessages = (branchId?: string) =>
     useQuery(
       api.messages.list,
-      currentThread ? { threadId: currentThread._id } : "skip",
+      currentThread
+        ? {
+            threadId: currentThread._id,
+            branchId: branchId,
+          }
+        : "skip",
     ) ?? []
+
+  // Default messages for main branch
+  const messages = getMessages()
 
   // Mutations with proper Convex optimistic updates
   const createThreadAndSend = useMutation(api.messages.createThreadAndSend)
