@@ -141,6 +141,21 @@ export const getFilesInternal = internalQuery({
   },
 })
 
+// Internal query to get a single file with URL
+export const getFileWithUrl = internalQuery({
+  args: { fileId: v.id("files") },
+  handler: async (ctx, args) => {
+    const file = await ctx.db.get(args.fileId)
+    if (!file) return null
+
+    const url = await ctx.storage.getUrl(file.storageId)
+    return {
+      ...file,
+      url,
+    }
+  },
+})
+
 export const deleteFile = mutation({
   args: { fileId: v.id("files") },
   handler: async (ctx, args) => {

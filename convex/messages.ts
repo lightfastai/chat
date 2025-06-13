@@ -243,6 +243,93 @@ export const createThreadAndSend = mutation({
   },
 })
 
+// Helper to get file URLs in an internal context
+async function getFileWithUrl(
+  ctx: { runQuery: typeof internalQuery },
+  fileId: Id<"files">,
+) {
+  // Use internal query to get file with URL
+  const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId })
+  return file
+}
+
+// Type for multimodal content
+type MultimodalContent =
+  | string
+  | Array<
+      | { type: "text"; text: string }
+      | { type: "image"; image: string }
+      | {
+          type: "document"
+          document: {
+            title: string
+            source: { type: "url"; url: string }
+          }
+        }
+    >
+
+// Helper function to build message content with attachments
+async function buildMessageContent(
+  ctx: { runQuery: typeof internalQuery },
+  text: string,
+  attachmentIds?: Id<"files">[],
+  provider?: "openai" | "anthropic",
+): Promise<MultimodalContent> {
+  // If no attachments, return simple text content
+  if (!attachmentIds || attachmentIds.length === 0) {
+    return text
+  }
+
+  // Build content array with text and files
+  const content = [{ type: "text" as const, text }]
+
+  // Fetch each file with its URL
+  for (const fileId of attachmentIds) {
+    const file = await getFileWithUrl(ctx, fileId)
+    if (!file || !file.url) continue
+
+    // Handle images
+    if (file.fileType.startsWith("image/")) {
+      if (provider === "openai") {
+        // OpenAI uses 'image' type with URL string
+        content.push({
+          type: "image" as const,
+          image: file.url,
+        })
+      } else {
+        // Claude uses 'image' type with URL string
+        content.push({
+          type: "image" as const,
+          image: file.url,
+        })
+      }
+    }
+    // Handle PDFs (only Claude supports PDFs)
+    else if (file.fileType === "application/pdf" && provider === "anthropic") {
+      // Claude supports PDFs as documents
+      content.push({
+        type: "document" as const,
+        document: {
+          title: file.fileName,
+          source: {
+            type: "url" as const,
+            url: file.url,
+          },
+        },
+      })
+    }
+    // For other file types, add as text description
+    else {
+      content.push({
+        type: "text" as const,
+        text: `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`,
+      })
+    }
+  }
+
+  return content
+}
+
 // Internal action to generate AI response using AI SDK v5
 export const generateAIResponse = internalAction({
   args: {
@@ -280,44 +367,43 @@ export const generateAIResponse = internalAction({
         { threadId: args.threadId },
       )
 
-      // Get attachment information if provided
-      let attachmentContext = ""
-      if (args.attachments && args.attachments.length > 0) {
-        const files = await ctx.runQuery(internal.files.getFilesInternal, {
-          fileIds: args.attachments,
-        })
-
-        attachmentContext = "\n\nAttached files:\n"
-        for (const file of files) {
-          if (file) {
-            attachmentContext += `- ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)`
-            if (file.metadata?.extractedText) {
-              attachmentContext += `\nContent: ${file.metadata.extractedText.substring(0, 1000)}${file.metadata.extractedText.length > 1000 ? "..." : ""}`
-            }
-            attachmentContext += "\n"
-          }
-        }
-      }
-
-      // Prepare messages for AI SDK v5 - using standard format
-      const messages = [
+      // Prepare messages for AI SDK v5 with multimodal support
+      const messages: Array<{
+        role: "system" | "user" | "assistant"
+        content: MultimodalContent
+      }> = [
         {
-          role: "system" as const,
+          role: "system",
           content:
-            "You are a helpful AI assistant in a chat conversation. Be concise and friendly. When users share files, acknowledge them and provide relevant assistance based on their content.",
+            "You are a helpful AI assistant in a chat conversation. Be concise and friendly. When users share images or files, you can view and analyze them directly.",
         },
-        ...recentMessages.map((msg, index) => ({
-          role:
-            msg.messageType === "user"
-              ? ("user" as const)
-              : ("assistant" as const),
-          content:
-            msg.body +
-            (msg.messageType === "user" && index === recentMessages.length - 1
-              ? attachmentContext
-              : ""),
-        })),
       ]
+
+      // Build conversation history with attachments
+      for (let i = 0; i < recentMessages.length; i++) {
+        const msg = recentMessages[i]
+        const isLastUserMessage =
+          i === recentMessages.length - 1 && msg.messageType === "user"
+
+        // For the last user message, include the current attachments
+        const attachmentsToUse =
+          isLastUserMessage && args.attachments
+            ? args.attachments
+            : msg.attachments
+
+        // Build message content with attachments
+        const content = await buildMessageContent(
+          ctx,
+          msg.body,
+          attachmentsToUse,
+          provider,
+        )
+
+        messages.push({
+          role: msg.messageType === "user" ? "user" : "assistant",
+          content,
+        })
+      }
 
       console.log(
         `Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
@@ -492,6 +578,7 @@ export const getRecentContext = internalQuery({
     v.object({
       body: v.string(),
       messageType: v.union(v.literal("user"), v.literal("assistant")),
+      attachments: v.optional(v.array(v.id("files"))),
     }),
   ),
   handler: async (ctx, args) => {
@@ -507,6 +594,7 @@ export const getRecentContext = internalQuery({
       .map((msg: Doc<"messages">) => ({
         body: msg.body,
         messageType: msg.messageType,
+        attachments: msg.attachments,
       }))
   },
 })
