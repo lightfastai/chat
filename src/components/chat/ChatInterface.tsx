@@ -21,7 +21,6 @@ export function ChatInterface() {
     handleSendMessage,
     emptyState,
     isDisabled,
-    threadId,
     currentThread,
   } = useChat()
 
@@ -34,12 +33,12 @@ export function ChatInterface() {
   // Handle branching from a message
   const handleBranch = useCallback(
     async (messageId: string) => {
-      if (!threadId) return
+      if (!currentThread?._id) return
 
       try {
         const clientId = nanoid()
         const newThreadId = await createBranch({
-          parentThreadId: threadId,
+          parentThreadId: currentThread._id,
           branchFromMessageId: messageId as Id<"messages">,
           title: "Branched conversation",
           clientId,
@@ -51,7 +50,7 @@ export function ChatInterface() {
         console.error("Failed to create branch:", error)
       }
     },
-    [threadId, createBranch, router],
+    [currentThread?._id, createBranch, router],
   )
 
   // Manage resumable streams
