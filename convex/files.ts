@@ -27,7 +27,7 @@ export const generateUploadUrl = mutation({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
-      throw new Error("Not authenticated")
+      throw new Error("Please sign in to upload files")
     }
 
     // Generate a storage upload URL
@@ -53,20 +53,29 @@ export const createFile = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
-      throw new Error("Not authenticated")
+      throw new Error("Please sign in to continue")
     }
 
     // Validate file size
     if (args.fileSize > MAX_FILE_SIZE) {
       throw new Error(
-        `File size exceeds maximum allowed size of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+        `File is too large. Maximum size allowed is ${MAX_FILE_SIZE / 1024 / 1024}MB`,
       )
     }
 
     // Validate file type
     if (!ALLOWED_FILE_TYPES.includes(args.fileType)) {
+      const friendlyTypes = [
+        "PDF",
+        "Text files",
+        "Markdown",
+        "CSV",
+        "JSON",
+        "Images (JPEG, PNG, GIF, WebP)",
+        "Word documents",
+      ]
       throw new Error(
-        `File type ${args.fileType} is not allowed. Allowed types: ${ALLOWED_FILE_TYPES.join(", ")}`,
+        `This file type is not supported. Please upload: ${friendlyTypes.join(", ")}`,
       )
     }
 
@@ -137,16 +146,16 @@ export const deleteFile = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
-      throw new Error("Not authenticated")
+      throw new Error("Please sign in to continue")
     }
 
     const file = await ctx.db.get(args.fileId)
     if (!file) {
-      throw new Error("File not found")
+      throw new Error("File not found or already deleted")
     }
 
     if (file.uploadedBy !== userId) {
-      throw new Error("Not authorized to delete this file")
+      throw new Error("You can only delete files you uploaded")
     }
 
     // Delete from storage

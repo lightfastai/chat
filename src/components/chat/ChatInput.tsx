@@ -114,7 +114,10 @@ const ChatInputComponent = ({
         for (const file of Array.from(files)) {
           // Validate file size (10MB max)
           if (file.size > 10 * 1024 * 1024) {
-            toast.error(`${file.name} exceeds the 10MB size limit`)
+            const sizeInMB = (file.size / (1024 * 1024)).toFixed(1)
+            toast.error(
+              `${file.name} is ${sizeInMB}MB. Maximum file size is 10MB`,
+            )
             continue
           }
 
@@ -129,7 +132,7 @@ const ChatInputComponent = ({
           })
 
           if (!result.ok) {
-            throw new Error(`Failed to upload ${file.name}`)
+            throw new Error(`Failed to upload ${file.name}. Please try again.`)
           }
 
           const { storageId } = await result.json()
@@ -150,11 +153,37 @@ const ChatInputComponent = ({
           })
         }
 
-        setAttachments([...attachments, ...newAttachments])
-        toast.success(`${newAttachments.length} file(s) uploaded successfully`)
+        if (newAttachments.length === 0 && files.length > 0) {
+          toast.error(
+            "No files were uploaded. Please check file types and sizes.",
+          )
+        } else {
+          setAttachments([...attachments, ...newAttachments])
+          if (newAttachments.length === 1) {
+            toast.success(`${newAttachments[0].name} uploaded successfully`)
+          } else if (newAttachments.length > 1) {
+            toast.success(
+              `${newAttachments.length} files uploaded successfully`,
+            )
+          }
+        }
       } catch (error) {
         console.error("Error uploading files:", error)
-        toast.error("Failed to upload files. Please try again.")
+
+        if (error instanceof Error) {
+          // Show specific error messages from backend
+          if (error.message.includes("sign in")) {
+            toast.error("Please sign in to upload files")
+          } else if (error.message.includes("file type")) {
+            toast.error(error.message)
+          } else if (error.message.includes("too large")) {
+            toast.error(error.message)
+          } else {
+            toast.error(`Upload failed: ${error.message}`)
+          }
+        } else {
+          toast.error("Failed to upload files. Please try again.")
+        }
       } finally {
         setIsUploading(false)
       }
