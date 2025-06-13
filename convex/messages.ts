@@ -123,6 +123,7 @@ export const send = mutation({
     modelId: v.optional(modelIdValidator), // Use the validated modelId
     branchId: v.optional(v.string()), // Default to "main"
     parentMessageId: v.optional(v.id("messages")), // For chaining messages
+    conversationBranchId: v.optional(v.string()), // For conversation-level branching
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -158,6 +159,12 @@ export const send = mutation({
 
     // Insert user message after setting generation flag
     const branchId = args.branchId || "main"
+    const conversationBranchId = args.conversationBranchId || "main" // Use provided conversation branch or default to main
+
+    console.log(
+      `🔧 send: Creating user message in conversationBranchId=${conversationBranchId}, branchId=${branchId}`,
+    )
+
     await ctx.db.insert("messages", {
       threadId: args.threadId,
       body: args.body,
@@ -170,7 +177,7 @@ export const send = mutation({
       branchSequence: 0, // Always 0 for main branch messages
       parentMessageId: args.parentMessageId,
       // Conversation branch fields
-      conversationBranchId: "main", // New messages always start in main conversation branch
+      conversationBranchId: conversationBranchId, // Use the provided conversation branch context
     })
 
     // Schedule AI response using the modelId
@@ -179,6 +186,7 @@ export const send = mutation({
       userMessage: args.body,
       modelId: modelId,
       branchId: branchId,
+      conversationBranchId: conversationBranchId, // Pass conversation branch context to AI response
     })
 
     // Check if this is the first user message in the thread (for title generation)
@@ -207,6 +215,7 @@ export const createThreadAndSend = mutation({
     clientId: v.string(),
     body: v.string(),
     modelId: v.optional(modelIdValidator),
+    conversationBranchId: v.optional(v.string()), // For conversation-level branching
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
@@ -242,6 +251,12 @@ export const createThreadAndSend = mutation({
     })
 
     // Insert user message
+    const conversationBranchId = args.conversationBranchId || "main" // Use provided conversation branch or default to main for new threads
+
+    console.log(
+      `🔧 createThreadAndSend: Creating first message in conversationBranchId=${conversationBranchId}`,
+    )
+
     await ctx.db.insert("messages", {
       threadId,
       body: args.body,
@@ -253,7 +268,7 @@ export const createThreadAndSend = mutation({
       branchId: "main",
       branchSequence: 0,
       // Conversation branch fields
-      conversationBranchId: "main",
+      conversationBranchId: conversationBranchId, // Use provided conversation branch context
     })
 
     // Schedule AI response
@@ -262,6 +277,7 @@ export const createThreadAndSend = mutation({
       userMessage: args.body,
       modelId: modelId,
       branchId: "main",
+      conversationBranchId: conversationBranchId, // Pass conversation branch context to AI response
     })
 
     // Schedule title generation (this is the first message)

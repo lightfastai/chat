@@ -26,11 +26,27 @@ export function ChatInterface() {
   >({}) // messageId -> selected branch index for backward compatibility
 
   // Use custom chat hook with optimistic updates
-  const { messages, handleSendMessage, emptyState, isDisabled, currentThread } =
-    useChat()
+  const {
+    messages,
+    handleSendMessage: baseSendMessage,
+    emptyState,
+    isDisabled,
+    currentThread,
+  } = useChat()
 
   // Use conversation branches hook for clean branch management
   const branchNavigation = useConversationBranches(messages)
+
+  // Wrapper function to pass current conversation branch context
+  const handleSendMessage = useCallback(
+    (message: string, modelId: string) => {
+      console.log(
+        `🔧 ChatInterface.handleSendMessage: Sending to branch ${branchNavigation.currentBranch}`,
+      )
+      return baseSendMessage(message, modelId, branchNavigation.currentBranch)
+    },
+    [baseSendMessage, branchNavigation.currentBranch],
+  )
 
   // State to track message variants for branch navigation
   const [messageVariants, setMessageVariants] = useState<

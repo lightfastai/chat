@@ -75,7 +75,7 @@ export function useChat() {
   // Note: Optimistic updates for new threads are handled via instant navigation to clientId URL
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
     (localStore, args) => {
-      const { threadId, body, modelId } = args
+      const { threadId, body, modelId, conversationBranchId } = args
       const existingMessages = localStore.getQuery(api.messages.list, {
         threadId,
       })
@@ -96,6 +96,8 @@ export function useChat() {
           // Branch fields for optimistic update
           branchId: "main",
           branchSequence: 0,
+          // Conversation branch fields for optimistic update
+          conversationBranchId: conversationBranchId || "main",
         }
 
         // Create new array with optimistic message at the beginning
@@ -111,8 +113,16 @@ export function useChat() {
   // Use messages directly - Convex optimistic updates handle everything
   const allMessages = messages
 
-  const handleSendMessage = async (message: string, modelId: string) => {
+  const handleSendMessage = async (
+    message: string,
+    modelId: string,
+    conversationBranchId?: string,
+  ) => {
     if (!message.trim()) return
+
+    console.log(
+      `🔧 useChat.handleSendMessage: Sending message to conversationBranchId=${conversationBranchId || "main"}`,
+    )
 
     try {
       if (isNewChat) {
@@ -126,6 +136,7 @@ export function useChat() {
           clientId: clientId,
           body: message,
           modelId: modelId as ModelId,
+          conversationBranchId: conversationBranchId, // Pass conversation branch context
         })
 
         return
@@ -138,6 +149,7 @@ export function useChat() {
           clientId: currentClientId,
           body: message,
           modelId: modelId as ModelId,
+          conversationBranchId: conversationBranchId, // Pass conversation branch context
         })
       } else if (currentThread) {
         // Normal message sending with Convex optimistic update
@@ -145,6 +157,7 @@ export function useChat() {
           threadId: currentThread._id,
           body: message,
           modelId: modelId as ModelId,
+          conversationBranchId: conversationBranchId, // Pass conversation branch context
         })
       }
     } catch (error) {

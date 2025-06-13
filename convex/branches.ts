@@ -1,8 +1,8 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { internal } from "./_generated/api.js"
-import { mutation, query } from "./_generated/server.js"
 import type { Id } from "./_generated/dataModel.js"
+import { mutation, query } from "./_generated/server.js"
 
 // No need for model ID validator in this file
 
@@ -61,10 +61,14 @@ export const getConversationBranches = query({
       branchGroups.get(conversationBranchId)!.messageCount++
     }
 
-    return Array.from(branchGroups.values()).map(group => ({
+    return Array.from(branchGroups.values()).map((group) => ({
       ...group,
-      branchPoint: group.branchPoint ? group.branchPoint as Id<"messages"> : undefined,
-      branchFromMessageId: group.branchFromMessageId ? group.branchFromMessageId as Id<"messages"> : undefined,
+      branchPoint: group.branchPoint
+        ? (group.branchPoint as Id<"messages">)
+        : undefined,
+      branchFromMessageId: group.branchFromMessageId
+        ? (group.branchFromMessageId as Id<"messages">)
+        : undefined,
     }))
   },
 })
