@@ -1,9 +1,6 @@
 "use client"
 
-import {
-  SettingsItem,
-  SettingsItemWithStatus,
-} from "@/components/settings/settings-item"
+import { SettingsCardItem } from "@/components/settings/settings-card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -62,9 +59,9 @@ export function ApiKeysManager() {
   }
 
   return (
-    <div className="divide-y">
+    <div className="space-y-6">
       {/* OpenAI API Key */}
-      <SettingsItemWithStatus
+      <SettingsCardItem
         title="OpenAI API Key"
         description="Use your own OpenAI API key for GPT models (gpt-4o, gpt-4o-mini, gpt-3.5-turbo)"
         status={userSettings?.hasOpenAIKey ? "Configured" : undefined}
@@ -126,10 +123,10 @@ export function ApiKeysManager() {
             </div>
           )}
         </div>
-      </SettingsItemWithStatus>
+      </SettingsCardItem>
 
       {/* Anthropic API Key */}
-      <SettingsItemWithStatus
+      <SettingsCardItem
         title="Anthropic API Key"
         description="Use your own Anthropic API key for Claude models (Sonnet 4, Claude 3.5, Haiku)"
         status={userSettings?.hasAnthropicKey ? "Configured" : undefined}
@@ -191,11 +188,11 @@ export function ApiKeysManager() {
             </div>
           )}
         </div>
-      </SettingsItemWithStatus>
+      </SettingsCardItem>
 
       {/* Save Button */}
       {(openaiKey || anthropicKey) && (
-        <SettingsItem
+        <SettingsCardItem
           title="Save Changes"
           description="Apply your API key changes"
         >
@@ -206,11 +203,11 @@ export function ApiKeysManager() {
           >
             {isUpdating ? "Saving..." : "Save"}
           </Button>
-        </SettingsItem>
+        </SettingsCardItem>
       )}
 
       {/* Security Information */}
-      <SettingsItem
+      <SettingsCardItem
         title="Security & Privacy"
         description="Your API keys are encrypted and stored securely. Keys are only decrypted when making API calls to the respective providers."
       >
@@ -222,7 +219,7 @@ export function ApiKeysManager() {
             <p>• Fallback to default keys</p>
           </div>
         </div>
-      </SettingsItem>
+      </SettingsCardItem>
     </div>
   )
 }

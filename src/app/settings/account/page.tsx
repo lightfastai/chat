@@ -1,4 +1,4 @@
-import { SettingsItem } from "@/components/settings/settings-item"
+import { SettingsCardItem } from "@/components/settings/settings-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
@@ -84,9 +84,9 @@ export default async function AccountPage() {
         </p>
       </div>
 
-      <div className="border-t divide-y">
+      <div className="space-y-6">
         {/* Profile */}
-        <SettingsItem
+        <SettingsCardItem
           title="Profile"
           description="Your basic account information from GitHub"
         >
@@ -112,28 +112,28 @@ export default async function AccountPage() {
               </p>
             </div>
           </div>
-        </SettingsItem>
+        </SettingsCardItem>
 
         {/* Member Since */}
-        <SettingsItem
+        <SettingsCardItem
           title="Member Since"
           description="When you first joined the platform"
         >
           <div className="text-sm text-muted-foreground">
             {formatDate(user._creationTime)}
           </div>
-        </SettingsItem>
+        </SettingsCardItem>
 
         {/* Verification Status */}
-        <SettingsItem
+        <SettingsCardItem
           title="Verification Status"
           description="Your account verification badges"
         >
           <div className="flex gap-2 flex-wrap">{getVerificationBadges()}</div>
-        </SettingsItem>
+        </SettingsCardItem>
 
         {/* Authentication */}
-        <SettingsItem
+        <SettingsCardItem
           title="Authentication"
           description="Your account is secured with GitHub OAuth"
         >
@@ -144,10 +144,10 @@ export default async function AccountPage() {
               <p>• Enhanced security protection</p>
             </div>
           </div>
-        </SettingsItem>
+        </SettingsCardItem>
 
         {/* Security */}
-        <SettingsItem
+        <SettingsCardItem
           title="Data Security"
           description="How we protect your information"
         >
@@ -158,7 +158,7 @@ export default async function AccountPage() {
               <p>• No passwords stored locally</p>
             </div>
           </div>
-        </SettingsItem>
+        </SettingsCardItem>
       </div>
     </div>
   )
