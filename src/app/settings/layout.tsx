@@ -36,19 +36,19 @@ export default async function SettingsLayout({
     <div className="min-h-screen bg-background">
       {/* Vercel-style header */}
       <div className="border-b">
-        <div className="flex h-24 items-center gap-4 px-12">
+        <div className="flex flex-col gap-3 px-12 py-8">
+          <h1 className="text-2xl font-bold">Chat Settings</h1>
           <BackButton fallbackHref="/chat" />
-          <h1 className="text-lg font-semibold">Chat Settings</h1>
         </div>
       </div>
 
       <div className="flex">
         {/* Clean sidebar without background or border */}
         <div className="w-64 flex justify-center">
-          <div className="p-8">
-            <div className="space-y-6">
+          <div className="pt-4 px-4">
+            <div className="space-y-4">
               <div>
-                <h2 className="mb-3 text-sm font-medium text-muted-foreground text-center">
+                <h2 className="mb-2 text-sm font-medium text-muted-foreground text-center">
                   General
                 </h2>
                 <nav className="space-y-1">
@@ -73,7 +73,7 @@ export default async function SettingsLayout({
 
         {/* Main content area */}
         <div className="flex-1">
-          <div className="mx-auto max-w-4xl p-8">{children}</div>
+          <div className="mx-auto max-w-4xl pt-4 px-8 pb-8">{children}</div>
         </div>
       </div>
     </div>
