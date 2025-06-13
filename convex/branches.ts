@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server.js"
+import { internal } from "./_generated/api.js"
 
 // No need for model ID validator in this file
 
@@ -181,27 +182,46 @@ export const createAssistantMessageBranch = mutation({
       throw new Error("Maximum number of branches (10) reached for this message")
     }
 
-    // Create new branch with placeholder content (will be filled by AI generation)
+    // Find the user message that this assistant message was responding to
+    let userMessage = null
+    if (originalMessage.parentMessageId) {
+      userMessage = await ctx.db.get(originalMessage.parentMessageId)
+    } else {
+      // Find the previous user message in the conversation
+      const messages = await ctx.db
+        .query("messages")
+        .withIndex("by_thread", (q) => q.eq("threadId", originalMessage.threadId))
+        .filter((q) => q.lt(q.field("timestamp"), originalMessage.timestamp))
+        .order("desc")
+        .take(10)
+      
+      userMessage = messages.find(msg => msg.messageType === "user")
+    }
+
+    if (!userMessage) {
+      throw new Error("Could not find user message to retry from")
+    }
+
+    // Set thread generation flag to prevent race conditions
+    await ctx.db.patch(originalMessage.threadId, {
+      isGenerating: true,
+    })
+
+    // Create new branch and let generateAIResponse create the message
     const newBranchSequence = existingBranches.length + 1
     const branchId = `b${newBranchSequence}`
 
-    const branchMessageId = await ctx.db.insert("messages", {
+    // Schedule AI response generation for the new branch
+    await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
       threadId: originalMessage.threadId,
-      body: "", // Will be filled by streaming
-      timestamp: Date.now(),
-      messageType: "assistant",
-      model: originalMessage.model,
-      modelId: originalMessage.modelId,
+      userMessage: userMessage.body,
+      modelId: originalMessage.modelId || "gpt-4o-mini",
       branchId: branchId,
-      parentMessageId: originalMessage.parentMessageId,
-      branchFromMessageId: args.originalMessageId,
-      branchSequence: newBranchSequence,
-      isStreaming: true,
-      isComplete: false,
     })
 
+    // Return branch info (the actual message ID will be created by the scheduled action)
     return {
-      branchMessageId,
+      branchMessageId: args.originalMessageId, // Return original as placeholder
       branchSequence: newBranchSequence,
       totalBranches: existingBranches.length + 2, // +1 for original, +1 for new branch
     }

@@ -309,7 +309,7 @@ export const generateAIResponse = internalAction({
           content:
             "You are a helpful AI assistant in a chat conversation. Be concise and friendly.",
         },
-        ...recentMessages.map((msg) => ({
+        ...recentMessages.map((msg: any) => ({
           role:
             msg.messageType === "user"
               ? ("user" as const)
@@ -1022,3 +1022,5 @@ export const clearGenerationFlag = internalMutation({
     })
   },
 })
+
+
