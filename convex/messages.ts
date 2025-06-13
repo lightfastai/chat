@@ -1009,12 +1009,35 @@ export const getThreadById = internalQuery({
   returns: v.union(
     v.object({
       _id: v.id("threads"),
+      _creationTime: v.number(),
       userId: v.id("users"),
+      clientId: v.optional(v.string()),
       title: v.string(),
       createdAt: v.number(),
       lastMessageAt: v.number(),
       isGenerating: v.optional(v.boolean()),
       isTitleGenerating: v.optional(v.boolean()),
+      usage: v.optional(
+        v.object({
+          totalInputTokens: v.number(),
+          totalOutputTokens: v.number(),
+          totalTokens: v.number(),
+          totalReasoningTokens: v.number(),
+          totalCachedInputTokens: v.number(),
+          messageCount: v.number(),
+          modelStats: v.record(
+            v.string(),
+            v.object({
+              messageCount: v.number(),
+              inputTokens: v.number(),
+              outputTokens: v.number(),
+              totalTokens: v.number(),
+              reasoningTokens: v.number(),
+              cachedInputTokens: v.number(),
+            }),
+          ),
+        }),
+      ),
     }),
     v.null(),
   ),
