@@ -1,5 +1,4 @@
 import { ApiKeysManager } from "@/components/settings/api-keys-manager"
-import { SettingsHeader } from "@/components/settings/settings-header"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
@@ -29,13 +28,18 @@ export default async function ApiKeysPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <SettingsHeader
-        title="API Keys"
-        description="Configure your AI provider API keys to use your own accounts. Your keys are encrypted and stored securely."
-      />
+    <div className="space-y-0">
+      <div className="space-y-1 pb-6">
+        <h2 className="text-2xl font-semibold tracking-tight">API Keys</h2>
+        <p className="text-muted-foreground">
+          Configure your AI provider API keys to use your own accounts. Your
+          keys are encrypted and stored securely.
+        </p>
+      </div>
 
-      <ApiKeysManager />
+      <div className="border-t">
+        <ApiKeysManager />
+      </div>
     </div>
   )
 }

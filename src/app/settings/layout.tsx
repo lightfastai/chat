@@ -1,7 +1,7 @@
 import { BackButton } from "@/components/settings/back-button"
 import { getCurrentUser, isAuthenticated } from "@/lib/auth"
 import { cn } from "@/lib/utils"
-import { Key, User } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
@@ -13,14 +13,10 @@ const settingsNavigation = [
   {
     name: "Account",
     href: "/settings/account",
-    icon: User,
-    description: "Manage your profile and account settings",
   },
   {
     name: "API Keys",
     href: "/settings/api-keys",
-    icon: Key,
-    description: "Configure your AI provider API keys",
   },
 ]
 
@@ -39,59 +35,48 @@ export default async function SettingsLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header with back navigation */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <BackButton fallbackHref="/chat">Back to Chat</BackButton>
+      {/* Vercel-style header */}
+      <div className="border-b">
+        <div className="flex h-16 items-center gap-4 px-6">
+          <BackButton fallbackHref="/chat">
+            <ArrowLeft className="h-4 w-4" />
+          </BackButton>
+          <h1 className="text-lg font-semibold">Chat Settings</h1>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex gap-8 max-w-6xl mx-auto">
-          {/* Settings Navigation Sidebar */}
-          <div className="w-64 shrink-0">
-            <div className="sticky top-8">
-              <div className="mb-8">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Settings
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Manage your account and application preferences
-                </p>
-              </div>
-
-              <nav className="space-y-1">
-                {settingsNavigation.map((item) => {
-                  return (
+      <div className="flex">
+        {/* Vercel-style sidebar */}
+        <div className="w-64 border-r bg-muted/20">
+          <div className="p-6">
+            <div className="space-y-6">
+              <div>
+                <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+                  General
+                </h2>
+                <nav className="space-y-1">
+                  {settingsNavigation.map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "group flex items-start gap-3 rounded-lg px-3 py-3 text-sm transition-all",
+                        "block rounded-md px-3 py-2 text-sm transition-colors",
                         "hover:bg-accent hover:text-accent-foreground",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       )}
                     >
-                      <item.icon className="h-4 w-4 mt-0.5 text-muted-foreground group-hover:text-accent-foreground" />
-                      <div className="flex-1 space-y-1">
-                        <div className="font-medium leading-none">
-                          {item.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.description}
-                        </div>
-                      </div>
+                      {item.name}
                     </Link>
-                  )
-                })}
-              </nav>
+                  ))}
+                </nav>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Settings Content */}
-          <div className="flex-1 min-w-0">
-            <div className="max-w-2xl">{children}</div>
-          </div>
+        {/* Main content area */}
+        <div className="flex-1">
+          <div className="mx-auto max-w-4xl p-6">{children}</div>
         </div>
       </div>
     </div>
