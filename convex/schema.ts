@@ -89,6 +89,7 @@ export default defineSchema({
     isComplete: v.optional(v.boolean()),
     thinkingStartedAt: v.optional(v.number()),
     thinkingCompletedAt: v.optional(v.number()),
+    usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
     streamChunks: v.optional(
       v.array(
         v.object({

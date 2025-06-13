@@ -10,6 +10,8 @@ This document tracks what needs to be done to fully activate the BYOK feature on
 - Settings UI for API key management
 - Settings layout with navigation
 - User dropdown navigation updates
+- Visual indicator for messages generated with user's API keys
+- Message schema extension to track BYOK usage
 - Build validation and linting compliance
 
 🔄 **PENDING ACTIVATION** (requires Convex dev environment):
@@ -63,6 +65,18 @@ const model = (userApiKeys && userApiKeys.openai)
 const userSettings = useQuery(api.userSettings.getUserSettings)
 const updateApiKeys = useMutation(api.userSettings.updateApiKeys)
 const removeApiKey = useMutation(api.userSettings.removeApiKey)
+```
+
+### 3. Enable Visual Indicator Logic
+
+**File**: `convex/messages.ts` (lines 276-280) - Enable BYOK tracking
+```typescript
+// TODO: Enable this logic when userApiKeys is properly implemented
+// Replace: const willUseUserApiKey = false
+// With:
+const willUseUserApiKey = 
+  (provider === "anthropic" && userApiKeys && userApiKeys.anthropic) ||
+  (provider === "openai" && userApiKeys && userApiKeys.openai)
 ```
 
 **File**: `src/components/settings/api-keys-manager.tsx` (lines 8-9)

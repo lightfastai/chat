@@ -51,6 +51,7 @@ export const list = query({
       thinkingContent: v.optional(v.string()),
       isThinking: v.optional(v.boolean()),
       hasThinkingContent: v.optional(v.boolean()),
+      usedUserApiKey: v.optional(v.boolean()),
       usage: v.optional(
         v.object({
           inputTokens: v.optional(v.number()),
@@ -270,6 +271,13 @@ export const generateAIResponse = internalAction({
       // Generate unique stream ID
       const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
+      // Determine if user's API key will be used
+      // TODO: Enable this logic when userApiKeys is properly implemented
+      const willUseUserApiKey = false
+      // const willUseUserApiKey =
+      //   (provider === "anthropic" && userApiKeys && userApiKeys.anthropic) ||
+      //   (provider === "openai" && userApiKeys && userApiKeys.openai)
+
       // Create initial AI message placeholder
       messageId = await ctx.runMutation(
         internal.messages.createStreamingMessage,
@@ -278,6 +286,7 @@ export const generateAIResponse = internalAction({
           streamId,
           provider,
           modelId: args.modelId,
+          usedUserApiKey: !!willUseUserApiKey,
         },
       )
 
@@ -503,6 +512,7 @@ export const createStreamingMessage = internalMutation({
     streamId: v.string(),
     provider: modelProviderValidator,
     modelId: modelIdValidator,
+    usedUserApiKey: v.optional(v.boolean()),
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
@@ -521,6 +531,7 @@ export const createStreamingMessage = internalMutation({
       streamVersion: 0, // Initialize version counter
       lastChunkId: undefined, // Initialize last chunk ID
       modelId: args.modelId,
+      usedUserApiKey: args.usedUserApiKey,
     })
   },
 })
