@@ -1,7 +1,7 @@
 import { anthropic } from "@ai-sdk/anthropic"
 import { openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
-import { streamText } from "ai"
+import { type CoreMessage, streamText } from "ai"
 import { v } from "convex/values"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
@@ -245,30 +245,29 @@ export const createThreadAndSend = mutation({
 })
 
 // Helper to get file URLs in an internal context
-async function getFileWithUrl(ctx: any, fileId: Id<"files">) {
+async function getFileWithUrl(
+  ctx: any, // Convex action context
+  fileId: Id<"files">,
+) {
   // Use internal query to get file with URL
   const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId })
   return file
 }
 
-// Type for multimodal content
-type MultimodalContent =
-  | string
-  | Array<
-      | { type: "text"; text: string }
-      | { type: "image"; image: string }
-      | {
-          type: "document"
-          document: {
-            title: string
-            source: { type: "url"; url: string }
-          }
-        }
-    >
+// Type for multimodal content parts based on AI SDK v5
+type TextPart = { type: "text"; text: string }
+type ImagePart = { type: "image"; image: string | URL }
+type FilePart = {
+  type: "file"
+  data: string | URL
+  mediaType: string
+}
+
+type MultimodalContent = string | Array<TextPart | ImagePart | FilePart>
 
 // Helper function to build message content with attachments
 async function buildMessageContent(
-  ctx: any,
+  ctx: any, // Convex action context
   text: string,
   attachmentIds?: Id<"files">[],
   provider?: "openai" | "anthropic",
@@ -279,7 +278,9 @@ async function buildMessageContent(
   }
 
   // Build content array with text and files
-  const content: any[] = [{ type: "text", text }]
+  const content = [{ type: "text" as const, text }] as Array<
+    TextPart | ImagePart | FilePart
+  >
 
   // Fetch each file with its URL
   for (const fileId of attachmentIds) {
@@ -291,29 +292,24 @@ async function buildMessageContent(
       if (provider === "openai") {
         // OpenAI uses 'image' type with URL string
         content.push({
-          type: "image",
+          type: "image" as const,
           image: file.url,
         })
       } else {
         // Claude uses 'image' type with URL string
         content.push({
-          type: "image",
+          type: "image" as const,
           image: file.url,
         })
       }
     }
     // Handle PDFs (only Claude supports PDFs)
     else if (file.fileType === "application/pdf" && provider === "anthropic") {
-      // Claude supports PDFs as documents
+      // Claude supports PDFs as file type
       content.push({
-        type: "document",
-        document: {
-          title: file.fileName,
-          source: {
-            type: "url",
-            url: file.url,
-          },
-        },
+        type: "file" as const,
+        data: file.url,
+        mediaType: "application/pdf",
       })
     }
     // For other file types, add as text description
@@ -327,7 +323,7 @@ async function buildMessageContent(
       }
 
       content.push({
-        type: "text",
+        type: "text" as const,
         text: description,
       })
     }
@@ -395,7 +391,7 @@ export const generateAIResponse = internalAction({
       }
 
       // Prepare messages for AI SDK v5 with multimodal support
-      const messages: any[] = [
+      const messages: CoreMessage[] = [
         {
           role: "system",
           content: systemPrompt,
@@ -425,7 +421,7 @@ export const generateAIResponse = internalAction({
         messages.push({
           role: msg.messageType === "user" ? "user" : "assistant",
           content,
-        })
+        } as CoreMessage)
       }
 
       console.log(
