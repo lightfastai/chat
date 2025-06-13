@@ -17,12 +17,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { DEFAULT_MODEL_ID, getAllModels, getModelById } from "@/lib/ai"
-import { Loader2, Send } from "lucide-react"
+import { Globe, Loader2, Send } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
-
 interface ChatInputProps {
-  onSendMessage: (message: string, modelId: string) => Promise<void> | void
+  onSendMessage: (
+    message: string,
+    modelId: string,
+    webSearchEnabled?: boolean,
+  ) => Promise<void> | void
   isLoading?: boolean
   placeholder?: string
   disabled?: boolean
@@ -42,6 +45,7 @@ const ChatInputComponent = ({
   const [isSending, setIsSending] = useState(false)
   const [selectedModelId, setSelectedModelId] =
     useState<string>(DEFAULT_MODEL_ID)
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Memoize expensive computations
@@ -87,7 +91,7 @@ const ChatInputComponent = ({
     setIsSending(true)
 
     try {
-      await onSendMessage(message, selectedModelId)
+      await onSendMessage(message, selectedModelId, webSearchEnabled)
       setMessage("")
     } catch (error) {
       console.error("Error sending message:", error)
@@ -134,6 +138,10 @@ const ChatInputComponent = ({
     setSelectedModelId(value)
   }, [])
 
+  const handleWebSearchToggle = useCallback(() => {
+    setWebSearchEnabled((prev) => !prev)
+  }, [])
+
   // Memoize computed values
   const canSend = useMemo(
     () => message.trim() && !isSending && !disabled && !isLoading,
@@ -171,41 +179,64 @@ const ChatInputComponent = ({
 
               {/* Controls area - always at bottom */}
               <div className="flex items-center justify-between p-2 bg-input/10">
-                <Select
-                  value={selectedModelId}
-                  onValueChange={handleModelChange}
-                >
-                  <SelectTrigger className="h-6 w-[140px] text-xs border-0">
-                    <SelectValue>{selectedModel?.displayName}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(modelsByProvider).map(
-                      ([provider, models]) => (
-                        <SelectGroup key={provider}>
-                          <SelectLabel className="text-xs font-medium capitalize">
-                            {provider}
-                          </SelectLabel>
-                          {models.map((model) => (
-                            <SelectItem
-                              key={model.id}
-                              value={model.id}
-                              className="text-xs"
-                            >
-                              <div className="flex flex-col">
-                                <span>{model.displayName}</span>
-                                {model.features.thinking && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    Extended reasoning mode
-                                  </span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={selectedModelId}
+                    onValueChange={handleModelChange}
+                  >
+                    <SelectTrigger className="h-6 w-[140px] text-xs border-0">
+                      <SelectValue>{selectedModel?.displayName}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(modelsByProvider).map(
+                        ([provider, models]) => (
+                          <SelectGroup key={provider}>
+                            <SelectLabel className="text-xs font-medium capitalize">
+                              {provider}
+                            </SelectLabel>
+                            {models.map((model) => (
+                              <SelectItem
+                                key={model.id}
+                                value={model.id}
+                                className="text-xs"
+                              >
+                                <div className="flex flex-col">
+                                  <span>{model.displayName}</span>
+                                  {model.features.thinking && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Extended reasoning mode
+                                    </span>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleWebSearchToggle}
+                        variant={webSearchEnabled ? "default" : "ghost"}
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        disabled={disabled || isSending}
+                      >
+                        <Globe className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {webSearchEnabled
+                          ? "Web search enabled - AI can search the web for current information"
+                          : "Enable web search for current information"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
 
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -227,7 +258,7 @@ const ChatInputComponent = ({
           </div>
         </div>
 
-        {/* Bottom section for future features */}
+        {/* Bottom section for status */}
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-2">
             {isLoading && (

@@ -100,7 +100,11 @@ export function useChat() {
   // Use messages directly - Convex optimistic updates handle everything
   const allMessages = messages
 
-  const handleSendMessage = async (message: string, modelId: string) => {
+  const handleSendMessage = async (
+    message: string,
+    modelId: string,
+    webSearchEnabled?: boolean,
+  ) => {
     if (!message.trim()) return
 
     try {
@@ -115,6 +119,7 @@ export function useChat() {
           clientId: clientId,
           body: message,
           modelId: modelId as ModelId,
+          webSearchEnabled,
         })
 
         return
@@ -127,6 +132,7 @@ export function useChat() {
           clientId: currentClientId,
           body: message,
           modelId: modelId as ModelId,
+          webSearchEnabled,
         })
       } else if (currentThread) {
         // Normal message sending with Convex optimistic update
@@ -134,6 +140,7 @@ export function useChat() {
           threadId: currentThread._id,
           body: message,
           modelId: modelId as ModelId,
+          webSearchEnabled,
         })
       }
     } catch (error) {
