@@ -298,6 +298,7 @@ export const generateAIResponse = internalAction({
       console.log(
         `Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
       )
+      console.log(`Schema fix timestamp: ${Date.now()}`)
       console.log(`Web search enabled: ${args.webSearchEnabled}`)
 
       // Choose the appropriate model using the actual model name
