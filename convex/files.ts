@@ -1,6 +1,6 @@
+import { getAuthUserId } from "@convex-dev/auth/server"
 import { asyncMap } from "convex-helpers"
 import { v } from "convex/values"
-import type { Id } from "./_generated/dataModel"
 import { internalQuery, mutation, query } from "./_generated/server"
 
 // Maximum file size (10MB)
@@ -25,8 +25,8 @@ const ALLOWED_FILE_TYPES = [
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    const user = await ctx.auth.getUserIdentity()
-    if (!user) {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
       throw new Error("Not authenticated")
     }
 
@@ -51,8 +51,8 @@ export const createFile = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity()
-    if (!user) {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
       throw new Error("Not authenticated")
     }
 
@@ -69,8 +69,6 @@ export const createFile = mutation({
         `File type ${args.fileType} is not allowed. Allowed types: ${ALLOWED_FILE_TYPES.join(", ")}`,
       )
     }
-
-    const userId = user.subject as Id<"users">
 
     // Create file record
     const fileId = await ctx.db.insert("files", {
@@ -137,8 +135,8 @@ export const getFilesInternal = internalQuery({
 export const deleteFile = mutation({
   args: { fileId: v.id("files") },
   handler: async (ctx, args) => {
-    const user = await ctx.auth.getUserIdentity()
-    if (!user) {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
       throw new Error("Not authenticated")
     }
 
@@ -147,7 +145,6 @@ export const deleteFile = mutation({
       throw new Error("File not found")
     }
 
-    const userId = user.subject as Id<"users">
     if (file.uploadedBy !== userId) {
       throw new Error("Not authorized to delete this file")
     }
