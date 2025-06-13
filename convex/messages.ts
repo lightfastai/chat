@@ -377,9 +377,13 @@ export const generateAIResponse = internalAction({
 
       console.log("Starting to process v5 stream chunks...")
 
+      let hasReceivedAnyChunks = false
+      let toolCallsProcessed = 0
+
       // Process each chunk as it arrives from the stream
       for await (const chunk of fullStream) {
-        console.log("Received v5 chunk type:", chunk.type)
+        hasReceivedAnyChunks = true
+        console.log("Received v5 chunk type:", chunk.type, "hasText:", !!(chunk.type === "text" && "text" in chunk && chunk.text))
 
         // Handle different types of chunks
         if (chunk.type === "text" && chunk.text) {
@@ -400,7 +404,8 @@ export const generateAIResponse = internalAction({
           chunk.toolName === "web_search"
         ) {
           // Handle web search tool calls
-          console.log("Web search tool called with args:", chunk.args)
+          toolCallsProcessed++
+          console.log(`Processing tool call #${toolCallsProcessed} - web search with args:`, chunk.args)
 
           try {
             // Perform web search directly using Exa
@@ -527,7 +532,7 @@ export const generateAIResponse = internalAction({
       }
 
       console.log(
-        `V5 stream complete. Full content length: ${fullContent.length}`,
+        `V5 stream complete. Full content length: ${fullContent.length}, chunks received: ${hasReceivedAnyChunks}, tool calls: ${toolCallsProcessed}`,
       )
 
       // Don't throw error for empty content when tools are enabled (known AI SDK issue #1831)
@@ -541,11 +546,22 @@ export const generateAIResponse = internalAction({
       // Log if we have empty content with tools enabled (expected behavior)
       if (fullContent.trim() === "" && args.webSearchEnabled) {
         console.log(`${provider} returned empty content with tools enabled - this is expected behavior`)
+        
+        // If we have no content but processed tool calls, ensure we have some content to display
+        if (toolCallsProcessed > 0 && fullContent.trim() === "") {
+          fullContent = `Processed ${toolCallsProcessed} web search${toolCallsProcessed > 1 ? 'es' : ''}.`
+          console.log("Added fallback content for empty response with tool calls")
+        }
       }
 
       // Get final usage data
       const finalUsage = await usage
       console.log("Final usage data:", finalUsage)
+
+      // Ensure we always have some content to complete with, even if just tool results
+      if (fullContent.trim() === "" && toolCallsProcessed === 0) {
+        fullContent = "I apologize, but I wasn't able to generate a response. Please try again."
+      }
 
       // Mark message as complete with usage data
       await ctx.runMutation(internal.messages.completeStreamingMessage, {
@@ -553,10 +569,14 @@ export const generateAIResponse = internalAction({
         usage: finalUsage,
       })
 
+      console.log(`Message ${messageId} marked as complete with ${fullContent.length} characters`)
+
       // Clear generation flag on success
       await ctx.runMutation(internal.messages.clearGenerationFlag, {
         threadId: args.threadId,
       })
+      
+      console.log(`Generation flag cleared for thread ${args.threadId}`)
     } catch (error) {
       const provider = getProviderFromModelId(args.modelId as ModelId)
       console.error(
