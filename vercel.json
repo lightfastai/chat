@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bunx convex deploy --cmd 'bun run turbo:build' --preview-run 'setup:setupInitialData'",
+  "buildCommand": "bunx convex deploy --cmd 'SKIP_ENV_VALIDATION=true bun run turbo:build' --preview-run 'setup:setupInitialData'",
   "devCommand": "bun dev",
   "installCommand": "bun install",
   "framework": "nextjs",
