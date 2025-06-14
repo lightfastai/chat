@@ -270,6 +270,7 @@ async function buildMessageContent(
   text: string,
   attachmentIds?: Id<"files">[],
   provider?: "openai" | "anthropic",
+  modelId?: string,
 ): Promise<MultimodalContent> {
   // If no attachments, return simple text content
   if (!attachmentIds || attachmentIds.length === 0) {
@@ -289,11 +290,35 @@ async function buildMessageContent(
     // Handle images
     if (file.fileType.startsWith("image/")) {
       if (provider === "openai") {
-        // OpenAI uses 'image' type with URL string
-        content.push({
-          type: "image" as const,
-          image: file.url,
-        })
+        // GPT-3.5 requires base64 encoding, while GPT-4 models support URLs
+        const needsBase64 = modelId === "gpt-3.5-turbo"
+
+        if (needsBase64) {
+          try {
+            // Fetch the image and convert to base64
+            const response = await fetch(file.url)
+            const arrayBuffer = await response.arrayBuffer()
+            const base64 = Buffer.from(arrayBuffer).toString("base64")
+            const dataUrl = `data:${file.fileType};base64,${base64}`
+
+            content.push({
+              type: "image" as const,
+              image: dataUrl,
+            })
+          } catch (error) {
+            console.error("Failed to convert image to base64:", error)
+            // Fallback to text description
+            if (content[0] && "text" in content[0]) {
+              content[0].text += `\n\n[Unable to process image: ${file.fileName}]`
+            }
+          }
+        } else {
+          // GPT-4 models can use URLs directly
+          content.push({
+            type: "image" as const,
+            image: file.url,
+          })
+        }
       } else {
         // Claude uses 'image' type with URL string
         content.push({
@@ -415,6 +440,7 @@ export const generateAIResponse = internalAction({
           msg.body,
           attachmentsToUse,
           provider,
+          args.modelId,
         )
 
         messages.push({
