@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env bun
 
 import { execSync, spawnSync } from "node:child_process"
 import { readFileSync, unlinkSync, writeFileSync } from "node:fs"
