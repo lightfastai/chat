@@ -341,7 +341,10 @@ export const generateAIResponse = internalAction({
       // Get recent conversation context
       const recentMessages = await ctx.runQuery(
         internal.messages.getRecentContext,
-        { threadId: args.threadId },
+        {
+          threadId: args.threadId,
+          conversationBranchId: conversationBranchId,
+        },
       )
 
       // Prepare messages for AI SDK v5 - using standard format
@@ -528,6 +531,7 @@ export const generateAIResponse = internalAction({
 export const getRecentContext = internalQuery({
   args: {
     threadId: v.id("threads"),
+    conversationBranchId: v.optional(v.string()), // Filter by conversation branch
   },
   returns: v.array(
     v.object({
@@ -536,9 +540,16 @@ export const getRecentContext = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
+    // Use the conversation branch index if branch ID is provided
+    const conversationBranchId = args.conversationBranchId || "main"
+
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .withIndex("by_thread_conversation_branch", (q) =>
+        q
+          .eq("threadId", args.threadId)
+          .eq("conversationBranchId", conversationBranchId),
+      )
       .order("desc")
       .take(10)
 
