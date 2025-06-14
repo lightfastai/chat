@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { Polar } from "@polar-sh/sdk"
 import { v } from "convex/values"
+import { api } from "../_generated/api"
 import { action } from "../_generated/server"
 
 /**
@@ -35,12 +36,14 @@ export const createCheckout = action({
       // Initialize Polar client
       const polar = new Polar({
         accessToken: process.env.POLAR_ACCESS_TOKEN!,
-        server: process.env.POLAR_SERVER || "production",
+        server: (process.env.POLAR_SERVER || "production") as
+          | "production"
+          | "sandbox",
       })
 
       // Create checkout session
       const checkout = await polar.checkouts.create({
-        productId,
+        products: [productId],
         successUrl: `${process.env.SITE_URL || "http://localhost:3000"}/subscription/success`,
         // Include customer information
         customerEmail: user.email,
@@ -65,9 +68,6 @@ export const createCheckout = action({
     }
   },
 })
-
-// Import api for use in the action
-import { api } from "../_generated/api"
 
 /**
  * Create a customer portal session for managing subscriptions
@@ -94,22 +94,18 @@ export const createCustomerPortal = action({
       // Initialize Polar client
       const polar = new Polar({
         accessToken: process.env.POLAR_ACCESS_TOKEN!,
-        server: process.env.POLAR_SERVER || "production",
+        server: (process.env.POLAR_SERVER || "production") as
+          | "production"
+          | "sandbox",
       })
 
       // Create customer session
       const session = await polar.customerSessions.create({
-        customer: {
-          customerId: customer.polarCustomerId,
-        },
+        customerId: customer.polarCustomerId,
       })
 
-      // Generate customer portal URL
-      const portalUrl = `https://app.polar.sh/portal/${session.token}`
-
       return {
-        portalUrl,
-        sessionToken: session.token,
+        portalUrl: session.customerPortalUrl,
       }
     } catch (error) {
       console.error("Failed to create customer portal session:", error)

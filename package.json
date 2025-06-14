@@ -62,6 +62,7 @@
     "clsx": "^2.1.1",
     "convex": "^1.24.8",
     "convex-helpers": "^0.1.93",
+    "date-fns": "^4.1.0",
     "exa-js": "^1.8.11",
     "fumadocs-core": "^15.5.2",
     "fumadocs-mdx": "^11.6.8",

@@ -1,6 +1,6 @@
 import { v } from "convex/values"
 import type { Doc } from "../_generated/dataModel"
-import { mutation, type DatabaseWriter } from "../_generated/server"
+import { type DatabaseWriter, mutation } from "../_generated/server"
 
 /**
  * Create a new webhook event for processing
@@ -526,11 +526,13 @@ async function updateUsageLimits(
     polarSubscriptionId: subscription.id,
     periodStart,
     periodEnd,
-    periodType: subscription.recurringInterval === "year" ? "year" : "month",
+    periodType: (subscription.recurringInterval === "year"
+      ? "year"
+      : "month") as "year" | "month",
     limits: {
-      tokensPerMonth: productFeatures.maxTokensPerMonth,
-      threadsPerMonth: productFeatures.maxThreadsPerMonth,
-      messagesPerDay: productFeatures.maxMessagesPerDay,
+      tokensPerMonth: productFeatures.maxTokensPerMonth ?? undefined,
+      threadsPerMonth: productFeatures.maxThreadsPerMonth ?? undefined,
+      messagesPerDay: productFeatures.maxMessagesPerDay ?? undefined,
     },
     usage: existing?.usage || {
       tokensUsed: 0,

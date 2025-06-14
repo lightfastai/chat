@@ -9,13 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { api } from "@/convex/_generated/api"
-import { POLAR_CONFIG, PRODUCT_FEATURES } from "@/lib/polar/client"
+import { POLAR_CONFIG } from "@/lib/polar/client"
 import { useAction } from "convex/react"
 import { Check, Crown, Zap } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
+import { api } from "../../../convex/_generated/api"
 
 interface UpgradeDialogProps {
   open: boolean
@@ -28,7 +27,6 @@ export function UpgradeDialog({
   onOpenChange,
   currentTier = "free",
 }: UpgradeDialogProps) {
-  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const createCheckout = useAction(api.polar.checkout.createCheckout)
 

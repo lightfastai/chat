@@ -261,6 +261,7 @@ export default defineSchema({
     batchId: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
+    .index("by_user_timestamp", ["userId", "timestamp"])
     .index("by_sync_status", ["syncedToPolar", "timestamp"])
     .index("by_event_id", ["eventId"])
     .index("by_batch", ["batchId"])

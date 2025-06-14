@@ -1,7 +1,12 @@
 import { v } from "convex/values"
 import { nanoid } from "nanoid"
 import type { Id } from "../_generated/dataModel"
-import { mutation, query, type DatabaseReader, type DatabaseWriter } from "../_generated/server"
+import {
+  type DatabaseReader,
+  type DatabaseWriter,
+  mutation,
+  query,
+} from "../_generated/server"
 
 /**
  * Track AI usage event for a user
@@ -285,8 +290,10 @@ async function updateUsageLimits(
 /**
  * Calculate free tier usage for users without subscription
  */
-async function calculateFreeUsage(ctx: { db: DatabaseReader }, userId: Id<"users">) {
-  const now = Date.now()
+async function calculateFreeUsage(
+  ctx: { db: DatabaseReader },
+  userId: Id<"users">,
+) {
   const monthStart = new Date()
   monthStart.setDate(1)
   monthStart.setHours(0, 0, 0, 0)
@@ -333,3 +340,27 @@ async function calculateFreeUsage(ctx: { db: DatabaseReader }, userId: Id<"users
     messagesSent: userMessages.length,
   }
 }
+
+/**
+ * Get usage history for a user
+ */
+export const getUsageHistory = query({
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { userId, limit = 30 }) => {
+    // Get the last N days of usage events
+    const cutoffDate = Date.now() - limit * 24 * 60 * 60 * 1000
+
+    const events = await ctx.db
+      .query("usageEvents")
+      .withIndex("by_user_timestamp", (q) =>
+        q.eq("userId", userId).gte("timestamp", cutoffDate),
+      )
+      .order("desc")
+      .collect()
+
+    return events
+  },
+})

@@ -1,12 +1,9 @@
-import { api } from "@/convex/_generated/api"
 import { POLAR_CONFIG } from "@/lib/polar/client"
-import {
-  type WebhookVerificationError,
-  validateEvent,
-} from "@polar-sh/sdk/webhooks"
+import { validateEvent } from "@polar-sh/sdk/webhooks"
 import { fetchMutation } from "convex/nextjs"
 import { headers } from "next/headers"
 import { NextResponse } from "next/server"
+import { api } from "../../../../../convex/_generated/api"
 
 /**
  * Polar webhook handler
@@ -26,7 +23,7 @@ export async function POST(request: Request) {
     const webhookTimestamp = headersList.get("webhook-timestamp") || ""
 
     // Validate webhook signature
-    let event: { type: string; timestamp: string; data: any }
+    let event: { type: string; timestamp?: string; data: unknown }
     try {
       event = validateEvent(
         body,
@@ -49,7 +46,9 @@ export async function POST(request: Request) {
     await fetchMutation(api.polar.webhooks.create, {
       webhookId,
       eventType: event.type,
-      eventTimestamp: Date.parse(event.timestamp),
+      eventTimestamp: event.timestamp
+        ? Date.parse(event.timestamp)
+        : Date.now(),
       payload: event,
     })
 
