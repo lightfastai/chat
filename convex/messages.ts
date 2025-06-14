@@ -277,6 +277,11 @@ async function buildMessageContent(
     return text
   }
 
+  // Get model configuration to check capabilities
+  const modelConfig = modelId ? getModelById(modelId) : null
+  const hasVisionSupport = modelConfig?.features.vision ?? false
+  const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
+
   // Build content array with text and files
   const content = [{ type: "text" as const, text }] as Array<
     TextPart | ImagePart | FilePart
@@ -289,28 +294,22 @@ async function buildMessageContent(
 
     // Handle images
     if (file.fileType.startsWith("image/")) {
-      // Check if model supports vision
-      if (modelId === "gpt-3.5-turbo") {
-        // GPT-3.5-turbo does not support images at all
+      if (!hasVisionSupport) {
+        // Model doesn't support vision
         if (content[0] && "text" in content[0]) {
-          content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: GPT-3.5 Turbo cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
+          content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || 'This model'} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
         }
-      } else if (provider === "openai") {
-        // GPT-4 models support images via URLs
-        content.push({
-          type: "image" as const,
-          image: file.url,
-        })
       } else {
-        // Claude uses 'image' type with URL string
+        // Model supports vision - all models use URLs (no base64 needed)
         content.push({
           type: "image" as const,
           image: file.url,
         })
       }
     }
-    // Handle PDFs (only Claude supports PDFs)
-    else if (file.fileType === "application/pdf" && provider === "anthropic") {
+    // Handle PDFs
+    else if (file.fileType === "application/pdf") {
+      if (hasPdfSupport && provider === "anthropic") {
       // Claude supports PDFs as file type
       content.push({
         type: "file" as const,
@@ -379,21 +378,25 @@ export const generateAIResponse = internalAction({
       let systemPrompt =
         "You are a helpful AI assistant in a chat conversation. Be concise and friendly."
 
-      // Check if this model supports vision
+      // Check model capabilities
       const modelConfig = getModelById(args.modelId)
       const hasVisionSupport = modelConfig?.features.vision ?? false
+      const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
 
       if (hasVisionSupport) {
-        if (provider === "anthropic") {
+        if (hasPdfSupport) {
+          // Claude models with both vision and PDF support
           systemPrompt +=
             " You can view and analyze images (JPEG, PNG, GIF, WebP) and PDF documents directly. For other file types, you'll receive a text description. When users ask about an attached file, provide detailed analysis of what you can see."
         } else {
+          // GPT-4 models with vision but no PDF support
           systemPrompt +=
             " You can view and analyze images (JPEG, PNG, GIF, WebP) directly. For PDFs and other file types, you'll receive a text description. When asked about a PDF, politely explain that you can see it's attached but cannot analyze its contents - suggest using Claude models for PDF analysis. For images, provide detailed analysis of what you can see."
         }
       } else {
+        // Models without vision support (e.g., GPT-3.5 Turbo)
         systemPrompt +=
-          " IMPORTANT: You cannot view images or files directly with GPT-3.5 Turbo. When users share files and ask about them, you must clearly state: 'I can see you've uploaded [filename], but I'm unable to view or analyze images with GPT-3.5 Turbo. To analyze images or documents, please switch to GPT-4o, GPT-4o Mini, or any Claude model using the model selector below the input box.' Be helpful by acknowledging what files they've shared based on the descriptions you receive."
+          ` IMPORTANT: You cannot view images or files directly with ${modelConfig?.displayName || 'this model'}. When users share files and ask about them, you must clearly state: 'I can see you've uploaded [filename], but I'm unable to view or analyze images with ${modelConfig?.displayName || 'this model'}. To analyze images or documents, please switch to GPT-4o, GPT-4o Mini, or any Claude model using the model selector below the input box.' Be helpful by acknowledging what files they've shared based on the descriptions you receive.`
       }
 
       // Prepare messages for AI SDK v5 with multimodal support

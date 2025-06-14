@@ -29,6 +29,7 @@ export interface ModelConfig {
     functionCalling: boolean
     vision: boolean
     thinking?: boolean
+    pdfSupport?: boolean
   }
   thinkingConfig?: {
     enabled: boolean
