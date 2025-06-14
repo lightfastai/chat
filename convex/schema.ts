@@ -13,11 +13,18 @@ const modelIdValidator = v.union(
   v.literal("claude-sonnet-4-20250514-thinking"),
   v.literal("claude-3-5-sonnet-20241022"),
   v.literal("claude-3-haiku-20240307"),
+  // OpenRouter models
+  v.literal("meta-llama/llama-3.3-70b-instruct"),
+  v.literal("anthropic/claude-3.5-sonnet"),
+  v.literal("openai/gpt-4o"),
+  v.literal("google/gemini-pro-1.5"),
+  v.literal("mistralai/mistral-large"),
 )
 
 const modelProviderValidator = v.union(
   v.literal("openai"),
   v.literal("anthropic"),
+  v.literal("openrouter"),
 )
 
 export default defineSchema({
@@ -43,6 +50,25 @@ export default defineSchema({
   })
     .index("by_user", ["uploadedBy"])
     .index("by_storage_id", ["storageId"]),
+
+  userSettings: defineTable({
+    userId: v.id("users"),
+    apiKeys: v.optional(
+      v.object({
+        openai: v.optional(v.string()), // Encrypted API key
+        anthropic: v.optional(v.string()), // Encrypted API key
+        openrouter: v.optional(v.string()), // Encrypted API key
+      }),
+    ),
+    preferences: v.optional(
+      v.object({
+        defaultModel: v.optional(modelIdValidator),
+        preferredProvider: v.optional(modelProviderValidator),
+      }),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 
   threads: defineTable({
     clientId: v.optional(v.string()), // Client-generated ID for instant navigation
@@ -94,6 +120,7 @@ export default defineSchema({
     isComplete: v.optional(v.boolean()),
     thinkingStartedAt: v.optional(v.number()),
     thinkingCompletedAt: v.optional(v.number()),
+    usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
     streamChunks: v.optional(
       v.array(
         v.object({

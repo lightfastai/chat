@@ -53,7 +53,7 @@ export function ActiveMenuItem({
   }, [pathname, href, threadId])
 
   return (
-    <Link href={href} prefetch={prefetch}>
+    <Link href={href} prefetch={prefetch} className="block overflow-visible">
       <SidebarMenuButton className={className} size={size} isActive={isActive}>
         {children}
       </SidebarMenuButton>

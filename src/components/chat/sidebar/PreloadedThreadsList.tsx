@@ -72,7 +72,7 @@ export function PreloadedThreadsList({
     ]
 
     return (
-      <ScrollArea className="h-[calc(100vh-280px)]">
+      <ScrollArea className="h-[calc(100vh-280px)] overflow-visible">
         {threads.length === 0 ? (
           <div className="px-3 py-8 text-center text-muted-foreground">
             <p className="text-sm">No conversations yet</p>
@@ -91,7 +91,7 @@ export function PreloadedThreadsList({
                   {category}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <SidebarMenu className="space-y-0.5">
+                  <SidebarMenu className="space-y-0.5 overflow-visible">
                     {categoryThreads.map((thread) => (
                       <SidebarMenuItem key={thread._id}>
                         <ActiveMenuItem

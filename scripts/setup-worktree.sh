@@ -134,9 +134,12 @@ if command -v npx > /dev/null 2>&1; then
         log_info "Convex configuration found, syncing environment variables..."
         
         # Run the environment sync script
-        if [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
-            bash "$PROJECT_ROOT/scripts/sync-env.sh"
+        if [ -f "$PROJECT_ROOT/scripts/sync-env.ts" ]; then
+            cd "$PROJECT_ROOT" && pnpm env:sync
             log_success "Environment variables synced to Convex"
+        elif [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
+            bash "$PROJECT_ROOT/scripts/sync-env.sh"
+            log_success "Environment variables synced to Convex (using legacy script)"
         else
             log_warning "Environment sync script not found, skipping env sync"
         fi

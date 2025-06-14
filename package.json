@@ -11,11 +11,12 @@
     "format": "biome format --write .",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
-    "env:sync": "./scripts/sync-env.sh",
+    "env:sync": "tsx scripts/sync-env.ts",
     "env:check": "npx convex env list",
     "setup": "pnpm install && pnpm env:sync && echo '✅ Setup complete! Run: pnpm dev (Terminal 1) && pnpm convex:dev (Terminal 2)'",
     "worktree": "./scripts/setup-worktree.sh",
     "dev:all": "concurrently \"pnpm dev\" \"pnpm convex:dev\" --names \"NEXT,CONVEX\" --prefix-colors \"blue,green\"",
+    "dev:bg": "nohup concurrently \"pnpm dev\" \"pnpm convex:dev\" --names \"NEXT,CONVEX\" --prefix-colors \"blue,green\" > dev.log 2>&1 &",
     "logs": "npx convex logs"
   },
   "repository": {
@@ -36,6 +37,7 @@
     "@ai-sdk/react": "alpha",
     "@auth/core": "^0.39.1",
     "@convex-dev/auth": "^0.0.87",
+    "@hookform/resolvers": "^5.1.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.2",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -46,6 +48,7 @@
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@t3-oss/env-nextjs": "^0.12.0",
     "@vercel/analytics": "^1.5.0",
@@ -55,6 +58,7 @@
     "clsx": "^2.1.1",
     "convex": "^1.24.8",
     "convex-helpers": "^0.1.93",
+    "exa-js": "^1.8.11",
     "geist": "^1.4.2",
     "lucide-react": "^0.514.0",
     "nanoid": "^5.1.5",
@@ -62,6 +66,7 @@
     "next-themes": "^0.4.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-hook-form": "^7.57.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.5",
@@ -78,6 +83,7 @@
     "concurrently": "^9.0.1",
     "postcss": "^8.5.5",
     "tailwindcss": "^4.1.10",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },
   "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"

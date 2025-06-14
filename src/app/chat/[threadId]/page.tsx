@@ -23,7 +23,12 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
   const { threadId: threadIdString } = await params
 
   // Validate threadId format - basic check to prevent obvious invalid IDs
-  if (!threadIdString || threadIdString.length < 10) {
+  // Also exclude reserved routes
+  const reservedRoutes = ["settings", "new"]
+  const isReservedRoute =
+    reservedRoutes.includes(threadIdString) ||
+    threadIdString.startsWith("settings/")
+  if (!threadIdString || threadIdString.length < 10 || isReservedRoute) {
     notFound()
   }
 

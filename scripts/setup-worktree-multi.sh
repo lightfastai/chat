@@ -54,7 +54,7 @@ show_usage() {
 # Function to validate branch name format
 validate_branch_name() {
     local branch_name="$1"
-    
+
     # Check if branch name follows username/feature pattern
     if [[ ! "$branch_name" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$ ]]; then
         log_error "Invalid branch name format: '$branch_name'"
@@ -62,25 +62,25 @@ validate_branch_name() {
         log_error "Examples: jeevanpillay/add-dark-mode, alice/fix-auth, bob/new-feature"
         return 1
     fi
-    
+
     # Extract username and feature name
     local username="${branch_name%/*}"
     local feature="${branch_name#*/}"
-    
+
     # Validate username (no empty, no special chars except - and _)
     if [[ -z "$username" || ! "$username" =~ ^[a-zA-Z0-9_-]+$ ]]; then
         log_error "Invalid username: '$username'"
         log_error "Username must contain only letters, numbers, hyphens, and underscores"
         return 1
     fi
-    
+
     # Validate feature name (no empty, no special chars except - and _)
     if [[ -z "$feature" || ! "$feature" =~ ^[a-zA-Z0-9_-]+$ ]]; then
         log_error "Invalid feature name: '$feature'"
         log_error "Feature name must contain only letters, numbers, hyphens, and underscores"
         return 1
     fi
-    
+
     return 0
 }
 
@@ -88,11 +88,11 @@ validate_branch_name() {
 find_available_port() {
     local start_port=$1
     local port=$start_port
-    
+
     while lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; do
         ((port++))
     done
-    
+
     echo $port
 }
 
@@ -233,13 +233,13 @@ log_info "Creating custom environment configuration..."
 if [ -f "$PROJECT_ROOT/.env.local" ]; then
     # Copy base environment
     cp "$PROJECT_ROOT/.env.local" ".env.local"
-    
+
     # Add custom port settings
     echo "" >> ".env.local"
     echo "# Worktree-specific configuration" >> ".env.local"
     echo "PORT=$NEXT_PORT" >> ".env.local"
     echo "NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:$CONVEX_PORT" >> ".env.local"
-    
+
     # Configure Convex deployment strategy
     if [ "$USE_LOCAL_CONVEX" = true ]; then
         echo "# Using local Convex deployment" >> ".env.local"
@@ -252,7 +252,7 @@ if [ -f "$PROJECT_ROOT/.env.local" ]; then
         echo "# Using cloud dev deployment" >> ".env.local"
         echo "CONVEX_DEPLOYMENT=dev:$FEATURE_NAME" >> ".env.local"
     fi
-    
+
     log_success "Environment configuration created with custom ports"
 else
     log_warning ".env.local not found in project root, creating minimal configuration"
@@ -305,7 +305,10 @@ if command -v npx > /dev/null 2>&1; then
         log_success "Local Convex deployment configured"
     else
         # Configure cloud deployment and sync environment variables
-        if [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
+        if [ -f "$PROJECT_ROOT/scripts/sync-env.ts" ]; then
+            log_info "Syncing environment variables to Convex..."
+            cd "$PROJECT_ROOT" && pnpm env:sync || log_warning "Environment sync failed, you may need to configure Convex manually"
+        elif [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
             log_info "Syncing environment variables to Convex..."
             bash "$PROJECT_ROOT/scripts/sync-env.sh" || log_warning "Environment sync failed, you may need to configure Convex manually"
         else
