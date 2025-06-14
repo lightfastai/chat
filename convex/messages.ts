@@ -1,8 +1,10 @@
 import { anthropic } from "@ai-sdk/anthropic"
 import { openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
-import { streamText } from "ai"
+import { streamText, tool } from "ai"
 import { v } from "convex/values"
+import Exa from "exa-js"
+import { z } from "zod"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
 import {
@@ -21,6 +23,71 @@ import {
   getProviderFromModelId,
   isThinkingMode,
 } from "../src/lib/ai/types.js"
+
+// Create web search tool using proper AI SDK v5 pattern
+function createWebSearchTool() {
+  return tool({
+    description: "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
+    parameters: z.object({
+      query: z.string().describe("The search query to find relevant web results"),
+    }),
+    execute: async ({ query }) => {
+      console.log(`Executing web search for: "${query}"`)
+      
+      const exaApiKey = process.env.EXA_API_KEY
+      if (!exaApiKey) {
+        throw new Error("EXA_API_KEY not configured")
+      }
+
+      try {
+        const exa = new Exa(exaApiKey)
+        const numResults = 5
+        const searchOptions = {
+          numResults,
+          text: {
+            maxCharacters: 1000,
+            includeHtmlTags: false,
+          },
+          highlights: {
+            numSentences: 3,
+            highlightsPerUrl: 2,
+          }
+        } as any
+
+        const response = await exa.search(query, searchOptions)
+
+        const results = response.results.map((result: any) => ({
+          id: result.id,
+          url: result.url,
+          title: result.title || "",
+          text: result.text,
+          highlights: result.highlights,
+          publishedDate: result.publishedDate,
+          author: result.author,
+          score: result.score,
+        }))
+
+        console.log(`Web search found ${results.length} results`)
+
+        return {
+          success: true,
+          query,
+          results: results.slice(0, 3), // Return top 3 results
+          totalResults: results.length,
+        }
+      } catch (error) {
+        console.error("Web search error:", error)
+        return {
+          success: false,
+          query,
+          error: error instanceof Error ? error.message : "Unknown error",
+          results: [],
+          totalResults: 0,
+        }
+      }
+    },
+  })
+}
 
 // Create validators from the shared types
 const modelIdValidator = v.union(...ALL_MODEL_IDS.map((id) => v.literal(id)))
@@ -99,6 +166,7 @@ export const send = mutation({
     threadId: v.id("threads"),
     body: v.string(),
     modelId: v.optional(modelIdValidator), // Use the validated modelId
+    webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -147,6 +215,7 @@ export const send = mutation({
       threadId: args.threadId,
       userMessage: args.body,
       modelId: modelId,
+      webSearchEnabled: args.webSearchEnabled,
     })
 
     // Check if this is the first user message in the thread (for title generation)
@@ -175,6 +244,7 @@ export const createThreadAndSend = mutation({
     clientId: v.string(),
     body: v.string(),
     modelId: v.optional(modelIdValidator),
+    webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
@@ -224,6 +294,7 @@ export const createThreadAndSend = mutation({
       threadId,
       userMessage: args.body,
       modelId: modelId,
+      webSearchEnabled: args.webSearchEnabled,
     })
 
     // Schedule title generation (this is the first message)
@@ -242,6 +313,7 @@ export const generateAIResponse = internalAction({
     threadId: v.id("threads"),
     userMessage: v.string(),
     modelId: modelIdValidator, // Use validated modelId
+    webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -291,6 +363,8 @@ export const generateAIResponse = internalAction({
       console.log(
         `Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
       )
+      console.log(`Schema fix timestamp: ${Date.now()}`)
+      console.log(`Web search enabled: ${args.webSearchEnabled}`)
 
       // Choose the appropriate model using the actual model name
       const selectedModel =
@@ -303,6 +377,23 @@ export const generateAIResponse = internalAction({
         model: selectedModel,
         messages: messages,
         temperature: 0.7,
+      }
+
+      // Only enable web search tools if explicitly requested
+      if (args.webSearchEnabled) {
+        console.log(`Enabling web search tools for ${provider}`)
+
+        // Check if EXA_API_KEY is available
+        const exaApiKey = process.env.EXA_API_KEY
+        if (!exaApiKey) {
+          console.error("EXA_API_KEY not found - web search will fail")
+        }
+
+        console.log("Creating web_search tool...")
+        streamOptions.tools = {
+          web_search: createWebSearchTool(),
+        }
+        console.log("Web search tool created successfully")
       }
 
       // For Claude 4.0 thinking mode, enable thinking/reasoning
@@ -320,6 +411,15 @@ export const generateAIResponse = internalAction({
         }
       }
 
+      console.log(`Final streamOptions for ${provider}:`, JSON.stringify({
+        model: actualModelName,
+        temperature: streamOptions.temperature,
+        hasTools: !!streamOptions.tools,
+        toolNames: streamOptions.tools ? Object.keys(streamOptions.tools) : [],
+        hasSystem: !!streamOptions.system,
+        hasProviderOptions: !!streamOptions.providerOptions
+      }))
+
       const { fullStream, usage } = await streamText(streamOptions)
 
       let fullContent = ""
@@ -329,9 +429,13 @@ export const generateAIResponse = internalAction({
 
       console.log("Starting to process v5 stream chunks...")
 
+      let hasReceivedAnyChunks = false
+      let toolCallsProcessed = 0
+
       // Process each chunk as it arrives from the stream
       for await (const chunk of fullStream) {
-        console.log("Received v5 chunk type:", chunk.type)
+        hasReceivedAnyChunks = true
+        console.log("Received v5 chunk type:", chunk.type, "hasText:", !!(chunk.type === "text" && "text" in chunk && chunk.text))
 
         // Handle different types of chunks
         if (chunk.type === "text" && chunk.text) {
@@ -347,6 +451,103 @@ export const generateAIResponse = internalAction({
             chunk: chunk.text,
             chunkId,
           })
+        } else if (
+          chunk.type === "tool-call" &&
+          chunk.toolName === "web_search"
+        ) {
+          // Handle web search tool calls
+          toolCallsProcessed++
+          console.log(`Processing tool call #${toolCallsProcessed} - web search with args:`, chunk.args)
+
+          try {
+            // Perform web search directly using Exa
+            const exaApiKey = process.env.EXA_API_KEY
+            if (!exaApiKey) {
+              throw new Error("EXA_API_KEY not configured")
+            }
+
+            const exa = new Exa(exaApiKey)
+            const query = chunk.args.query as string
+            const numResults = 5 // Fixed to 5 results for simplicity
+            const includeText = true // Always include text for better results
+
+            const searchOptions = {
+              numResults,
+            } as any
+
+            if (includeText) {
+              searchOptions.text = {
+                maxCharacters: 1000,
+                includeHtmlTags: false,
+              }
+              searchOptions.highlights = {
+                numSentences: 3,
+                highlightsPerUrl: 2,
+              }
+            }
+
+            const response = await exa.search(query, searchOptions)
+
+            const searchResults = {
+              success: true,
+              results: response.results.map((result) => ({
+                id: result.id,
+                url: result.url,
+                title: result.title || "",
+                text: result.text,
+                highlights: (result as any).highlights,
+                publishedDate: result.publishedDate,
+                author: result.author,
+                score: result.score,
+              })),
+              autopromptString: response.autopromptString,
+            }
+
+            if (searchResults.success && searchResults.results) {
+              const searchSummary =
+                `\n\n**🔍 Web Search Results for "${chunk.args.query}"**\n\n` +
+                searchResults.results
+                  .slice(0, 3)
+                  .map(
+                    (result, i) =>
+                      `**${i + 1}. ${result.title}**\n${result.url}\n${result.text ? `${result.text.slice(0, 250)}...` : "No preview available"}\n`,
+                  )
+                  .join("\n")
+
+              fullContent += searchSummary
+
+              // Generate unique chunk ID for the search results
+              const chunkId = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+              // Append search results as a chunk
+              await ctx.runMutation(internal.messages.appendStreamChunk, {
+                messageId,
+                chunk: searchSummary,
+                chunkId,
+              })
+            } else {
+              const errorMessage = `\n\n*❌ Web search failed: No results found*\n\n`
+              fullContent += errorMessage
+
+              const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+              await ctx.runMutation(internal.messages.appendStreamChunk, {
+                messageId,
+                chunk: errorMessage,
+                chunkId,
+              })
+            }
+          } catch (error) {
+            console.error("Error executing web search:", error)
+            const errorMessage = `\n\n*❌ Web search error: ${error instanceof Error ? error.message : "Unknown error"}*\n\n`
+            fullContent += errorMessage
+
+            const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            await ctx.runMutation(internal.messages.appendStreamChunk, {
+              messageId,
+              chunk: errorMessage,
+              chunkId,
+            })
+          }
         } else if (chunk.type === "reasoning" && chunk.text) {
           // Claude 4.0 native reasoning tokens
           if (!hasThinking) {
@@ -383,18 +584,36 @@ export const generateAIResponse = internalAction({
       }
 
       console.log(
-        `V5 stream complete. Full content length: ${fullContent.length}`,
+        `V5 stream complete. Full content length: ${fullContent.length}, chunks received: ${hasReceivedAnyChunks}, tool calls: ${toolCallsProcessed}`,
       )
 
-      if (fullContent.trim() === "") {
+      // Don't throw error for empty content when tools are enabled (known AI SDK issue #1831)
+      // OpenAI returns empty content blocks when tools are invoked, which is expected behavior
+      if (fullContent.trim() === "" && !args.webSearchEnabled) {
         throw new Error(
           `${provider} returned empty response - check API key and quota`,
         )
+      }
+      
+      // Log if we have empty content with tools enabled (expected behavior)
+      if (fullContent.trim() === "" && args.webSearchEnabled) {
+        console.log(`${provider} returned empty content with tools enabled - this is expected behavior`)
+        
+        // If we have no content but processed tool calls, ensure we have some content to display
+        if (toolCallsProcessed > 0 && fullContent.trim() === "") {
+          fullContent = `Processed ${toolCallsProcessed} web search${toolCallsProcessed > 1 ? 'es' : ''}.`
+          console.log("Added fallback content for empty response with tool calls")
+        }
       }
 
       // Get final usage data
       const finalUsage = await usage
       console.log("Final usage data:", finalUsage)
+
+      // Ensure we always have some content to complete with, even if just tool results
+      if (fullContent.trim() === "" && toolCallsProcessed === 0) {
+        fullContent = "I apologize, but I wasn't able to generate a response. Please try again."
+      }
 
       // Mark message as complete with usage data
       await ctx.runMutation(internal.messages.completeStreamingMessage, {
@@ -402,12 +621,46 @@ export const generateAIResponse = internalAction({
         usage: finalUsage,
       })
 
+      console.log(`Message ${messageId} marked as complete with ${fullContent.length} characters`)
+
       // Clear generation flag on success
       await ctx.runMutation(internal.messages.clearGenerationFlag, {
         threadId: args.threadId,
       })
+      
+      console.log(`Generation flag cleared for thread ${args.threadId}`)
     } catch (error) {
-      console.error("Error generating response:", error)
+      const provider = getProviderFromModelId(args.modelId as ModelId)
+      console.error(
+        `Error generating ${provider} response with model ${args.modelId}:`,
+        error,
+      )
+
+      // Add specific error details for debugging
+      if (error instanceof Error) {
+        console.error(`Error name: ${error.name}`)
+        console.error(`Error message: ${error.message}`)
+        if (error.stack) {
+          console.error(`Error stack: ${error.stack.substring(0, 500)}...`)
+        }
+      }
+
+      // Check for common API key issues
+      if (provider === "openai") {
+        const openaiKey = process.env.OPENAI_API_KEY
+        console.log(`OpenAI API key present: ${!!openaiKey}`)
+        console.log(
+          `OpenAI API key format valid: ${openaiKey?.startsWith("sk-") || false}`,
+        )
+      }
+
+      if (provider === "anthropic") {
+        const anthropicKey = process.env.ANTHROPIC_API_KEY
+        console.log(`Anthropic API key present: ${!!anthropicKey}`)
+        console.log(
+          `Anthropic API key format valid: ${anthropicKey?.startsWith("sk-ant-") || false}`,
+        )
+      }
 
       try {
         // If we have a messageId, update it with error, otherwise create new error message

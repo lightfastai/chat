@@ -13,10 +13,62 @@ The development workflow integrates:
 ## End-to-End Feature Development Workflow
 
 ### 1. Issue Creation & Planning
+
+#### Using Issue Templates
+The repository provides three Claude Code-optimized issue templates:
+
+1. **Feature Request** - For new features and enhancements
+   ```bash
+   # When creating a feature request:
+   # 1. Use clear "What needs to be done?" language
+   # 2. Include file references like @src/components/chat/ChatInput.tsx
+   # 3. Define browser-testable success criteria
+   # 4. Add technical hints for faster implementation
+   ```
+
+2. **Bug Report** - For browser-specific issues
+   ```bash
+   # When reporting bugs:
+   # 1. Describe what's broken in the browser
+   # 2. Reference specific components with @-mentions
+   # 3. Include console errors if any
+   # 4. List browsers where issue was verified
+   ```
+
+3. **Quick Task** - For simple, straightforward tasks
+   ```bash
+   # For quick tasks:
+   # 1. Brief task description
+   # 2. File location (can use @src/path/to/file.tsx)
+   # 3. How to test in browser
+   ```
+
+#### File References in Issues
+Use @ symbol to reference files directly:
+- `@src/components/chat/ChatInput.tsx` - Specific component files
+- `@convex/messages.ts` - Backend files
+- `@package.json` - Configuration files
+- `@CLAUDE.md` - Documentation
+
+This helps Claude Code navigate directly to relevant files when picking up an issue.
+
+#### Creating Issues via GitHub CLI
 ```bash
-# Use GitHub MCP to create issues
-# Issues should be descriptive and include acceptance criteria
+# List available templates
+gh issue create --repo lightfastai/chat
+
+# Create with specific template
+gh issue create --template feature_request.md
+
+# Or use GitHub web UI which will show template chooser
 ```
+
+**Task Planning & PR Description Management**:
+- Use GitHub PR descriptions as the primary task planner and tracker
+- Create todo lists for complex features using TodoWrite tool
+- Continuously reference and update PR descriptions throughout development
+- Link all tasks back to issue acceptance criteria
+- Update PR descriptions with progress, blockers, and completion status
 
 ### 2. Git Worktree Setup
 
@@ -160,6 +212,16 @@ git push -u origin jeevanpillay/<feature_name>
 # Include test plan and deployment notes
 ```
 
+**PR Description as Task Planner**:
+- Use PR description as the central task planning and tracking document
+- Include todo lists with checkboxes for task progress visualization
+- Reference todo list progress and completion status
+- Include detailed test plan with acceptance criteria verification
+- Document any blockers or issues encountered during development
+- Add deployment notes and environment considerations
+- Link to related issues and maintain traceability
+- Update PR description continuously as development progresses
+
 ### 6. Deployment Monitoring
 ```bash
 # Check deployment status (requires --yes flag)
@@ -227,6 +289,58 @@ git status  # Ensure clean working tree with latest changes
 # 4. Commit and push
 # 5. Monitor new deployment
 ```
+
+## Complete Workflow Example
+
+Here's a real example of the full workflow using issue templates:
+
+### Example: Adding Dark Mode Feature
+
+1. **Create Issue with Template**
+   ```bash
+   # Via GitHub UI: Click "New Issue" → Select "Feature Request"
+   # Fill out template:
+   ```
+   ```markdown
+   ## What needs to be done?
+   Add a dark mode toggle to the application that persists user preference
+   
+   ## Success looks like
+   - [ ] Toggle button in header next to user menu
+   - [ ] Theme persists across page refreshes
+   - [ ] Smooth transition between themes
+   - [ ] All components properly styled for dark mode
+   
+   ## Technical hints
+   - Start with: @src/app/layout.tsx for theme provider
+   - Related to: @src/components/ui components need dark variants
+   - Uses: next-themes library (already in @package.json)
+   
+   ## Browser testing required
+   - [ ] Works on Chrome/Edge/Safari
+   - [ ] No console errors
+   - [ ] Theme toggle animates smoothly
+   ```
+
+2. **Claude Code picks up the issue**
+   - Sees @-mentions and navigates directly to layout.tsx
+   - Checks package.json to confirm next-themes is available
+   - Reviews UI components for theming approach
+
+3. **Create worktree and implement**
+   ```bash
+   ./scripts/setup-worktree.sh jeevanpillay/add-dark-mode
+   cd worktrees/add-dark-mode
+   pnpm dev:all
+   # Implementation happens here...
+   ```
+
+4. **Create PR with comprehensive description**
+   - Links to issue
+   - Updates task list as work progresses
+   - Documents any challenges or decisions
+
+This workflow ensures Claude Code has all context needed to implement features efficiently.
 
 ## Project Specifics
 
@@ -531,9 +645,55 @@ git push origin main
 git pull origin main
 ```
 
+## Issue Templates
+
+The project includes Claude Code-optimized issue templates designed for efficient AI-assisted development:
+
+### Available Templates
+1. **Feature Request** - For new features and enhancements
+   - Action-oriented language ("What needs to be done?")
+   - Browser-focused success criteria
+   - File path hints for navigation
+   - Browser testing checklist
+
+2. **Bug Report** - For reporting browser issues
+   - Browser-specific reproduction steps
+   - Component path hints
+   - Console error sections
+   - Browser verification checkboxes
+
+3. **Quick Task** - For simple, straightforward tasks
+   - Minimal three-field structure
+   - Task description, file location, test method
+   - No unnecessary boilerplate
+
+### Key Design Principles
+- **Browser-only focus**: No OS/environment fields
+- **AI-friendly language**: Clear, actionable descriptions
+- **Path hints**: Help Claude Code navigate efficiently
+- **File references**: Support for @-mentioning files (e.g., @src/components/chat/ChatInput.tsx)
+- **Minimal friction**: Only essential fields required
+
+### Creating Issues
+When creating issues, choose the appropriate template to provide Claude Code with:
+- Clear starting points (file paths or @-mentions like @src/app/layout.tsx)
+- Specific success criteria
+- Browser-testable outcomes
+- No irrelevant environment details
+
+#### File References
+You can reference files directly in issues using the @ symbol:
+- `@src/components/chat/ChatInput.tsx` - Reference specific files
+- `@convex/messages.ts` - Reference backend files
+- `@CLAUDE.md` - Reference documentation
+
+This helps Claude Code quickly navigate to relevant files when working on the issue.
+
 ## Project Structure
 
 ```
+├── .github/
+│   └── ISSUE_TEMPLATE/    # Claude Code-optimized issue templates
 ├── src/
 │   ├── app/            # Next.js App Router pages
 │   ├── components/     # React components
