@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { RootProvider } from "fumadocs-ui/provider"
 import { Toaster } from "sonner"
 import { fonts } from "../lib/fonts"
 
@@ -21,10 +22,12 @@ export default function RootLayout({
     <ConvexAuthNextjsServerProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={cn(fonts, "dark", "flex min-h-screen flex-col")}>
-          <ConvexClientProvider>
-            <div className="flex-1">{children}</div>
-            <Footer />
-          </ConvexClientProvider>
+          <RootProvider>
+            <ConvexClientProvider>
+              <div className="flex-1">{children}</div>
+              <Footer />
+            </ConvexClientProvider>
+          </RootProvider>
           <Toaster theme="dark" position="top-right" />
           <Analytics />
           <SpeedInsights />
