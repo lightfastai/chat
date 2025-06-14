@@ -1,6 +1,11 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
-import Exa from "exa-js"
+import Exa, {
+  type RegularSearchOptions,
+  type FindSimilarOptions,
+  type ContentsOptions,
+  type SearchResult,
+} from "exa-js"
 import { action } from "./_generated/server.js"
 
 export const search = action({
@@ -53,13 +58,13 @@ export const search = action({
 
       const exa = new Exa(exaApiKey)
 
-      const searchOptions = {
+      const searchOptions: RegularSearchOptions & ContentsOptions = {
         numResults: args.numResults || 10,
         includeDomains: args.includeDomains,
         excludeDomains: args.excludeDomains,
         startCrawlDate: args.startCrawlDate,
         endCrawlDate: args.endCrawlDate,
-      } as any
+      }
 
       if (args.includeText) {
         searchOptions.text = {
@@ -82,7 +87,9 @@ export const search = action({
         url: result.url,
         title: result.title || "",
         text: result.text,
-        highlights: (result as any).highlights,
+        highlights: (
+          result as SearchResult<ContentsOptions> & { highlights?: string[] }
+        ).highlights,
         publishedDate: result.publishedDate,
         author: result.author,
         score: result.score,
@@ -154,11 +161,11 @@ export const findSimilar = action({
 
       const exa = new Exa(exaApiKey)
 
-      const searchOptions = {
+      const searchOptions: FindSimilarOptions & ContentsOptions = {
         numResults: args.numResults || 10,
         includeDomains: args.includeDomains,
         excludeDomains: args.excludeDomains,
-      } as any
+      }
 
       if (args.includeText) {
         searchOptions.text = {
@@ -181,7 +188,9 @@ export const findSimilar = action({
         url: result.url,
         title: result.title || "",
         text: result.text,
-        highlights: (result as any).highlights,
+        highlights: (
+          result as SearchResult<ContentsOptions> & { highlights?: string[] }
+        ).highlights,
         publishedDate: result.publishedDate,
         author: result.author,
         score: result.score,
@@ -249,7 +258,7 @@ export const getContents = action({
 
       const exa = new Exa(exaApiKey)
 
-      const contentOptions = {
+      const contentOptions: ContentsOptions = {
         text: {
           maxCharacters: args.textLength || 2000,
           includeHtmlTags: false,
@@ -258,7 +267,7 @@ export const getContents = action({
           numSentences: 3,
           highlightsPerUrl: 2,
         },
-      } as any
+      }
 
       console.log("Getting content for URLs:", args.urls)
       console.log("Content options:", contentOptions)
@@ -270,7 +279,9 @@ export const getContents = action({
         url: result.url,
         title: result.title || "",
         text: result.text,
-        highlights: (result as any).highlights,
+        highlights: (
+          result as SearchResult<ContentsOptions> & { highlights?: string[] }
+        ).highlights,
         publishedDate: result.publishedDate,
         author: result.author,
       }))
