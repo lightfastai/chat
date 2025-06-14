@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "SKIP_ENV_VALIDATION",
+        "NODE_ENV",
+        "CONVEX_URL",
+        "NEXT_PUBLIC_CONVEX_URL"
+      ]
+    },
+    "lint": {
+      "cache": false
+    },
+    "format": {
+      "cache": false
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "convex:dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "convex:deploy": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "env:sync": {
+      "cache": false
+    },
+    "env:check": {
+      "cache": false
+    }
+  }
+}

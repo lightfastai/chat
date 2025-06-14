@@ -12,13 +12,16 @@
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
     "env:sync": "tsx scripts/sync-env.ts",
-    "env:check": "npx convex env list",
-    "setup": "pnpm install && pnpm env:sync && echo '✅ Setup complete! Run: pnpm dev (Terminal 1) && pnpm convex:dev (Terminal 2)'",
+    "env:check": "bunx convex env list",
+    "setup": "bun install && bun env:sync && echo '✅ Setup complete! Run: bun dev (Terminal 1) && bun convex:dev (Terminal 2)'",
     "worktree": "./scripts/setup-worktree.sh",
-    "dev:all": "concurrently \"pnpm dev\" \"pnpm convex:dev\" --names \"NEXT,CONVEX\" --prefix-colors \"blue,green\"",
-    "dev:bg": "nohup concurrently \"pnpm dev\" \"pnpm convex:dev\" --names \"NEXT,CONVEX\" --prefix-colors \"blue,green\" > dev.log 2>&1 &",
-    "logs": "npx convex logs",
-    "postinstall": "fumadocs-mdx"
+    "dev:all": "turbo run dev convex:dev --concurrent",
+    "dev:bg": "nohup turbo run dev convex:dev --concurrent > dev.log 2>&1 &",
+    "logs": "bunx convex logs",
+    "postinstall": "fumadocs-mdx",
+    "turbo:build": "turbo run build",
+    "turbo:lint": "turbo run lint",
+    "turbo:format": "turbo run format"
   },
   "repository": {
     "type": "git",
@@ -90,7 +93,13 @@
     "postcss": "^8.5.5",
     "tailwindcss": "^4.1.10",
     "tsx": "^4.20.3",
+    "turbo": "^2.5.4",
     "typescript": "^5.8.3"
   },
-  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+  "packageManager": "bun@1.2.10",
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "@tailwindcss/oxide",
+    "@vercel/speed-insights"
+  ]
 }

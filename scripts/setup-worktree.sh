@@ -27,7 +27,7 @@ show_usage() {
     echo "Creates a new worktree for feature development with automated setup:"
     echo "  - Creates worktree at worktrees/<feature_name>"
     echo "  - Creates branch <username>/<feature_name>"
-    echo "  - Installs dependencies with pnpm"
+    echo "  - Installs dependencies with bun"
     echo "  - Sets up Convex configuration"
     echo "  - Syncs environment variables"
     echo ""
@@ -107,12 +107,12 @@ log_success "Worktree created at $WORKTREE_PATH"
 # Change to worktree directory for setup
 cd "$WORKTREE_PATH"
 
-log_info "Installing dependencies with pnpm..."
-if command -v pnpm > /dev/null 2>&1; then
-    pnpm install
+log_info "Installing dependencies with bun..."
+if command -v bun > /dev/null 2>&1; then
+    bun install
     log_success "Dependencies installed"
 else
-    log_error "pnpm not found. Please install pnpm first."
+    log_error "bun not found. Please install bun first."
     exit 1
 fi
 
@@ -135,7 +135,7 @@ if command -v npx > /dev/null 2>&1; then
         
         # Run the environment sync script
         if [ -f "$PROJECT_ROOT/scripts/sync-env.ts" ]; then
-            cd "$PROJECT_ROOT" && pnpm env:sync
+            cd "$PROJECT_ROOT" && bun env:sync
             log_success "Environment variables synced to Convex"
         elif [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
             bash "$PROJECT_ROOT/scripts/sync-env.sh"
@@ -155,8 +155,8 @@ log_info ""
 log_info "Next steps:"
 log_info "1. cd $WORKTREE_PATH"
 log_info "2. Start development servers:"
-log_info "   - Run 'pnpm dev:all' for concurrent Next.js + Convex development"
-log_info "   - Or run 'pnpm dev' and 'pnpm convex:dev' in separate terminals"
+log_info "   - Run 'bun dev:all' for concurrent Next.js + Convex development"
+log_info "   - Or run 'bun dev' and 'bun convex:dev' in separate terminals"
 log_info "3. Make your changes and commit"
 log_info "4. Push with: git push -u origin $BRANCH_NAME"
 log_info ""

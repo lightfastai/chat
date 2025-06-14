@@ -9,6 +9,8 @@ The development workflow integrates:
 - **Git Worktrees**: Isolated feature development with `jeevanpillay/<feature_name>` branches
 - **Local Development**: Build validation and linting before commits
 - **Vercel CLI**: Deployment monitoring and troubleshooting
+- **Turborepo**: Optimized monorepo builds with intelligent caching
+- **Bun**: Lightning-fast JavaScript runtime and package manager
 
 ## End-to-End Feature Development Workflow
 
@@ -101,7 +103,7 @@ cd worktrees/<feature_name>
 # - Ensures main branch is up-to-date
 # - Creates worktree at worktrees/<feature_name>
 # - Creates branch jeevanpillay/<feature_name>
-# - Installs dependencies with pnpm install
+# - Installs dependencies with bun install
 # - Copies .env.local configuration
 # - Syncs environment variables to Convex
 # - Provides next steps guidance
@@ -124,13 +126,13 @@ git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 cd worktrees/<feature_name>
 
 # Install dependencies
-pnpm install
+bun install
 
 # Copy environment configuration
 cp ../../.env.local .env.local
 
 # Sync environment variables to Convex
-pnpm env:sync
+bun env:sync
 
 # Note: Claude Code can only access child directories of the working directory
 # Worktree will be created at: worktrees/<feature_name>/
@@ -147,14 +149,14 @@ cd worktrees/<feature_name>
 
 # Start development servers (choose one option):
 # Option 1: Background development (recommended for Claude Code)
-pnpm dev:bg                        # Runs both servers in background with logging
+bun dev:bg                        # Runs both servers in background with logging
 
 # Option 2: Concurrent development (foreground)
-pnpm dev:all
+bun dev:all
 
 # Option 3: Separate terminals
-# Terminal 1: pnpm dev              # Next.js development server
-# Terminal 2: pnpm convex:dev       # Convex backend development server
+# Terminal 1: bun dev              # Next.js development server
+# Terminal 2: bun convex:dev       # Convex backend development server
 
 # Check background servers status
 ps aux | grep -E "(next|convex)" | grep -v grep
@@ -171,12 +173,12 @@ pkill -f "convex dev"
 
 # Local validation - MUST pass before commit
 # Note: For build without environment variables, use:
-SKIP_ENV_VALIDATION=true pnpm build
+SKIP_ENV_VALIDATION=true bun build
 # Or alternatively, pull environment variables:
 # vc env pull
 
-pnpm lint
-pnpm format
+bun lint
+bun format
 
 # Fix any issues found by build/lint
 # Repeat until all checks pass
@@ -292,7 +294,7 @@ git status  # Ensure clean working tree with latest changes
 # If deployment fails, iterate:
 # 1. Check vercel logs for errors
 # 2. Fix issues locally
-# 3. Run pnpm build + pnpm lint
+# 3. Run bun build + bun lint
 # 4. Commit and push
 # 5. Monitor new deployment
 ```
@@ -338,7 +340,7 @@ Here's a real example of the full workflow using issue templates:
    ```bash
    ./scripts/setup-worktree.sh jeevanpillay/add-dark-mode
    cd worktrees/add-dark-mode
-   pnpm dev:all
+   bun dev:all
    # Implementation happens here...
    ```
 
@@ -359,7 +361,8 @@ This workflow ensures Claude Code has all context needed to implement features e
 - **Tailwind CSS v4.x**
 - **AI SDK** with Claude Sonnet 4 + OpenAI
 - **TypeScript** strict mode
-- **pnpm** package manager (v10.11.0)
+- **bun** runtime and package manager (v1.2.10)
+- **Turborepo** for optimized monorepo builds
 
 ### Code Style (Biome Configuration)
 - 2-space indentation, 80-character line width
@@ -386,55 +389,91 @@ src/components/
 - **Thread-based chat**: Complex schema with resumable streaming chunks
 
 
+## Turborepo Integration
+
+### Performance Benefits
+Turborepo brings significant performance improvements to the development workflow:
+
+- **Intelligent Caching**: Only rebuilds what has changed
+- **Parallel Execution**: Runs tasks concurrently when possible
+- **Remote Caching**: Share build cache across team members (when configured)
+- **Incremental Builds**: Dramatically faster subsequent builds
+- **Pipeline Optimization**: Automatically optimizes task dependencies
+
+### Turborepo Commands
+```bash
+# Run all tasks in the pipeline
+bun turbo run build lint
+
+# Run with verbose output to see caching in action
+bun turbo run build --verbose
+
+# Clear the cache if needed
+bun turbo run build --force
+
+# See task dependencies
+bun turbo run build --graph
+```
+
+### Combined with Bun
+The combination of Bun and Turborepo provides:
+- **10-20x faster package installations** compared to npm/yarn
+- **3-5x faster script execution** for development tasks
+- **Near-instant subsequent builds** with Turborepo caching
+- **Reduced CI/CD times** through remote caching capabilities
+
 ## Development Commands
 
 ### Essential Commands
 ```bash
-# Use pnpm (not npm/yarn) - v10.11.0
-pnpm install
+# Use bun (not npm/yarn/pnpm) - v1.2.10
+bun install
 
 # Background development (recommended for Claude Code)
-pnpm dev:bg           # Runs both servers in background with logging to dev.log
+bun dev:bg           # Runs both servers in background with logging to dev.log
 
 # Concurrent development (runs both Next.js and Convex in foreground)
-pnpm dev:all
+bun dev:all
 
 # Individual development servers
-pnpm dev              # Next.js development server
-pnpm convex:dev       # Convex backend development server
+bun dev              # Next.js development server
+bun convex:dev       # Convex backend development server
 
 # Complete project setup with instructions
-pnpm setup
+bun setup
 ```
 
 ### Build & Quality Checks
 ```bash
 # Build for production (required before every commit)
-pnpm build
+bun build
 
 # Lint and fix code issues (Biome)
-pnpm lint
+bun lint
 
 # Format code (Biome)
-pnpm format
+bun format
 
 # Build without environment validation (for CI/CD)
-SKIP_ENV_VALIDATION=true pnpm build
+SKIP_ENV_VALIDATION=true bun build
+
+# Run build with Turborepo for maximum performance
+bun turbo run build
 ```
 
 ### Environment Management
 ```bash
 # Sync environment variables to Convex
-pnpm env:sync
+bun env:sync
 
 # Verify synced environment variables
-pnpm env:check
+bun env:check
 
 # Deploy Convex functions
-pnpm convex:deploy
+bun convex:deploy
 
 # View Convex logs
-pnpm logs
+bun logs
 ```
 
 ### Vercel CLI Commands
@@ -490,9 +529,9 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 ## Quality Gates
 
 ### Before Every Commit
-1. ✅ `pnpm build` - Must pass without errors
-2. ✅ `pnpm lint` - Must pass without errors
-3. ✅ Code formatted with `pnpm format`
+1. ✅ `bun build` - Must pass without errors
+2. ✅ `bun lint` - Must pass without errors
+3. ✅ Code formatted with `bun format`
 4. ✅ All changes tested locally
 
 ### Before PR Creation
@@ -512,7 +551,7 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 ### Build Failures
 ```bash
 # Environment variable errors during build
-SKIP_ENV_VALIDATION=true pnpm build
+SKIP_ENV_VALIDATION=true bun build
 
 # Or pull environment variables from Vercel
 vc env pull
@@ -540,10 +579,10 @@ vercel logs --follow <deployment_id>
 ### Linting Issues (Biome)
 ```bash
 # Auto-fix linting issues (Biome)
-pnpm lint
+bun lint
 
 # Format code (Biome)
-pnpm format
+bun format
 
 # Manual fixes may be needed for:
 # - TypeScript type errors
@@ -748,9 +787,10 @@ This helps Claude Code quickly navigate to relevant files when working on the is
 
 ### Dual Server Development
 - **Requires two dev servers**: Next.js + Convex backend
-- Use `pnpm dev:all` for concurrent development or run in separate terminals
+- Use `bun dev:all` for concurrent development or run in separate terminals
 - Convex provides real-time database updates and subscriptions
 - Environment variables must be synced between Next.js and Convex
+- Turborepo optimizes the build pipeline for both servers
 
 ### Quality Assurance
 - **No testing framework configured** - relies on TypeScript + Biome
@@ -778,8 +818,8 @@ Uses `@t3-oss/env-nextjs` for type-safe environment validation:
 
 ### Environment Sync
 - Custom `./scripts/sync-env.ts` script validates and syncs variables
-- Run `pnpm env:sync` after environment changes
-- Use `pnpm env:check` to verify synced variables
+- Run `bun env:sync` after environment changes
+- Use `bun env:check` to verify synced variables
 - Color-coded output with success/error logging
 - Proper handling of multi-line JWT keys and complex values
 

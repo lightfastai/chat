@@ -145,3 +145,6 @@ worktrees/
 
 # Temporary repository clones for analysis
 tmp_repo/
+
+# Turborepo cache
+.turbo/

@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npx convex deploy --cmd 'pnpm build' --preview-run 'setup:setupInitialData'",
-  "devCommand": "pnpm dev",
-  "installCommand": "pnpm install",
+  "buildCommand": "bunx convex deploy --cmd 'bun run turbo:build' --preview-run 'setup:setupInitialData'",
+  "devCommand": "bun dev",
+  "installCommand": "bun install",
   "framework": "nextjs",
   "functions": {
     "app/api/**/*.ts": {
