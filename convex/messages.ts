@@ -1481,6 +1481,7 @@ export const getThreadById = internalQuery({
       lastMessageAt: v.number(),
       isGenerating: v.optional(v.boolean()),
       isTitleGenerating: v.optional(v.boolean()),
+      pinned: v.optional(v.boolean()),
       usage: v.optional(
         v.object({
           totalInputTokens: v.number(),
