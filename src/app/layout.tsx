@@ -1,6 +1,5 @@
 import type { Metadata } from "next"
 import "./globals.css"
-import { Footer } from "@/components/layout/Footer"
 import { ConvexClientProvider } from "@/lib/ConvexProvider"
 import { cn } from "@/lib/utils"
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server"
@@ -24,8 +23,7 @@ export default function RootLayout({
         <body className={cn(fonts, "dark", "flex min-h-screen flex-col")}>
           <RootProvider>
             <ConvexClientProvider>
-              <div className="flex-1">{children}</div>
-              <Footer />
+              {children}
             </ConvexClientProvider>
           </RootProvider>
           <Toaster theme="dark" position="top-right" />
