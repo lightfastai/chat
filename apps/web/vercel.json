@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npx convex deploy --cmd 'pnpm build' --preview-run 'setup:setupInitialData'",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}

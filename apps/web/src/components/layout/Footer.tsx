@@ -16,8 +16,6 @@ export function Footer({ className }: FooterProps) {
       <div className="flex items-center gap-2">
         <Link
           href="https://lightfast.ai"
-          target="_blank"
-          rel="noopener noreferrer"
           className="hover:text-foreground transition-colors"
         >
           Lightfast
@@ -25,8 +23,6 @@ export function Footer({ className }: FooterProps) {
         <span>•</span>
         <Link
           href="https://lightfast.ai/legal/terms"
-          target="_blank"
-          rel="noopener noreferrer"
           className="hover:text-foreground transition-colors"
         >
           Terms
@@ -34,8 +30,6 @@ export function Footer({ className }: FooterProps) {
         <span>•</span>
         <Link
           href="https://lightfast.ai/legal/privacy"
-          target="_blank"
-          rel="noopener noreferrer"
           className="hover:text-foreground transition-colors"
         >
           Privacy
@@ -43,8 +37,6 @@ export function Footer({ className }: FooterProps) {
         <span>•</span>
         <Link
           href="https://github.com/lightfastai/chat/blob/main/LICENSE.md"
-          target="_blank"
-          rel="noopener noreferrer"
           className="hover:text-foreground transition-colors"
         >
           License
