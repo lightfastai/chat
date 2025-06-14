@@ -96,19 +96,46 @@ export function useConversationBranches(
               (m) => m._id === message.branchFromMessageId,
             )
             if (originalMessage) {
-              const originalPosition = mainMessages.findIndex(
-                (m) => m._id === originalMessage._id,
-              )
-              branchPoint = {
-                messageId: originalMessage._id,
-                position: originalPosition,
+              // For nested branches, we need to find the actual divergence point
+              // in the conversation tree, not just the immediate parent
+              let branchFromId = originalMessage._id
+              let actualBranchPoint = originalMessage
+
+              // Trace back to find where this branch actually diverges from main
+              while (actualBranchPoint.branchFromMessageId) {
+                const parent = sortedMessages.find(
+                  (m) => m._id === actualBranchPoint.branchFromMessageId,
+                )
+                if (!parent) break
+
+                // Check if the parent is in the main branch
+                const parentBranchId = (
+                  parent as Message & { conversationBranchId?: string }
+                ).conversationBranchId
+                if (!parentBranchId || parentBranchId === "main") {
+                  // Found the actual branch point in main
+                  branchFromId = parent._id
+                  break
+                }
+
+                actualBranchPoint = parent
               }
 
-              // Track this branch at the branch point
-              if (!branchPoints.has(originalMessage._id)) {
-                branchPoints.set(originalMessage._id, [])
+              // Now calculate position based on the actual branch point
+              const originalPosition = mainMessages.findIndex(
+                (m) => m._id === branchFromId,
+              )
+
+              branchPoint = {
+                messageId: branchFromId,
+                position: originalPosition >= 0 ? originalPosition : 0,
               }
-              branchPoints.get(originalMessage._id)!.push(conversationBranchId)
+
+              // Track this branch at the actual branch point
+              if (!branchPoints.has(branchFromId)) {
+                branchPoints.set(branchFromId, [])
+              }
+              branchPoints.get(branchFromId)!.push(conversationBranchId)
             }
           }
 
