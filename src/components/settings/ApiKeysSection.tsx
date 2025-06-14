@@ -60,9 +60,26 @@ const AnthropicApiKeyFormSchema = z.object({
 })
 type AnthropicApiKeyFormValues = z.infer<typeof AnthropicApiKeyFormSchema>
 
+const OpenRouterApiKeyFormSchema = z.object({
+  openrouterKey: z
+    .string()
+    .optional()
+    .refine(
+      (key) => {
+        if (!key || key === "********") return true
+        return validateApiKeyFormat(key, "openrouter")
+      },
+      {
+        message: "Invalid OpenRouter API key format.",
+      },
+    ),
+})
+type OpenRouterApiKeyFormValues = z.infer<typeof OpenRouterApiKeyFormSchema>
+
 export function ApiKeysSection() {
   const [showOpenAI, setShowOpenAI] = useState(false)
   const [showAnthropic, setShowAnthropic] = useState(false)
+  const [showOpenRouter, setShowOpenRouter] = useState(false)
 
   const userSettings = useQuery(api.userSettings.getUserSettings)
   const updateApiKeys = useMutation(api.userSettings.updateApiKeys)
@@ -84,6 +101,14 @@ export function ApiKeysSection() {
     mode: "onChange",
   })
 
+  const openrouterForm = useForm<OpenRouterApiKeyFormValues>({
+    resolver: zodResolver(OpenRouterApiKeyFormSchema),
+    defaultValues: {
+      openrouterKey: "",
+    },
+    mode: "onChange",
+  })
+
   useEffect(() => {
     if (userSettings) {
       openaiForm.reset({
@@ -92,8 +117,11 @@ export function ApiKeysSection() {
       anthropicForm.reset({
         anthropicKey: userSettings.hasAnthropicKey ? "********" : "",
       })
+      openrouterForm.reset({
+        openrouterKey: userSettings.hasOpenRouterKey ? "********" : "",
+      })
     }
-  }, [userSettings, openaiForm, anthropicForm])
+  }, [userSettings, openaiForm, anthropicForm, openrouterForm])
 
   const onOpenAISubmit = async (values: OpenAIApiKeyFormValues) => {
     const { openaiKey } = values
@@ -129,16 +157,37 @@ export function ApiKeysSection() {
     }
   }
 
-  const handleRemoveApiKey = async (provider: "openai" | "anthropic") => {
+  const onOpenRouterSubmit = async (values: OpenRouterApiKeyFormValues) => {
+    const { openrouterKey } = values
+    if (!openrouterKey || openrouterKey === "********") {
+      toast.error("Please enter a new OpenRouter API key to save.")
+      return
+    }
+
+    try {
+      await updateApiKeys({ openrouterKey })
+      toast.success("OpenRouter API key updated successfully.")
+      openrouterForm.reset({ openrouterKey: "********" })
+    } catch (error) {
+      console.error("Error updating OpenRouter API key:", error)
+      toast.error("Failed to update OpenRouter API key. Please try again.")
+    }
+  }
+
+  const handleRemoveApiKey = async (
+    provider: "openai" | "anthropic" | "openrouter",
+  ) => {
     try {
       await removeApiKey({ provider })
       toast.success(
-        `${provider === "openai" ? "OpenAI" : "Anthropic"} API key removed.`,
+        `${provider === "openai" ? "OpenAI" : provider === "anthropic" ? "Anthropic" : "OpenRouter"} API key removed.`,
       )
       if (provider === "openai") {
         openaiForm.setValue("openaiKey", "")
-      } else {
+      } else if (provider === "anthropic") {
         anthropicForm.setValue("anthropicKey", "")
+      } else {
+        openrouterForm.setValue("openrouterKey", "")
       }
     } catch (error) {
       toast.error("Failed to remove API key.")
@@ -350,6 +399,109 @@ export function ApiKeysSection() {
                     disabled={anthropicForm.formState.isSubmitting}
                   >
                     {anthropicForm.formState.isSubmitting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Save
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </form>
+        </Form>
+
+        <Form {...openrouterForm}>
+          <form
+            onSubmit={openrouterForm.handleSubmit(onOpenRouterSubmit)}
+            className="space-y-4"
+          >
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Key className="h-4 w-4" />
+                    <CardTitle className="text-base">
+                      OpenRouter API Key
+                    </CardTitle>
+                    {userSettings?.hasOpenRouterKey && (
+                      <Badge variant="secondary" className="text-xs">
+                        Configured
+                      </Badge>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      window.open("https://openrouter.ai/keys", "_blank")
+                    }
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                </div>
+                <CardDescription>
+                  Used for OpenRouter models (Llama, Gemini, etc.).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={openrouterForm.control}
+                  name="openrouterKey"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="sr-only">
+                        OpenRouter API Key
+                      </FormLabel>
+                      <div className="flex items-center space-x-2">
+                        <div className="relative flex-1">
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type={showOpenRouter ? "text" : "password"}
+                              placeholder="sk-or-..."
+                              onFocus={(e) => {
+                                if (e.target.value === "********") {
+                                  openrouterForm.setValue("openrouterKey", "")
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3"
+                            onClick={() => setShowOpenRouter(!showOpenRouter)}
+                          >
+                            {showOpenRouter ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        {userSettings?.hasOpenRouterKey && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveApiKey("openrouter")}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end pt-4">
+                  <Button
+                    type="submit"
+                    disabled={openrouterForm.formState.isSubmitting}
+                  >
+                    {openrouterForm.formState.isSubmitting && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     Save
