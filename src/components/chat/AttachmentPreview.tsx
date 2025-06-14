@@ -17,7 +17,7 @@ export function AttachmentPreview({ attachmentIds }: AttachmentPreviewProps) {
 
   return (
     <div className="mt-2 flex flex-wrap gap-2">
-      {files.map((file) => {
+      {files.map((file: any) => {
         if (!file) return null
 
         const isImage = file.fileType.startsWith("image/")

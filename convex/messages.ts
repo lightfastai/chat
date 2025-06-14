@@ -310,27 +310,28 @@ async function buildMessageContent(
     // Handle PDFs
     else if (file.fileType === "application/pdf") {
       if (hasPdfSupport && provider === "anthropic") {
-      // Claude supports PDFs as file type
-      content.push({
-        type: "file" as const,
-        data: file.url,
-        mediaType: "application/pdf",
-      })
+        // Claude supports PDFs as file type
+        content.push({
+          type: "file" as const,
+          data: file.url,
+          mediaType: "application/pdf",
+        })
+      } else {
+        // PDF not supported - add as text description
+        const description = `\n[Attached PDF: ${file.fileName} (${(file.fileSize / 1024).toFixed(1)}KB)] - Note: PDF content analysis requires Claude models.`
+        content.push({
+          type: "text" as const,
+          text: description,
+        })
+      }
     }
     // For other file types, add as text description
     else {
-      // For PDFs on OpenAI or other unsupported files
-      let description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`
-
-      // Add helpful context for PDFs on OpenAI
-      if (file.fileType === "application/pdf" && provider === "openai") {
-        description += " - Note: PDF content analysis requires Claude models."
+      const description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`
+      
+      if (content[0] && "text" in content[0]) {
+        content[0].text += description
       }
-
-      content.push({
-        type: "text" as const,
-        text: description,
-      })
     }
   }
 
