@@ -8,7 +8,7 @@
  */
 export function validateApiKeyFormat(
   key: string,
-  provider: "openai" | "anthropic",
+  provider: "openai" | "anthropic" | "openrouter",
 ): boolean {
   if (!key || typeof key !== "string") return false
 
@@ -24,6 +24,9 @@ export function validateApiKeyFormat(
       // Anthropic keys start with `sk-ant-` and are significantly longer.
       // This regex checks for the prefix and a reasonable length of characters.
       return /^sk-ant-[a-zA-Z0-9_-]{95,}$/.test(key)
+    case "openrouter":
+      // OpenRouter keys start with `sk-or-` followed by alphanumeric and hyphen characters
+      return /^sk-or-[a-zA-Z0-9-]{20,}$/.test(key)
     default:
       return false
   }

@@ -4,6 +4,7 @@ import type {
   ModelId,
   ModelProvider,
   OpenAIModel,
+  OpenRouterModel,
 } from "./types"
 
 /**
@@ -145,11 +146,104 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
 }
 
 /**
+ * OpenRouter Model Configurations
+ */
+export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
+  "meta-llama/llama-3.3-70b-instruct": {
+    id: "meta-llama/llama-3.3-70b-instruct",
+    provider: "openrouter",
+    name: "meta-llama/llama-3.3-70b-instruct",
+    displayName: "Llama 3.3 70B",
+    description: "Meta's latest and most capable open model",
+    maxTokens: 131072,
+    costPer1KTokens: {
+      input: 0.00035,
+      output: 0.0004,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,
+    },
+  },
+  "anthropic/claude-3.5-sonnet": {
+    id: "anthropic/claude-3.5-sonnet",
+    provider: "openrouter",
+    name: "anthropic/claude-3.5-sonnet",
+    displayName: "Claude 3.5 Sonnet (via OpenRouter)",
+    description: "Claude 3.5 Sonnet through OpenRouter",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "openai/gpt-4o": {
+    id: "openai/gpt-4o",
+    provider: "openrouter",
+    name: "openai/gpt-4o",
+    displayName: "GPT-4o (via OpenRouter)",
+    description: "GPT-4o through OpenRouter",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.0025,
+      output: 0.01,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "google/gemini-pro-1.5": {
+    id: "google/gemini-pro-1.5",
+    provider: "openrouter",
+    name: "google/gemini-pro-1.5",
+    displayName: "Gemini 1.5 Pro",
+    description: "Google's advanced multimodal model",
+    maxTokens: 2097152,
+    costPer1KTokens: {
+      input: 0.00125,
+      output: 0.005,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "mistralai/mistral-large": {
+    id: "mistralai/mistral-large",
+    provider: "openrouter",
+    name: "mistralai/mistral-large",
+    displayName: "Mistral Large",
+    description:
+      "Mistral's flagship model with strong multilingual capabilities",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.002,
+      output: 0.006,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,
+    },
+  },
+}
+
+/**
  * All available models combined
  */
 export const ALL_MODELS: Record<ModelId, ModelConfig> = {
   ...OPENAI_MODELS,
   ...ANTHROPIC_MODELS,
+  ...OPENROUTER_MODELS,
 } as const
 
 /**

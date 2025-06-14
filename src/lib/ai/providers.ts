@@ -1,5 +1,5 @@
 import { anthropic } from "@ai-sdk/anthropic"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI, openai } from "@ai-sdk/openai"
 import type { CoreMessage } from "ai"
 import { getModelById } from "./models"
 import { getProviderFromModelId } from "./types"
@@ -29,6 +29,17 @@ export const PROVIDER_CONFIG = {
       "claude-3-haiku-20240307",
     ],
   },
+  openrouter: {
+    name: "OpenRouter",
+    apiKeyEnvVar: "OPENROUTER_API_KEY",
+    models: [
+      "meta-llama/llama-3.3-70b-instruct",
+      "anthropic/claude-3.5-sonnet",
+      "openai/gpt-4o",
+      "google/gemini-pro-1.5",
+      "mistralai/mistral-large",
+    ],
+  },
 } as const
 
 /**
@@ -50,6 +61,16 @@ export function getLanguageModel(provider: ModelProvider) {
       return openai(model.name)
     case "anthropic":
       return anthropic(model.name)
+    case "openrouter":
+      // OpenRouter uses OpenAI-compatible API
+      return createOpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        headers: {
+          "HTTP-Referer":
+            process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+          "X-Title": "Lightfast Chat",
+        },
+      })(model.name)
     default:
       throw new Error(`Unsupported provider: ${provider}`)
   }
@@ -69,6 +90,16 @@ export function getLanguageModelById(modelId: string) {
       return openai(model.name)
     case "anthropic":
       return anthropic(model.name)
+    case "openrouter":
+      // OpenRouter uses OpenAI-compatible API
+      return createOpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        headers: {
+          "HTTP-Referer":
+            process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+          "X-Title": "Lightfast Chat",
+        },
+      })(model.name)
     default:
       throw new Error(`Unsupported provider: ${model.provider}`)
   }

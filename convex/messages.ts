@@ -97,6 +97,7 @@ const modelIdValidator = v.union(...ALL_MODEL_IDS.map((id) => v.literal(id)))
 const modelProviderValidator = v.union(
   v.literal("openai"),
   v.literal("anthropic"),
+  v.literal("openrouter"),
 )
 
 export const list = query({
@@ -348,7 +349,8 @@ export const generateAIResponse = internalAction({
       // Determine if user's API key will be used
       const willUseUserApiKey =
         (provider === "anthropic" && userApiKeys && userApiKeys.anthropic) ||
-        (provider === "openai" && userApiKeys && userApiKeys.openai)
+        (provider === "openai" && userApiKeys && userApiKeys.openai) ||
+        (provider === "openrouter" && userApiKeys && userApiKeys.openrouter)
 
       // Create initial AI message placeholder
       messageId = await ctx.runMutation(
@@ -398,9 +400,33 @@ export const generateAIResponse = internalAction({
                 actualModelName,
               )
             : anthropic(actualModelName)
-          : userApiKeys?.openai
-            ? createOpenAI({ apiKey: userApiKeys.openai })(actualModelName)
-            : openai(actualModelName)
+          : provider === "openai"
+            ? userApiKeys?.openai
+              ? createOpenAI({ apiKey: userApiKeys.openai })(actualModelName)
+              : openai(actualModelName)
+            : provider === "openrouter"
+              ? userApiKeys?.openrouter
+                ? createOpenAI({
+                    apiKey: userApiKeys.openrouter,
+                    baseURL: "https://openrouter.ai/api/v1",
+                    headers: {
+                      "HTTP-Referer":
+                        process.env.SITE_URL || "http://localhost:3000",
+                      "X-Title": "Lightfast Chat",
+                    },
+                  })(actualModelName)
+                : createOpenAI({
+                    apiKey: process.env.OPENROUTER_API_KEY!,
+                    baseURL: "https://openrouter.ai/api/v1",
+                    headers: {
+                      "HTTP-Referer":
+                        process.env.SITE_URL || "http://localhost:3000",
+                      "X-Title": "Lightfast Chat",
+                    },
+                  })(actualModelName)
+              : (() => {
+                  throw new Error(`Unsupported provider: ${provider}`)
+                })()
 
       // Stream response using AI SDK v5 with full stream for reasoning support
       const streamOptions: Parameters<typeof streamText>[0] = {

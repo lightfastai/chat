@@ -32,6 +32,7 @@ export const getUserSettings = query({
       updatedAt: settings.updatedAt,
       hasOpenAIKey: !!settings.apiKeys?.openai,
       hasAnthropicKey: !!settings.apiKeys?.anthropic,
+      hasOpenRouterKey: !!settings.apiKeys?.openrouter,
     }
   },
 })
@@ -41,8 +42,9 @@ export const updateApiKeys = mutation({
   args: {
     openaiKey: v.optional(v.string()),
     anthropicKey: v.optional(v.string()),
+    openrouterKey: v.optional(v.string()),
   },
-  handler: async (ctx, { openaiKey, anthropicKey }) => {
+  handler: async (ctx, { openaiKey, anthropicKey, openrouterKey }) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
       throw new ConvexError("Unauthorized")
@@ -56,7 +58,11 @@ export const updateApiKeys = mutation({
     const now = Date.now()
 
     // Prepare encrypted API keys
-    const apiKeys: { openai?: string; anthropic?: string } = {}
+    const apiKeys: {
+      openai?: string
+      anthropic?: string
+      openrouter?: string
+    } = {}
 
     if (openaiKey) {
       apiKeys.openai = await encrypt(openaiKey)
@@ -70,6 +76,13 @@ export const updateApiKeys = mutation({
     } else if (existingSettings?.apiKeys?.anthropic) {
       // Keep existing key if not updating
       apiKeys.anthropic = existingSettings.apiKeys.anthropic
+    }
+
+    if (openrouterKey) {
+      apiKeys.openrouter = await encrypt(openrouterKey)
+    } else if (existingSettings?.apiKeys?.openrouter) {
+      // Keep existing key if not updating
+      apiKeys.openrouter = existingSettings.apiKeys.openrouter
     }
 
     if (existingSettings) {
@@ -106,10 +119,20 @@ export const updatePreferences = mutation({
         v.literal("claude-sonnet-4-20250514-thinking"),
         v.literal("claude-3-5-sonnet-20241022"),
         v.literal("claude-3-haiku-20240307"),
+        // OpenRouter models
+        v.literal("meta-llama/llama-3.3-70b-instruct"),
+        v.literal("anthropic/claude-3.5-sonnet"),
+        v.literal("openai/gpt-4o"),
+        v.literal("google/gemini-pro-1.5"),
+        v.literal("mistralai/mistral-large"),
       ),
     ),
     preferredProvider: v.optional(
-      v.union(v.literal("openai"), v.literal("anthropic")),
+      v.union(
+        v.literal("openai"),
+        v.literal("anthropic"),
+        v.literal("openrouter"),
+      ),
     ),
   },
   handler: async (ctx, { defaultModel, preferredProvider }) => {
@@ -152,7 +175,11 @@ export const updatePreferences = mutation({
 // Remove specific API key
 export const removeApiKey = mutation({
   args: {
-    provider: v.union(v.literal("openai"), v.literal("anthropic")),
+    provider: v.union(
+      v.literal("openai"),
+      v.literal("anthropic"),
+      v.literal("openrouter"),
+    ),
   },
   handler: async (ctx, { provider }) => {
     const userId = await getAuthUserId(ctx)
@@ -200,6 +227,9 @@ export const getDecryptedApiKeys = internalMutation({
         : undefined,
       anthropic: settings.apiKeys.anthropic
         ? await decrypt(settings.apiKeys.anthropic)
+        : undefined,
+      openrouter: settings.apiKeys.openrouter
+        ? await decrypt(settings.apiKeys.openrouter)
         : undefined,
     }
   },

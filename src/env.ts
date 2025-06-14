@@ -19,6 +19,7 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: z
       .string()
       .min(1, "Anthropic API key is required for Claude Sonnet 4"),
+    OPENROUTER_API_KEY: z.string().min(1, "OpenRouter API key is required"),
     EXA_API_KEY: z.string().min(1, "Exa API key is required for web search"),
 
     // GitHub OAuth for Convex Auth
@@ -61,6 +62,7 @@ export const env = createEnv({
     // Server-side
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     EXA_API_KEY: process.env.EXA_API_KEY,
     AUTH_GITHUB_ID: process.env.AUTH_GITHUB_ID,
     AUTH_GITHUB_SECRET: process.env.AUTH_GITHUB_SECRET,

@@ -2,7 +2,7 @@
  * AI Model Types and Configurations
  */
 
-export type ModelProvider = "openai" | "anthropic"
+export type ModelProvider = "openai" | "anthropic" | "openrouter"
 
 export type OpenAIModel = "gpt-4o-mini" | "gpt-4o" | "gpt-3.5-turbo"
 export type AnthropicModel =
@@ -11,7 +11,14 @@ export type AnthropicModel =
   | "claude-3-5-sonnet-20241022"
   | "claude-3-haiku-20240307"
 
-export type ModelId = OpenAIModel | AnthropicModel
+export type OpenRouterModel =
+  | "meta-llama/llama-3.3-70b-instruct"
+  | "anthropic/claude-3.5-sonnet"
+  | "openai/gpt-4o"
+  | "google/gemini-pro-1.5"
+  | "mistralai/mistral-large"
+
+export type ModelId = OpenAIModel | AnthropicModel | OpenRouterModel
 
 export interface ModelConfig {
   id: string
@@ -56,7 +63,7 @@ export interface AIGenerationOptions {
 }
 
 // Shared validation helpers for Convex
-export const MODEL_PROVIDERS = ["openai", "anthropic"] as const
+export const MODEL_PROVIDERS = ["openai", "anthropic", "openrouter"] as const
 export const OPENAI_MODEL_IDS = [
   "gpt-4o-mini",
   "gpt-4o",
@@ -68,9 +75,17 @@ export const ANTHROPIC_MODEL_IDS = [
   "claude-3-5-sonnet-20241022",
   "claude-3-haiku-20240307",
 ] as const
+export const OPENROUTER_MODEL_IDS = [
+  "meta-llama/llama-3.3-70b-instruct",
+  "anthropic/claude-3.5-sonnet",
+  "openai/gpt-4o",
+  "google/gemini-pro-1.5",
+  "mistralai/mistral-large",
+] as const
 export const ALL_MODEL_IDS = [
   ...OPENAI_MODEL_IDS,
   ...ANTHROPIC_MODEL_IDS,
+  ...OPENROUTER_MODEL_IDS,
 ] as const
 
 // Type-safe model ID validation
@@ -85,6 +100,9 @@ export function getProviderFromModelId(modelId: ModelId): ModelProvider {
   }
   if ((ANTHROPIC_MODEL_IDS as readonly string[]).includes(modelId)) {
     return "anthropic"
+  }
+  if ((OPENROUTER_MODEL_IDS as readonly string[]).includes(modelId)) {
+    return "openrouter"
   }
   throw new Error(`Unknown model ID: ${modelId}`)
 }
