@@ -182,7 +182,6 @@ export function useConversationBranches(
         newestBranch &&
         newestBranch.id !== currentBranch &&
         newestBranch.id !== lastAutoSwitchBranch &&
-        currentBranch === "main" &&
         newestBranch.messages.length > 0
       ) {
         console.log("🌳 Auto-switching to newest branch:", newestBranch.id)
