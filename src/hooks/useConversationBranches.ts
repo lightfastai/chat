@@ -136,6 +136,10 @@ export function useConversationBranches(
                 branchPoints.set(branchFromId, [])
               }
               branchPoints.get(branchFromId)!.push(conversationBranchId)
+
+              console.log(
+                `🌳 Tracking branch point: messageId=${branchFromId}, branches=${[...branchPoints.get(branchFromId)!]}`,
+              )
             }
           }
 
@@ -153,8 +157,18 @@ export function useConversationBranches(
     }
 
     console.log("🌳 Conversation tree built:", {
-      branches: Array.from(branches.keys()),
-      branchPoints: Array.from(branchPoints.entries()),
+      branches: Array.from(branches.entries()).map(([id, branch]) => ({
+        id,
+        messageCount: branch.messages.length,
+        branchPoint: branch.branchPoint,
+      })),
+      branchPoints: Array.from(branchPoints.entries()).map(
+        ([messageId, branchIds]) => ({
+          messageId,
+          branches: [...branchIds],
+        }),
+      ),
+      totalMessages: messages.length,
     })
 
     return {
@@ -234,17 +248,41 @@ export function useConversationBranches(
     (messageId: string) => {
       // Check if this message is a branch point
       const branchIds = conversationTree.branchPoints.get(messageId)
-      if (!branchIds || branchIds.length === 0) return null
+      console.log(`🌳 getBranchNavigation for ${messageId}:`, {
+        branchIds: branchIds ? [...branchIds] : "none",
+        allBranchPoints: Array.from(
+          conversationTree.branchPoints.entries(),
+        ).map(([id, branches]) => ({
+          messageId: id,
+          branches: [...branches],
+        })),
+        currentBranch,
+      })
+
+      if (!branchIds || branchIds.length === 0) {
+        console.log(
+          `🌳 No branch navigation for ${messageId} - not a branch point`,
+        )
+        return null
+      }
 
       // Create navigation for all branches that stem from this point
       const allBranchesAtPoint = ["main", ...branchIds]
       const currentIndex = allBranchesAtPoint.indexOf(currentBranch)
+
+      console.log("🌳 Branch navigation created:", {
+        messageId,
+        branches: allBranchesAtPoint,
+        currentBranch,
+        currentIndex,
+      })
 
       return {
         currentIndex: currentIndex >= 0 ? currentIndex : 0,
         totalBranches: allBranchesAtPoint.length,
         onNavigate: (index: number) => {
           const targetBranch = allBranchesAtPoint[index]
+          console.log(`🌳 Navigating to branch ${index}: ${targetBranch}`)
           if (targetBranch) {
             switchToBranch(targetBranch)
           }

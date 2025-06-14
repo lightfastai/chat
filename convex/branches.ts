@@ -296,8 +296,33 @@ export const createAssistantMessageBranch = mutation({
     // Create conversation branch ID for v0.dev-style branching
     const conversationBranchId = `branch_${Date.now()}_${newBranchSequence}`
 
+    // Find the actual branch point (the original message where conversation diverged)
+    let actualBranchPoint = args.originalMessageId
+    let currentMessage = originalMessage
+
+    // Trace back to find the actual divergence point in the main conversation
+    while (
+      currentMessage.branchFromMessageId &&
+      currentMessage.conversationBranchId !== "main"
+    ) {
+      const parentMessage = await ctx.db.get(currentMessage.branchFromMessageId)
+      if (!parentMessage) break
+
+      // If the parent is in the main branch or doesn't have a conversationBranchId,
+      // then the current message's branchFromMessageId is the actual branch point
+      if (
+        !parentMessage.conversationBranchId ||
+        parentMessage.conversationBranchId === "main"
+      ) {
+        actualBranchPoint = currentMessage.branchFromMessageId
+        break
+      }
+
+      currentMessage = parentMessage
+    }
+
     console.log(
-      `🔧 createAssistantMessageBranch: originalMessageId=${args.originalMessageId}, branchSequence=${newBranchSequence}, branchId=${branchId}, conversationBranchId=${conversationBranchId}`,
+      `🔧 createAssistantMessageBranch: originalMessageId=${args.originalMessageId}, branchSequence=${newBranchSequence}, branchId=${branchId}, conversationBranchId=${conversationBranchId}, actualBranchPoint=${actualBranchPoint}`,
     )
 
     // Schedule AI response generation for the new branch
@@ -309,7 +334,7 @@ export const createAssistantMessageBranch = mutation({
       branchFromMessageId: args.originalMessageId,
       branchSequence: newBranchSequence,
       conversationBranchId: conversationBranchId,
-      branchPoint: args.originalMessageId,
+      branchPoint: actualBranchPoint,
     })
 
     // Return branch info (the actual message ID will be created by the scheduled action)

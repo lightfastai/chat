@@ -380,30 +380,63 @@ export function ChatInterface() {
       const variantInfo = messageVariants.get(originalMessageId)
 
       // Check if this message is part of conversation-level branching
+      const conversationBranchId = (
+        msg as Message & { conversationBranchId?: string }
+      ).conversationBranchId
       const isConversationBranchMessage =
-        msg.branchFromMessageId &&
-        (msg as Message & { conversationBranchId?: string })
-          .conversationBranchId !== "main"
+        msg.branchFromMessageId && conversationBranchId !== "main"
 
       console.log(
         `📊 Message ${msg._id}: originalId=${originalMessageId}, variantInfo=`,
         variantInfo,
         "isConversationBranch=",
         isConversationBranchMessage,
+        "branchFromMessageId=",
+        msg.branchFromMessageId,
+        "conversationBranchId=",
+        conversationBranchId,
       )
 
       // For conversation branch messages, create conversation-level navigation
       let branchInfo = undefined
+
+      console.log(`[Branch Debug] Processing message ${originalMessageId}:`, {
+        isConversationBranchMessage,
+        variantInfo,
+        hasNavigation:
+          !!branchNavigation.getBranchNavigation(originalMessageId),
+        messageType: msg.messageType,
+      })
+
       if (isConversationBranchMessage) {
         // Use the hook's branch navigation for this message
         const navigation =
           branchNavigation.getBranchNavigation(originalMessageId)
+
+        console.log(
+          `[Branch Debug] Conversation branch navigation for ${originalMessageId}:`,
+          {
+            navigation,
+            exists: !!navigation,
+            currentIndex: navigation?.currentIndex,
+            totalBranches: navigation?.totalBranches,
+          },
+        )
+
         if (navigation) {
           branchInfo = {
             currentBranch: navigation.currentIndex,
             totalBranches: navigation.totalBranches,
             onNavigate: navigation.onNavigate,
           }
+          console.log(
+            "[Branch Debug] Created branchInfo for conversation branch:",
+            branchInfo,
+          )
+        } else {
+          console.log(
+            `[Branch Debug] No navigation found for conversation branch message ${originalMessageId}`,
+          )
         }
       } else if (variantInfo) {
         // Regular message-level branching
@@ -413,7 +446,27 @@ export function ChatInterface() {
           onNavigate: (branchIndex: number) =>
             handleBranchNavigate(originalMessageId, branchIndex),
         }
+        console.log(
+          "[Branch Debug] Created branchInfo for regular variant:",
+          branchInfo,
+        )
+      } else {
+        console.log(
+          `[Branch Debug] No branch info created for message ${originalMessageId} - neither conversation branch nor variant`,
+        )
       }
+
+      // Final debug log for this message
+      console.log(
+        `[Branch Debug] Final state for message ${originalMessageId}:`,
+        {
+          hasBranchInfo: !!branchInfo,
+          branchInfo,
+          _branchInfo: branchInfo,
+          messageType: msg.messageType,
+          isConversationBranch: isConversationBranchMessage,
+        },
+      )
 
       return {
         ...msg,
