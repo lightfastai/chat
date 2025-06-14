@@ -61,7 +61,11 @@
       "Bash(SKIP_ENV_VALIDATION=true pnpm dev)",
       "Bash(pnpm env:sync:*)",
       "Bash(pnpm dev:*)",
-      "Bash(pnpm biome check:*)"
+      "Bash(pnpm biome check:*)",
+      "WebFetch(domain:www.convex.dev)",
+      "Bash(pnpm format:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(git merge:*)"
     ],
     "deny": []
   }

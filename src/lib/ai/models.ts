@@ -84,6 +84,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       functionCalling: true,
       vision: true,
       thinking: false, // Standard mode without thinking
+      pdfSupport: true,
     },
   },
   "claude-sonnet-4-20250514-thinking": {
@@ -103,6 +104,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       functionCalling: true,
       vision: true,
       thinking: true,
+      pdfSupport: true,
     },
     thinkingConfig: {
       enabled: true,
@@ -124,6 +126,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       streaming: true,
       functionCalling: true,
       vision: true,
+      pdfSupport: true,
     },
   },
   "claude-3-haiku-20240307": {
@@ -141,6 +144,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       streaming: true,
       functionCalling: true,
       vision: true,
+      pdfSupport: true,
     },
   },
 }

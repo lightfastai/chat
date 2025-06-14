@@ -385,6 +385,7 @@ src/components/
 - **AI model management**: Multi-provider support with token tracking
 - **Thread-based chat**: Complex schema with resumable streaming chunks
 
+
 ## Development Commands
 
 ### Essential Commands

@@ -103,6 +103,7 @@ export function useChat() {
   const handleSendMessage = async (
     message: string,
     modelId: string,
+    attachments?: Id<"files">[],
     webSearchEnabled?: boolean,
   ) => {
     if (!message.trim()) return
@@ -119,6 +120,7 @@ export function useChat() {
           clientId: clientId,
           body: message,
           modelId: modelId as ModelId,
+          attachments,
           webSearchEnabled,
         })
 
@@ -132,6 +134,7 @@ export function useChat() {
           clientId: currentClientId,
           body: message,
           modelId: modelId as ModelId,
+          attachments,
           webSearchEnabled,
         })
       } else if (currentThread) {
@@ -140,6 +143,7 @@ export function useChat() {
           threadId: currentThread._id,
           body: message,
           modelId: modelId as ModelId,
+          attachments,
           webSearchEnabled,
         })
       }

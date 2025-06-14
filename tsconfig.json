@@ -33,5 +33,5 @@
     ".next/types/**/*.ts",
     "src"
   ],
-  "exclude": ["node_modules", ".next", "worktrees", "scripts"]
+  "exclude": ["node_modules", ".next", "worktrees", "scripts", "tmp_repo"]
 }

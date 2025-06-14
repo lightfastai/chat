@@ -7,6 +7,7 @@ import { User } from "lucide-react"
 import React from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Doc } from "../../../convex/_generated/dataModel"
+import { AttachmentPreview } from "./AttachmentPreview"
 import { MessageActions } from "./MessageActions"
 import { StreamingMessage } from "./StreamingMessage"
 
@@ -107,6 +108,11 @@ export function MessageDisplay({ message, userName }: MessageDisplayProps) {
           }
           thinkingDuration={thinkingDuration}
         />
+
+        {/* Show attachments if present */}
+        {message.attachments && message.attachments.length > 0 && (
+          <AttachmentPreview attachmentIds={message.attachments} />
+        )}
 
         {/* Show feedback and copy buttons for completed AI messages */}
         {isAI && message.isComplete !== false && !message._streamId && (

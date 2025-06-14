@@ -30,6 +30,27 @@ const modelProviderValidator = v.union(
 export default defineSchema({
   ...authTables,
 
+  // File storage for attachments
+  files: defineTable({
+    storageId: v.string(), // Convex storage ID
+    fileName: v.string(),
+    fileType: v.string(), // MIME type
+    fileSize: v.number(), // Size in bytes
+    uploadedBy: v.id("users"),
+    uploadedAt: v.number(),
+    // Optional metadata
+    metadata: v.optional(
+      v.object({
+        width: v.optional(v.number()), // For images
+        height: v.optional(v.number()), // For images
+        pages: v.optional(v.number()), // For PDFs
+        extractedText: v.optional(v.string()), // For searchable content
+      }),
+    ),
+  })
+    .index("by_user", ["uploadedBy"])
+    .index("by_storage_id", ["storageId"]),
+
   userSettings: defineTable({
     userId: v.id("users"),
     apiKeys: v.optional(
@@ -57,6 +78,7 @@ export default defineSchema({
     lastMessageAt: v.number(),
     isTitleGenerating: v.optional(v.boolean()),
     isGenerating: v.optional(v.boolean()),
+    pinned: v.optional(v.boolean()),
     // Thread-level usage tracking (denormalized for performance)
     usage: v.optional(
       v.object({
@@ -92,6 +114,8 @@ export default defineSchema({
     messageType: v.union(v.literal("user"), v.literal("assistant")),
     model: v.optional(modelProviderValidator),
     modelId: v.optional(modelIdValidator),
+    // Attachments - array of file IDs
+    attachments: v.optional(v.array(v.id("files"))),
     isStreaming: v.optional(v.boolean()),
     streamId: v.optional(v.string()),
     isComplete: v.optional(v.boolean()),

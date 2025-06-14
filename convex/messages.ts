@@ -1,13 +1,19 @@
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
-import { streamText, tool } from "ai"
+import { type CoreMessage, streamText, tool } from "ai"
 import { v } from "convex/values"
-import Exa from "exa-js"
+import Exa, {
+  type RegularSearchOptions,
+  type ContentsOptions,
+  type SearchResult,
+} from "exa-js"
 import { z } from "zod"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
 import {
+  type ActionCtx,
+  type MutationCtx,
   internalAction,
   internalMutation,
   internalQuery,
@@ -15,6 +21,7 @@ import {
   query,
 } from "./_generated/server.js"
 
+import { getModelById } from "../src/lib/ai/models.js"
 // Import shared types and utilities
 import {
   ALL_MODEL_IDS,
@@ -45,7 +52,7 @@ function createWebSearchTool() {
       try {
         const exa = new Exa(exaApiKey)
         const numResults = 5
-        const searchOptions = {
+        const searchOptions: RegularSearchOptions & ContentsOptions = {
           numResults,
           text: {
             maxCharacters: 1000,
@@ -55,16 +62,18 @@ function createWebSearchTool() {
             numSentences: 3,
             highlightsPerUrl: 2,
           },
-        } as any
+        }
 
         const response = await exa.search(query, searchOptions)
 
-        const results = response.results.map((result: any) => ({
+        const results = response.results.map((result) => ({
           id: result.id,
           url: result.url,
           title: result.title || "",
           text: result.text,
-          highlights: result.highlights,
+          highlights: (
+            result as SearchResult<ContentsOptions> & { highlights?: string[] }
+          ).highlights,
           publishedDate: result.publishedDate,
           author: result.author,
           score: result.score,
@@ -119,6 +128,7 @@ export const list = query({
       isComplete: v.optional(v.boolean()),
       thinkingStartedAt: v.optional(v.number()),
       thinkingCompletedAt: v.optional(v.number()),
+      attachments: v.optional(v.array(v.id("files"))),
       thinkingContent: v.optional(v.string()),
       isThinking: v.optional(v.boolean()),
       hasThinkingContent: v.optional(v.boolean()),
@@ -171,6 +181,7 @@ export const send = mutation({
     threadId: v.id("threads"),
     body: v.string(),
     modelId: v.optional(modelIdValidator), // Use the validated modelId
+    attachments: v.optional(v.array(v.id("files"))), // Add attachments support
     webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
@@ -213,6 +224,7 @@ export const send = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
+      attachments: args.attachments,
     })
 
     // Schedule AI response using the modelId
@@ -220,6 +232,7 @@ export const send = mutation({
       threadId: args.threadId,
       userMessage: args.body,
       modelId: modelId,
+      attachments: args.attachments,
       webSearchEnabled: args.webSearchEnabled,
     })
 
@@ -249,6 +262,7 @@ export const createThreadAndSend = mutation({
     clientId: v.string(),
     body: v.string(),
     modelId: v.optional(modelIdValidator),
+    attachments: v.optional(v.array(v.id("files"))), // Add attachments support
     webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.id("threads"),
@@ -292,6 +306,7 @@ export const createThreadAndSend = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
+      attachments: args.attachments,
     })
 
     // Schedule AI response
@@ -299,6 +314,7 @@ export const createThreadAndSend = mutation({
       threadId,
       userMessage: args.body,
       modelId: modelId,
+      attachments: args.attachments,
       webSearchEnabled: args.webSearchEnabled,
     })
 
@@ -312,12 +328,105 @@ export const createThreadAndSend = mutation({
   },
 })
 
+// Helper to get file URLs in an internal context
+async function getFileWithUrl(ctx: ActionCtx, fileId: Id<"files">) {
+  // Use internal query to get file with URL
+  const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId })
+  return file
+}
+
+// Type for multimodal content parts based on AI SDK v5
+type TextPart = { type: "text"; text: string }
+type ImagePart = { type: "image"; image: string | URL }
+type FilePart = {
+  type: "file"
+  data: string | URL
+  mediaType: string
+}
+
+type MultimodalContent = string | Array<TextPart | ImagePart | FilePart>
+
+// Helper function to build message content with attachments
+async function buildMessageContent(
+  ctx: ActionCtx,
+  text: string,
+  attachmentIds?: Id<"files">[],
+  provider?: "openai" | "anthropic" | "openrouter",
+  modelId?: string,
+): Promise<MultimodalContent> {
+  // If no attachments, return simple text content
+  if (!attachmentIds || attachmentIds.length === 0) {
+    return text
+  }
+
+  // Get model configuration to check capabilities
+  const modelConfig = modelId ? getModelById(modelId) : null
+  const hasVisionSupport = modelConfig?.features.vision ?? false
+  const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
+
+  // Build content array with text and files
+  const content = [{ type: "text" as const, text }] as Array<
+    TextPart | ImagePart | FilePart
+  >
+
+  // Fetch each file with its URL
+  for (const fileId of attachmentIds) {
+    const file = await getFileWithUrl(ctx, fileId)
+    if (!file || !file.url) continue
+
+    // Handle images
+    if (file.fileType.startsWith("image/")) {
+      if (!hasVisionSupport) {
+        // Model doesn't support vision
+        if (content[0] && "text" in content[0]) {
+          content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || "This model"} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
+        }
+      } else {
+        // Model supports vision - all models use URLs (no base64 needed)
+        content.push({
+          type: "image" as const,
+          image: file.url,
+        })
+      }
+    }
+    // Handle PDFs
+    else if (file.fileType === "application/pdf") {
+      if (hasPdfSupport && provider === "anthropic") {
+        // Claude supports PDFs as file type
+        content.push({
+          type: "file" as const,
+          data: file.url,
+          mediaType: "application/pdf",
+        })
+      } else {
+        // PDF not supported - add as text description
+        const description = `\n[Attached PDF: ${file.fileName} (${(file.fileSize / 1024).toFixed(1)}KB)] - Note: PDF content analysis requires Claude models.`
+        content.push({
+          type: "text" as const,
+          text: description,
+        })
+      }
+    }
+    // For other file types, add as text description
+    else {
+      const description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`
+
+      if (content[0] && "text" in content[0]) {
+        content[0].text += description
+      }
+    }
+  }
+
+  return content
+}
+
 // Internal action to generate AI response using AI SDK v5
 export const generateAIResponse = internalAction({
   args: {
     threadId: v.id("threads"),
     userMessage: v.string(),
     modelId: modelIdValidator, // Use validated modelId
+    attachments: v.optional(v.array(v.id("files"))),
     webSearchEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
@@ -370,21 +479,64 @@ export const generateAIResponse = internalAction({
         { threadId: args.threadId },
       )
 
-      // Prepare messages for AI SDK v5 - using standard format
-      const messages = [
+      // Prepare system prompt based on model capabilities
+      let systemPrompt =
+        "You are a helpful AI assistant in a chat conversation. Be concise and friendly."
+
+      // Check model capabilities
+      const modelConfig = getModelById(args.modelId)
+      const hasVisionSupport = modelConfig?.features.vision ?? false
+      const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
+
+      if (hasVisionSupport) {
+        if (hasPdfSupport) {
+          // Claude models with both vision and PDF support
+          systemPrompt +=
+            " You can view and analyze images (JPEG, PNG, GIF, WebP) and PDF documents directly. For other file types, you'll receive a text description. When users ask about an attached file, provide detailed analysis of what you can see."
+        } else {
+          // GPT-4 models with vision but no PDF support
+          systemPrompt +=
+            " You can view and analyze images (JPEG, PNG, GIF, WebP) directly. For PDFs and other file types, you'll receive a text description. When asked about a PDF, politely explain that you can see it's attached but cannot analyze its contents - suggest using Claude models for PDF analysis. For images, provide detailed analysis of what you can see."
+        }
+      } else {
+        // Models without vision support (e.g., GPT-3.5 Turbo)
+        systemPrompt += ` IMPORTANT: You cannot view images or files directly with ${modelConfig?.displayName || "this model"}. When users share files and ask about them, you must clearly state: 'I can see you've uploaded [filename], but I'm unable to view or analyze images with ${modelConfig?.displayName || "this model"}. To analyze images or documents, please switch to GPT-4o, GPT-4o Mini, or any Claude model using the model selector below the input box.' Be helpful by acknowledging what files they've shared based on the descriptions you receive.`
+      }
+
+      // Prepare messages for AI SDK v5 with multimodal support
+      const messages: CoreMessage[] = [
         {
-          role: "system" as const,
-          content:
-            "You are a helpful AI assistant in a chat conversation. Be concise and friendly.",
+          role: "system",
+          content: systemPrompt,
         },
-        ...recentMessages.map((msg) => ({
-          role:
-            msg.messageType === "user"
-              ? ("user" as const)
-              : ("assistant" as const),
-          content: msg.body,
-        })),
       ]
+
+      // Build conversation history with attachments
+      for (let i = 0; i < recentMessages.length; i++) {
+        const msg = recentMessages[i]
+        const isLastUserMessage =
+          i === recentMessages.length - 1 && msg.messageType === "user"
+
+        // For the last user message, include the current attachments
+        const attachmentsToUse =
+          isLastUserMessage && args.attachments
+            ? args.attachments
+            : msg.attachments
+
+        // Build message content with attachments
+        const content = await buildMessageContent(
+          ctx,
+          msg.body,
+          attachmentsToUse,
+          provider,
+          args.modelId,
+        )
+
+        messages.push({
+          role: msg.messageType === "user" ? "user" : "assistant",
+          content,
+        } as CoreMessage)
+      }
 
       console.log(
         `Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
@@ -540,9 +692,9 @@ export const generateAIResponse = internalAction({
             const numResults = 5 // Fixed to 5 results for simplicity
             const includeText = true // Always include text for better results
 
-            const searchOptions = {
+            const searchOptions: RegularSearchOptions & ContentsOptions = {
               numResults,
-            } as any
+            }
 
             if (includeText) {
               searchOptions.text = {
@@ -564,7 +716,11 @@ export const generateAIResponse = internalAction({
                 url: result.url,
                 title: result.title || "",
                 text: result.text,
-                highlights: (result as any).highlights,
+                highlights: (
+                  result as SearchResult<ContentsOptions> & {
+                    highlights?: string[]
+                  }
+                ).highlights,
                 publishedDate: result.publishedDate,
                 author: result.author,
                 score: result.score,
@@ -573,15 +729,13 @@ export const generateAIResponse = internalAction({
             }
 
             if (searchResults.success && searchResults.results) {
-              const searchSummary =
-                `\n\n**🔍 Web Search Results for "${chunk.args.query}"**\n\n` +
-                searchResults.results
-                  .slice(0, 3)
-                  .map(
-                    (result, i) =>
-                      `**${i + 1}. ${result.title}**\n${result.url}\n${result.text ? `${result.text.slice(0, 250)}...` : "No preview available"}\n`,
-                  )
-                  .join("\n")
+              const searchSummary = `\n\n**🔍 Web Search Results for "${chunk.args.query}"**\n\n${searchResults.results
+                .slice(0, 3)
+                .map(
+                  (result, i) =>
+                    `**${i + 1}. ${result.title}**\n${result.url}\n${result.text ? `${result.text.slice(0, 250)}...` : "No preview available"}\n`,
+                )
+                .join("\n")}`
 
               fullContent += searchSummary
 
@@ -595,7 +749,8 @@ export const generateAIResponse = internalAction({
                 chunkId,
               })
             } else {
-              const errorMessage = `\n\n*❌ Web search failed: No results found*\n\n`
+              const errorMessage =
+                "\n\n*❌ Web search failed: No results found*\n\n"
               fullContent += errorMessage
 
               const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -790,6 +945,7 @@ export const getRecentContext = internalQuery({
     v.object({
       body: v.string(),
       messageType: v.union(v.literal("user"), v.literal("assistant")),
+      attachments: v.optional(v.array(v.id("files"))),
     }),
   ),
   handler: async (ctx, args) => {
@@ -805,6 +961,7 @@ export const getRecentContext = internalQuery({
       .map((msg: Doc<"messages">) => ({
         body: msg.body,
         messageType: msg.messageType,
+        attachments: msg.attachments,
       }))
   },
 })
@@ -949,15 +1106,7 @@ export const completeStreamingMessage = internalMutation({
 
 // Helper function to update thread usage totals
 async function updateThreadUsage(
-  ctx: {
-    db: {
-      get: (id: Id<"threads">) => Promise<Doc<"threads"> | null>
-      patch: (
-        id: Id<"threads">,
-        fields: Partial<Doc<"threads">>,
-      ) => Promise<void>
-    }
-  },
+  ctx: MutationCtx,
   threadId: Id<"threads">,
   model: string,
   messageUsage: {
@@ -1332,6 +1481,7 @@ export const getThreadById = internalQuery({
       lastMessageAt: v.number(),
       isGenerating: v.optional(v.boolean()),
       isTitleGenerating: v.optional(v.boolean()),
+      pinned: v.optional(v.boolean()),
       usage: v.optional(
         v.object({
           totalInputTokens: v.number(),

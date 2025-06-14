@@ -16,14 +16,29 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useFileDrop } from "@/hooks/useFileDrop"
 import { DEFAULT_MODEL_ID, getAllModels, getModelById } from "@/lib/ai"
-import { Globe, Loader2, Send } from "lucide-react"
+import { useMutation } from "convex/react"
+import {
+  FileIcon,
+  FileText,
+  Globe,
+  Image,
+  Loader2,
+  Paperclip,
+  Send,
+  X,
+} from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+import { api } from "../../../convex/_generated/api"
+import type { Id } from "../../../convex/_generated/dataModel"
+
 interface ChatInputProps {
   onSendMessage: (
     message: string,
     modelId: string,
+    attachments?: Id<"files">[],
     webSearchEnabled?: boolean,
   ) => Promise<void> | void
   isLoading?: boolean
@@ -31,6 +46,14 @@ interface ChatInputProps {
   disabled?: boolean
   maxLength?: number
   className?: string
+}
+
+interface FileAttachment {
+  id: Id<"files">
+  name: string
+  size: number
+  type: string
+  url?: string
 }
 
 const ChatInputComponent = ({
@@ -45,8 +68,14 @@ const ChatInputComponent = ({
   const [isSending, setIsSending] = useState(false)
   const [selectedModelId, setSelectedModelId] =
     useState<string>(DEFAULT_MODEL_ID)
+  const [attachments, setAttachments] = useState<FileAttachment[]>([])
+  const [isUploading, setIsUploading] = useState(false)
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl)
+  const createFile = useMutation(api.files.createFile)
 
   // Memoize expensive computations
   const allModels = useMemo(() => getAllModels(), [])
@@ -84,6 +113,115 @@ const ChatInputComponent = ({
     adjustTextareaHeight()
   }, [message, adjustTextareaHeight])
 
+  // File upload handler
+  const handleFileUpload = useCallback(
+    async (files: FileList) => {
+      if (files.length === 0) return
+
+      setIsUploading(true)
+      const newAttachments: FileAttachment[] = []
+
+      try {
+        for (const file of Array.from(files)) {
+          // Validate file size (10MB max)
+          if (file.size > 10 * 1024 * 1024) {
+            const sizeInMB = (file.size / (1024 * 1024)).toFixed(1)
+            toast.error(
+              `${file.name} is ${sizeInMB}MB. Maximum file size is 10MB`,
+            )
+            continue
+          }
+
+          // Generate upload URL
+          const uploadUrl = await generateUploadUrl()
+
+          // Upload the file
+          const result = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          })
+
+          if (!result.ok) {
+            throw new Error(`Failed to upload ${file.name}. Please try again.`)
+          }
+
+          const { storageId } = await result.json()
+
+          // Create file record in database
+          const fileId = await createFile({
+            storageId,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          })
+
+          newAttachments.push({
+            id: fileId,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+          })
+        }
+
+        if (newAttachments.length === 0 && files.length > 0) {
+          toast.error(
+            "No files were uploaded. Please check file types and sizes.",
+          )
+        } else {
+          setAttachments([...attachments, ...newAttachments])
+          if (newAttachments.length === 1) {
+            toast.success(`${newAttachments[0].name} uploaded successfully`)
+          } else if (newAttachments.length > 1) {
+            toast.success(
+              `${newAttachments.length} files uploaded successfully`,
+            )
+          }
+        }
+      } catch (error) {
+        console.error("Error uploading files:", error)
+
+        if (error instanceof Error) {
+          // Show specific error messages from backend
+          if (error.message.includes("sign in")) {
+            toast.error("Please sign in to upload files")
+          } else if (error.message.includes("file type")) {
+            toast.error(error.message)
+          } else if (error.message.includes("too large")) {
+            toast.error(error.message)
+          } else {
+            toast.error(`Upload failed: ${error.message}`)
+          }
+        } else {
+          toast.error("Failed to upload files. Please try again.")
+        }
+      } finally {
+        setIsUploading(false)
+      }
+    },
+    [attachments, generateUploadUrl, createFile],
+  )
+
+  // Use the file drop hook
+  const { isDragging, dragHandlers } = useFileDrop({
+    onDrop: handleFileUpload,
+    disabled: disabled || isUploading,
+  })
+
+  const handleFileInputChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (files && files.length > 0) {
+        await handleFileUpload(files)
+      }
+    },
+    [handleFileUpload],
+  )
+
+  const removeAttachment = useCallback((id: Id<"files">) => {
+    setAttachments((prev) => prev.filter((att) => att.id !== id))
+  }, [])
+
   // Memoize event handlers
   const handleSendMessage = useCallback(async () => {
     if (!message.trim() || isSending || disabled) return
@@ -91,8 +229,15 @@ const ChatInputComponent = ({
     setIsSending(true)
 
     try {
-      await onSendMessage(message, selectedModelId, webSearchEnabled)
+      const attachmentIds = attachments.map((att) => att.id)
+      await onSendMessage(
+        message,
+        selectedModelId,
+        attachmentIds.length > 0 ? attachmentIds : undefined,
+        webSearchEnabled,
+      )
       setMessage("")
+      setAttachments([])
     } catch (error) {
       console.error("Error sending message:", error)
 
@@ -115,7 +260,14 @@ const ChatInputComponent = ({
     } finally {
       setIsSending(false)
     }
-  }, [message, isSending, disabled, onSendMessage, selectedModelId])
+  }, [
+    message,
+    isSending,
+    disabled,
+    onSendMessage,
+    selectedModelId,
+    attachments,
+  ])
 
   const handleKeyPress = useCallback(
     (e: React.KeyboardEvent) => {
@@ -148,13 +300,36 @@ const ChatInputComponent = ({
     [message, isSending, disabled, isLoading],
   )
 
+  // Helper function to format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
   return (
-    <div className={`p-4 flex-shrink-0 ${className}`}>
-      <div className="max-w-3xl mx-auto">
+    <div className={`p-4 flex-shrink-0 ${className}`} {...dragHandlers}>
+      <div className="max-w-3xl mx-auto relative">
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-md border-2 border-dashed border-primary animate-in fade-in-0 duration-200">
+            <div className="text-center">
+              <Paperclip className="w-8 h-8 mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium">Drop files here</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                PDF, images, and documents supported
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <div className="flex-1 min-w-0">
+            {/* Main input container */}
             <div
-              className={`w-full rounded-md border flex flex-col ${isLoading ? "opacity-75 cursor-not-allowed" : ""}`}
+              className={`w-full border flex flex-col transition-all ${
+                attachments.length > 0 ? "rounded-t-md" : "rounded-md"
+              } ${isLoading ? "opacity-75 cursor-not-allowed" : ""}`}
             >
               {/* Textarea area - grows with content up to max height */}
               <div
@@ -216,6 +391,36 @@ const ChatInputComponent = ({
                     </SelectContent>
                   </Select>
 
+                  {/* File attachment button */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileInputChange}
+                    accept="application/pdf,text/*,image/*,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="h-6 w-6 p-0"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Paperclip className="w-3 h-3" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Attach files</p>
+                    </TooltipContent>
+                  </Tooltip>
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -255,10 +460,54 @@ const ChatInputComponent = ({
                 </Tooltip>
               </div>
             </div>
+
+            {/* Attachments container - appears below input */}
+            {attachments.length > 0 && (
+              <div className="w-full border-l border-r border-b rounded-b-md bg-secondary/20 p-3 transition-all animate-in slide-in-from-top-1 duration-200">
+                <div className="flex flex-wrap gap-2">
+                  {attachments.map((attachment) => {
+                    const isImage = attachment.type.startsWith("image/")
+                    const isPdf = attachment.type === "application/pdf"
+
+                    return (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center gap-2 px-3 py-2 bg-background rounded-md border text-sm group hover:border-foreground/20 transition-colors"
+                      >
+                        {isImage ? (
+                          <Image className="w-4 h-4 text-muted-foreground" />
+                        ) : isPdf ? (
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <FileIcon className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate max-w-[150px] font-medium">
+                            {attachment.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(attachment.size)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(attachment.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-destructive/10 rounded"
+                          disabled={isUploading}
+                          aria-label={`Remove ${attachment.name}`}
+                        >
+                          <X className="w-3 h-3 text-destructive" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Bottom section for status */}
+        {/* Bottom section for future features */}
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-2">
             {isLoading && (
