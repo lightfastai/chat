@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { Doc } from "../../convex/_generated/dataModel"
 
-type Message = Doc<"messages">
+type Message = Doc<"messages"> & {
+  conversationBranchId?: string
+  branchPoint?: string
+}
 
 export interface ConversationBranch {
   id: string
@@ -69,10 +72,7 @@ export function useConversationBranches(
     // Initialize main branch
     const mainMessages = sortedMessages.filter(
       (msg) =>
-        !(msg as Message & { conversationBranchId?: string })
-          .conversationBranchId ||
-        (msg as Message & { conversationBranchId?: string })
-          .conversationBranchId === "main",
+        !msg.conversationBranchId || msg.conversationBranchId === "main",
     )
     branches.set("main", {
       id: "main",
@@ -81,65 +81,59 @@ export function useConversationBranches(
       branchPoint: undefined,
     })
 
-    // Step 3: Process retry branches
+    // Step 3: First pass - identify all conversation branches and their branch points
+    // This ensures we track ALL branches before processing messages
+    const branchInfoMap = new Map<string, { branchPoint: string | null, conversationBranchId: string }>()
+    
     for (const message of sortedMessages) {
-      const conversationBranchId = (
-        message as Message & { conversationBranchId?: string }
-      ).conversationBranchId
+      const conversationBranchId = message.conversationBranchId
+
+      if (conversationBranchId && conversationBranchId !== "main") {
+        // Use the branchPoint field if available, otherwise use branchFromMessageId
+        const branchPointId = message.branchPoint || message.branchFromMessageId
+        
+        if (branchPointId && !branchInfoMap.has(conversationBranchId)) {
+          branchInfoMap.set(conversationBranchId, {
+            branchPoint: branchPointId,
+            conversationBranchId: conversationBranchId
+          })
+          
+          // Track this branch at its branch point
+          if (!branchPoints.has(branchPointId)) {
+            branchPoints.set(branchPointId, [])
+          }
+          if (!branchPoints.get(branchPointId)!.includes(conversationBranchId)) {
+            branchPoints.get(branchPointId)!.push(conversationBranchId)
+          }
+          
+          console.log(
+            `🌳 Pre-tracking branch point: messageId=${branchPointId}, conversationBranchId=${conversationBranchId}`,
+          )
+        }
+      }
+    }
+
+    // Step 4: Process messages and assign to branches
+    for (const message of sortedMessages) {
+      const conversationBranchId = message.conversationBranchId
 
       if (conversationBranchId && conversationBranchId !== "main") {
         if (!branches.has(conversationBranchId)) {
-          // Find the branch point for this conversation branch
+          // Get branch info from our pre-processed map
+          const branchInfo = branchInfoMap.get(conversationBranchId)
           let branchPoint = undefined
-          if (message.branchFromMessageId) {
-            const originalMessage = sortedMessages.find(
-              (m) => m._id === message.branchFromMessageId,
+          
+          if (branchInfo && branchInfo.branchPoint) {
+            const branchPointId = branchInfo.branchPoint
+            
+            // Find position in main messages
+            const originalPosition = mainMessages.findIndex(
+              (m) => m._id === branchPointId,
             )
-            if (originalMessage) {
-              // For nested branches, we need to find the actual divergence point
-              // in the conversation tree, not just the immediate parent
-              let branchFromId = originalMessage._id
-              let actualBranchPoint = originalMessage
 
-              // Trace back to find where this branch actually diverges from main
-              while (actualBranchPoint.branchFromMessageId) {
-                const parent = sortedMessages.find(
-                  (m) => m._id === actualBranchPoint.branchFromMessageId,
-                )
-                if (!parent) break
-
-                // Check if the parent is in the main branch
-                const parentBranchId = (
-                  parent as Message & { conversationBranchId?: string }
-                ).conversationBranchId
-                if (!parentBranchId || parentBranchId === "main") {
-                  // Found the actual branch point in main
-                  branchFromId = parent._id
-                  break
-                }
-
-                actualBranchPoint = parent
-              }
-
-              // Now calculate position based on the actual branch point
-              const originalPosition = mainMessages.findIndex(
-                (m) => m._id === branchFromId,
-              )
-
-              branchPoint = {
-                messageId: branchFromId,
-                position: originalPosition >= 0 ? originalPosition : 0,
-              }
-
-              // Track this branch at the actual branch point
-              if (!branchPoints.has(branchFromId)) {
-                branchPoints.set(branchFromId, [])
-              }
-              branchPoints.get(branchFromId)!.push(conversationBranchId)
-
-              console.log(
-                `🌳 Tracking branch point: messageId=${branchFromId}, branches=${[...branchPoints.get(branchFromId)!]}`,
-              )
+            branchPoint = {
+              messageId: branchPointId,
+              position: originalPosition >= 0 ? originalPosition : 0,
             }
           }
 
