@@ -22,6 +22,7 @@ import { useMutation } from "convex/react"
 import {
   FileIcon,
   FileText,
+  Globe,
   Image,
   Loader2,
   Paperclip,
@@ -38,6 +39,7 @@ interface ChatInputProps {
     message: string,
     modelId: string,
     attachments?: Id<"files">[],
+    webSearchEnabled?: boolean,
   ) => Promise<void> | void
   isLoading?: boolean
   placeholder?: string
@@ -68,6 +70,7 @@ const ChatInputComponent = ({
     useState<string>(DEFAULT_MODEL_ID)
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -231,6 +234,7 @@ const ChatInputComponent = ({
         message,
         selectedModelId,
         attachmentIds.length > 0 ? attachmentIds : undefined,
+        webSearchEnabled,
       )
       setMessage("")
       setAttachments([])
@@ -284,6 +288,10 @@ const ChatInputComponent = ({
 
   const handleModelChange = useCallback((value: string) => {
     setSelectedModelId(value)
+  }, [])
+
+  const handleWebSearchToggle = useCallback(() => {
+    setWebSearchEnabled((prev) => !prev)
   }, [])
 
   // Memoize computed values
@@ -410,6 +418,27 @@ const ChatInputComponent = ({
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Attach files</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleWebSearchToggle}
+                        variant={webSearchEnabled ? "default" : "ghost"}
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        disabled={disabled || isSending}
+                      >
+                        <Globe className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {webSearchEnabled
+                          ? "Web search enabled - AI can search the web for current information"
+                          : "Enable web search for current information"}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </div>

@@ -104,6 +104,7 @@ export function useChat() {
     message: string,
     modelId: string,
     attachments?: Id<"files">[],
+    webSearchEnabled?: boolean,
   ) => {
     if (!message.trim()) return
 
@@ -120,6 +121,7 @@ export function useChat() {
           body: message,
           modelId: modelId as ModelId,
           attachments,
+          webSearchEnabled,
         })
 
         return
@@ -133,6 +135,7 @@ export function useChat() {
           body: message,
           modelId: modelId as ModelId,
           attachments,
+          webSearchEnabled,
         })
       } else if (currentThread) {
         // Normal message sending with Convex optimistic update
@@ -141,6 +144,7 @@ export function useChat() {
           body: message,
           modelId: modelId as ModelId,
           attachments,
+          webSearchEnabled,
         })
       }
     } catch (error) {
