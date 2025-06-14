@@ -27,13 +27,16 @@ import {
 // Create web search tool using proper AI SDK v5 pattern
 function createWebSearchTool() {
   return tool({
-    description: "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
+    description:
+      "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
     parameters: z.object({
-      query: z.string().describe("The search query to find relevant web results"),
+      query: z
+        .string()
+        .describe("The search query to find relevant web results"),
     }),
     execute: async ({ query }) => {
       console.log(`Executing web search for: "${query}"`)
-      
+
       const exaApiKey = process.env.EXA_API_KEY
       if (!exaApiKey) {
         throw new Error("EXA_API_KEY not configured")
@@ -51,7 +54,7 @@ function createWebSearchTool() {
           highlights: {
             numSentences: 3,
             highlightsPerUrl: 2,
-          }
+          },
         } as any
 
         const response = await exa.search(query, searchOptions)
@@ -438,14 +441,19 @@ export const generateAIResponse = internalAction({
         }
       }
 
-      console.log(`Final streamOptions for ${provider}:`, JSON.stringify({
-        model: actualModelName,
-        temperature: streamOptions.temperature,
-        hasTools: !!streamOptions.tools,
-        toolNames: streamOptions.tools ? Object.keys(streamOptions.tools) : [],
-        hasSystem: !!streamOptions.system,
-        hasProviderOptions: !!streamOptions.providerOptions
-      }))
+      console.log(
+        `Final streamOptions for ${provider}:`,
+        JSON.stringify({
+          model: actualModelName,
+          temperature: streamOptions.temperature,
+          hasTools: !!streamOptions.tools,
+          toolNames: streamOptions.tools
+            ? Object.keys(streamOptions.tools)
+            : [],
+          hasSystem: !!streamOptions.system,
+          hasProviderOptions: !!streamOptions.providerOptions,
+        }),
+      )
 
       const { fullStream, usage } = await streamText(streamOptions)
 
@@ -462,7 +470,12 @@ export const generateAIResponse = internalAction({
       // Process each chunk as it arrives from the stream
       for await (const chunk of fullStream) {
         hasReceivedAnyChunks = true
-        console.log("Received v5 chunk type:", chunk.type, "hasText:", !!(chunk.type === "text" && "text" in chunk && chunk.text))
+        console.log(
+          "Received v5 chunk type:",
+          chunk.type,
+          "hasText:",
+          !!(chunk.type === "text" && "text" in chunk && chunk.text),
+        )
 
         // Handle different types of chunks
         if (chunk.type === "text" && chunk.text) {
@@ -484,7 +497,10 @@ export const generateAIResponse = internalAction({
         ) {
           // Handle web search tool calls
           toolCallsProcessed++
-          console.log(`Processing tool call #${toolCallsProcessed} - web search with args:`, chunk.args)
+          console.log(
+            `Processing tool call #${toolCallsProcessed} - web search with args:`,
+            chunk.args,
+          )
 
           try {
             // Perform web search directly using Exa
@@ -621,15 +637,19 @@ export const generateAIResponse = internalAction({
           `${provider} returned empty response - check API key and quota`,
         )
       }
-      
+
       // Log if we have empty content with tools enabled (expected behavior)
       if (fullContent.trim() === "" && args.webSearchEnabled) {
-        console.log(`${provider} returned empty content with tools enabled - this is expected behavior`)
-        
+        console.log(
+          `${provider} returned empty content with tools enabled - this is expected behavior`,
+        )
+
         // If we have no content but processed tool calls, ensure we have some content to display
         if (toolCallsProcessed > 0 && fullContent.trim() === "") {
-          fullContent = `Processed ${toolCallsProcessed} web search${toolCallsProcessed > 1 ? 'es' : ''}.`
-          console.log("Added fallback content for empty response with tool calls")
+          fullContent = `Processed ${toolCallsProcessed} web search${toolCallsProcessed > 1 ? "es" : ""}.`
+          console.log(
+            "Added fallback content for empty response with tool calls",
+          )
         }
       }
 
@@ -639,7 +659,8 @@ export const generateAIResponse = internalAction({
 
       // Ensure we always have some content to complete with, even if just tool results
       if (fullContent.trim() === "" && toolCallsProcessed === 0) {
-        fullContent = "I apologize, but I wasn't able to generate a response. Please try again."
+        fullContent =
+          "I apologize, but I wasn't able to generate a response. Please try again."
       }
 
       // Mark message as complete with usage data
@@ -648,13 +669,15 @@ export const generateAIResponse = internalAction({
         usage: finalUsage,
       })
 
-      console.log(`Message ${messageId} marked as complete with ${fullContent.length} characters`)
+      console.log(
+        `Message ${messageId} marked as complete with ${fullContent.length} characters`,
+      )
 
       // Clear generation flag on success
       await ctx.runMutation(internal.messages.clearGenerationFlag, {
         threadId: args.threadId,
       })
-      
+
       console.log(`Generation flag cleared for thread ${args.threadId}`)
     } catch (error) {
       const provider = getProviderFromModelId(args.modelId as ModelId)
