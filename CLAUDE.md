@@ -221,33 +221,6 @@ src/components/
 - **AI model management**: Multi-provider support with token tracking
 - **Thread-based chat**: Complex schema with resumable streaming chunks
 
-### AI Model Capabilities
-
-When working with AI models in this project, always check and properly configure model capabilities:
-
-#### Model Feature Flags
-Each model in `src/lib/ai/models.ts` must define:
-- `vision`: Whether the model can process images
-- `pdfSupport`: Whether the model can natively analyze PDFs
-- `streaming`: Whether streaming responses are supported
-- `functionCalling`: Whether function/tool calling is supported
-- `thinking`: Whether thinking/reasoning mode is available (Claude 4.0)
-
-#### Current Model Capabilities
-**OpenAI Models:**
-- GPT-4o & GPT-4o-mini: ✅ Vision, ❌ PDF, ✅ Streaming
-- GPT-3.5-turbo: ❌ Vision (text-only), ❌ PDF, ✅ Streaming
-
-**Anthropic Models:**
-- All Claude models (3, 3.5, 4): ✅ Vision, ✅ PDF, ✅ Streaming
-- Claude 4.0 also supports: ✅ Thinking mode
-
-#### Important Notes
-- **Always verify capabilities** through official documentation before adding/updating models
-- **GPT-3.5 has NO vision support** - it's a text-only model despite being popular
-- **Only Claude models support native PDF analysis** - OpenAI models need PDF-to-text
-- **Test thoroughly** - incorrect capability configuration causes runtime errors
-- **Check `src/lib/ai/README.md`** for detailed model capability documentation
 
 ## Development Commands
 
