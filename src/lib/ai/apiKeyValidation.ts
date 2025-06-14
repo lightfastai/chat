@@ -14,8 +14,12 @@ export function validateApiKeyFormat(
 
   switch (provider) {
     case "openai":
-      // OpenAI keys start with `sk-` and are followed by 48 alphanumeric characters.
-      return /^sk-[a-zA-Z0-9]{48}$/.test(key)
+      // OpenAI keys: sk-* (legacy ~51 chars) or sk-proj-* (project keys ~156 chars)
+      // Modern keys can be 130-160+ characters total with hyphens allowed
+      return (
+        /^sk-[a-zA-Z0-9-]{20,}$/.test(key) ||
+        /^sk-proj-[a-zA-Z0-9-]{100,}$/.test(key)
+      )
     case "anthropic":
       // Anthropic keys start with `sk-ant-` and are significantly longer.
       // This regex checks for the prefix and a reasonable length of characters.
