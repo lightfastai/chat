@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button"
 import { useQuery } from "convex/react"
 import { Download, ExternalLink, FileText, Image } from "lucide-react"
 import { api } from "../../../convex/_generated/api"
-import type { Id } from "../../../convex/_generated/dataModel"
+import type { Doc, Id } from "../../../convex/_generated/dataModel"
 
 interface AttachmentPreviewProps {
   attachmentIds: Id<"files">[]
 }
+
+type FileWithUrl = Doc<"files"> & { url?: string }
 
 export function AttachmentPreview({ attachmentIds }: AttachmentPreviewProps) {
   const files = useQuery(api.files.getFiles, { fileIds: attachmentIds })
@@ -17,7 +19,7 @@ export function AttachmentPreview({ attachmentIds }: AttachmentPreviewProps) {
 
   return (
     <div className="mt-2 flex flex-wrap gap-2">
-      {files.map((file: any) => {
+      {files.map((file) => {
         if (!file) return null
 
         const isImage = file.fileType.startsWith("image/")

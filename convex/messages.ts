@@ -297,7 +297,7 @@ async function buildMessageContent(
       if (!hasVisionSupport) {
         // Model doesn't support vision
         if (content[0] && "text" in content[0]) {
-          content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || 'This model'} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
+          content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || "This model"} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
         }
       } else {
         // Model supports vision - all models use URLs (no base64 needed)
@@ -328,7 +328,7 @@ async function buildMessageContent(
     // For other file types, add as text description
     else {
       const description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`
-      
+
       if (content[0] && "text" in content[0]) {
         content[0].text += description
       }
@@ -396,8 +396,7 @@ export const generateAIResponse = internalAction({
         }
       } else {
         // Models without vision support (e.g., GPT-3.5 Turbo)
-        systemPrompt +=
-          ` IMPORTANT: You cannot view images or files directly with ${modelConfig?.displayName || 'this model'}. When users share files and ask about them, you must clearly state: 'I can see you've uploaded [filename], but I'm unable to view or analyze images with ${modelConfig?.displayName || 'this model'}. To analyze images or documents, please switch to GPT-4o, GPT-4o Mini, or any Claude model using the model selector below the input box.' Be helpful by acknowledging what files they've shared based on the descriptions you receive.`
+        systemPrompt += ` IMPORTANT: You cannot view images or files directly with ${modelConfig?.displayName || "this model"}. When users share files and ask about them, you must clearly state: 'I can see you've uploaded [filename], but I'm unable to view or analyze images with ${modelConfig?.displayName || "this model"}. To analyze images or documents, please switch to GPT-4o, GPT-4o Mini, or any Claude model using the model selector below the input box.' Be helpful by acknowledging what files they've shared based on the descriptions you receive.`
       }
 
       // Prepare messages for AI SDK v5 with multimodal support
