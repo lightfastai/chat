@@ -36,10 +36,6 @@ export default function Layout({ children }: { children: ReactNode }) {
           />
         ),
       }}
-      search={{
-        enabled: true,
-        api: "/api/docs/search",
-      }}
     >
       {children}
     </DocsLayout>

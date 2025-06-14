@@ -29,7 +29,7 @@ Lightfast Chat uses Convex Auth for secure, flexible authentication. This guide 
 
 Add your GitHub OAuth credentials to `.env.local`:
 
-```env
+```bash
 AUTH_GITHUB_ID=your_github_client_id
 AUTH_GITHUB_SECRET=your_github_client_secret
 ```
@@ -55,7 +55,7 @@ For production deployment, update your GitHub OAuth app:
 
 Set the production environment variables in your deployment platform:
 
-```env
+```bash
 AUTH_GITHUB_ID=your_production_github_id
 AUTH_GITHUB_SECRET=your_production_github_secret
 SITE_URL=https://your-domain.com
@@ -76,7 +76,7 @@ SITE_URL=https://your-domain.com
 
 ### 2. Configure Environment Variables
 
-```env
+```bash
 AUTH_GOOGLE_ID=your_google_client_id
 AUTH_GOOGLE_SECRET=your_google_client_secret
 ```
@@ -148,7 +148,7 @@ User profiles are automatically created on first sign-in with:
 
 Enable auth debugging by adding to `.env.local`:
 
-```env
+```bash
 CONVEX_AUTH_DEBUG=true
 ```
 

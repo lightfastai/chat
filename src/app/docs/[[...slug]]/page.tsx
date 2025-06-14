@@ -2,14 +2,13 @@ import { source } from "@/lib/source"
 import { DocsBody, DocsPage } from "fumadocs-ui/page"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { use } from "react"
 
-export default function Page(props: {
+export default async function Page(props: {
   params: Promise<{ slug?: string[] }>
 }) {
-  const params = use(props.params)
+  const params = await props.params
   const page = source.getPage(params.slug)
-
+  
   if (!page) notFound()
 
   const MDX = page.data.body
@@ -18,6 +17,7 @@ export default function Page(props: {
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsBody>
         <h1>{page.data.title}</h1>
+        {page.data.description && <p>{page.data.description}</p>}
         <MDX />
       </DocsBody>
     </DocsPage>
@@ -25,9 +25,7 @@ export default function Page(props: {
 }
 
 export async function generateStaticParams() {
-  return source.getPages().map((page) => ({
-    slug: page.slugs,
-  }))
+  return source.generateParams()
 }
 
 export async function generateMetadata(props: {
