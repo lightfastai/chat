@@ -3,7 +3,11 @@ import { createOpenAI, openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { type CoreMessage, streamText, tool } from "ai"
 import { v } from "convex/values"
-import Exa from "exa-js"
+import Exa, {
+  type RegularSearchOptions,
+  type ContentsOptions,
+  type SearchResult,
+} from "exa-js"
 import { z } from "zod"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
@@ -48,7 +52,7 @@ function createWebSearchTool() {
       try {
         const exa = new Exa(exaApiKey)
         const numResults = 5
-        const searchOptions = {
+        const searchOptions: RegularSearchOptions & ContentsOptions = {
           numResults,
           text: {
             maxCharacters: 1000,
@@ -58,16 +62,18 @@ function createWebSearchTool() {
             numSentences: 3,
             highlightsPerUrl: 2,
           },
-        } as any
+        }
 
         const response = await exa.search(query, searchOptions)
 
-        const results = response.results.map((result: any) => ({
+        const results = response.results.map((result) => ({
           id: result.id,
           url: result.url,
           title: result.title || "",
           text: result.text,
-          highlights: result.highlights,
+          highlights: (
+            result as SearchResult<ContentsOptions> & { highlights?: string[] }
+          ).highlights,
           publishedDate: result.publishedDate,
           author: result.author,
           score: result.score,
@@ -686,9 +692,9 @@ export const generateAIResponse = internalAction({
             const numResults = 5 // Fixed to 5 results for simplicity
             const includeText = true // Always include text for better results
 
-            const searchOptions = {
+            const searchOptions: RegularSearchOptions & ContentsOptions = {
               numResults,
-            } as any
+            }
 
             if (includeText) {
               searchOptions.text = {
@@ -710,7 +716,11 @@ export const generateAIResponse = internalAction({
                 url: result.url,
                 title: result.title || "",
                 text: result.text,
-                highlights: (result as any).highlights,
+                highlights: (
+                  result as SearchResult<ContentsOptions> & {
+                    highlights?: string[]
+                  }
+                ).highlights,
                 publishedDate: result.publishedDate,
                 author: result.author,
                 score: result.score,
@@ -719,15 +729,13 @@ export const generateAIResponse = internalAction({
             }
 
             if (searchResults.success && searchResults.results) {
-              const searchSummary =
-                `\n\n**🔍 Web Search Results for "${chunk.args.query}"**\n\n` +
-                searchResults.results
-                  .slice(0, 3)
-                  .map(
-                    (result, i) =>
-                      `**${i + 1}. ${result.title}**\n${result.url}\n${result.text ? `${result.text.slice(0, 250)}...` : "No preview available"}\n`,
-                  )
-                  .join("\n")
+              const searchSummary = `\n\n**🔍 Web Search Results for "${chunk.args.query}"**\n\n${searchResults.results
+                .slice(0, 3)
+                .map(
+                  (result, i) =>
+                    `**${i + 1}. ${result.title}**\n${result.url}\n${result.text ? `${result.text.slice(0, 250)}...` : "No preview available"}\n`,
+                )
+                .join("\n")}`
 
               fullContent += searchSummary
 
@@ -741,7 +749,8 @@ export const generateAIResponse = internalAction({
                 chunkId,
               })
             } else {
-              const errorMessage = `\n\n*❌ Web search failed: No results found*\n\n`
+              const errorMessage =
+                "\n\n*❌ Web search failed: No results found*\n\n"
               fullContent += errorMessage
 
               const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
