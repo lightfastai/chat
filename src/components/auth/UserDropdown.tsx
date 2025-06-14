@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useQuery } from "convex/react"
-import { ChevronDown, Key, LogOut, Settings, User } from "lucide-react"
+import { ChevronDown, LogOut, Settings, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { api } from "../../../convex/_generated/api"
 import { cn } from "../../lib/utils"
@@ -30,7 +30,7 @@ export function UserDropdown({
   className,
   showEmail = true,
   showSettings = true,
-  settingsHref = "/settings/account",
+  settingsHref = "/chat/settings",
   onSignOut,
   redirectAfterSignOut = true,
 }: UserDropdownProps) {
@@ -92,13 +92,7 @@ export function UserDropdown({
             <DropdownMenuItem asChild>
               <a href={settingsHref} className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a href="/settings/api-keys" className="cursor-pointer">
-                <Key className="mr-2 h-4 w-4" />
-                <span>API Keys</span>
+                <span>Settings</span>
               </a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

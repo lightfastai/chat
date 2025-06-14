@@ -2,19 +2,8 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { ConvexError, v } from "convex/values"
 import { internalMutation, mutation, query } from "./_generated/server"
 
-// Simple encryption utilities (in production, use proper encryption)
-// Note: This is a basic implementation - in production, use a proper encryption service
-// const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default-key-change-me"
-
-function encrypt(text: string): string {
-  // Simple base64 encoding using Web APIs - replace with proper encryption in production
-  return btoa(text)
-}
-
-function decrypt(encryptedText: string): string {
-  // Simple base64 decoding using Web APIs - replace with proper decryption in production
-  return atob(encryptedText)
-}
+// Import proper encryption utilities
+import { decrypt, encrypt } from "./lib/encryption.js"
 
 // Get user settings
 export const getUserSettings = query({
@@ -70,14 +59,14 @@ export const updateApiKeys = mutation({
     const apiKeys: { openai?: string; anthropic?: string } = {}
 
     if (openaiKey) {
-      apiKeys.openai = encrypt(openaiKey)
+      apiKeys.openai = await encrypt(openaiKey)
     } else if (existingSettings?.apiKeys?.openai) {
       // Keep existing key if not updating
       apiKeys.openai = existingSettings.apiKeys.openai
     }
 
     if (anthropicKey) {
-      apiKeys.anthropic = encrypt(anthropicKey)
+      apiKeys.anthropic = await encrypt(anthropicKey)
     } else if (existingSettings?.apiKeys?.anthropic) {
       // Keep existing key if not updating
       apiKeys.anthropic = existingSettings.apiKeys.anthropic
@@ -207,10 +196,10 @@ export const getDecryptedApiKeys = internalMutation({
 
     return {
       openai: settings.apiKeys.openai
-        ? decrypt(settings.apiKeys.openai)
+        ? await decrypt(settings.apiKeys.openai)
         : undefined,
       anthropic: settings.apiKeys.anthropic
-        ? decrypt(settings.apiKeys.anthropic)
+        ? await decrypt(settings.apiKeys.anthropic)
         : undefined,
     }
   },

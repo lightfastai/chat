@@ -22,6 +22,11 @@ export function TokenUsageHeaderWrapper() {
 
     const id = match[1]
 
+    // Handle special routes
+    if (id === "settings" || id.startsWith("settings/")) {
+      return { type: "settings", id: "settings" }
+    }
+
     // Check if it's a client-generated ID (nanoid)
     if (isClientId(id)) {
       return { type: "clientId", id }
@@ -33,6 +38,11 @@ export function TokenUsageHeaderWrapper() {
 
   const currentThreadId: Id<"threads"> | "new" =
     pathInfo.type === "threadId" ? (pathInfo.id as Id<"threads">) : "new"
+
+  // Don't show token usage on settings page
+  if (pathInfo.type === "settings") {
+    return null
+  }
 
   return <TokenUsageHeader threadId={currentThreadId} />
 }
