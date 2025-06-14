@@ -105,7 +105,7 @@ export function PreloadedThreadsList({
     )
 
     return (
-      <ScrollArea className="h-[calc(100vh-280px)] overflow-visible">
+      <ScrollArea className="h-[calc(100vh-280px)]" type="always">
         {threads.length === 0 ? (
           <div className="px-3 py-8 text-center text-muted-foreground">
             <p className="text-sm">No conversations yet</p>
@@ -120,7 +120,7 @@ export function PreloadedThreadsList({
                   Pinned
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <SidebarMenu className="space-y-0.5 overflow-visible">
+                  <SidebarMenu className="space-y-0.5 overflow-visible pr-2">
                     {pinned.map((thread) => (
                       <ThreadItem
                         key={thread._id}
@@ -146,7 +146,7 @@ export function PreloadedThreadsList({
                     {category}
                   </SidebarGroupLabel>
                   <SidebarGroupContent>
-                    <SidebarMenu className="space-y-0.5 overflow-visible">
+                    <SidebarMenu className="space-y-0.5 overflow-visible pr-2">
                       {categoryThreads.map((thread) => (
                         <ThreadItem
                           key={thread._id}
