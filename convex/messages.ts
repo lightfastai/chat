@@ -289,36 +289,18 @@ async function buildMessageContent(
 
     // Handle images
     if (file.fileType.startsWith("image/")) {
-      if (provider === "openai") {
-        // GPT-3.5 requires base64 encoding, while GPT-4 models support URLs
-        const needsBase64 = modelId === "gpt-3.5-turbo"
-
-        if (needsBase64) {
-          try {
-            // Fetch the image and convert to base64
-            const response = await fetch(file.url)
-            const arrayBuffer = await response.arrayBuffer()
-            const base64 = Buffer.from(arrayBuffer).toString("base64")
-            const dataUrl = `data:${file.fileType};base64,${base64}`
-
-            content.push({
-              type: "image" as const,
-              image: dataUrl,
-            })
-          } catch (error) {
-            console.error("Failed to convert image to base64:", error)
-            // Fallback to text description
-            if (content[0] && "text" in content[0]) {
-              content[0].text += `\n\n[Unable to process image: ${file.fileName}]`
-            }
-          }
-        } else {
-          // GPT-4 models can use URLs directly
-          content.push({
-            type: "image" as const,
-            image: file.url,
-          })
+      // Check if model supports vision
+      if (modelId === "gpt-3.5-turbo") {
+        // GPT-3.5-turbo does not support images at all
+        if (content[0] && "text" in content[0]) {
+          content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: GPT-3.5 Turbo cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
         }
+      } else if (provider === "openai") {
+        // GPT-4 models support images via URLs
+        content.push({
+          type: "image" as const,
+          image: file.url,
+        })
       } else {
         // Claude uses 'image' type with URL string
         content.push({
