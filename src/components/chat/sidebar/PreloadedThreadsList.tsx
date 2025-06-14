@@ -120,7 +120,7 @@ export function PreloadedThreadsList({
                   Pinned
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <SidebarMenu className="space-y-0.5 overflow-visible pr-2">
+                  <SidebarMenu className="space-y-0.5 overflow-visible">
                     {pinned.map((thread) => (
                       <ThreadItem
                         key={thread._id}
@@ -146,7 +146,7 @@ export function PreloadedThreadsList({
                     {category}
                   </SidebarGroupLabel>
                   <SidebarGroupContent>
-                    <SidebarMenu className="space-y-0.5 overflow-visible pr-2">
+                    <SidebarMenu className="space-y-0.5 overflow-visible">
                       {categoryThreads.map((thread) => (
                         <ThreadItem
                           key={thread._id}
