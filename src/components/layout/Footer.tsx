@@ -34,6 +34,13 @@ export function Footer({ className }: FooterProps) {
         >
           Privacy
         </Link>
+        <span>•</span>
+        <Link
+          href="https://github.com/lightfastai/chat/blob/main/LICENSE.md"
+          className="hover:text-foreground transition-colors"
+        >
+          License
+        </Link>
       </div>
     </footer>
   )
