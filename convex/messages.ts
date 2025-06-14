@@ -345,7 +345,7 @@ async function buildMessageContent(
   ctx: ActionCtx,
   text: string,
   attachmentIds?: Id<"files">[],
-  provider?: "openai" | "anthropic",
+  provider?: "openai" | "anthropic" | "openrouter",
   modelId?: string,
 ): Promise<MultimodalContent> {
   // If no attachments, return simple text content
