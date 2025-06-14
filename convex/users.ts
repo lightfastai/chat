@@ -56,3 +56,8 @@ export const getById = query({
     return await ctx.db.get(args.userId)
   },
 })
+
+/**
+ * Alias for getById to match naming convention
+ */
+export const getUser = getById

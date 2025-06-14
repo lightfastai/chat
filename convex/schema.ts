@@ -164,4 +164,172 @@ export default defineSchema({
     .index("by_message", ["messageId"])
     .index("by_user_message", ["userId", "messageId"])
     .index("by_thread", ["threadId"]),
+
+  // ============================================================================
+  // POLAR.SH INTEGRATION TABLES
+  // ============================================================================
+
+  /**
+   * Stores Polar customer data synchronized from Polar.sh
+   * Links our users to Polar customer records
+   */
+  polarCustomers: defineTable({
+    userId: v.id("users"), // Our user ID
+    polarCustomerId: v.string(), // Polar's customer ID
+    polarCustomerExternalId: v.optional(v.string()), // External ID if we set one
+    email: v.string(),
+    name: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    // Metadata from Polar
+    metadata: v.optional(v.any()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_polar_id", ["polarCustomerId"])
+    .index("by_external_id", ["polarCustomerExternalId"]),
+
+  /**
+   * Stores active subscriptions from Polar
+   * Tracks subscription status and billing details
+   */
+  polarSubscriptions: defineTable({
+    userId: v.id("users"),
+    polarCustomerId: v.string(),
+    polarSubscriptionId: v.string(),
+    polarProductId: v.string(),
+    polarPriceId: v.string(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("trialing"),
+      v.literal("past_due"),
+      v.literal("canceled"),
+      v.literal("incomplete"),
+      v.literal("expired"),
+      v.literal("unpaid"),
+    ),
+    startedAt: v.number(),
+    endedAt: v.optional(v.number()),
+    canceledAt: v.optional(v.number()),
+    trialStartedAt: v.optional(v.number()),
+    trialEndedAt: v.optional(v.number()),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    // Subscription details
+    recurringInterval: v.union(v.literal("month"), v.literal("year")),
+    amount: v.number(), // Amount in cents
+    currency: v.string(),
+    // Usage-based billing specific
+    hasUsageBasedPricing: v.optional(v.boolean()),
+    // Metadata
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_polar_subscription", ["polarSubscriptionId"])
+    .index("by_polar_customer", ["polarCustomerId"])
+    .index("by_status", ["status"])
+    .index("by_user_status", ["userId", "status"]),
+
+  /**
+   * Tracks usage events that will be sent to Polar
+   * These are aggregated and sent in batches
+   */
+  usageEvents: defineTable({
+    userId: v.id("users"),
+    polarCustomerId: v.optional(v.string()), // Set when user has subscription
+    eventName: v.string(), // e.g., "ai_usage"
+    eventId: v.string(), // Unique ID for deduplication
+    timestamp: v.number(),
+    // Event properties
+    properties: v.object({
+      model: v.optional(v.string()),
+      provider: v.optional(v.string()),
+      inputTokens: v.optional(v.number()),
+      outputTokens: v.optional(v.number()),
+      totalTokens: v.optional(v.number()),
+      reasoningTokens: v.optional(v.number()),
+      cachedInputTokens: v.optional(v.number()),
+      threadId: v.optional(v.id("threads")),
+      messageId: v.optional(v.id("messages")),
+    }),
+    // Sync status
+    syncedToPolar: v.boolean(),
+    syncedAt: v.optional(v.number()),
+    syncError: v.optional(v.string()),
+    // Batching
+    batchId: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_sync_status", ["syncedToPolar", "timestamp"])
+    .index("by_event_id", ["eventId"])
+    .index("by_batch", ["batchId"])
+    .index("by_polar_customer", ["polarCustomerId"]),
+
+  /**
+   * Stores webhook events from Polar for processing
+   * Ensures idempotent processing of webhooks
+   */
+  polarWebhooks: defineTable({
+    webhookId: v.string(), // Polar's webhook ID for deduplication
+    eventType: v.string(), // e.g., "subscription.created", "checkout.completed"
+    eventTimestamp: v.number(),
+    payload: v.any(), // Full webhook payload
+    // Processing status
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed"),
+    ),
+    processedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    retryCount: v.number(),
+    // Audit trail
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_webhook_id", ["webhookId"])
+    .index("by_status", ["status"])
+    .index("by_event_type", ["eventType"])
+    .index("by_created", ["createdAt"]),
+
+  /**
+   * Tracks user usage limits and current consumption
+   * Cached calculations for fast limit checking
+   */
+  usageLimits: defineTable({
+    userId: v.id("users"),
+    polarSubscriptionId: v.optional(v.string()),
+    // Current period
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    periodType: v.union(
+      v.literal("day"),
+      v.literal("month"),
+      v.literal("year"),
+    ),
+    // Limits (from product features)
+    limits: v.object({
+      tokensPerMonth: v.optional(v.number()),
+      threadsPerMonth: v.optional(v.number()),
+      messagesPerDay: v.optional(v.number()),
+    }),
+    // Current usage
+    usage: v.object({
+      tokensUsed: v.number(),
+      threadsCreated: v.number(),
+      messagesSent: v.number(),
+      // Breakdown by model
+      tokensByModel: v.optional(v.record(v.string(), v.number())),
+    }),
+    // Status
+    isOverLimit: v.boolean(),
+    warningThreshold: v.optional(v.number()), // e.g., 0.8 for 80% warning
+    hasWarned: v.boolean(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_period", ["userId", "periodStart", "periodEnd"])
+    .index("by_subscription", ["polarSubscriptionId"]),
 })

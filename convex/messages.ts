@@ -9,7 +9,7 @@ import Exa, {
   type SearchResult,
 } from "exa-js"
 import { z } from "zod"
-import { internal } from "./_generated/api.js"
+import { api, internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
 import {
   type ActionCtx,
@@ -1098,6 +1098,19 @@ export const completeStreamingMessage = internalMutation({
         message.modelId || message.model || "unknown",
         args.usage,
       )
+
+      // Track usage for Polar billing
+      const thread = await ctx.db.get(message.threadId)
+      if (thread) {
+        await ctx.runMutation(api.polar.usage.trackUsage, {
+          userId: thread.userId,
+          threadId: message.threadId,
+          messageId: args.messageId,
+          model: message.modelId || "unknown",
+          provider: message.model || "unknown",
+          usage: args.usage,
+        })
+      }
     }
 
     return null

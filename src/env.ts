@@ -31,6 +31,24 @@ export const env = createEnv({
     JWT_PRIVATE_KEY: z.string(),
     // JWKS for JWT verification
     JWKS: z.string(),
+
+    // Polar.sh Integration
+    POLAR_ACCESS_TOKEN: z.string().min(1, "Polar access token is required"),
+    POLAR_WEBHOOK_SECRET: z.string().min(1, "Polar webhook secret is required"),
+    POLAR_ORGANIZATION_ID: z
+      .string()
+      .min(1, "Polar organization ID is required"),
+
+    // Polar Product IDs
+    POLAR_PRODUCT_FREE_ID: z.string().optional(),
+    POLAR_PRODUCT_PRO_ID: z.string().optional(),
+    POLAR_PRODUCT_TEAM_ID: z.string().optional(),
+
+    // Polar Meter IDs
+    POLAR_METER_AI_TOKENS_ID: z.string().optional(),
+
+    // Polar Environment (optional, defaults to production)
+    POLAR_SERVER: z.enum(["production", "sandbox"]).optional(),
   },
   /*
    * Environment variables available on the client (and server).
@@ -69,6 +87,15 @@ export const env = createEnv({
     SITE_URL: process.env.SITE_URL,
     JWT_PRIVATE_KEY: process.env.JWT_PRIVATE_KEY,
     JWKS: process.env.JWKS,
+    // Polar.sh
+    POLAR_ACCESS_TOKEN: process.env.POLAR_ACCESS_TOKEN,
+    POLAR_WEBHOOK_SECRET: process.env.POLAR_WEBHOOK_SECRET,
+    POLAR_ORGANIZATION_ID: process.env.POLAR_ORGANIZATION_ID,
+    POLAR_PRODUCT_FREE_ID: process.env.POLAR_PRODUCT_FREE_ID,
+    POLAR_PRODUCT_PRO_ID: process.env.POLAR_PRODUCT_PRO_ID,
+    POLAR_PRODUCT_TEAM_ID: process.env.POLAR_PRODUCT_TEAM_ID,
+    POLAR_METER_AI_TOKENS_ID: process.env.POLAR_METER_AI_TOKENS_ID,
+    POLAR_SERVER: process.env.POLAR_SERVER,
     // Client-side
     NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
     NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
