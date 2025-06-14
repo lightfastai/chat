@@ -49,7 +49,7 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
       >
         <span
           className={cn(
-            "truncate text-sm font-medium flex-1",
+            "truncate text-sm font-medium flex-1 min-w-0",
             thread.isTitleGenerating && "animate-pulse blur-[0.5px] opacity-70",
           )}
         >
@@ -59,7 +59,7 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
           variant="ghost"
           size="icon"
           className={cn(
-            "h-5 w-5 ml-2 transition-opacity",
+            "h-5 w-5 ml-2 flex-shrink-0 transition-opacity",
             thread.pinned
               ? "opacity-100 text-primary"
               : isHovered

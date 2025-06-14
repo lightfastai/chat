@@ -20,7 +20,7 @@ export function ActiveMenuItem({
   threadId,
   href,
   children,
-  className = "w-full h-auto p-2.5 text-left flex items-center justify-between",
+  className = "w-full h-auto p-2 text-left flex items-center justify-between",
   size = "default",
   prefetch = true,
 }: ActiveMenuItemProps) {
@@ -53,7 +53,7 @@ export function ActiveMenuItem({
   }, [pathname, href, threadId])
 
   return (
-    <Link href={href} prefetch={prefetch} className="block overflow-visible">
+    <Link href={href} prefetch={prefetch} className="block">
       <SidebarMenuButton className={className} size={size} isActive={isActive}>
         {children}
       </SidebarMenuButton>

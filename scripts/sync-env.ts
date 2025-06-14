@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 
 import { execSync, spawnSync } from "node:child_process"
-import { readFileSync, writeFileSync, unlinkSync } from "node:fs"
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import os from "node:os"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -171,16 +171,27 @@ async function syncVar(
       }
 
       // For multi-line values like JWT keys, use NAME=value format to avoid parsing issues
-      if (varName === "JWT_PRIVATE_KEY" || varName === "JWKS" || value.includes('\n') || value.length > 1000) {
+      if (
+        varName === "JWT_PRIVATE_KEY" ||
+        varName === "JWKS" ||
+        value.includes("\n") ||
+        value.length > 1000
+      ) {
         // Use NAME=value format for multi-line values to avoid command option parsing
         const nameValuePair = `${varName}=${value}`
-        const result = spawnSync('npx', ['convex', 'env', 'set', nameValuePair], {
-          stdio: ['inherit', 'pipe', 'pipe'],
-          encoding: 'utf8',
-        })
-        
+        const result = spawnSync(
+          "npx",
+          ["convex", "env", "set", nameValuePair],
+          {
+            stdio: ["inherit", "pipe", "pipe"],
+            encoding: "utf8",
+          },
+        )
+
         if (result.status !== 0) {
-          throw new Error(`Convex command failed: ${result.stderr || result.stdout || 'Unknown error'}`)
+          throw new Error(
+            `Convex command failed: ${result.stderr || result.stdout || "Unknown error"}`,
+          )
         }
       } else {
         // Use JSON.stringify to properly escape the value for shell execution

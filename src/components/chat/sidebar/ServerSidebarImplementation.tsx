@@ -51,7 +51,7 @@ export function ServerSidebarImplementation({
   preloadedThreads,
 }: ServerSidebarImplementationProps) {
   return (
-    <Sidebar variant="inset" className="w-64 overflow-visible">
+    <Sidebar variant="inset" className="w-64">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3">
