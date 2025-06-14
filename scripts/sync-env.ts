@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 
-import { execSync } from "child_process"
-import { readFileSync } from "fs"
-import path from "path"
-import { fileURLToPath } from "url"
+import { execSync } from "node:child_process"
+import { readFileSync } from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -89,13 +89,15 @@ function parseEnvFile(envPath: string): Record<string, string> {
       if (inMultiLine) {
         // Check if this line ends the multi-line value
         if (line.endsWith('"') && !line.endsWith('\\"')) {
-          currentValue += "\n" + line.slice(0, -1) // Remove ending quote
-          envVars[currentKey] = currentValue
+          currentValue += `\n${line.slice(0, -1)}` // Remove ending quote
+          if (currentKey) {
+            envVars[currentKey] = currentValue
+          }
           currentKey = null
           currentValue = ""
           inMultiLine = false
         } else {
-          currentValue += "\n" + line
+          currentValue += `\n${line}`
         }
         continue
       }
@@ -133,7 +135,9 @@ function parseEnvFile(envPath: string): Record<string, string> {
 
     return envVars
   } catch (error) {
-    throw new Error(`Failed to read ${envPath}: ${error.message}`)
+    throw new Error(
+      `Failed to read ${envPath}: ${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 }
 
@@ -174,7 +178,9 @@ async function syncVar(
       log.success(`Synced ${varName}`)
       return true
     } catch (error) {
-      log.error(`Failed to sync ${varName}: ${error.message}`)
+      log.error(
+        `Failed to sync ${varName}: ${error instanceof Error ? error.message : String(error)}`,
+      )
       if (isRequired) {
         throw error
       }
@@ -184,10 +190,9 @@ async function syncVar(
     if (isRequired) {
       log.error(`${varName} is required but not found in ${ENV_FILE}`)
       throw new Error(`Missing required variable: ${varName}`)
-    } else {
-      log.warning(`${varName} not found (optional)`)
-      return false
     }
+    log.warning(`${varName} not found (optional)`)
+    return false
   }
 }
 
@@ -257,7 +262,9 @@ async function syncEnvironment(): Promise<void> {
     log.success("Environment sync complete!")
     log.info("Run 'pnpm env:check' to verify synced variables")
   } catch (error) {
-    log.error(`Sync failed: ${error.message}`)
+    log.error(
+      `Sync failed: ${error instanceof Error ? error.message : String(error)}`,
+    )
     process.exit(1)
   }
 }
