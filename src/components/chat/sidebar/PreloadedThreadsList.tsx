@@ -6,17 +6,36 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { type Preloaded, usePreloadedQuery } from "convex/react"
-import type { api } from "../../../../convex/_generated/api"
-import type { Doc } from "../../../../convex/_generated/dataModel"
-import { ActiveMenuItem } from "./ActiveMenuItem"
+import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react"
+import { useCallback } from "react"
+import { api } from "../../../../convex/_generated/api"
+import type { Doc, Id } from "../../../../convex/_generated/dataModel"
+import { ThreadItem } from "./ThreadItem"
 
 type Thread = Doc<"threads">
 
 interface PreloadedThreadsListProps {
   preloadedThreads: Preloaded<typeof api.threads.list>
+}
+
+// Separate pinned threads from unpinned threads
+function separatePinnedThreads(threads: Thread[]) {
+  const pinned: Thread[] = []
+  const unpinned: Thread[] = []
+
+  for (const thread of threads) {
+    if (thread.pinned) {
+      pinned.push(thread)
+    } else {
+      unpinned.push(thread)
+    }
+  }
+
+  // Sort pinned threads by lastMessageAt (newest first)
+  pinned.sort((a, b) => b.lastMessageAt - a.lastMessageAt)
+
+  return { pinned, unpinned }
 }
 
 // Server-side function to group threads by date - no client needed
@@ -58,11 +77,14 @@ function groupThreadsByDate(threads: Thread[]) {
 export function PreloadedThreadsList({
   preloadedThreads,
 }: PreloadedThreadsListProps) {
+  const togglePinned = useMutation(api.threads.togglePinned)
+
   try {
     // Use preloaded data with reactivity - this provides instant loading with real-time updates
     const threads = usePreloadedQuery(preloadedThreads)
 
-    const groupedThreads = groupThreadsByDate(threads)
+    const { pinned, unpinned } = separatePinnedThreads(threads)
+    const groupedThreads = groupThreadsByDate(unpinned)
     const categoryOrder = [
       "Today",
       "Yesterday",
@@ -70,6 +92,17 @@ export function PreloadedThreadsList({
       "This Month",
       "Older",
     ]
+
+    const handlePinToggle = useCallback(
+      async (threadId: Id<"threads">) => {
+        try {
+          await togglePinned({ threadId })
+        } catch (error) {
+          console.error("Failed to toggle pin:", error)
+        }
+      },
+      [togglePinned],
+    )
 
     return (
       <ScrollArea className="h-[calc(100vh-280px)] overflow-visible">
@@ -79,42 +112,54 @@ export function PreloadedThreadsList({
             <p className="text-xs mt-1">Start a new chat to begin</p>
           </div>
         ) : (
-          categoryOrder.map((category) => {
-            const categoryThreads = groupedThreads[category]
-            if (!categoryThreads || categoryThreads.length === 0) {
-              return null
-            }
-
-            return (
-              <SidebarGroup key={category}>
+          <>
+            {/* Pinned threads section */}
+            {pinned.length > 0 && (
+              <SidebarGroup>
                 <SidebarGroupLabel className="text-xs font-medium text-muted-foreground">
-                  {category}
+                  Pinned
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu className="space-y-0.5 overflow-visible">
-                    {categoryThreads.map((thread) => (
-                      <SidebarMenuItem key={thread._id}>
-                        <ActiveMenuItem
-                          threadId={thread._id}
-                          href={`/chat/${thread.clientId || thread._id}`}
-                        >
-                          <span
-                            className={`truncate text-sm font-medium ${
-                              thread.isTitleGenerating
-                                ? "animate-pulse blur-[0.5px] opacity-70"
-                                : ""
-                            }`}
-                          >
-                            {thread.title}
-                          </span>
-                        </ActiveMenuItem>
-                      </SidebarMenuItem>
+                    {pinned.map((thread) => (
+                      <ThreadItem
+                        key={thread._id}
+                        thread={thread}
+                        onPinToggle={handlePinToggle}
+                      />
                     ))}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
-            )
-          })
+            )}
+
+            {/* Regular threads grouped by date */}
+            {categoryOrder.map((category) => {
+              const categoryThreads = groupedThreads[category]
+              if (!categoryThreads || categoryThreads.length === 0) {
+                return null
+              }
+
+              return (
+                <SidebarGroup key={category}>
+                  <SidebarGroupLabel className="text-xs font-medium text-muted-foreground">
+                    {category}
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu className="space-y-0.5 overflow-visible">
+                      {categoryThreads.map((thread) => (
+                        <ThreadItem
+                          key={thread._id}
+                          thread={thread}
+                          onPinToggle={handlePinToggle}
+                        />
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )
+            })}
+          </>
         )}
       </ScrollArea>
     )

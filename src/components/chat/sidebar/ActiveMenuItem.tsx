@@ -20,7 +20,7 @@ export function ActiveMenuItem({
   threadId,
   href,
   children,
-  className = "w-full h-auto p-2.5 text-left",
+  className = "w-full h-auto p-2.5 text-left flex items-center justify-between",
   size = "default",
   prefetch = true,
 }: ActiveMenuItemProps) {
