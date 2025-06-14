@@ -8,15 +8,19 @@ export function Footer({ className }: FooterProps) {
   return (
     <footer
       className={cn(
-        "border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
-        "flex items-center justify-center py-4 px-6 text-sm text-muted-foreground",
+        "border-t",
+        "flex items-center justify-center py-3 px-6 text-xs text-muted-foreground",
         className,
       )}
     >
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-2">
         <span>Lightfast Chat</span>
         <span>•</span>
         <span>v1.0.0</span>
+        <span>•</span>
+        <span>Terms</span>
+        <span>•</span>
+        <span>Privacy</span>
       </div>
     </footer>
   )
