@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface FooterProps {
   className?: string
@@ -8,19 +9,31 @@ export function Footer({ className }: FooterProps) {
   return (
     <footer
       className={cn(
-        "border-t",
         "flex items-center justify-center py-3 px-6 text-xs text-muted-foreground",
         className,
       )}
     >
       <div className="flex items-center gap-2">
-        <span>Lightfast Chat</span>
+        <Link
+          href="https://lightfast.ai"
+          className="hover:text-foreground transition-colors"
+        >
+          Lightfast
+        </Link>
         <span>•</span>
-        <span>v1.0.0</span>
+        <Link
+          href="https://lightfast.ai/legal/terms"
+          className="hover:text-foreground transition-colors"
+        >
+          Terms
+        </Link>
         <span>•</span>
-        <span>Terms</span>
-        <span>•</span>
-        <span>Privacy</span>
+        <Link
+          href="https://lightfast.ai/legal/privacy"
+          className="hover:text-foreground transition-colors"
+        >
+          Privacy
+        </Link>
       </div>
     </footer>
   )
