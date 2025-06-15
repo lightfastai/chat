@@ -210,17 +210,18 @@ export function useConversationBranches(
       if (!branch) return []
 
       if (branchId === "main") {
-        // Main branch: return all main messages
+        // Main branch: return only main messages
         return branch.messages
       }
-      // Retry branch: return inherited messages + branch messages
+      
+      // For conversation branches: return inherited messages + branch messages
       const mainBranch = conversationTree.branches.find((b) => b.id === "main")
       if (!mainBranch || !branch.branchPoint) return branch.messages
 
-      // Get messages from main branch that happened before the branch point
+      // Get messages from main branch that happened before the branch point (inclusive)
       const inheritedMessages = mainBranch.messages.slice(
         0,
-        branch.branchPoint.position,
+        branch.branchPoint.position + 1,
       )
 
       // Combine with branch-specific messages
@@ -229,6 +230,12 @@ export function useConversationBranches(
       console.log(
         `🌳 Branch ${branchId}: ${inheritedMessages.length} inherited + ${branch.messages.length} new = ${allMessages.length} total`,
       )
+      console.log(`🌳 Branch point details:`, {
+        branchPointId: branch.branchPoint.messageId,
+        position: branch.branchPoint.position,
+        inheritedMessageIds: inheritedMessages.map(m => ({ id: m._id, type: m.messageType, body: m.body.substring(0, 20) })),
+        branchMessageIds: branch.messages.map(m => ({ id: m._id, type: m.messageType, body: m.body.substring(0, 20) })),
+      })
 
       return allMessages.sort((a, b) => a.timestamp - b.timestamp)
     },
