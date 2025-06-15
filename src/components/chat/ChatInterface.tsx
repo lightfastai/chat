@@ -265,7 +265,7 @@ export function ChatInterface() {
     console.log(
       `🔥 RENDER ${currentRender} - useEffect (message variants) COMPLETE`,
     )
-  }, [processedMessages, messageBranches])
+  }, [processedMessages, currentRender])
 
   // Auto-switching is now handled by the useConversationBranches hook
 

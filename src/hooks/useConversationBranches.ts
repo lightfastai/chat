@@ -143,7 +143,7 @@ export function useConversationBranches(
 
           branches.set(conversationBranchId, {
             id: conversationBranchId,
-            name: `Retry ${branches.size}`,
+            name: `Retry ${branches.size}`, // branches.size = 1 for first retry, 2 for second, etc.
             messages: [],
             branchPoint,
           })
