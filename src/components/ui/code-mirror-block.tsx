@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { basicSetup } from "@codemirror/basic-setup"
 import { css } from "@codemirror/lang-css"
 import { html } from "@codemirror/lang-html"
 import { javascript } from "@codemirror/lang-javascript"
@@ -15,6 +14,7 @@ import { EditorView } from "@codemirror/view"
 import { Check, Copy } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useEffect, useRef, useState } from "react"
+import { basicSetup } from "codemirror"
 
 // Language map for detecting the appropriate language extension
 const languageMap = {
@@ -62,21 +62,11 @@ export function CodeMirrorBlock({
   const isDark =
     theme === "dark" || (theme === "system" && systemTheme === "dark")
 
-  // Get the language extension
+  // Get the language extension (simplified approach like Vercel)
   const getLanguageExtension = (lang: string) => {
     const normalizedLang = lang.toLowerCase() as Language
     const langExtension = languageMap[normalizedLang]
-    if (langExtension) {
-      try {
-        const extension = langExtension()
-        // Ensure we return an array of extensions
-        return Array.isArray(extension) ? extension : [extension]
-      } catch (error) {
-        console.warn(`Failed to load language extension for ${lang}:`, error)
-        return []
-      }
-    }
-    return []
+    return langExtension ? langExtension() : null
   }
 
   // Copy to clipboard functionality
@@ -98,10 +88,11 @@ export function CodeMirrorBlock({
       viewRef.current.destroy()
     }
 
-    // Create extensions array and flatten to avoid nested arrays
+    // Create extensions array (simplified like Vercel's approach)
+    const langExtension = getLanguageExtension(language)
+    
     const extensions = [
       basicSetup,
-      ...getLanguageExtension(language), // Spread to flatten array
       EditorView.theme({
         "&": {
           fontSize: "0.875rem",
@@ -120,6 +111,11 @@ export function CodeMirrorBlock({
       }),
       EditorView.editable.of(false), // Make read-only
     ]
+
+    // Add language extension if available
+    if (langExtension) {
+      extensions.push(langExtension)
+    }
 
     // Add dark theme if needed
     if (isDark) {
