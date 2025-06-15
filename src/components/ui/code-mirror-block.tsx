@@ -1,6 +1,6 @@
 "use client"
 
-import "./codemirror.css"
+// import "./codemirror.css" // Temporarily disabled to test syntax highlighting
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { css } from "@codemirror/lang-css"
@@ -120,10 +120,7 @@ export function CodeMirrorBlock({
       )}
       <div
         ref={editorRef}
-        className={cn(
-          "overflow-hidden rounded-md border border-border",
-          "codemirror-container", // CSS class for theme integration
-        )}
+        className="overflow-hidden rounded-md border border-border"
       />
     </div>
   )
