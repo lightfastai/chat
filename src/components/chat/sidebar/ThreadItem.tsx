@@ -46,10 +46,11 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
       <ActiveMenuItem
         threadId={thread._id}
         href={`/chat/${thread.clientId || thread._id}`}
+        className="w-full h-auto p-2 text-left flex items-center justify-between overflow-hidden"
       >
         <span
           className={cn(
-            "truncate text-sm font-medium flex-1 min-w-0",
+            "truncate text-sm font-medium flex-1 min-w-0 block",
             thread.isTitleGenerating && "animate-pulse blur-[0.5px] opacity-70",
           )}
         >
