@@ -4,7 +4,7 @@ import { useChat } from "@/hooks/useChat"
 import { useConversationBranches } from "@/hooks/useConversationBranches"
 import { useResumableChat } from "@/hooks/useResumableStream"
 import { useMutation } from "convex/react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Doc, Id } from "../../../convex/_generated/dataModel"
 import { ChatInput } from "./ChatInput"
@@ -27,7 +27,7 @@ export function ChatInterface() {
   const [messageBranches, setMessageBranches] = useState<
     Record<string, number>
   >({}) // messageId -> selected branch index for backward compatibility
-
+  
   // Use custom chat hook with optimistic updates
   const {
     messages,
@@ -39,6 +39,9 @@ export function ChatInterface() {
 
   // Use conversation branches hook for clean branch management
   const branchNavigation = useConversationBranches(messages)
+  
+  // Track previous branch to detect changes
+  const prevBranchRef = useRef(branchNavigation.currentBranch)
 
   // Wrapper function to pass current conversation branch context
   const handleSendMessage = useCallback(
@@ -265,6 +268,18 @@ export function ChatInterface() {
   }, [processedMessages, messageBranches])
 
   // Auto-switching is now handled by the useConversationBranches hook
+
+  // Reset message-level branch state when conversation branch changes
+  useEffect(() => {
+    if (prevBranchRef.current !== branchNavigation.currentBranch) {
+      console.log(
+        `🔄 Conversation branch changed from ${prevBranchRef.current} to ${branchNavigation.currentBranch}, resetting message branches`,
+      )
+      setMessageBranches({})
+      setMessageVariants(new Map())
+      prevBranchRef.current = branchNavigation.currentBranch
+    }
+  }, [branchNavigation.currentBranch])
 
   // Handle branch navigation for a specific message
   const handleBranchNavigate = useCallback(
