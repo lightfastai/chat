@@ -57,6 +57,13 @@ export function CodeMirrorBlock({
   const viewRef = useRef<EditorView | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // Debug what we're receiving
+  console.log("CodeMirrorBlock received:", {
+    language,
+    codeLength: code.length,
+    codePreview: code.substring(0, 50) + (code.length > 50 ? "..." : "")
+  })
+
   // Get the language extension (simplified approach like Vercel)
   const getLanguageExtension = (lang: string) => {
     const normalizedLang = lang.toLowerCase() as Language
