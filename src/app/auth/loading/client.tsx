@@ -39,11 +39,11 @@ export function AuthLoadingClient({
 
       try {
         // Small delay to show loading state before redirect
-        await new Promise(resolve => setTimeout(resolve, 100))
-        
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
         // Initiate sign in - this will cause a redirect for OAuth
         await signIn(provider, { redirectTo })
-        
+
         // For anonymous auth, we might still be here
         setIsInitializing(false)
       } catch (err) {
@@ -94,9 +94,7 @@ export function AuthLoadingClient({
   return (
     <div className="flex flex-col items-center gap-4">
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="text-muted-foreground">
-        Completing authentication...
-      </p>
+      <p className="text-muted-foreground">Completing authentication...</p>
     </div>
   )
 }

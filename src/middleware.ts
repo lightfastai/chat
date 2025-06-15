@@ -11,13 +11,19 @@ const isProtectedRoute = createRouteMatcher(["/chat(.*)", "/settings(.*)"])
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   const { pathname } = request.nextUrl
 
+  // Cache auth status for this request to avoid multiple checks
+  const isAuthenticated = await convexAuth.isAuthenticated()
+
   // Redirect authenticated users away from auth pages
-  if (isSignInPage(request) && (await convexAuth.isAuthenticated())) {
-    return nextjsMiddlewareRedirect(request, "/chat")
+  if (isSignInPage(request) && isAuthenticated) {
+    // Preserve the 'from' parameter if it exists
+    const from = request.nextUrl.searchParams.get("from")
+    const redirectTo = from || "/chat"
+    return nextjsMiddlewareRedirect(request, redirectTo)
   }
 
   // Redirect unauthenticated users to signin with preserved destination
-  if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
+  if (isProtectedRoute(request) && !isAuthenticated) {
     const url = new URL("/signin", request.url)
     url.searchParams.set("from", pathname)
     return NextResponse.redirect(url)
@@ -26,7 +32,7 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   // Add prefetch headers for chat routes to improve performance
   const response = NextResponse.next()
 
-  if ((await convexAuth.isAuthenticated()) && pathname.startsWith("/chat")) {
+  if (isAuthenticated && pathname.startsWith("/chat")) {
     // Add cache headers for better navigation performance
     response.headers.set("Cache-Control", "public, max-age=0, must-revalidate")
     // Add prefetch hints for common resources

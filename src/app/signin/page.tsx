@@ -1,9 +1,7 @@
 import { SignInButtons } from "@/components/auth/SignInButtons"
 import { Card, CardContent } from "@/components/ui/card"
-import { isAuthenticated } from "@/lib/auth"
 import type { Metadata } from "next"
 import Link from "next/link"
-import { redirect } from "next/navigation"
 
 export const metadata: Metadata = {
   title: "Sign In - Lightfast",
@@ -37,12 +35,8 @@ interface SignInPageProps {
   }
 }
 
-export default async function SignInPage({ searchParams }: SignInPageProps) {
-  // Check authentication server-side
-  if (await isAuthenticated()) {
-    redirect(searchParams.from || "/chat")
-  }
-
+export default function SignInPage({ searchParams }: SignInPageProps) {
+  // Authentication check moved to middleware for better performance
   const redirectTo = searchParams.from || "/chat"
   const error = searchParams.error
 
