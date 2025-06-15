@@ -1,5 +1,6 @@
 "use server"
 
+import { redirect } from "next/navigation"
 import { z } from "zod"
 
 const signInSchema = z.object({
@@ -7,17 +8,11 @@ const signInSchema = z.object({
   redirectTo: z.string().optional().default("/chat"),
 })
 
-export type SignInState = {
-  error?: string
-  success?: boolean
-  provider?: "github" | "anonymous"
-  redirectTo?: string
-}
-
-export async function signInAction(
-  _prevState: SignInState | null,
-  formData: FormData,
-): Promise<SignInState> {
+/**
+ * Server action for handling signin form submissions
+ * Redirects to a loading page that will trigger client-side auth
+ */
+export async function signInAction(formData: FormData) {
   try {
     const provider = formData.get("provider") as string
     const redirectTo = formData.get("redirectTo") as string | undefined
@@ -27,36 +22,29 @@ export async function signInAction(
       redirectTo,
     })
 
-    // Return the validated data to trigger client-side sign in
-    return {
-      success: true,
+    // Redirect to a loading page with auth parameters
+    // This page will trigger the client-side OAuth flow
+    const params = new URLSearchParams({
       provider: validatedData.provider,
       redirectTo: validatedData.redirectTo,
-    }
+    })
+
+    redirect(`/auth/loading?${params.toString()}`)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { error: "Invalid request data" }
+      redirect(
+        `/signin?error=${encodeURIComponent("Invalid sign in parameters")}`,
+      )
+    }
+
+    // Re-throw redirects
+    if (error instanceof Error && error.message.includes("NEXT_REDIRECT")) {
+      throw error
     }
 
     console.error("Sign in error:", error)
-    return { error: "Failed to sign in. Please try again." }
-  }
-}
-
-/**
- * Validates sign in parameters on the server before client-side OAuth flow
- */
-export async function validateSignInAction(
-  provider: "github" | "anonymous",
-  redirectTo = "/chat",
-): Promise<{ valid: boolean; error?: string }> {
-  try {
-    signInSchema.parse({ provider, redirectTo })
-    return { valid: true }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return { valid: false, error: "Invalid sign in parameters" }
-    }
-    return { valid: false, error: "Validation failed" }
+    redirect(
+      `/signin?error=${encodeURIComponent("Failed to sign in. Please try again.")}`,
+    )
   }
 }

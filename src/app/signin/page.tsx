@@ -1,10 +1,9 @@
+import { SignInButtons } from "@/components/auth/SignInButtons"
 import { Card, CardContent } from "@/components/ui/card"
+import { isAuthenticated } from "@/lib/auth"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { AuthRedirectHandler } from "../../components/auth/AuthRedirectHandler"
-import { SignInOptions } from "../../components/auth/SignInOptions"
-import { isAuthenticated } from "../../lib/auth"
 
 export const metadata: Metadata = {
   title: "Sign In - Lightfast",
@@ -31,8 +30,22 @@ export const metadata: Metadata = {
   },
 }
 
-// Server-rendered signin page
-function SignInPageContent() {
+interface SignInPageProps {
+  searchParams: {
+    from?: string
+    error?: string
+  }
+}
+
+export default async function SignInPage({ searchParams }: SignInPageProps) {
+  // Check authentication server-side
+  if (await isAuthenticated()) {
+    redirect(searchParams.from || "/chat")
+  }
+
+  const redirectTo = searchParams.from || "/chat"
+  const error = searchParams.error
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -47,7 +60,13 @@ function SignInPageContent() {
               </p>
             </div>
 
-            <SignInOptions />
+            {error && (
+              <div className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded-md text-center">
+                {decodeURIComponent(error)}
+              </div>
+            )}
+
+            <SignInButtons redirectTo={redirectTo} />
 
             <div className="mt-6 text-center">
               <p className="text-xs text-muted-foreground">
@@ -73,23 +92,5 @@ function SignInPageContent() {
         </Card>
       </div>
     </div>
-  )
-}
-
-export default async function SignInPage() {
-  const [authenticated] = await Promise.all([isAuthenticated()])
-
-  if (authenticated) {
-    redirect("/chat")
-  }
-
-  return (
-    <>
-      {/* Client component handles auth redirects for authenticated users */}
-      <AuthRedirectHandler redirectTo="/chat" />
-
-      {/* Server-rendered signin page */}
-      <SignInPageContent />
-    </>
   )
 }
