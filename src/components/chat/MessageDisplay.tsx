@@ -1,7 +1,7 @@
 "use client"
 
-import { getModelDisplayName } from "@/lib/ai"
 import { useResumableStream } from "@/hooks/useResumableStream"
+import { getModelDisplayName } from "@/lib/ai"
 import { useQuery } from "convex/react"
 import React from "react"
 import { api } from "../../../convex/_generated/api"
@@ -18,7 +18,7 @@ interface MessageDisplayProps {
 }
 
 // Component to display individual messages with streaming support
-export function MessageDisplay({ message, userName }: MessageDisplayProps) {
+export function MessageDisplay({ message }: MessageDisplayProps) {
   // Get current user for avatar display
   const currentUser = useQuery(api.users.current)
 
@@ -46,7 +46,7 @@ export function MessageDisplay({ message, userName }: MessageDisplayProps) {
     <>
       <MessageItem
         message={message}
-        currentUser={currentUser}
+        currentUser={currentUser || undefined}
         showThinking={true}
         showActions={true}
         isReadOnly={false}

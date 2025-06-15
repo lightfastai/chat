@@ -49,7 +49,7 @@ export function MessageItem({
   className,
 }: MessageItemProps) {
   const isAssistant = message.messageType === "assistant"
-  
+
   // Calculate thinking duration
   const thinkingDuration = React.useMemo(() => {
     if (message.thinkingStartedAt && message.thinkingCompletedAt) {
@@ -71,7 +71,8 @@ export function MessageItem({
   )
 
   // Determine what text to show
-  const displayText = isStreaming && streamingText ? streamingText : message.body
+  const displayText =
+    isStreaming && streamingText ? streamingText : message.body
 
   // Show thinking indicator if streaming but no text yet
   const isThinking = isStreaming && !displayText && !isComplete
@@ -80,40 +81,49 @@ export function MessageItem({
   const content = (
     <div className={cn("space-y-1", className)}>
       {/* Model name and metadata for assistant messages */}
-      {isAssistant && (modelName || message.usedUserApiKey || thinkingDuration || isStreaming) && (
-        <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-          {modelName && <span>{modelName}</span>}
-          {message.usedUserApiKey && (
-            <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
-              <Key className="w-3 h-3 mr-1" />
-              Your API Key
-            </Badge>
-          )}
-          {thinkingDuration && (
-            <>
-              <span>•</span>
-              <span className="font-mono">
-                Thought for {formatDuration(thinkingDuration)}
-              </span>
-            </>
-          )}
-          {isStreaming && !isComplete && !thinkingDuration && (
-            <>
-              {modelName && <span>•</span>}
-              <span>{isThinking ? "Thinking" : "Responding"}</span>
-            </>
-          )}
-        </div>
-      )}
+      {isAssistant &&
+        (modelName ||
+          message.usedUserApiKey ||
+          thinkingDuration ||
+          isStreaming) && (
+          <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+            {modelName && <span>{modelName}</span>}
+            {message.usedUserApiKey && (
+              <Badge
+                variant="secondary"
+                className="text-xs px-1.5 py-0.5 h-auto"
+              >
+                <Key className="w-3 h-3 mr-1" />
+                Your API Key
+              </Badge>
+            )}
+            {thinkingDuration && (
+              <>
+                <span>•</span>
+                <span className="font-mono">
+                  Thought for {formatDuration(thinkingDuration)}
+                </span>
+              </>
+            )}
+            {isStreaming && !isComplete && !thinkingDuration && (
+              <>
+                {modelName && <span>•</span>}
+                <span>{isThinking ? "Thinking" : "Responding"}</span>
+              </>
+            )}
+          </div>
+        )}
 
       {/* Thinking content */}
-      {showThinking && message.hasThinkingContent && message.thinkingContent && (
-        <ThinkingContent
-          content={message.thinkingContent}
-          duration={thinkingDuration}
-          variant={isReadOnly ? "details" : "collapsible"}
-        />
-      )}
+      {showThinking &&
+        message.hasThinkingContent &&
+        message.thinkingContent && (
+          <ThinkingContent
+            content={message.thinkingContent}
+            duration={thinkingDuration}
+            variant={isReadOnly ? "details" : "collapsible"}
+          />
+        )}
 
       {/* Message body */}
       {isReadOnly && !isAssistant ? (
@@ -154,9 +164,14 @@ export function MessageItem({
   )
 
   // Actions (only for assistant messages in interactive mode)
-  const messageActions = !isReadOnly && showActions && isAssistant && message.isComplete !== false && !message._streamId
-    ? actions
-    : undefined
+  const messageActions =
+    !isReadOnly &&
+    showActions &&
+    isAssistant &&
+    message.isComplete !== false &&
+    !message._streamId
+      ? actions
+      : undefined
 
   return (
     <MessageLayout

@@ -1,6 +1,5 @@
 "use client"
 
-import { Markdown } from "@/components/ui/markdown"
 import { Brain, ChevronDown, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import ReactMarkdown from "react-markdown"
@@ -35,10 +34,11 @@ export function ThinkingContent({
   onToggle,
 }: ThinkingContentProps) {
   const [localExpanded, setLocalExpanded] = useState(false)
-  
+
   // Use controlled state if provided, otherwise use local state
-  const isExpanded = controlledExpanded !== undefined ? controlledExpanded : localExpanded
-  
+  const isExpanded =
+    controlledExpanded !== undefined ? controlledExpanded : localExpanded
+
   const handleToggle = (newExpanded: boolean) => {
     if (onToggle) {
       onToggle(newExpanded)
@@ -59,9 +59,7 @@ export function ThinkingContent({
           )}
         </summary>
         <div className="mt-2 p-3 bg-muted/50 rounded-md text-sm">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {content}
-          </ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
       </details>
     )
