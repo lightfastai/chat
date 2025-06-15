@@ -69,9 +69,10 @@ const components: Partial<Components> = {
       codeElement = children
     }
 
-    if (codeElement && "props" in codeElement) {
-      const code = codeElement.props.children
-      const codeClassName = codeElement.props.className || ""
+    if (codeElement && "props" in codeElement && codeElement.props && typeof codeElement.props === "object") {
+      const props = codeElement.props as { children?: React.ReactNode; className?: string }
+      const code = props.children
+      const codeClassName = props.className || ""
 
       // Extract language from className (e.g., "language-javascript" -> "javascript")
       const languageMatch = codeClassName.match(/language-(\w+)/)
