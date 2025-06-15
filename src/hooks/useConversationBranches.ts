@@ -270,7 +270,8 @@ export function useConversationBranches(
       const currentMessage = allMessages.find(msg => msg._id === messageId)
       const isRetry = currentMessage?.branchFromMessageId
       
-      // If this message has retries OR is a retry itself, show navigation
+      // CRITICAL: Only show navigation if this specific message has actual variants
+      // Don't show navigation just because there are other retries in the conversation
       if (hasDirectRetries || isRetry) {
         // Find the root original message to get all variants
         let rootOriginalId = messageId

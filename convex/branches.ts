@@ -312,6 +312,7 @@ export const createAssistantMessageBranch = mutation({
       originalMessage.conversationBranchId === "main"
     ) {
       // The branch point is the user message that this assistant message was responding to
+      // This ensures each assistant message has its own branch inheritance point
       actualBranchPoint = userMessage._id
     } else {
       // For subsequent retries, trace back to find the original branch point
