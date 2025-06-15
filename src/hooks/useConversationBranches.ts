@@ -241,10 +241,41 @@ export function useConversationBranches(
     setCurrentBranch(branchId)
   }, [])
 
+  // Check if we're currently viewing a branched conversation
+  const isInBranchedConversation = useCallback(() => {
+    return currentBranch !== "main" || conversationTree.branches.length > 1
+  }, [currentBranch, conversationTree.branches])
+
   // Get branch navigation for a specific message
   const getBranchNavigation = useCallback(
     (messageId: string) => {
-      // Check if this message is a branch point
+      // If we're in a branched conversation, show navigation for all messages
+      if (isInBranchedConversation() && conversationTree.branches.length > 1) {
+        // Get all branch IDs
+        const allBranches = conversationTree.branches.map((b) => b.id)
+        const currentIndex = allBranches.indexOf(currentBranch)
+
+        console.log("🌳 Universal branch navigation:", {
+          messageId,
+          branches: allBranches,
+          currentBranch,
+          currentIndex,
+        })
+
+        return {
+          currentIndex: currentIndex >= 0 ? currentIndex : 0,
+          totalBranches: allBranches.length,
+          onNavigate: (index: number) => {
+            const targetBranch = allBranches[index]
+            console.log(`🌳 Navigating to branch ${index}: ${targetBranch}`)
+            if (targetBranch) {
+              switchToBranch(targetBranch)
+            }
+          },
+        }
+      }
+
+      // Original logic: Check if this message is a branch point
       const branchIds = conversationTree.branchPoints.get(messageId)
       console.log(`🌳 getBranchNavigation for ${messageId}:`, {
         branchIds: branchIds ? [...branchIds] : "none",
@@ -287,7 +318,7 @@ export function useConversationBranches(
         },
       }
     },
-    [conversationTree.branchPoints, currentBranch, switchToBranch],
+    [conversationTree.branchPoints, conversationTree.branches, currentBranch, switchToBranch, isInBranchedConversation],
   )
 
   return {
