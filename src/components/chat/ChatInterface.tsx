@@ -15,12 +15,8 @@ type Message = Doc<"messages"> & {
   branchPoint?: string
 }
 
-let renderCount = 0
-
 export function ChatInterface() {
-  renderCount++
-  const currentRender = renderCount
-  console.log(`🔥 RENDER ${currentRender} - ChatInterface starting`)
+  console.log(`🔥 ChatInterface render`)
 
   // State for editing messages
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
@@ -59,7 +55,7 @@ export function ChatInterface() {
     Map<string, { variants: Message[]; selected: number; total: number }>
   >(new Map())
 
-  console.log(`🔥 RENDER ${currentRender} - State:`, {
+  console.log(`🔥 State:`, {
     messagesCount: messages.length,
     currentBranch: branchNavigation.currentBranch,
     branchCount: branchNavigation.branches.length,
@@ -76,9 +72,7 @@ export function ChatInterface() {
 
   // Get messages for current branch using the clean hook
   const processedMessages = useMemo(() => {
-    console.log(
-      `🔥 RENDER ${currentRender} - processedMessages useMemo starting`,
-    )
+    console.log(`🔥 processedMessages useMemo starting`)
     console.log("🎯 Raw messages from database:", messages.length)
 
     // Get messages for the current conversation branch
@@ -91,9 +85,7 @@ export function ChatInterface() {
     )
 
     if (!branchMessages.length) {
-      console.log(
-        `🔥 RENDER ${currentRender} - processedMessages useMemo: no messages, returning empty`,
-      )
+      console.log(`🔥 processedMessages useMemo: no messages, returning empty`)
       return []
     }
 
@@ -173,20 +165,18 @@ export function ChatInterface() {
     result.sort((a, b) => b.timestamp - a.timestamp)
 
     console.log(
-      `🔥 RENDER ${currentRender} - processedMessages useMemo COMPLETE - returning ${result.length} messages`,
+      `🔥 processedMessages useMemo COMPLETE - returning ${result.length} messages`,
     )
 
     return result
-  }, [messages, branchNavigation, messageBranches])
+  }, [messages, branchNavigation.currentBranch, branchNavigation.getMessagesForBranch, messageBranches])
 
   // Update message variants when processed messages change
   useEffect(() => {
-    console.log(
-      `🔥 RENDER ${currentRender} - useEffect (message variants) starting`,
-    )
+    console.log(`🔥 useEffect (message variants) starting`)
     if (!processedMessages.length) {
       console.log(
-        `🔥 RENDER ${currentRender} - useEffect (message variants) early return - no processed messages`,
+        `🔥 useEffect (message variants) early return - no processed messages`,
       )
       return
     }
@@ -232,10 +222,8 @@ export function ChatInterface() {
     }
 
     setMessageVariants(newMessageVariants)
-    console.log(
-      `🔥 RENDER ${currentRender} - useEffect (message variants) COMPLETE`,
-    )
-  }, [messages, messageBranches, currentRender])
+    console.log(`🔥 useEffect (message variants) COMPLETE`)
+  }, [messages, messageBranches])
 
   // Auto-switching is now handled by the useConversationBranches hook
 
@@ -448,7 +436,7 @@ export function ChatInterface() {
     activeStreams,
     messageVariants,
     handleBranchNavigate,
-    branchNavigation,
+    branchNavigation.getBranchNavigation,
   ])
 
   // Find root original message by tracing back through branchFromMessageId chain
@@ -509,7 +497,7 @@ export function ChatInterface() {
   )
 
   console.log(
-    `🔥 RENDER ${currentRender} - ChatInterface RENDERING with ${enhancedMessages.length} enhanced messages`,
+    `🔥 ChatInterface RENDERING with ${enhancedMessages.length} enhanced messages`,
   )
 
   return (

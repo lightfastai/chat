@@ -334,11 +334,20 @@ export function useConversationBranches(
     ],
   )
 
-  return {
-    currentBranch,
-    branches: conversationTree.branches,
-    switchToBranch,
-    getMessagesForBranch,
-    getBranchNavigation,
-  }
+  return useMemo(
+    () => ({
+      currentBranch,
+      branches: conversationTree.branches,
+      switchToBranch,
+      getMessagesForBranch,
+      getBranchNavigation,
+    }),
+    [
+      currentBranch,
+      conversationTree.branches,
+      switchToBranch,
+      getMessagesForBranch,
+      getBranchNavigation,
+    ],
+  )
 }
