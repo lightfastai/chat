@@ -61,33 +61,25 @@ export function CodeMirrorBlock({
       viewRef.current.destroy()
     }
 
-    // Test with exact Vercel pattern - hardcode javascript for now
-    let extensions
+    // Minimal test - start with just basicSetup
+    console.log(`Creating CodeMirror for language: ${language}`)
+    console.log("basicSetup:", basicSetup)
+    console.log("javascript function:", javascript)
     
-    if (language === "javascript" || language === "js") {
-      extensions = [basicSetup, javascript(), oneDark]
-      console.log("Using JavaScript highlighting")
-    } else if (language === "python" || language === "py") {
-      extensions = [basicSetup, python(), oneDark]
-      console.log("Using Python highlighting")
-    } else {
-      extensions = [basicSetup, oneDark]
-      console.log("Using plain text (no language extension)")
+    try {
+      const jsExt = javascript()
+      console.log("JavaScript extension created:", jsExt)
+    } catch (error) {
+      console.error("Error creating JavaScript extension:", error)
     }
     
-    // Add our custom settings
-    extensions.push(
-      EditorView.theme({
-        "&": {
-          fontSize: "0.875rem",
-          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-        },
-        ".cm-focused": {
-          outline: "none",
-        },
-      }),
+    // Start minimal - just basicSetup and language
+    const extensions = [
+      basicSetup,
+      javascript(), // Always use JavaScript for testing
+      oneDark, // Add dark theme back
       EditorView.editable.of(false)
-    )
+    ]
     
     console.log("Final extensions:", extensions)
 
