@@ -59,7 +59,7 @@ export function ChatInterface() {
 
   // Conversation branch mutation
   const createConversationBranch = useMutation(
-    api.conversationBranches.createConversationBranch,
+    api.conversation_branches.createConversationBranch,
   )
 
   // Get messages for current branch using the clean hook
