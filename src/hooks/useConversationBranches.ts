@@ -259,52 +259,72 @@ export function useConversationBranches(
   // Get branch navigation for a specific message
   const getBranchNavigation = useCallback(
     (messageId: string) => {
-      // For conversation-level branching, only show navigation on messages that are branch points
-      // (messages that have been retried and have multiple conversation branches)
-
-      // Check if this specific message is a branch point where conversations diverged
-      const branchIds = conversationTree.branchPoints.get(messageId)
-
-      if (!branchIds || branchIds.length === 0) {
-        console.log(
-          `🌳 No branch navigation for ${messageId} - not a branch point`,
-        )
-        return null
-      }
-
-      // If we have multiple conversation branches and this message is a branch point,
-      // show navigation between the conversation branches
-      if (conversationTree.branches.length > 1) {
-        const allBranches = conversationTree.branches.map((b) => b.id)
-        const currentIndex = allBranches.indexOf(currentBranch)
-
-        console.log("🌳 Conversation branch navigation for branch point:", {
-          messageId,
-          branchIds,
-          allBranches,
-          currentBranch,
-          currentIndex,
+      // For conversation-level branching, show navigation on ASSISTANT messages that have been retried
+      // We need to find if this assistant message has variants (retries)
+      
+      // First, check if this message has variants (direct retries of this message)
+      const allMessages = conversationTree.branches.flatMap(b => b.messages)
+      const hasDirectRetries = allMessages.some(msg => msg.branchFromMessageId === messageId)
+      
+      // Also check if this message is itself a retry (has branchFromMessageId)
+      const currentMessage = allMessages.find(msg => msg._id === messageId)
+      const isRetry = currentMessage?.branchFromMessageId
+      
+      // If this message has retries OR is a retry itself, show navigation
+      if (hasDirectRetries || isRetry) {
+        // Find the root original message to get all variants
+        let rootOriginalId = messageId
+        if (isRetry) {
+          // Trace back to find root original
+          let current = currentMessage
+          while (current?.branchFromMessageId) {
+            const parent = allMessages.find(m => m._id === current.branchFromMessageId)
+            if (!parent) break
+            current = parent
+            rootOriginalId = current._id
+          }
+        }
+        
+        // Find all conversation branches that contain variants of the root original
+        const variantBranches = conversationTree.branches.filter(branch => {
+          return branch.messages.some(msg => 
+            msg._id === rootOriginalId || msg.branchFromMessageId === rootOriginalId
+          )
         })
+        
+        if (variantBranches.length > 1) {
+          const branchIds = variantBranches.map(b => b.id)
+          const currentIndex = branchIds.indexOf(currentBranch)
 
-        return {
-          currentIndex: currentIndex >= 0 ? currentIndex : 0,
-          totalBranches: allBranches.length,
-          onNavigate: (index: number) => {
-            const targetBranch = allBranches[index]
-            console.log(
-              `🌳 Navigating to conversation branch ${index}: ${targetBranch}`,
-            )
-            if (targetBranch) {
-              switchToBranch(targetBranch)
-            }
-          },
+          console.log("🌳 Assistant message branch navigation:", {
+            messageId,
+            rootOriginalId,
+            hasDirectRetries,
+            isRetry,
+            variantBranches: branchIds,
+            currentBranch,
+            currentIndex,
+          })
+
+          return {
+            currentIndex: currentIndex >= 0 ? currentIndex : 0,
+            totalBranches: branchIds.length,
+            onNavigate: (index: number) => {
+              const targetBranch = branchIds[index]
+              console.log(
+                `🌳 Navigating to conversation branch ${index}: ${targetBranch}`,
+              )
+              if (targetBranch) {
+                switchToBranch(targetBranch)
+              }
+            },
+          }
         }
       }
 
       return null
     },
     [
-      conversationTree.branchPoints,
       conversationTree.branches,
       currentBranch,
       switchToBranch,
