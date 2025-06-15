@@ -1,6 +1,5 @@
 "use server"
 
-import { redirect } from "next/navigation"
 import { z } from "zod"
 
 const signInSchema = z.object({
@@ -16,7 +15,7 @@ export type SignInState = {
 }
 
 export async function signInAction(
-  prevState: SignInState | null,
+  _prevState: SignInState | null,
   formData: FormData,
 ): Promise<SignInState> {
   try {
@@ -49,7 +48,7 @@ export async function signInAction(
  */
 export async function validateSignInAction(
   provider: "github" | "anonymous",
-  redirectTo: string = "/chat",
+  redirectTo = "/chat",
 ): Promise<{ valid: boolean; error?: string }> {
   try {
     signInSchema.parse({ provider, redirectTo })

@@ -1,6 +1,6 @@
 "use client"
 
-import { signInAction, type SignInState } from "@/app/actions/auth"
+import { type SignInState, signInAction } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { env } from "@/env"
 import { cn } from "@/lib/utils"
@@ -48,11 +48,7 @@ function SubmitButton({
       disabled={pending}
     >
       {animationElement}
-      {pending ? (
-        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-      ) : (
-        children
-      )}
+      {pending ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : children}
     </Button>
   )
 }

@@ -38,7 +38,7 @@ export function SignInOptions({
       try {
         // Validate parameters on the server first
         const validation = await validateSignInAction(provider, "/chat")
-        
+
         if (!validation.valid) {
           toast.error(validation.error || "Invalid sign in request")
           return
