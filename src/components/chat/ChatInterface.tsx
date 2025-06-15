@@ -27,7 +27,7 @@ export function ChatInterface() {
   const [messageBranches, setMessageBranches] = useState<
     Record<string, number>
   >({}) // messageId -> selected branch index for backward compatibility
-  
+
   // Use custom chat hook with optimistic updates
   const {
     messages,
@@ -39,7 +39,7 @@ export function ChatInterface() {
 
   // Use conversation branches hook for clean branch management
   const branchNavigation = useConversationBranches(messages)
-  
+
   // Track previous branch to detect changes
   const prevBranchRef = useRef(branchNavigation.currentBranch)
 
@@ -177,10 +177,13 @@ export function ChatInterface() {
     )
 
     return result
-  }, [messages, branchNavigation, messageBranches, currentRender])
+  }, [messages, branchNavigation, messageBranches])
 
   // Update message variants when processed messages change
   useEffect(() => {
+    // TEMPORARY FIX: Disable to fix infinite loop
+    return
+    
     console.log(
       `🔥 RENDER ${currentRender} - useEffect (message variants) starting`,
     )
@@ -217,7 +220,9 @@ export function ChatInterface() {
     const updatedMessageBranches = { ...messageBranches }
 
     // Only process original messages (not branches) from processedMessages
-    const originalMessages = processedMessages.filter((msg) => !msg.branchFromMessageId)
+    const originalMessages = processedMessages.filter(
+      (msg) => !msg.branchFromMessageId,
+    )
 
     for (const originalMessage of originalMessages) {
       const variants = messageGroups.get(originalMessage._id) || []
@@ -265,7 +270,7 @@ export function ChatInterface() {
     console.log(
       `🔥 RENDER ${currentRender} - useEffect (message variants) COMPLETE`,
     )
-  }, [processedMessages, currentRender])
+  }, [processedMessages])
 
   // Auto-switching is now handled by the useConversationBranches hook
 
@@ -504,7 +509,6 @@ export function ChatInterface() {
     activeStreams,
     messageVariants,
     handleBranchNavigate,
-    messages,
     branchNavigation,
   ])
 

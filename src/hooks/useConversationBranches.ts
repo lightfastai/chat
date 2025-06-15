@@ -318,7 +318,13 @@ export function useConversationBranches(
         },
       }
     },
-    [conversationTree.branchPoints, conversationTree.branches, currentBranch, switchToBranch, isInBranchedConversation],
+    [
+      conversationTree.branchPoints,
+      conversationTree.branches,
+      currentBranch,
+      switchToBranch,
+      isInBranchedConversation,
+    ],
   )
 
   return {
