@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // App Router is enabled by default in Next.js 13+
   experimental: {
     ppr: true,
-    dynamicIO: true,
+    // dynamicIO: true, // Conflicts with Convex Auth's header access during prerendering
     reactCompiler: true,
   },
   // Turbopack configuration (now top-level in Next.js 15)

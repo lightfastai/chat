@@ -11,15 +11,10 @@ export const metadata: Metadata = {
   },
 }
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-
 export default async function ProfilePage() {
-  "use cache"
-  
   // Get user data - middleware ensures authentication
   const user = await getCurrentUser()
-  
+
   // Middleware handles auth, so user should always exist here
   // If not, ProfileSection can handle the edge case
   return <ProfileSection user={user!} />

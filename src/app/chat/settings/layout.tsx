@@ -7,8 +7,6 @@ interface SettingsLayoutProps {
 export default async function SettingsLayout({
   children,
 }: SettingsLayoutProps) {
-  "use cache"
-  
   return (
     <div className="flex h-full flex-col">
       {/* Scrollable content */}
