@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { AuthLoadingClient } from "./client"
 
 export default function AuthLoadingPage({
@@ -5,6 +6,11 @@ export default function AuthLoadingPage({
 }: {
   searchParams: { provider?: string; redirectTo?: string }
 }) {
+  // If no provider is specified, redirect to signin
+  if (!searchParams.provider) {
+    redirect("/signin")
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="text-center">
