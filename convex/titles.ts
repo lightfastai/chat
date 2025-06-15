@@ -28,13 +28,11 @@ export const generateTitle = internalAction({
       const messages: CoreMessage[] = [
         {
           role: "system",
-          content: `Generate a concise, descriptive title (3-6 words) for a chat conversation based on the user's first message. The title should capture the main topic or intent. Return only the title, no quotes or extra text.
-
-Examples:
-- "How do I learn React?" → "Learning React Development"
-- "Write a poem about cats" → "Cat Poetry Request"
-- "Explain quantum physics" → "Quantum Physics Explanation"
-- "Help me plan a trip" → "Travel Planning Help"`,
+          content: `
+      - you will generate a short title based on the first message a user begins a conversation with
+      - ensure it is not more than 80 characters long
+      - the title should be a summary of the user's message
+      - do not use quotes or colons`,
         },
         {
           role: "user",
