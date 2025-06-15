@@ -74,7 +74,7 @@ async function SidebarWithPreloadedData() {
 // Component for unauthenticated state
 function SidebarUnauthenticated() {
   return (
-    <Sidebar variant="inset" className="w-64">
+    <Sidebar variant="inset" collapsible="none" className="w-64">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3">

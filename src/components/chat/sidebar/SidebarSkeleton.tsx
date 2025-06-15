@@ -16,7 +16,7 @@ import { Plus } from "lucide-react"
 // Skeleton loader for the sidebar - provides instant visual feedback
 export function SidebarSkeleton() {
   return (
-    <Sidebar variant="inset" className="w-64">
+    <Sidebar variant="inset" collapsible="none" className="w-64">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           {/* Logo skeleton */}
@@ -50,8 +50,7 @@ export function SidebarSkeleton() {
                 {/* Skeleton thread items */}
                 {Array.from(
                   { length: 5 },
-                  () =>
-                    `skeleton-thread-${Math.random().toString(36).substr(2, 9)}`,
+                  (_, i) => `skeleton-thread-${i}`,
                 ).map((id) => (
                   <SidebarMenuItem key={id}>
                     <SidebarMenuButton className="w-full h-auto p-2.5 text-left">
@@ -71,8 +70,7 @@ export function SidebarSkeleton() {
               <SidebarMenu className="space-y-0.5">
                 {Array.from(
                   { length: 3 },
-                  () =>
-                    `skeleton-older-${Math.random().toString(36).substr(2, 9)}`,
+                  (_, i) => `skeleton-older-${i}`,
                 ).map((id) => (
                   <SidebarMenuItem key={id}>
                     <SidebarMenuButton className="w-full h-auto p-2.5 text-left">
