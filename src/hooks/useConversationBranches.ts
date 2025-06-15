@@ -256,15 +256,27 @@ export function useConversationBranches(
   // Get branch navigation for a specific message
   const getBranchNavigation = useCallback(
     (messageId: string) => {
-      // If we're in a branched conversation, show navigation for all messages
-      if (isInBranchedConversation() && conversationTree.branches.length > 1) {
-        // Get all branch IDs
+      // For conversation-level branching, only show navigation on messages that are branch points
+      // (messages that have been retried and have multiple conversation branches)
+      
+      // Check if this specific message is a branch point where conversations diverged
+      const branchIds = conversationTree.branchPoints.get(messageId)
+      
+      if (!branchIds || branchIds.length === 0) {
+        console.log(`🌳 No branch navigation for ${messageId} - not a branch point`)
+        return null
+      }
+
+      // If we have multiple conversation branches and this message is a branch point,
+      // show navigation between the conversation branches
+      if (conversationTree.branches.length > 1) {
         const allBranches = conversationTree.branches.map((b) => b.id)
         const currentIndex = allBranches.indexOf(currentBranch)
 
-        console.log("🌳 Universal branch navigation:", {
+        console.log("🌳 Conversation branch navigation for branch point:", {
           messageId,
-          branches: allBranches,
+          branchIds,
+          allBranches,
           currentBranch,
           currentIndex,
         })
@@ -274,7 +286,7 @@ export function useConversationBranches(
           totalBranches: allBranches.length,
           onNavigate: (index: number) => {
             const targetBranch = allBranches[index]
-            console.log(`🌳 Navigating to branch ${index}: ${targetBranch}`)
+            console.log(`🌳 Navigating to conversation branch ${index}: ${targetBranch}`)
             if (targetBranch) {
               switchToBranch(targetBranch)
             }
@@ -282,55 +294,13 @@ export function useConversationBranches(
         }
       }
 
-      // Original logic: Check if this message is a branch point
-      const branchIds = conversationTree.branchPoints.get(messageId)
-      console.log(`🌳 getBranchNavigation for ${messageId}:`, {
-        branchIds: branchIds ? [...branchIds] : "none",
-        allBranchPoints: Array.from(
-          conversationTree.branchPoints.entries(),
-        ).map(([id, branches]) => ({
-          messageId: id,
-          branches: [...branches],
-        })),
-        currentBranch,
-      })
-
-      if (!branchIds || branchIds.length === 0) {
-        console.log(
-          `🌳 No branch navigation for ${messageId} - not a branch point`,
-        )
-        return null
-      }
-
-      // Create navigation for all branches that stem from this point
-      const allBranchesAtPoint = ["main", ...branchIds]
-      const currentIndex = allBranchesAtPoint.indexOf(currentBranch)
-
-      console.log("🌳 Branch navigation created:", {
-        messageId,
-        branches: allBranchesAtPoint,
-        currentBranch,
-        currentIndex,
-      })
-
-      return {
-        currentIndex: currentIndex >= 0 ? currentIndex : 0,
-        totalBranches: allBranchesAtPoint.length,
-        onNavigate: (index: number) => {
-          const targetBranch = allBranchesAtPoint[index]
-          console.log(`🌳 Navigating to branch ${index}: ${targetBranch}`)
-          if (targetBranch) {
-            switchToBranch(targetBranch)
-          }
-        },
-      }
+      return null
     },
     [
       conversationTree.branchPoints,
       conversationTree.branches,
       currentBranch,
       switchToBranch,
-      isInBranchedConversation,
     ],
   )
 

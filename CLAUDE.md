@@ -536,11 +536,67 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 ## Quality Gates
 
+### Chat Branching Test Requirements
+
+**CRITICAL**: Always run these test scenarios in the browser before committing any changes to chat branching functionality:
+
+#### Test Scenario 1: Basic Retry Flow
+1. User sends: "test"
+2. Assistant responds: "It looks like you're testing..."
+3. User sends: "test" (again)
+4. Assistant responds: "I'm here! If you need help..."
+5. **Click retry on first assistant message**
+6. **Verify**: New assistant response appears
+7. **Verify**: Branch navigation shows (1/2, 2/2) 
+8. **Critical**: Only the RETRIED message should show branch navigation, not all messages
+9. **Verify**: Switching between branches works correctly
+10. **Verify**: No duplicate messages in any branch
+
+#### Test Scenario 2: Multiple Retries
+1. Continue from Test Scenario 1
+2. **Click retry on the new assistant response**
+3. **Verify**: Branch navigation updates to (1/3, 2/3, 3/3)
+4. **Verify**: Only the retried messages show branch navigation
+5. **Verify**: Original messages do not show branch navigation
+
+#### Test Scenario 3: Navigation Between Branches
+1. Continue from Test Scenario 2
+2. **Navigate to branch 1** using branch selectors
+3. **Verify**: Shows first assistant response
+4. **Navigate to branch 2** using branch selectors
+5. **Verify**: Shows second assistant response
+6. **Navigate to branch 3** using branch selectors
+7. **Verify**: Shows third assistant response
+8. **Critical**: Each branch shows the complete conversation up to that point + the branch-specific response
+
+#### Test Scenario 4: Complex Conversation Branching
+1. User: "hello"
+2. Assistant: "Hi there!"
+3. User: "how are you?"
+4. Assistant: "I'm doing well, thanks!"
+5. **Retry the second assistant message**
+6. **Verify**: Only the "I'm doing well, thanks!" message and its retry show branch navigation
+7. **Verify**: "Hi there!" message does NOT show branch navigation
+8. **Verify**: User messages do NOT show branch navigation
+
+#### Debug Commands for Testing
+```bash
+# Open browser console and check for these logs:
+# - "🌳 Universal branch navigation:" should only appear for retried messages
+# - "🌳 Branch navigation created:" should show correct branch structure
+# - No infinite loop errors or "Maximum update depth exceeded"
+
+# Check that branch structure is correct:
+# - Main branch should contain original conversation
+# - Retry branches should inherit conversation + show new response
+```
+
 ### Before Every Commit
 1. ✅ `bun run build` - Must pass without errors
 2. ✅ `bun run lint` - Must pass without errors
 3. ✅ Code formatted with `bun run format`
 4. ✅ All changes tested locally
+5. ✅ **Chat branching tests** - Run ALL test scenarios above and verify they pass
 
 ### Before PR Creation
 1. ✅ Feature branch pushed to remote
