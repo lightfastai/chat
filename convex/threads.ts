@@ -316,6 +316,19 @@ export const deleteThread = mutation({
       await ctx.db.delete(message._id)
     }
 
+    // Clean up share access logs if thread was shared
+    if (thread.shareId) {
+      const shareAccessEntries = await ctx.db
+        .query("shareAccess")
+        .withIndex("by_share_id", (q) => q.eq("shareId", thread.shareId!))
+        .collect()
+
+      // Delete all share access logs for this thread
+      for (const entry of shareAccessEntries) {
+        await ctx.db.delete(entry._id)
+      }
+    }
+
     // Finally delete the thread
     await ctx.db.delete(args.threadId)
     return null
