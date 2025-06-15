@@ -38,71 +38,26 @@ const components: Partial<Components> = {
         </code>
       )
     }
-    // This shouldn't be reached for code blocks (handled by pre)
+    
+    // Block code - use CodeMirror for syntax highlighting
+    // Extract language from className (e.g., "language-javascript" -> "javascript")
+    const languageMatch = className?.match(/language-(\w+)/)
+    const language = languageMatch ? languageMatch[1] : "text"
+    
     return (
-      <code className={className} {...props}>
-        {children}
-      </code>
+      <CodeMirrorBlock
+        code={String(children)}
+        language={language}
+        className="my-4"
+      />
     )
   },
 
-  // Pre component for code blocks - enhanced with CodeMirror
-  pre({ children, className, ...props }: MarkdownComponentProps) {
-    // Extract code content and language from children
-    // Check if children contains a code element (React element structure)
-    let codeElement: React.ReactElement | null = null
-
-    if (Array.isArray(children)) {
-      codeElement = children.find(
-        (child) =>
-          child &&
-          typeof child === "object" &&
-          "type" in child &&
-          child.type === "code",
-      )
-    } else if (
-      children &&
-      typeof children === "object" &&
-      "type" in children &&
-      children.type === "code"
-    ) {
-      codeElement = children
-    }
-
-    if (codeElement && "props" in codeElement && codeElement.props && typeof codeElement.props === "object") {
-      const props = codeElement.props as { children?: React.ReactNode; className?: string }
-      const code = props.children
-      const codeClassName = props.className || ""
-
-      // Extract language from className (e.g., "language-javascript" -> "javascript")
-      const languageMatch = codeClassName.match(/language-(\w+)/)
-      const language = languageMatch ? languageMatch[1] : "text"
-
-      return (
-        <div className="my-4">
-          <CodeMirrorBlock
-            code={String(code)}
-            language={language}
-            className={className}
-          />
-        </div>
-      )
-    }
-
-    // Fallback to original pre element for non-code content
+  // Pre component - now just a container since CodeMirror is handled in code component
+  pre({ children }: MarkdownComponentProps) {
     return (
       <div className="flex flex-col my-4">
-        <pre
-          className={cn(
-            "text-foreground bg-muted/50 dark:bg-muted/20 border border-border",
-            "w-full overflow-x-auto rounded-md p-3",
-            "text-xs font-mono leading-relaxed",
-            className,
-          )}
-          {...props}
-        >
-          {children}
-        </pre>
+        {children}
       </div>
     )
   },
