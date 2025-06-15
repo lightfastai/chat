@@ -1,5 +1,6 @@
 "use client"
 
+import "./codemirror.css"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { css } from "@codemirror/lang-css"
@@ -12,7 +13,6 @@ import { EditorState } from "@codemirror/state"
 import { oneDark } from "@codemirror/theme-one-dark"
 import { EditorView } from "@codemirror/view"
 import { Check, Copy } from "lucide-react"
-import { useTheme } from "next-themes"
 import { useEffect, useRef, useState } from "react"
 import { basicSetup } from "codemirror"
 
@@ -55,12 +55,7 @@ export function CodeMirrorBlock({
 }: CodeMirrorBlockProps) {
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
-  const { theme, systemTheme } = useTheme()
   const [copied, setCopied] = useState(false)
-
-  // Determine if we should use dark theme
-  const isDark =
-    theme === "dark" || (theme === "system" && systemTheme === "dark")
 
   // Get the language extension (simplified approach like Vercel)
   const getLanguageExtension = (lang: string) => {
@@ -88,7 +83,7 @@ export function CodeMirrorBlock({
       viewRef.current.destroy()
     }
 
-    // Create extensions array (simplified like Vercel's approach)
+    // Create extensions array (following Vercel's fixed oneDark approach)
     const langExtension = getLanguageExtension(language)
     
     const extensions = [
@@ -110,16 +105,12 @@ export function CodeMirrorBlock({
         },
       }),
       EditorView.editable.of(false), // Make read-only
+      oneDark, // Always use oneDark theme like Vercel
     ]
 
     // Add language extension if available
     if (langExtension) {
       extensions.push(langExtension)
-    }
-
-    // Add dark theme if needed
-    if (isDark) {
-      extensions.push(oneDark)
     }
 
     // Create editor state
@@ -139,7 +130,7 @@ export function CodeMirrorBlock({
     return () => {
       view.destroy()
     }
-  }, [code, language, isDark])
+  }, [code, language])
 
   return (
     <div className={cn("relative group", className)}>
@@ -161,8 +152,7 @@ export function CodeMirrorBlock({
         ref={editorRef}
         className={cn(
           "overflow-hidden rounded-md border border-border",
-          "bg-background", // Light theme background
-          isDark && "bg-[#263238]", // Dark theme background to match oneDark
+          "codemirror-container", // CSS class for theme integration
         )}
       />
     </div>
