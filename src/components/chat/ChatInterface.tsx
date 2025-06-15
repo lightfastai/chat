@@ -180,16 +180,6 @@ export function ChatInterface() {
   }, [messages, branchNavigation, messageBranches])
 
   // Update message variants when processed messages change
-  // TEMPORARILY DISABLED to fix infinite loop - needs refactoring
-  useEffect(() => {
-    // TODO: Re-enable message variants logic after fixing circular dependencies
-    // The logic below was causing infinite re-renders due to:
-    // processedMessages -> messageVariants -> messageBranches -> processedMessages
-    return
-  }, [processedMessages])
-
-  /*
-  // Original message variants logic (disabled)
   useEffect(() => {
     console.log(
       `🔥 RENDER ${currentRender} - useEffect (message variants) starting`,
@@ -203,9 +193,8 @@ export function ChatInterface() {
 
     const messageGroups = new Map<string, Message[]>()
 
-    // Build groups using processedMessages (already filtered by conversation branch)
-    // This ensures consistency between what we process and what we display
-    for (const message of processedMessages) {
+    // Build groups using all messages (not just processed)
+    for (const message of messages) {
       if (!message.branchFromMessageId) {
         if (!messageGroups.has(message._id)) {
           messageGroups.set(message._id, [])
@@ -224,61 +213,29 @@ export function ChatInterface() {
       string,
       { variants: Message[]; selected: number; total: number }
     >()
-    const updatedMessageBranches = { ...messageBranches }
 
-    // Only process original messages (not branches) from processedMessages
-    const originalMessages = processedMessages.filter(
-      (msg) => !msg.branchFromMessageId,
-    )
-
-    for (const originalMessage of originalMessages) {
-      const variants = messageGroups.get(originalMessage._id) || []
-      if (variants.length === 0) continue
+    // Process each message group
+    for (const [originalId, variants] of messageGroups) {
+      if (variants.length <= 1) continue
 
       variants.sort((a, b) => (a.branchSequence || 0) - (b.branchSequence || 0))
 
-      // Auto-select the latest branch variant (highest sequence number)
-      // This ensures newly created branches are automatically shown
-      const currentSelectedIndex = messageBranches[originalMessage._id]
-      let selectedIndex = currentSelectedIndex
+      // Get current selection or default to latest
+      const currentSelectedIndex =
+        messageBranches[originalId] ?? variants.length - 1
 
-      // If no selection exists, or if we have new variants, select the latest one
-      if (
-        currentSelectedIndex === undefined ||
-        variants.length >
-          (newMessageVariants.get(originalMessage._id)?.total || 0)
-      ) {
-        selectedIndex = variants.length - 1 // Select the newest variant
-        updatedMessageBranches[originalMessage._id] = selectedIndex
-        console.log(
-          `🎯 Auto-selecting newest variant for ${originalMessage._id}: index ${selectedIndex}/${variants.length}`,
-        )
-      } else {
-        selectedIndex = currentSelectedIndex
-      }
-
-      if (variants.length > 1) {
-        newMessageVariants.set(originalMessage._id, {
-          variants,
-          selected: selectedIndex,
-          total: variants.length,
-        })
-      }
-    }
-
-    // Update messageBranches if we auto-selected new variants
-    if (
-      JSON.stringify(updatedMessageBranches) !== JSON.stringify(messageBranches)
-    ) {
-      setMessageBranches(updatedMessageBranches)
+      newMessageVariants.set(originalId, {
+        variants,
+        selected: currentSelectedIndex,
+        total: variants.length,
+      })
     }
 
     setMessageVariants(newMessageVariants)
     console.log(
       `🔥 RENDER ${currentRender} - useEffect (message variants) COMPLETE`,
     )
-  }, [processedMessages])
-  */
+  }, [messages, messageBranches, currentRender])
 
   // Auto-switching is now handled by the useConversationBranches hook
 
@@ -384,8 +341,10 @@ export function ChatInterface() {
       const streamId = activeStreams.get(msg._id)
 
       // Find the original message ID for branch navigation
-      const originalMessageId = msg.branchFromMessageId || msg._id
-      const variantInfo = messageVariants.get(originalMessageId)
+      // For variants, we need to look up by the branchFromMessageId
+      // For originals, we look up by the message's own ID
+      const lookupKey = msg.branchFromMessageId || msg._id
+      const variantInfo = messageVariants.get(lookupKey)
 
       // Check if this message is part of conversation-level branching
       const conversationBranchId = (
@@ -395,7 +354,7 @@ export function ChatInterface() {
         msg.branchFromMessageId && conversationBranchId !== "main"
 
       console.log(
-        `📊 Message ${msg._id}: originalId=${originalMessageId}, variantInfo=`,
+        `📊 Message ${msg._id}: lookupKey=${lookupKey}, variantInfo=`,
         variantInfo,
         "isConversationBranch=",
         isConversationBranchMessage,
@@ -408,11 +367,10 @@ export function ChatInterface() {
       // For conversation branch messages, create conversation-level navigation
       let branchInfo = undefined
 
-      console.log(`[Branch Debug] Processing message ${originalMessageId}:`, {
+      console.log(`[Branch Debug] Processing message ${msg._id}:`, {
         isConversationBranchMessage,
         variantInfo,
-        hasNavigation:
-          !!branchNavigation.getBranchNavigation(originalMessageId),
+        hasNavigation: !!branchNavigation.getBranchNavigation(lookupKey),
         messageType: msg.messageType,
       })
 
@@ -421,13 +379,13 @@ export function ChatInterface() {
         // not the original message ID
         const branchPoint = (msg as Message & { branchPoint?: string })
           .branchPoint
-        const lookupId = branchPoint || originalMessageId
-        const navigation = branchNavigation.getBranchNavigation(lookupId)
+        const navLookupId = branchPoint || lookupKey
+        const navigation = branchNavigation.getBranchNavigation(navLookupId)
 
         console.log(
-          `[Branch Debug] Conversation branch navigation for ${originalMessageId}:`,
+          `[Branch Debug] Conversation branch navigation for ${msg._id}:`,
           {
-            lookupId,
+            navLookupId,
             branchPoint,
             navigation,
             exists: !!navigation,
@@ -448,7 +406,7 @@ export function ChatInterface() {
           )
         } else {
           console.log(
-            `[Branch Debug] No navigation found for conversation branch message ${originalMessageId}`,
+            `[Branch Debug] No navigation found for conversation branch message ${msg._id}`,
           )
         }
       } else if (variantInfo) {
@@ -457,7 +415,7 @@ export function ChatInterface() {
           currentBranch: variantInfo.selected,
           totalBranches: variantInfo.total,
           onNavigate: (branchIndex: number) =>
-            handleBranchNavigate(originalMessageId, branchIndex),
+            handleBranchNavigate(lookupKey, branchIndex),
         }
         console.log(
           "[Branch Debug] Created branchInfo for regular variant:",
@@ -465,26 +423,23 @@ export function ChatInterface() {
         )
       } else {
         console.log(
-          `[Branch Debug] No branch info created for message ${originalMessageId} - neither conversation branch nor variant`,
+          `[Branch Debug] No branch info created for message ${msg._id} - neither conversation branch nor variant`,
         )
       }
 
       // Final debug log for this message
-      console.log(
-        `[Branch Debug] Final state for message ${originalMessageId}:`,
-        {
-          hasBranchInfo: !!branchInfo,
-          branchInfo,
-          _branchInfo: branchInfo,
-          messageType: msg.messageType,
-          isConversationBranch: isConversationBranchMessage,
-        },
-      )
+      console.log(`[Branch Debug] Final state for message ${msg._id}:`, {
+        hasBranchInfo: !!branchInfo,
+        branchInfo,
+        _branchInfo: branchInfo,
+        messageType: msg.messageType,
+        isConversationBranch: isConversationBranchMessage,
+      })
 
       return {
         ...msg,
         _streamId: streamId || null,
-        _originalMessageId: originalMessageId,
+        _originalMessageId: lookupKey,
         _branchInfo: branchInfo,
       }
     })
