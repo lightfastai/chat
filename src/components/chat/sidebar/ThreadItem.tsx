@@ -55,9 +55,9 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
           isActive && "bg-accent font-medium"
         )}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
           <div className={cn(
-            "truncate max-w-[180px]", // Reduced to make room for pin
+            "truncate max-w-[180px]", // Back to explicit width
             thread.isTitleGenerating && "animate-pulse blur-[0.5px] opacity-70"
           )}>
             {thread.title}
@@ -66,7 +66,7 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
             variant="ghost"
             size="icon"
             className={cn(
-              "h-5 w-5 flex-shrink-0 transition-opacity",
+              "h-5 w-5 flex-shrink-0 transition-opacity ml-auto", // Added ml-auto
               thread.pinned
                 ? "opacity-100 text-primary"
                 : isHovered
