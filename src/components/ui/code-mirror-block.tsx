@@ -14,7 +14,7 @@ import { oneDark } from "@codemirror/theme-one-dark"
 import { EditorView } from "@codemirror/view"
 import { Check, Copy } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { basicSetup } from "@codemirror/basic-setup"
+import { basicSetup } from "codemirror"
 
 // Simplified for testing - will expand later
 
