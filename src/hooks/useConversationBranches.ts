@@ -230,7 +230,7 @@ export function useConversationBranches(
       console.log(
         `🌳 Branch ${branchId}: ${inheritedMessages.length} inherited + ${branch.messages.length} new = ${allMessages.length} total`,
       )
-      console.log(`🌳 Branch point details:`, {
+      console.log("🌳 Branch point details:", {
         branchPointId: branch.branchPoint.messageId,
         position: branch.branchPoint.position,
         inheritedMessageIds: inheritedMessages.map((m) => ({

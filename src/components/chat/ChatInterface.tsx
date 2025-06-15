@@ -16,7 +16,7 @@ type Message = Doc<"messages"> & {
 }
 
 export function ChatInterface() {
-  console.log(`🔥 ChatInterface render`)
+  console.log("🔥 ChatInterface render")
 
   // REMOVED: editingMessageId - not needed for conversation-level branching
 
@@ -51,7 +51,7 @@ export function ChatInterface() {
     [baseSendMessage, branchNavigation.currentBranch],
   )
 
-  console.log(`🔥 State:`, {
+  console.log("🔥 State:", {
     messagesCount: messages.length,
     currentBranch: branchNavigation.currentBranch,
     branchCount: branchNavigation.branches.length,
@@ -64,7 +64,7 @@ export function ChatInterface() {
 
   // Get messages for current branch using the clean hook
   const processedMessages = useMemo(() => {
-    console.log(`🔥 processedMessages useMemo starting`)
+    console.log("🔥 processedMessages useMemo starting")
     console.log("🎯 Raw messages from database:", messages.length)
 
     // Get messages for the current conversation branch
@@ -77,7 +77,7 @@ export function ChatInterface() {
     )
 
     if (!branchMessages.length) {
-      console.log(`🔥 processedMessages useMemo: no messages, returning empty`)
+      console.log("🔥 processedMessages useMemo: no messages, returning empty")
       return []
     }
 
