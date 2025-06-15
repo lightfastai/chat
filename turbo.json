@@ -1,0 +1,57 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "lint": {
+      "cache": false
+    },
+    "format": {
+      "cache": false
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "convex:dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "convex:deploy": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "env:sync": {
+      "cache": false
+    },
+    "env:check": {
+      "cache": false
+    }
+  },
+  "globalEnv": [
+    "PORT",
+    "CONVEX_DEPLOY_KEY",
+    "JWT_PRIVATE_KEY",
+    "JWKS",
+    "AUTH_GITHUB_SECRET",
+    "AUTH_GITHUB_ID",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "EXA_API_KEY",
+    "OPENROUTER_API_KEY",
+    "NEXT_PUBLIC_CONVEX_URL",
+    "NEXT_PUBLIC_VERCEL_ENV",
+    "SITE_URL"
+  ],
+  "globalPassThroughEnv": [
+    "NODE_ENV",
+    "CI",
+    "VERCEL",
+    "VERCEL_ENV",
+    "VERCEL_URL",
+    "npm_lifecycle_event",
+    "ENVIRONMENT",
+    "SKIP_ENV_VALIDATION"
+  ]
+}

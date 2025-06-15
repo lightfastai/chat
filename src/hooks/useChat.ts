@@ -117,6 +117,8 @@ export function useChat() {
     message: string,
     modelId: string,
     conversationBranchId?: string,
+    attachments?: Id<"files">[],
+    webSearchEnabled?: boolean,
   ) => {
     if (!message.trim()) return
 
@@ -137,6 +139,8 @@ export function useChat() {
           body: message,
           modelId: modelId as ModelId,
           conversationBranchId: conversationBranchId, // Pass conversation branch context
+          attachments,
+          webSearchEnabled,
         })
 
         return
@@ -150,6 +154,8 @@ export function useChat() {
           body: message,
           modelId: modelId as ModelId,
           conversationBranchId: conversationBranchId, // Pass conversation branch context
+          attachments,
+          webSearchEnabled,
         })
       } else if (currentThread) {
         // Normal message sending with Convex optimistic update
@@ -158,6 +164,8 @@ export function useChat() {
           body: message,
           modelId: modelId as ModelId,
           conversationBranchId: conversationBranchId, // Pass conversation branch context
+          attachments,
+          webSearchEnabled,
         })
       }
     } catch (error) {

@@ -30,7 +30,7 @@ export function UserDropdown({
   className,
   showEmail = true,
   showSettings = true,
-  settingsHref = "/settings/account",
+  settingsHref = "/chat/settings",
   onSignOut,
   redirectAfterSignOut = true,
 }: UserDropdownProps) {
@@ -92,7 +92,7 @@ export function UserDropdown({
             <DropdownMenuItem asChild>
               <a href={settingsHref} className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <span>Settings</span>
               </a>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

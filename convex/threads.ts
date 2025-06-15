@@ -53,6 +53,7 @@ export const list = query({
       lastMessageAt: v.number(),
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
+      pinned: v.optional(v.boolean()),
       // Thread-level usage tracking (denormalized for performance)
       usage: v.optional(
         v.object({
@@ -108,6 +109,7 @@ export const get = query({
       lastMessageAt: v.number(),
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
+      pinned: v.optional(v.boolean()),
       // Thread-level usage tracking (denormalized for performance)
       usage: v.optional(
         v.object({
@@ -167,6 +169,7 @@ export const getByClientId = query({
       lastMessageAt: v.number(),
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
+      pinned: v.optional(v.boolean()),
       // Thread-level usage tracking (denormalized for performance)
       usage: v.optional(
         v.object({
@@ -288,6 +291,30 @@ export const deleteThread = mutation({
 
     // Finally delete the thread
     await ctx.db.delete(args.threadId)
+    return null
+  },
+})
+
+// Toggle thread pinned state
+export const togglePinned = mutation({
+  args: {
+    threadId: v.id("threads"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new Error("User must be authenticated")
+    }
+
+    const thread = await ctx.db.get(args.threadId)
+    if (!thread || thread.userId !== userId) {
+      throw new Error("Thread not found or access denied")
+    }
+
+    await ctx.db.patch(args.threadId, {
+      pinned: !thread.pinned,
+    })
     return null
   },
 })

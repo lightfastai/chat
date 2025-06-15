@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai"
-import { generateText } from "ai"
+import { type CoreMessage, generateText } from "ai"
 import { v } from "convex/values"
 import { internal } from "./_generated/api.js"
 import { internalAction, internalMutation } from "./_generated/server.js"
@@ -25,24 +25,26 @@ export const generateTitle = internalAction({
       )
 
       // Use gpt-4o-mini for fast title generation with AI SDK v5
-      const { text } = await generateText({
-        model: openai("gpt-4o-mini"),
-        messages: [
-          {
-            role: "system",
-            content: `Generate a concise, descriptive title (3-6 words) for a chat conversation based on the user's first message. The title should capture the main topic or intent. Return only the title, no quotes or extra text.
+      const messages: CoreMessage[] = [
+        {
+          role: "system",
+          content: `Generate a concise, descriptive title (3-6 words) for a chat conversation based on the user's first message. The title should capture the main topic or intent. Return only the title, no quotes or extra text.
 
 Examples:
 - "How do I learn React?" → "Learning React Development"
 - "Write a poem about cats" → "Cat Poetry Request"
 - "Explain quantum physics" → "Quantum Physics Explanation"
 - "Help me plan a trip" → "Travel Planning Help"`,
-          },
-          {
-            role: "user",
-            content: args.userMessage,
-          },
-        ],
+        },
+        {
+          role: "user",
+          content: args.userMessage,
+        },
+      ]
+
+      const { text } = await generateText({
+        model: openai("gpt-4o-mini"),
+        messages,
         temperature: 0.3, // Lower temperature for more consistent titles
       })
 

@@ -139,3 +139,12 @@ dist
 .DS_Store
 .env*.local
 .vercel
+
+# Git worktrees
+worktrees/
+
+# Temporary repository clones for analysis
+tmp_repo/
+
+# Turborepo cache
+.turbo/

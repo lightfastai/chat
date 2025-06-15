@@ -1,0 +1,157 @@
+---
+title: Authentication
+description: Configure authentication providers for secure access to Lightfast Chat
+---
+
+# Authentication
+
+Lightfast Chat uses Convex Auth for secure, flexible authentication. This guide covers setting up various authentication providers.
+
+## Supported Providers
+
+- **GitHub OAuth** (recommended for developers)
+- **Google OAuth** 
+- **Email/Password** (coming soon)
+- **Magic Links** (coming soon)
+
+## GitHub OAuth Setup
+
+### 1. Create GitHub OAuth App
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Fill in the application details:
+   - **Application name**: Lightfast Chat (or your preferred name)
+   - **Homepage URL**: `http://localhost:3000` (for development)
+   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
+
+### 2. Configure Environment Variables
+
+Add your GitHub OAuth credentials to `.env.local`:
+
+```bash
+AUTH_GITHUB_ID=your_github_client_id
+AUTH_GITHUB_SECRET=your_github_client_secret
+```
+
+### 3. Update Convex Configuration
+
+Sync your environment variables to Convex:
+
+```bash
+pnpm env:sync
+```
+
+## Production Configuration
+
+### Update OAuth App Settings
+
+For production deployment, update your GitHub OAuth app:
+
+- **Homepage URL**: `https://your-domain.com`
+- **Authorization callback URL**: `https://your-domain.com/api/auth/callback/github`
+
+### Environment Variables
+
+Set the production environment variables in your deployment platform:
+
+```bash
+AUTH_GITHUB_ID=your_production_github_id
+AUTH_GITHUB_SECRET=your_production_github_secret
+SITE_URL=https://your-domain.com
+```
+
+## Google OAuth Setup (Optional)
+
+### 1. Create Google OAuth Credentials
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth client ID"
+5. Configure OAuth consent screen
+6. Add authorized redirect URIs:
+   - Development: `http://localhost:3000/api/auth/callback/google`
+   - Production: `https://your-domain.com/api/auth/callback/google`
+
+### 2. Configure Environment Variables
+
+```bash
+AUTH_GOOGLE_ID=your_google_client_id
+AUTH_GOOGLE_SECRET=your_google_client_secret
+```
+
+## Authentication Flow
+
+### Sign In Process
+
+1. User clicks "Sign In" on the application
+2. Redirected to OAuth provider (GitHub/Google)
+3. User authorizes the application
+4. Provider redirects back with authorization code
+5. Convex Auth exchanges code for access token
+6. User session is created and stored
+
+### Session Management
+
+- Sessions are managed by Convex Auth
+- Tokens are automatically refreshed
+- Users remain signed in across browser sessions
+- Secure logout functionality available
+
+## Customization
+
+### Custom Sign-In Page
+
+The sign-in page is located at `src/app/signin/page.tsx`. You can customize:
+
+- Branding and styling
+- Available authentication providers
+- Sign-in flow messaging
+
+### User Profile Management
+
+User profiles are automatically created on first sign-in with:
+
+- Name from OAuth provider
+- Email address
+- Profile picture
+- Provider-specific user ID
+
+## Security Considerations
+
+### Production Security
+
+- Always use HTTPS in production
+- Set secure OAuth callback URLs
+- Rotate OAuth secrets regularly
+- Monitor authentication logs
+
+### Environment Security
+
+- Never commit `.env.local` to version control
+- Use secure secret management in production
+- Limit OAuth app permissions to minimum required
+- Regularly audit user access
+
+## Troubleshooting
+
+### Common Issues
+
+**OAuth redirect mismatch**: Ensure callback URLs match exactly in OAuth app settings.
+
+**Environment variable errors**: Run `pnpm env:sync` after updating auth variables.
+
+**Session persistence issues**: Clear browser cookies and restart development server.
+
+### Debug Mode
+
+Enable auth debugging by adding to `.env.local`:
+
+```bash
+CONVEX_AUTH_DEBUG=true
+```
+
+This will log detailed authentication flow information to the console.
+
+Next: [Start Chatting](/docs/chat)

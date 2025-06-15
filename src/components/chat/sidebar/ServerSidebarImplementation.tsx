@@ -51,7 +51,7 @@ export function ServerSidebarImplementation({
   preloadedThreads,
 }: ServerSidebarImplementationProps) {
   return (
-    <Sidebar variant="inset" className="w-64">
+    <Sidebar variant="inset" className="w-64 max-w-64">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3">
@@ -65,12 +65,7 @@ export function ServerSidebarImplementation({
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <ActiveMenuItem
-                  threadId="new"
-                  href="/chat"
-                  className="h-10 w-full"
-                  size="default"
-                >
+                <ActiveMenuItem threadId="new" href="/chat" size="default">
                   <Plus className="w-4 h-4" />
                   <span>New Chat</span>
                 </ActiveMenuItem>
@@ -80,15 +75,17 @@ export function ServerSidebarImplementation({
         </SidebarGroup>
 
         {/* Only the threads list is a client component - everything else stays server-rendered */}
-        <Suspense
-          fallback={
-            <div className="px-3 py-8 text-center text-muted-foreground">
-              <p className="text-sm">Loading conversations...</p>
-            </div>
-          }
-        >
-          <PreloadedThreadsList preloadedThreads={preloadedThreads} />
-        </Suspense>
+        <div className="w-full min-w-0">
+          <Suspense
+            fallback={
+              <div className="px-3 py-8 text-center text-muted-foreground">
+                <p className="text-sm">Loading conversations...</p>
+              </div>
+            }
+          >
+            <PreloadedThreadsList preloadedThreads={preloadedThreads} />
+          </Suspense>
+        </div>
       </SidebarContent>
 
       <SidebarFooter>

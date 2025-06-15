@@ -118,10 +118,6 @@
   "git.enableSmartCommit": true,
   "git.untrackedChanges": "separate",
 
-  // Terminal settings
-  "terminal.integrated.defaultProfile.osx": "bash",
-  "terminal.integrated.fontSize": 14,
-
   // Explorer settings
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
@@ -136,9 +132,6 @@
     ".env": ".env.*",
     "README.*": "CHANGELOG.*, CONTRIBUTING.*, LICENSE*, SECURITY.*"
   },
-
-  // Convex specific settings
-  "convex.deploymentUrl": "",
 
   // Auto-save settings
   "files.autoSave": "onFocusChange",

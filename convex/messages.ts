@@ -1,11 +1,19 @@
-import { anthropic } from "@ai-sdk/anthropic"
-import { openai } from "@ai-sdk/openai"
+import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
+import { createOpenAI, openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
-import { streamText } from "ai"
+import { type CoreMessage, streamText, tool } from "ai"
 import { v } from "convex/values"
+import Exa, {
+  type RegularSearchOptions,
+  type ContentsOptions,
+  type SearchResult,
+} from "exa-js"
+import { z } from "zod"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
 import {
+  type ActionCtx,
+  type MutationCtx,
   internalAction,
   internalMutation,
   internalQuery,
@@ -13,6 +21,7 @@ import {
   query,
 } from "./_generated/server.js"
 
+import { getModelById } from "../src/lib/ai/models.js"
 // Import shared types and utilities
 import {
   ALL_MODEL_IDS,
@@ -22,11 +31,82 @@ import {
   isThinkingMode,
 } from "../src/lib/ai/types.js"
 
+// Create web search tool using proper AI SDK v5 pattern
+function createWebSearchTool() {
+  return tool({
+    description:
+      "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
+    parameters: z.object({
+      query: z
+        .string()
+        .describe("The search query to find relevant web results"),
+    }),
+    execute: async ({ query }) => {
+      console.log(`Executing web search for: "${query}"`)
+
+      const exaApiKey = process.env.EXA_API_KEY
+      if (!exaApiKey) {
+        throw new Error("EXA_API_KEY not configured")
+      }
+
+      try {
+        const exa = new Exa(exaApiKey)
+        const numResults = 5
+        const searchOptions: RegularSearchOptions & ContentsOptions = {
+          numResults,
+          text: {
+            maxCharacters: 1000,
+            includeHtmlTags: false,
+          },
+          highlights: {
+            numSentences: 3,
+            highlightsPerUrl: 2,
+          },
+        }
+
+        const response = await exa.search(query, searchOptions)
+
+        const results = response.results.map((result) => ({
+          id: result.id,
+          url: result.url,
+          title: result.title || "",
+          text: result.text,
+          highlights: (
+            result as SearchResult<ContentsOptions> & { highlights?: string[] }
+          ).highlights,
+          publishedDate: result.publishedDate,
+          author: result.author,
+          score: result.score,
+        }))
+
+        console.log(`Web search found ${results.length} results`)
+
+        return {
+          success: true,
+          query,
+          results: results.slice(0, 3), // Return top 3 results
+          totalResults: results.length,
+        }
+      } catch (error) {
+        console.error("Web search error:", error)
+        return {
+          success: false,
+          query,
+          error: error instanceof Error ? error.message : "Unknown error",
+          results: [],
+          totalResults: 0,
+        }
+      }
+    },
+  })
+}
+
 // Create validators from the shared types
 const modelIdValidator = v.union(...ALL_MODEL_IDS.map((id) => v.literal(id)))
 const modelProviderValidator = v.union(
   v.literal("openai"),
   v.literal("anthropic"),
+  v.literal("openrouter"),
 )
 
 export const list = query({
@@ -56,9 +136,11 @@ export const list = query({
       isComplete: v.optional(v.boolean()),
       thinkingStartedAt: v.optional(v.number()),
       thinkingCompletedAt: v.optional(v.number()),
+      attachments: v.optional(v.array(v.id("files"))),
       thinkingContent: v.optional(v.string()),
       isThinking: v.optional(v.boolean()),
       hasThinkingContent: v.optional(v.boolean()),
+      usedUserApiKey: v.optional(v.boolean()),
       usage: v.optional(
         v.object({
           inputTokens: v.optional(v.number()),
@@ -121,6 +203,8 @@ export const send = mutation({
     threadId: v.id("threads"),
     body: v.string(),
     modelId: v.optional(modelIdValidator), // Use the validated modelId
+    attachments: v.optional(v.array(v.id("files"))), // Add attachments support
+    webSearchEnabled: v.optional(v.boolean()),
     branchId: v.optional(v.string()), // Default to "main"
     parentMessageId: v.optional(v.id("messages")), // For chaining messages
     conversationBranchId: v.optional(v.string()), // For conversation-level branching
@@ -172,6 +256,7 @@ export const send = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
+      attachments: args.attachments,
       // Branch fields - provide defaults for optional fields
       branchId: branchId,
       branchSequence: 0, // Always 0 for main branch messages
@@ -185,6 +270,8 @@ export const send = mutation({
       threadId: args.threadId,
       userMessage: args.body,
       modelId: modelId,
+      attachments: args.attachments,
+      webSearchEnabled: args.webSearchEnabled,
       branchId: branchId,
       conversationBranchId: conversationBranchId, // Pass conversation branch context to AI response
     })
@@ -215,6 +302,8 @@ export const createThreadAndSend = mutation({
     clientId: v.string(),
     body: v.string(),
     modelId: v.optional(modelIdValidator),
+    attachments: v.optional(v.array(v.id("files"))), // Add attachments support
+    webSearchEnabled: v.optional(v.boolean()),
     conversationBranchId: v.optional(v.string()), // For conversation-level branching
   },
   returns: v.id("threads"),
@@ -264,6 +353,7 @@ export const createThreadAndSend = mutation({
       messageType: "user",
       model: provider,
       modelId: modelId,
+      attachments: args.attachments,
       // Branch fields - always start with main branch
       branchId: "main",
       branchSequence: 0,
@@ -276,6 +366,8 @@ export const createThreadAndSend = mutation({
       threadId,
       userMessage: args.body,
       modelId: modelId,
+      attachments: args.attachments,
+      webSearchEnabled: args.webSearchEnabled,
       branchId: "main",
       conversationBranchId: conversationBranchId, // Pass conversation branch context to AI response
     })
@@ -290,12 +382,106 @@ export const createThreadAndSend = mutation({
   },
 })
 
+// Helper to get file URLs in an internal context
+async function getFileWithUrl(ctx: ActionCtx, fileId: Id<"files">) {
+  // Use internal query to get file with URL
+  const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId })
+  return file
+}
+
+// Type for multimodal content parts based on AI SDK v5
+type TextPart = { type: "text"; text: string }
+type ImagePart = { type: "image"; image: string | URL }
+type FilePart = {
+  type: "file"
+  data: string | URL
+  mediaType: string
+}
+
+type MultimodalContent = string | Array<TextPart | ImagePart | FilePart>
+
+// Helper function to build message content with attachments
+async function buildMessageContent(
+  ctx: ActionCtx,
+  text: string,
+  attachmentIds?: Id<"files">[],
+  provider?: "openai" | "anthropic" | "openrouter",
+  modelId?: string,
+): Promise<MultimodalContent> {
+  // If no attachments, return simple text content
+  if (!attachmentIds || attachmentIds.length === 0) {
+    return text
+  }
+
+  // Get model configuration to check capabilities
+  const modelConfig = modelId ? getModelById(modelId) : null
+  const hasVisionSupport = modelConfig?.features.vision ?? false
+  const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
+
+  // Build content array with text and files
+  const content = [{ type: "text" as const, text }] as Array<
+    TextPart | ImagePart | FilePart
+  >
+
+  // Fetch each file with its URL
+  for (const fileId of attachmentIds) {
+    const file = await getFileWithUrl(ctx, fileId)
+    if (!file || !file.url) continue
+
+    // Handle images
+    if (file.fileType.startsWith("image/")) {
+      if (!hasVisionSupport) {
+        // Model doesn't support vision
+        if (content[0] && "text" in content[0]) {
+          content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || "This model"} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
+        }
+      } else {
+        // Model supports vision - all models use URLs (no base64 needed)
+        content.push({
+          type: "image" as const,
+          image: file.url,
+        })
+      }
+    }
+    // Handle PDFs
+    else if (file.fileType === "application/pdf") {
+      if (hasPdfSupport && provider === "anthropic") {
+        // Claude supports PDFs as file type
+        content.push({
+          type: "file" as const,
+          data: file.url,
+          mediaType: "application/pdf",
+        })
+      } else {
+        // PDF not supported - add as text description
+        const description = `\n[Attached PDF: ${file.fileName} (${(file.fileSize / 1024).toFixed(1)}KB)] - Note: PDF content analysis requires Claude models.`
+        content.push({
+          type: "text" as const,
+          text: description,
+        })
+      }
+    }
+    // For other file types, add as text description
+    else {
+      const description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`
+
+      if (content[0] && "text" in content[0]) {
+        content[0].text += description
+      }
+    }
+  }
+
+  return content
+}
+
 // Internal action to generate AI response using AI SDK v5
 export const generateAIResponse = internalAction({
   args: {
     threadId: v.id("threads"),
     userMessage: v.string(),
     modelId: modelIdValidator, // Use validated modelId
+    attachments: v.optional(v.array(v.id("files"))),
+    webSearchEnabled: v.optional(v.boolean()),
     branchId: v.optional(v.string()), // Default to "main"
     branchFromMessageId: v.optional(v.id("messages")), // For branch messages
     branchSequence: v.optional(v.number()), // For branch messages
@@ -306,13 +492,33 @@ export const generateAIResponse = internalAction({
   handler: async (ctx, args) => {
     let messageId: Id<"messages"> | null = null
     try {
+      // Get thread and user information
+      const thread = await ctx.runQuery(internal.messages.getThreadById, {
+        threadId: args.threadId,
+      })
+      if (!thread) {
+        throw new Error("Thread not found")
+      }
+
       // Derive provider and other settings from modelId
       const provider = getProviderFromModelId(args.modelId as ModelId)
       const actualModelName = getActualModelName(args.modelId as ModelId)
       const isThinking = isThinkingMode(args.modelId as ModelId)
 
+      // Get user's API keys if available
+      const userApiKeys = await ctx.runMutation(
+        internal.userSettings.getDecryptedApiKeys,
+        { userId: thread.userId },
+      )
+
       // Generate unique stream ID
       const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+      // Determine if user's API key will be used
+      const willUseUserApiKey =
+        (provider === "anthropic" && userApiKeys && userApiKeys.anthropic) ||
+        (provider === "openai" && userApiKeys && userApiKeys.openai) ||
+        (provider === "openrouter" && userApiKeys && userApiKeys.openrouter)
 
       // Create initial AI message placeholder
       const branchId = args.branchId || "main"
@@ -330,6 +536,7 @@ export const generateAIResponse = internalAction({
           streamId,
           provider,
           modelId: args.modelId,
+          usedUserApiKey: !!willUseUserApiKey,
           branchId: branchId,
           branchFromMessageId: args.branchFromMessageId,
           branchSequence: branchSequence,
@@ -347,37 +554,129 @@ export const generateAIResponse = internalAction({
         },
       )
 
-      // Prepare messages for AI SDK v5 - using standard format
-      const messages = [
+      // Prepare system prompt based on model capabilities
+      let systemPrompt =
+        "You are a helpful AI assistant in a chat conversation. Be concise and friendly."
+
+      // Check model capabilities
+      const modelConfig = getModelById(args.modelId)
+      const hasVisionSupport = modelConfig?.features.vision ?? false
+      const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
+
+      if (hasVisionSupport) {
+        if (hasPdfSupport) {
+          // Claude models with both vision and PDF support
+          systemPrompt +=
+            " You can view and analyze images (JPEG, PNG, GIF, WebP) and PDF documents directly. For other file types, you'll receive a text description. When users ask about an attached file, provide detailed analysis of what you can see."
+        } else {
+          // GPT-4 models with vision but no PDF support
+          systemPrompt +=
+            " You can view and analyze images (JPEG, PNG, GIF, WebP) directly. For PDFs and other file types, you'll receive a text description. When asked about a PDF, politely explain that you can see it's attached but cannot analyze its contents - suggest using Claude models for PDF analysis. For images, provide detailed analysis of what you can see."
+        }
+      } else {
+        // Models without vision support (e.g., GPT-3.5 Turbo)
+        systemPrompt += ` IMPORTANT: You cannot view images or files directly with ${modelConfig?.displayName || "this model"}. When users share files and ask about them, you must clearly state: 'I can see you've uploaded [filename], but I'm unable to view or analyze images with ${modelConfig?.displayName || "this model"}. To analyze images or documents, please switch to GPT-4o, GPT-4o Mini, or any Claude model using the model selector below the input box.' Be helpful by acknowledging what files they've shared based on the descriptions you receive.`
+      }
+
+      // Prepare messages for AI SDK v5 with multimodal support
+      const messages: CoreMessage[] = [
         {
-          role: "system" as const,
-          content:
-            "You are a helpful AI assistant in a chat conversation. Be concise and friendly.",
+          role: "system",
+          content: systemPrompt,
         },
-        ...recentMessages.map((msg) => ({
-          role:
-            msg.messageType === "user"
-              ? ("user" as const)
-              : ("assistant" as const),
-          content: msg.body,
-        })),
       ]
+
+      // Build conversation history with attachments
+      for (let i = 0; i < recentMessages.length; i++) {
+        const msg = recentMessages[i]
+        const isLastUserMessage =
+          i === recentMessages.length - 1 && msg.messageType === "user"
+
+        // For the last user message, include the current attachments
+        const attachmentsToUse =
+          isLastUserMessage && args.attachments
+            ? args.attachments
+            : msg.attachments
+
+        // Build message content with attachments
+        const content = await buildMessageContent(
+          ctx,
+          msg.body,
+          attachmentsToUse,
+          provider,
+          args.modelId,
+        )
+
+        messages.push({
+          role: msg.messageType === "user" ? "user" : "assistant",
+          content,
+        } as CoreMessage)
+      }
 
       console.log(
         `Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
       )
+      console.log(`Schema fix timestamp: ${Date.now()}`)
+      console.log(`Web search enabled: ${args.webSearchEnabled}`)
 
-      // Choose the appropriate model using the actual model name
+      // Choose the appropriate model using user's API key if available, otherwise fall back to global
       const selectedModel =
         provider === "anthropic"
-          ? anthropic(actualModelName)
-          : openai(actualModelName)
+          ? userApiKeys?.anthropic
+            ? createAnthropic({ apiKey: userApiKeys.anthropic })(
+                actualModelName,
+              )
+            : anthropic(actualModelName)
+          : provider === "openai"
+            ? userApiKeys?.openai
+              ? createOpenAI({ apiKey: userApiKeys.openai })(actualModelName)
+              : openai(actualModelName)
+            : provider === "openrouter"
+              ? userApiKeys?.openrouter
+                ? createOpenAI({
+                    apiKey: userApiKeys.openrouter,
+                    baseURL: "https://openrouter.ai/api/v1",
+                    headers: {
+                      "HTTP-Referer":
+                        process.env.SITE_URL || "http://localhost:3000",
+                      "X-Title": "Lightfast Chat",
+                    },
+                  })(actualModelName)
+                : createOpenAI({
+                    apiKey: process.env.OPENROUTER_API_KEY!,
+                    baseURL: "https://openrouter.ai/api/v1",
+                    headers: {
+                      "HTTP-Referer":
+                        process.env.SITE_URL || "http://localhost:3000",
+                      "X-Title": "Lightfast Chat",
+                    },
+                  })(actualModelName)
+              : (() => {
+                  throw new Error(`Unsupported provider: ${provider}`)
+                })()
 
       // Stream response using AI SDK v5 with full stream for reasoning support
       const streamOptions: Parameters<typeof streamText>[0] = {
         model: selectedModel,
         messages: messages,
         temperature: 0.7,
+      }
+
+      // Only enable web search tools if explicitly requested
+      if (args.webSearchEnabled) {
+        console.log(`Enabling web search tools for ${provider}`)
+
+        // Check if EXA_API_KEY is available
+        const exaApiKey = process.env.EXA_API_KEY
+        if (!exaApiKey) {
+          console.error("EXA_API_KEY not found - web search will fail")
+        }
+
+        console.log("Creating web_search tool...")
+        streamOptions.tools = {
+          web_search: createWebSearchTool(),
+        }
+        console.log("Web search tool created successfully")
       }
 
       // For Claude 4.0 thinking mode, enable thinking/reasoning
@@ -395,6 +694,20 @@ export const generateAIResponse = internalAction({
         }
       }
 
+      console.log(
+        `Final streamOptions for ${provider}:`,
+        JSON.stringify({
+          model: actualModelName,
+          temperature: streamOptions.temperature,
+          hasTools: !!streamOptions.tools,
+          toolNames: streamOptions.tools
+            ? Object.keys(streamOptions.tools)
+            : [],
+          hasSystem: !!streamOptions.system,
+          hasProviderOptions: !!streamOptions.providerOptions,
+        }),
+      )
+
       const { fullStream, usage } = await streamText(streamOptions)
 
       let fullContent = ""
@@ -404,9 +717,18 @@ export const generateAIResponse = internalAction({
 
       console.log("Starting to process v5 stream chunks...")
 
+      let hasReceivedAnyChunks = false
+      let toolCallsProcessed = 0
+
       // Process each chunk as it arrives from the stream
       for await (const chunk of fullStream) {
-        console.log("Received v5 chunk type:", chunk.type)
+        hasReceivedAnyChunks = true
+        console.log(
+          "Received v5 chunk type:",
+          chunk.type,
+          "hasText:",
+          !!(chunk.type === "text" && "text" in chunk && chunk.text),
+        )
 
         // Handle different types of chunks
         if (chunk.type === "text" && chunk.text) {
@@ -422,6 +744,109 @@ export const generateAIResponse = internalAction({
             chunk: chunk.text,
             chunkId,
           })
+        } else if (
+          chunk.type === "tool-call" &&
+          chunk.toolName === "web_search"
+        ) {
+          // Handle web search tool calls
+          toolCallsProcessed++
+          console.log(
+            `Processing tool call #${toolCallsProcessed} - web search with args:`,
+            chunk.args,
+          )
+
+          try {
+            // Perform web search directly using Exa
+            const exaApiKey = process.env.EXA_API_KEY
+            if (!exaApiKey) {
+              throw new Error("EXA_API_KEY not configured")
+            }
+
+            const exa = new Exa(exaApiKey)
+            const query = chunk.args.query as string
+            const numResults = 5 // Fixed to 5 results for simplicity
+            const includeText = true // Always include text for better results
+
+            const searchOptions: RegularSearchOptions & ContentsOptions = {
+              numResults,
+            }
+
+            if (includeText) {
+              searchOptions.text = {
+                maxCharacters: 1000,
+                includeHtmlTags: false,
+              }
+              searchOptions.highlights = {
+                numSentences: 3,
+                highlightsPerUrl: 2,
+              }
+            }
+
+            const response = await exa.search(query, searchOptions)
+
+            const searchResults = {
+              success: true,
+              results: response.results.map((result) => ({
+                id: result.id,
+                url: result.url,
+                title: result.title || "",
+                text: result.text,
+                highlights: (
+                  result as SearchResult<ContentsOptions> & {
+                    highlights?: string[]
+                  }
+                ).highlights,
+                publishedDate: result.publishedDate,
+                author: result.author,
+                score: result.score,
+              })),
+              autopromptString: response.autopromptString,
+            }
+
+            if (searchResults.success && searchResults.results) {
+              const searchSummary = `\n\n**🔍 Web Search Results for "${chunk.args.query}"**\n\n${searchResults.results
+                .slice(0, 3)
+                .map(
+                  (result, i) =>
+                    `**${i + 1}. ${result.title}**\n${result.url}\n${result.text ? `${result.text.slice(0, 250)}...` : "No preview available"}\n`,
+                )
+                .join("\n")}`
+
+              fullContent += searchSummary
+
+              // Generate unique chunk ID for the search results
+              const chunkId = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+              // Append search results as a chunk
+              await ctx.runMutation(internal.messages.appendStreamChunk, {
+                messageId,
+                chunk: searchSummary,
+                chunkId,
+              })
+            } else {
+              const errorMessage =
+                "\n\n*❌ Web search failed: No results found*\n\n"
+              fullContent += errorMessage
+
+              const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+              await ctx.runMutation(internal.messages.appendStreamChunk, {
+                messageId,
+                chunk: errorMessage,
+                chunkId,
+              })
+            }
+          } catch (error) {
+            console.error("Error executing web search:", error)
+            const errorMessage = `\n\n*❌ Web search error: ${error instanceof Error ? error.message : "Unknown error"}*\n\n`
+            fullContent += errorMessage
+
+            const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            await ctx.runMutation(internal.messages.appendStreamChunk, {
+              messageId,
+              chunk: errorMessage,
+              chunkId,
+            })
+          }
         } else if (chunk.type === "reasoning" && chunk.text) {
           // Claude 4.0 native reasoning tokens
           if (!hasThinking) {
@@ -458,18 +883,41 @@ export const generateAIResponse = internalAction({
       }
 
       console.log(
-        `V5 stream complete. Full content length: ${fullContent.length}`,
+        `V5 stream complete. Full content length: ${fullContent.length}, chunks received: ${hasReceivedAnyChunks}, tool calls: ${toolCallsProcessed}`,
       )
 
-      if (fullContent.trim() === "") {
+      // Don't throw error for empty content when tools are enabled (known AI SDK issue #1831)
+      // OpenAI returns empty content blocks when tools are invoked, which is expected behavior
+      if (fullContent.trim() === "" && !args.webSearchEnabled) {
         throw new Error(
           `${provider} returned empty response - check API key and quota`,
         )
       }
 
+      // Log if we have empty content with tools enabled (expected behavior)
+      if (fullContent.trim() === "" && args.webSearchEnabled) {
+        console.log(
+          `${provider} returned empty content with tools enabled - this is expected behavior`,
+        )
+
+        // If we have no content but processed tool calls, ensure we have some content to display
+        if (toolCallsProcessed > 0 && fullContent.trim() === "") {
+          fullContent = `Processed ${toolCallsProcessed} web search${toolCallsProcessed > 1 ? "es" : ""}.`
+          console.log(
+            "Added fallback content for empty response with tool calls",
+          )
+        }
+      }
+
       // Get final usage data
       const finalUsage = await usage
       console.log("Final usage data:", finalUsage)
+
+      // Ensure we always have some content to complete with, even if just tool results
+      if (fullContent.trim() === "" && toolCallsProcessed === 0) {
+        fullContent =
+          "I apologize, but I wasn't able to generate a response. Please try again."
+      }
 
       // Mark message as complete with usage data
       await ctx.runMutation(internal.messages.completeStreamingMessage, {
@@ -477,12 +925,48 @@ export const generateAIResponse = internalAction({
         usage: finalUsage,
       })
 
+      console.log(
+        `Message ${messageId} marked as complete with ${fullContent.length} characters`,
+      )
+
       // Clear generation flag on success
       await ctx.runMutation(internal.messages.clearGenerationFlag, {
         threadId: args.threadId,
       })
+
+      console.log(`Generation flag cleared for thread ${args.threadId}`)
     } catch (error) {
-      console.error("Error generating response:", error)
+      const provider = getProviderFromModelId(args.modelId as ModelId)
+      console.error(
+        `Error generating ${provider} response with model ${args.modelId}:`,
+        error,
+      )
+
+      // Add specific error details for debugging
+      if (error instanceof Error) {
+        console.error(`Error name: ${error.name}`)
+        console.error(`Error message: ${error.message}`)
+        if (error.stack) {
+          console.error(`Error stack: ${error.stack.substring(0, 500)}...`)
+        }
+      }
+
+      // Check for common API key issues
+      if (provider === "openai") {
+        const openaiKey = process.env.OPENAI_API_KEY
+        console.log(`OpenAI API key present: ${!!openaiKey}`)
+        console.log(
+          `OpenAI API key format valid: ${openaiKey?.startsWith("sk-") || false}`,
+        )
+      }
+
+      if (provider === "anthropic") {
+        const anthropicKey = process.env.ANTHROPIC_API_KEY
+        console.log(`Anthropic API key present: ${!!anthropicKey}`)
+        console.log(
+          `Anthropic API key format valid: ${anthropicKey?.startsWith("sk-ant-") || false}`,
+        )
+      }
 
       try {
         // If we have a messageId, update it with error, otherwise create new error message
@@ -537,6 +1021,7 @@ export const getRecentContext = internalQuery({
     v.object({
       body: v.string(),
       messageType: v.union(v.literal("user"), v.literal("assistant")),
+      attachments: v.optional(v.array(v.id("files"))),
     }),
   ),
   handler: async (ctx, args) => {
@@ -559,6 +1044,7 @@ export const getRecentContext = internalQuery({
       .map((msg: Doc<"messages">) => ({
         body: msg.body,
         messageType: msg.messageType,
+        attachments: msg.attachments,
       }))
   },
 })
@@ -570,6 +1056,7 @@ export const createStreamingMessage = internalMutation({
     streamId: v.string(),
     provider: modelProviderValidator,
     modelId: modelIdValidator,
+    usedUserApiKey: v.optional(v.boolean()),
     branchId: v.optional(v.string()),
     branchFromMessageId: v.optional(v.id("messages")),
     branchSequence: v.optional(v.number()),
@@ -601,6 +1088,7 @@ export const createStreamingMessage = internalMutation({
       streamVersion: 0, // Initialize version counter
       lastChunkId: undefined, // Initialize last chunk ID
       modelId: args.modelId,
+      usedUserApiKey: args.usedUserApiKey,
       // Branch fields
       branchId: branchId,
       branchSequence: branchSequence,
@@ -721,15 +1209,7 @@ export const completeStreamingMessage = internalMutation({
 
 // Helper function to update thread usage totals
 async function updateThreadUsage(
-  ctx: {
-    db: {
-      get: (id: Id<"threads">) => Promise<Doc<"threads"> | null>
-      patch: (
-        id: Id<"threads">,
-        fields: Partial<Doc<"threads">>,
-      ) => Promise<void>
-    }
-  },
+  ctx: MutationCtx,
   threadId: Id<"threads">,
   model: string,
   messageUsage: {
@@ -1088,5 +1568,51 @@ export const clearGenerationFlag = internalMutation({
     await ctx.db.patch(args.threadId, {
       isGenerating: false,
     })
+  },
+})
+
+// Internal query to get thread by ID
+export const getThreadById = internalQuery({
+  args: {
+    threadId: v.id("threads"),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("threads"),
+      _creationTime: v.number(),
+      userId: v.id("users"),
+      clientId: v.optional(v.string()),
+      title: v.string(),
+      createdAt: v.number(),
+      lastMessageAt: v.number(),
+      isGenerating: v.optional(v.boolean()),
+      isTitleGenerating: v.optional(v.boolean()),
+      pinned: v.optional(v.boolean()),
+      usage: v.optional(
+        v.object({
+          totalInputTokens: v.number(),
+          totalOutputTokens: v.number(),
+          totalTokens: v.number(),
+          totalReasoningTokens: v.number(),
+          totalCachedInputTokens: v.number(),
+          messageCount: v.number(),
+          modelStats: v.record(
+            v.string(),
+            v.object({
+              messageCount: v.number(),
+              inputTokens: v.number(),
+              outputTokens: v.number(),
+              totalTokens: v.number(),
+              reasoningTokens: v.number(),
+              cachedInputTokens: v.number(),
+            }),
+          ),
+        }),
+      ),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.threadId)
   },
 })

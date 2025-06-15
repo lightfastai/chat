@@ -1,0 +1,235 @@
+---
+title: API Overview
+description: Technical overview of Lightfast Chat's API architecture
+---
+
+# API Overview
+
+Lightfast Chat is built on a modern, real-time API architecture using Convex as the backend platform.
+
+## Architecture
+
+### Backend: Convex
+
+Lightfast Chat uses [Convex](https://convex.dev) for its backend infrastructure:
+
+- **Real-time database**: Automatic synchronization across clients
+- **Server functions**: Type-safe API endpoints
+- **Authentication**: Built-in auth with multiple providers
+- **File storage**: Secure file uploads and management
+
+### Frontend: Next.js
+
+The frontend is built with Next.js 15:
+
+- **App Router**: Modern routing with layouts
+- **Server Components**: Optimal performance and SEO
+- **API Routes**: Custom endpoints for integrations
+- **Streaming**: Real-time AI response streaming
+
+## Core Entities
+
+### Threads
+
+Conversation threads are the primary entity:
+
+```typescript
+interface Thread {
+  _id: string;
+  title: string;
+  userId: string;
+  createdAt: number;
+  updatedAt: number;
+  lastMessageAt?: number;
+}
+```
+
+### Messages
+
+Messages within threads:
+
+```typescript
+interface Message {
+  _id: string;
+  threadId: string;
+  content: string;
+  role: "user" | "assistant";
+  model?: string;
+  createdAt: number;
+  feedback?: {
+    rating: "up" | "down";
+    comment?: string;
+  };
+}
+```
+
+### Users
+
+User profiles and preferences:
+
+```typescript
+interface User {
+  _id: string;
+  email: string;
+  name?: string;
+  image?: string;
+  preferences: {
+    defaultModel?: string;
+    theme?: "light" | "dark";
+  };
+}
+```
+
+## API Endpoints
+
+### Convex Functions
+
+#### Queries (Read Operations)
+
+- `getThreads()`: List user's conversation threads
+- `getThread(threadId)`: Get specific thread details
+- `getMessages(threadId)`: Get messages for a thread
+- `getUserProfile()`: Get current user information
+
+#### Mutations (Write Operations)
+
+- `createThread(title)`: Create new conversation thread
+- `updateThread(threadId, updates)`: Update thread details
+- `deleteThread(threadId)`: Delete a conversation thread
+- `sendMessage(threadId, content, model)`: Send new message
+- `updateMessageFeedback(messageId, feedback)`: Rate a message
+
+#### Actions (External Integrations)
+
+- `streamChatCompletion(threadId, message, model)`: Stream AI response
+- `generateThreadTitle(threadId)`: Auto-generate thread title
+
+### Next.js API Routes
+
+#### Authentication
+
+- `GET /api/auth/session`: Get current session
+- `POST /api/auth/signin`: Sign in user
+- `POST /api/auth/signout`: Sign out user
+
+#### AI Integration
+
+- `POST /api/chat/stream`: Stream AI responses
+- `POST /api/chat/models`: List available models
+- `GET /api/chat/usage`: Get usage statistics
+
+## Real-time Features
+
+### Subscriptions
+
+Convex provides automatic real-time subscriptions:
+
+```typescript
+// Subscribe to thread updates
+const threads = useQuery(api.threads.getThreads);
+
+// Subscribe to messages in a thread
+const messages = useQuery(api.messages.getMessages, { threadId });
+```
+
+### Optimistic Updates
+
+The UI optimistically updates before server confirmation:
+
+- Message sending appears instant
+- Automatic rollback on errors
+- Seamless user experience
+
+## Authentication
+
+### Session Management
+
+- JWT-based sessions
+- Automatic token refresh
+- Secure cookie storage
+- Cross-device synchronization
+
+### Authorization
+
+- User-scoped data access
+- Role-based permissions (future)
+- API key management
+- Rate limiting per user
+
+## Error Handling
+
+### Error Types
+
+```typescript
+interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+}
+```
+
+Common error codes:
+- `UNAUTHORIZED`: Authentication required
+- `FORBIDDEN`: Insufficient permissions
+- `NOT_FOUND`: Resource doesn't exist
+- `RATE_LIMITED`: Too many requests
+- `VALIDATION_ERROR`: Invalid input data
+
+### Error Response Format
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid thread ID format",
+    "details": {
+      "field": "threadId",
+      "expected": "string"
+    }
+  }
+}
+```
+
+## Rate Limiting
+
+### Limits by Endpoint Type
+
+- **Queries**: 1000 requests/minute
+- **Mutations**: 100 requests/minute  
+- **AI Actions**: 10 requests/minute
+- **File uploads**: 5 uploads/minute
+
+### Headers
+
+Rate limit information in response headers:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1640995200
+```
+
+## Pagination
+
+### Query Pagination
+
+```typescript
+// Get paginated threads
+const { results, hasMore, loadMore } = usePaginatedQuery(
+  api.threads.getThreads,
+  {},
+  { initialNumItems: 20 }
+);
+```
+
+### Response Format
+
+```json
+{
+  "results": [...],
+  "hasMore": true,
+  "cursor": "eyJpZCI6IjEyMyJ9"
+}
+```
+
+Next: [Chat API](/docs/api/chat)

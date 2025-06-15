@@ -1,9 +1,10 @@
 "use client"
 
+import { Badge } from "@/components/ui/badge"
 import { Markdown } from "@/components/ui/markdown"
 import { useResumableStream } from "@/hooks/useResumableStream"
 import { cn } from "@/lib/utils"
-import { Brain, ChevronDown, ChevronRight } from "lucide-react"
+import { Brain, ChevronDown, ChevronRight, Key } from "lucide-react"
 import { useState } from "react"
 import type { Doc } from "../../../convex/_generated/dataModel"
 
@@ -57,6 +58,12 @@ export function StreamingMessage({
       {/* Model name and thinking duration at the top, like non-streaming UI */}
       <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
         {modelName && <span>{modelName}</span>}
+        {message.usedUserApiKey && (
+          <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+            <Key className="w-3 h-3 mr-1" />
+            Your API Key
+          </Badge>
+        )}
         {thinkingDuration && (
           <>
             <span>•</span>

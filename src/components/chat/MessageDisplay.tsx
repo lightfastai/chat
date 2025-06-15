@@ -7,6 +7,7 @@ import { User } from "lucide-react"
 import React from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Doc } from "../../../convex/_generated/dataModel"
+import { AttachmentPreview } from "./AttachmentPreview"
 import { BranchNavigation } from "./BranchNavigation"
 import { MessageActions } from "./MessageActions"
 import { MessageEdit } from "./MessageEdit"
@@ -135,20 +136,27 @@ export function MessageDisplay({
             onCancel={() => onCancelEdit?.()}
           />
         ) : (
-          <StreamingMessage
-            message={message}
-            className="text-sm leading-relaxed"
-            modelName={
-              isAI
-                ? message.modelId
-                  ? getModelDisplayName(message.modelId)
-                  : message.model
-                    ? getModelDisplayName(message.model)
-                    : "AI Assistant"
-                : undefined
-            }
-            thinkingDuration={thinkingDuration}
-          />
+          <>
+            <StreamingMessage
+              message={message}
+              className="text-sm leading-relaxed"
+              modelName={
+                isAI
+                  ? message.modelId
+                    ? getModelDisplayName(message.modelId)
+                    : message.model
+                      ? getModelDisplayName(message.model)
+                      : "AI Assistant"
+                  : undefined
+              }
+              thinkingDuration={thinkingDuration}
+            />
+
+            {/* Show attachments if present */}
+            {message.attachments && message.attachments.length > 0 && (
+              <AttachmentPreview attachmentIds={message.attachments} />
+            )}
+          </>
         )}
 
         {/* Show actions for messages when not editing */}

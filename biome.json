@@ -43,7 +43,8 @@
       "convex/_generated/**",
       "dist/**",
       "build/**",
-      ".env*"
+      ".env*",
+      "worktrees/**"
     ]
   }
 }

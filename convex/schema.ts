@@ -13,15 +13,62 @@ const modelIdValidator = v.union(
   v.literal("claude-sonnet-4-20250514-thinking"),
   v.literal("claude-3-5-sonnet-20241022"),
   v.literal("claude-3-haiku-20240307"),
+  // OpenRouter models
+  v.literal("meta-llama/llama-3.3-70b-instruct"),
+  v.literal("anthropic/claude-3.5-sonnet"),
+  v.literal("openai/gpt-4o"),
+  v.literal("google/gemini-pro-1.5"),
+  v.literal("mistralai/mistral-large"),
 )
 
 const modelProviderValidator = v.union(
   v.literal("openai"),
   v.literal("anthropic"),
+  v.literal("openrouter"),
 )
 
 export default defineSchema({
   ...authTables,
+
+  // File storage for attachments
+  files: defineTable({
+    storageId: v.string(), // Convex storage ID
+    fileName: v.string(),
+    fileType: v.string(), // MIME type
+    fileSize: v.number(), // Size in bytes
+    uploadedBy: v.id("users"),
+    uploadedAt: v.number(),
+    // Optional metadata
+    metadata: v.optional(
+      v.object({
+        width: v.optional(v.number()), // For images
+        height: v.optional(v.number()), // For images
+        pages: v.optional(v.number()), // For PDFs
+        extractedText: v.optional(v.string()), // For searchable content
+      }),
+    ),
+  })
+    .index("by_user", ["uploadedBy"])
+    .index("by_storage_id", ["storageId"]),
+
+  userSettings: defineTable({
+    userId: v.id("users"),
+    apiKeys: v.optional(
+      v.object({
+        openai: v.optional(v.string()), // Encrypted API key
+        anthropic: v.optional(v.string()), // Encrypted API key
+        openrouter: v.optional(v.string()), // Encrypted API key
+      }),
+    ),
+    preferences: v.optional(
+      v.object({
+        defaultModel: v.optional(modelIdValidator),
+        preferredProvider: v.optional(modelProviderValidator),
+      }),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 
   threads: defineTable({
     clientId: v.optional(v.string()), // Client-generated ID for instant navigation
@@ -31,6 +78,7 @@ export default defineSchema({
     lastMessageAt: v.number(),
     isTitleGenerating: v.optional(v.boolean()),
     isGenerating: v.optional(v.boolean()),
+    pinned: v.optional(v.boolean()),
     // Thread-level usage tracking (denormalized for performance)
     usage: v.optional(
       v.object({
@@ -67,6 +115,9 @@ export default defineSchema({
     model: v.optional(modelProviderValidator),
     modelId: v.optional(modelIdValidator),
 
+    // Attachments - array of file IDs
+    attachments: v.optional(v.array(v.id("files"))),
+
     // v0.dev-style branching system
     branchId: v.optional(v.string()), // "main", "b1", "b2", etc. - optional for migration
     parentMessageId: v.optional(v.id("messages")), // Previous message in conversation
@@ -83,6 +134,7 @@ export default defineSchema({
     isComplete: v.optional(v.boolean()),
     thinkingStartedAt: v.optional(v.number()),
     thinkingCompletedAt: v.optional(v.number()),
+    usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
     streamChunks: v.optional(
       v.array(
         v.object({
