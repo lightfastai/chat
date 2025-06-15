@@ -1,12 +1,10 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { api } from "@/convex/_generated/api"
 import { getModelDisplayName } from "@/lib/ai"
 import { useMutation, useQuery } from "convex/react"
-import { format } from "date-fns"
-import { AlertCircle, Loader2, Share2 } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { MessageItem } from "./shared"
 
@@ -90,25 +88,23 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b">
-        <div className="flex items-center gap-3">
-          <Share2 className="h-5 w-5 text-muted-foreground" />
-          <div>
-            <h1 className="text-lg font-semibold">{thread.title}</h1>
-            <p className="text-sm text-muted-foreground">
-              Shared by {owner?.name || "Anonymous"} on{" "}
-              {format(new Date(thread.createdAt), "MMM d, yyyy")}
-            </p>
-          </div>
-        </div>
-        <Badge variant="secondary">View Only</Badge>
+      {/* Simplified Header */}
+      <header className="px-4 py-2">
+        <h1 className="text-xs text-muted-foreground">{thread.title}</h1>
       </header>
 
       {/* Messages */}
       <ScrollArea className="flex-1">
         <div className="p-4 pb-16">
           <div className="space-y-6 max-w-3xl mx-auto">
+            {/* Disclaimer */}
+            <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-6">
+              This is a copy of a chat between Lightfast and{" "}
+              {owner?.name || "a user"}. Content may include unverified or
+              unsafe content that do not represent the views of Lightfast.
+              Shared snapshot may contain attachments and data not displayed
+              here.
+            </div>
             {messages.map((message) => {
               const isAI = message.messageType === "assistant"
               const modelName = isAI
