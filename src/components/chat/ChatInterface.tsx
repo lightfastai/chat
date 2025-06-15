@@ -260,6 +260,12 @@ export function ChatInterface() {
         return
       }
 
+      // Edge case protection: Don't retry if thread is already generating
+      if (currentThread?.isGenerating) {
+        console.log("⚠️ Thread is already generating, cannot retry now")
+        return
+      }
+
       // CRITICAL FIX: Always find the root original message
       // This handles "retry of retry" correctly
       const rootOriginalId = findRootOriginal(messageId)

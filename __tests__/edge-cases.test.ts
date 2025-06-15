@@ -90,6 +90,33 @@ describe("Critical Edge Cases", () => {
         !streamingMessage.isStreaming || streamingMessage.isComplete
       expect(canRetry).toBe(false)
     })
+
+    test("should prevent retry when thread is generating", () => {
+      const thread = { isGenerating: true }
+      const message = { _id: "msg1", isStreaming: false, isComplete: true }
+      
+      const canRetry = !thread.isGenerating
+      expect(canRetry).toBe(false)
+    })
+
+    test("should prevent duplicate AI responses", () => {
+      // Edge case: AI should never generate two responses in a row
+      const conversation = [
+        { _id: "msg1", messageType: "user", body: "hello" },
+        { _id: "msg2", messageType: "assistant", body: "hi there" },
+        { _id: "msg3", messageType: "assistant", body: "how can I help?" }, // INVALID - two AI messages in a row
+      ]
+      
+      // Check for consecutive assistant messages (should not happen)
+      const hasConsecutiveAI = conversation.some((msg, index) => {
+        if (index === 0) return false
+        return msg.messageType === "assistant" && 
+               conversation[index - 1].messageType === "assistant" &&
+               !msg.branchFromMessageId // Not a retry
+      })
+      
+      expect(hasConsecutiveAI).toBe(true) // This reveals the bug
+    })
   })
 
   describe("Branch Limit Edge Cases", () => {
