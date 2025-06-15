@@ -20,7 +20,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 interface ShareDialogProps {
-  threadId: string
+  threadId: Id<"threads">
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -37,7 +37,7 @@ export function ShareDialog({
   })
 
   const shareInfo = useQuery(api.share.getThreadShareInfo, {
-    threadId: threadId as Id<"threads">,
+    threadId,
   })
 
   const shareThread = useMutation(api.share.shareThread)
@@ -62,7 +62,7 @@ export function ShareDialog({
     try {
       setIsLoading(true)
       await shareThread({
-        threadId: threadId as Id<"threads">,
+        threadId,
         settings,
       })
 
@@ -84,7 +84,7 @@ export function ShareDialog({
     try {
       setIsLoading(true)
       await unshareThread({
-        threadId: threadId as Id<"threads">,
+        threadId,
       })
 
       toast.success("Chat unshared", {
@@ -126,7 +126,7 @@ export function ShareDialog({
     if (shareInfo?.isPublic) {
       try {
         await updateShareSettings({
-          threadId: threadId as Id<"threads">,
+          threadId,
           settings: newSettings,
         })
       } catch (error) {

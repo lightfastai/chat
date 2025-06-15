@@ -1,6 +1,7 @@
 "use client"
 
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { isClientId } from "@/lib/nanoid"
 import { useQuery } from "convex/react"
 import { useParams } from "next/navigation"
@@ -20,11 +21,11 @@ export function ShareButtonWrapper() {
   )
 
   // Determine the actual Convex thread ID
-  let threadId: string | undefined
+  let threadId: Id<"threads"> | undefined
   if (isClient && threadByClientId) {
     threadId = threadByClientId._id
   } else if (urlThreadId && !isClient) {
-    threadId = urlThreadId
+    threadId = urlThreadId as Id<"threads">
   }
 
   return <ShareButton threadId={threadId} />

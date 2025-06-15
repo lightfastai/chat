@@ -1,12 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import type { Id } from "@/convex/_generated/dataModel"
 import { Share2 } from "lucide-react"
 import { useState } from "react"
 import { ShareDialog } from "./ShareDialog"
 
 interface ShareButtonProps {
-  threadId?: string
+  threadId?: Id<"threads">
 }
 
 export function ShareButton({ threadId }: ShareButtonProps) {
