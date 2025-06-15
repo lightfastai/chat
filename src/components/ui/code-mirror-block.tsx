@@ -14,31 +14,9 @@ import { oneDark } from "@codemirror/theme-one-dark"
 import { EditorView } from "@codemirror/view"
 import { Check, Copy } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { basicSetup } from "codemirror"
+import { basicSetup } from "@codemirror/basic-setup"
 
-// Language map for detecting the appropriate language extension
-const languageMap = {
-  javascript: javascript,
-  js: javascript,
-  jsx: javascript,
-  typescript: javascript,
-  ts: javascript,
-  tsx: javascript,
-  python: python,
-  py: python,
-  html: html,
-  css: css,
-  json: json,
-  markdown: markdown,
-  md: markdown,
-  text: () => [],
-  txt: () => [],
-  bash: () => [],
-  shell: () => [],
-  sh: () => [],
-}
-
-type Language = keyof typeof languageMap
+// Simplified for testing - will expand later
 
 interface CodeMirrorBlockProps {
   code: string
@@ -64,13 +42,6 @@ export function CodeMirrorBlock({
     codePreview: code.substring(0, 50) + (code.length > 50 ? "..." : "")
   })
 
-  // Get the language extension (simplified approach like Vercel)
-  const getLanguageExtension = (lang: string) => {
-    const normalizedLang = lang.toLowerCase() as Language
-    const langExtension = languageMap[normalizedLang]
-    return langExtension ? langExtension() : null
-  }
-
   // Copy to clipboard functionality
   const copyToClipboard = async () => {
     try {
@@ -90,46 +61,35 @@ export function CodeMirrorBlock({
       viewRef.current.destroy()
     }
 
-    // Create extensions array (following Vercel's fixed oneDark approach)
-    const langExtension = getLanguageExtension(language)
-    console.log(`CodeMirror: Loading language "${language}", extension:`, langExtension)
+    // Test with exact Vercel pattern - hardcode javascript for now
+    let extensions
     
-    // Build extensions in the exact order Vercel uses: basicSetup, language, theme
-    const extensions = [
-      basicSetup,
-    ]
-
-    // Add language extension first (before theme)
-    if (langExtension) {
-      extensions.push(langExtension)
-      console.log(`CodeMirror: Added language extension for "${language}"`)
+    if (language === "javascript" || language === "js") {
+      extensions = [basicSetup, javascript(), oneDark]
+      console.log("Using JavaScript highlighting")
+    } else if (language === "python" || language === "py") {
+      extensions = [basicSetup, python(), oneDark]
+      console.log("Using Python highlighting")
     } else {
-      console.log(`CodeMirror: No language extension found for "${language}", using plain text`)
+      extensions = [basicSetup, oneDark]
+      console.log("Using plain text (no language extension)")
     }
-
-    // Add theme after language extension
-    extensions.push(oneDark)
-
-    // Add custom theme and settings last
+    
+    // Add our custom settings
     extensions.push(
       EditorView.theme({
         "&": {
           fontSize: "0.875rem",
-          fontFamily:
-            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-        },
-        ".cm-editor": {
-          borderRadius: "0.375rem",
-        },
-        ".cm-scroller": {
-          fontFamily: "inherit",
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
         },
         ".cm-focused": {
           outline: "none",
         },
       }),
-      EditorView.editable.of(false), // Make read-only
+      EditorView.editable.of(false)
     )
+    
+    console.log("Final extensions:", extensions)
 
     // Create editor state
     const state = EditorState.create({
