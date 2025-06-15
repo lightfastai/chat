@@ -66,7 +66,17 @@ export function CodeMirrorBlock({
   const getLanguageExtension = (lang: string) => {
     const normalizedLang = lang.toLowerCase() as Language
     const langExtension = languageMap[normalizedLang]
-    return langExtension ? langExtension() : []
+    if (langExtension) {
+      try {
+        const extension = langExtension()
+        // Ensure we return an array of extensions
+        return Array.isArray(extension) ? extension : [extension]
+      } catch (error) {
+        console.warn(`Failed to load language extension for ${lang}:`, error)
+        return []
+      }
+    }
+    return []
   }
 
   // Copy to clipboard functionality
@@ -88,10 +98,10 @@ export function CodeMirrorBlock({
       viewRef.current.destroy()
     }
 
-    // Create extensions array
+    // Create extensions array and flatten to avoid nested arrays
     const extensions = [
       basicSetup,
-      getLanguageExtension(language),
+      ...getLanguageExtension(language), // Spread to flatten array
       EditorView.theme({
         "&": {
           fontSize: "0.875rem",
