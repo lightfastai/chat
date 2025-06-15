@@ -213,7 +213,7 @@ export function useConversationBranches(
         // Main branch: return only main messages
         return branch.messages
       }
-      
+
       // For conversation branches: return inherited messages + branch messages
       const mainBranch = conversationTree.branches.find((b) => b.id === "main")
       if (!mainBranch || !branch.branchPoint) return branch.messages
@@ -233,8 +233,16 @@ export function useConversationBranches(
       console.log(`🌳 Branch point details:`, {
         branchPointId: branch.branchPoint.messageId,
         position: branch.branchPoint.position,
-        inheritedMessageIds: inheritedMessages.map(m => ({ id: m._id, type: m.messageType, body: m.body.substring(0, 20) })),
-        branchMessageIds: branch.messages.map(m => ({ id: m._id, type: m.messageType, body: m.body.substring(0, 20) })),
+        inheritedMessageIds: inheritedMessages.map((m) => ({
+          id: m._id,
+          type: m.messageType,
+          body: m.body.substring(0, 20),
+        })),
+        branchMessageIds: branch.messages.map((m) => ({
+          id: m._id,
+          type: m.messageType,
+          body: m.body.substring(0, 20),
+        })),
       })
 
       return allMessages.sort((a, b) => a.timestamp - b.timestamp)
@@ -248,22 +256,19 @@ export function useConversationBranches(
     setCurrentBranch(branchId)
   }, [])
 
-  // Check if we're currently viewing a branched conversation
-  const isInBranchedConversation = useCallback(() => {
-    return currentBranch !== "main" || conversationTree.branches.length > 1
-  }, [currentBranch, conversationTree.branches])
-
   // Get branch navigation for a specific message
   const getBranchNavigation = useCallback(
     (messageId: string) => {
       // For conversation-level branching, only show navigation on messages that are branch points
       // (messages that have been retried and have multiple conversation branches)
-      
+
       // Check if this specific message is a branch point where conversations diverged
       const branchIds = conversationTree.branchPoints.get(messageId)
-      
+
       if (!branchIds || branchIds.length === 0) {
-        console.log(`🌳 No branch navigation for ${messageId} - not a branch point`)
+        console.log(
+          `🌳 No branch navigation for ${messageId} - not a branch point`,
+        )
         return null
       }
 
@@ -286,7 +291,9 @@ export function useConversationBranches(
           totalBranches: allBranches.length,
           onNavigate: (index: number) => {
             const targetBranch = allBranches[index]
-            console.log(`🌳 Navigating to conversation branch ${index}: ${targetBranch}`)
+            console.log(
+              `🌳 Navigating to conversation branch ${index}: ${targetBranch}`,
+            )
             if (targetBranch) {
               switchToBranch(targetBranch)
             }

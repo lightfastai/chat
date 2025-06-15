@@ -20,9 +20,11 @@ export function ChatInterface() {
 
   // State for editing messages
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
-  
+
   // State for retry operations to prevent rapid clicking
-  const [retryingMessageIds, setRetryingMessageIds] = useState<Set<string>>(new Set())
+  const [retryingMessageIds, setRetryingMessageIds] = useState<Set<string>>(
+    new Set(),
+  )
 
   // Use custom chat hook with optimistic updates
   const {
@@ -49,11 +51,6 @@ export function ChatInterface() {
     },
     [baseSendMessage, branchNavigation.currentBranch],
   )
-
-  // State to track message variants for branch navigation
-  const [messageVariants, setMessageVariants] = useState<
-    Map<string, { variants: Message[]; selected: number; total: number }>
-  >(new Map())
 
   console.log(`🔥 State:`, {
     messagesCount: messages.length,
@@ -98,10 +95,11 @@ export function ChatInterface() {
     )
 
     return result
-  }, [messages, branchNavigation.currentBranch, branchNavigation.getMessagesForBranch])
-
-  // Track previous branch to detect changes
-  const prevBranchRef = useRef(branchNavigation.currentBranch)
+  }, [
+    messages,
+    branchNavigation.currentBranch,
+    branchNavigation.getMessagesForBranch,
+  ])
 
   // Reset when conversation branch changes
   useEffect(() => {
@@ -112,7 +110,6 @@ export function ChatInterface() {
       prevBranchRef.current = branchNavigation.currentBranch
     }
   }, [branchNavigation.currentBranch])
-
 
   // Handle editing user messages
   const handleStartEdit = useCallback((messageId: string) => {
@@ -189,7 +186,7 @@ export function ChatInterface() {
 
       // Check if this message should show branch navigation
       let branchInfo = undefined
-      
+
       const navigation = branchNavigation.getBranchNavigation(msg._id)
       if (navigation) {
         branchInfo = {
@@ -242,20 +239,22 @@ export function ChatInterface() {
   const handleRetry = useCallback(
     async (messageId: string) => {
       console.log("🔄 Retry button clicked for message:", messageId)
-      
+
       // Edge case protection: Check if already retrying this message
       if (retryingMessageIds.has(messageId)) {
-        console.log("⚠️ Already retrying this message, ignoring duplicate request")
+        console.log(
+          "⚠️ Already retrying this message, ignoring duplicate request",
+        )
         return
       }
-      
+
       if (!currentThread) {
         console.log("❌ No current thread available")
         return
       }
 
       // Edge case protection: Don't retry streaming messages
-      const message = messages.find(m => m._id === messageId)
+      const message = messages.find((m) => m._id === messageId)
       if (message?.isStreaming && !message?.isComplete) {
         console.log("⚠️ Cannot retry streaming message")
         return
@@ -272,7 +271,7 @@ export function ChatInterface() {
       })
 
       // Mark message as being retried
-      setRetryingMessageIds(prev => new Set([...prev, messageId]))
+      setRetryingMessageIds((prev) => new Set([...prev, messageId]))
 
       try {
         console.log(
@@ -290,14 +289,20 @@ export function ChatInterface() {
         // Could show user-friendly error message here
       } finally {
         // Always remove from retrying set
-        setRetryingMessageIds(prev => {
+        setRetryingMessageIds((prev) => {
           const newSet = new Set(prev)
           newSet.delete(messageId)
           return newSet
         })
       }
     },
-    [currentThread, createAssistantMessageBranch, findRootOriginal, retryingMessageIds, messages],
+    [
+      currentThread,
+      createAssistantMessageBranch,
+      findRootOriginal,
+      retryingMessageIds,
+      messages,
+    ],
   )
 
   console.log(

@@ -305,21 +305,26 @@ export const createAssistantMessageBranch = mutation({
     // Find the actual branch point (the user message that prompted the assistant response)
     // In conversation-level branching, we branch from the user message, not the assistant message
     let actualBranchPoint: Id<"messages">
-    
+
     // If this is the first retry (original message is in main branch)
-    if (!originalMessage.conversationBranchId || originalMessage.conversationBranchId === "main") {
+    if (
+      !originalMessage.conversationBranchId ||
+      originalMessage.conversationBranchId === "main"
+    ) {
       // The branch point is the user message that this assistant message was responding to
       actualBranchPoint = userMessage._id
     } else {
       // For subsequent retries, trace back to find the original branch point
       let currentMessage = originalMessage
       actualBranchPoint = userMessage._id // Default to current user message
-      
+
       while (
         currentMessage.branchFromMessageId &&
         currentMessage.conversationBranchId !== "main"
       ) {
-        const parentMessage = await ctx.db.get(currentMessage.branchFromMessageId)
+        const parentMessage = await ctx.db.get(
+          currentMessage.branchFromMessageId,
+        )
         if (!parentMessage) break
 
         // If the parent is in the main branch, we found the original branch point
@@ -329,7 +334,9 @@ export const createAssistantMessageBranch = mutation({
         ) {
           // Get the user message that prompted this branch
           if (parentMessage.parentMessageId) {
-            const parentUserMessage = await ctx.db.get(parentMessage.parentMessageId)
+            const parentUserMessage = await ctx.db.get(
+              parentMessage.parentMessageId,
+            )
             if (parentUserMessage && parentUserMessage.messageType === "user") {
               actualBranchPoint = parentUserMessage._id
             }
