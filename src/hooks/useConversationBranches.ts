@@ -71,8 +71,7 @@ export function useConversationBranches(
 
     // Initialize main branch
     const mainMessages = sortedMessages.filter(
-      (msg) =>
-        !msg.conversationBranchId || msg.conversationBranchId === "main",
+      (msg) => !msg.conversationBranchId || msg.conversationBranchId === "main",
     )
     branches.set("main", {
       id: "main",
@@ -83,29 +82,34 @@ export function useConversationBranches(
 
     // Step 3: First pass - identify all conversation branches and their branch points
     // This ensures we track ALL branches before processing messages
-    const branchInfoMap = new Map<string, { branchPoint: string | null, conversationBranchId: string }>()
-    
+    const branchInfoMap = new Map<
+      string,
+      { branchPoint: string | null; conversationBranchId: string }
+    >()
+
     for (const message of sortedMessages) {
       const conversationBranchId = message.conversationBranchId
 
       if (conversationBranchId && conversationBranchId !== "main") {
         // Use the branchPoint field if available, otherwise use branchFromMessageId
         const branchPointId = message.branchPoint || message.branchFromMessageId
-        
+
         if (branchPointId && !branchInfoMap.has(conversationBranchId)) {
           branchInfoMap.set(conversationBranchId, {
             branchPoint: branchPointId,
-            conversationBranchId: conversationBranchId
+            conversationBranchId: conversationBranchId,
           })
-          
+
           // Track this branch at its branch point
           if (!branchPoints.has(branchPointId)) {
             branchPoints.set(branchPointId, [])
           }
-          if (!branchPoints.get(branchPointId)!.includes(conversationBranchId)) {
+          if (
+            !branchPoints.get(branchPointId)!.includes(conversationBranchId)
+          ) {
             branchPoints.get(branchPointId)!.push(conversationBranchId)
           }
-          
+
           console.log(
             `🌳 Pre-tracking branch point: messageId=${branchPointId}, conversationBranchId=${conversationBranchId}`,
           )
@@ -122,10 +126,10 @@ export function useConversationBranches(
           // Get branch info from our pre-processed map
           const branchInfo = branchInfoMap.get(conversationBranchId)
           let branchPoint = undefined
-          
-          if (branchInfo && branchInfo.branchPoint) {
+
+          if (branchInfo?.branchPoint) {
             const branchPointId = branchInfo.branchPoint
-            
+
             // Find position in main messages
             const originalPosition = mainMessages.findIndex(
               (m) => m._id === branchPointId,

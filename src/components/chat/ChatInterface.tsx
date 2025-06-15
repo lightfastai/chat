@@ -10,7 +10,10 @@ import type { Doc, Id } from "../../../convex/_generated/dataModel"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
 
-type Message = Doc<"messages">
+type Message = Doc<"messages"> & {
+  conversationBranchId?: string
+  branchPoint?: string
+}
 
 let renderCount = 0
 
@@ -409,13 +412,18 @@ export function ChatInterface() {
       })
 
       if (isConversationBranchMessage) {
-        // Use the hook's branch navigation for this message
-        const navigation =
-          branchNavigation.getBranchNavigation(originalMessageId)
+        // For conversation branch messages, we need to look up navigation by the branch point
+        // not the original message ID
+        const branchPoint = (msg as Message & { branchPoint?: string })
+          .branchPoint
+        const lookupId = branchPoint || originalMessageId
+        const navigation = branchNavigation.getBranchNavigation(lookupId)
 
         console.log(
           `[Branch Debug] Conversation branch navigation for ${originalMessageId}:`,
           {
+            lookupId,
+            branchPoint,
             navigation,
             exists: !!navigation,
             currentIndex: navigation?.currentIndex,
