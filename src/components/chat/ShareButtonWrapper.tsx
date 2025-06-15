@@ -1,7 +1,6 @@
 "use client"
 
 import { api } from "@/convex/_generated/api"
-import type { Id } from "@/convex/_generated/dataModel"
 import { isClientId } from "@/lib/nanoid"
 import { useQuery } from "convex/react"
 import { useParams } from "next/navigation"
