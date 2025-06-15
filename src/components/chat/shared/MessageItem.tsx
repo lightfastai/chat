@@ -141,12 +141,12 @@ export function MessageItem({
     </div>
   )
 
-  // Timestamp
-  const timestamp = (
+  // Timestamp (only show in non-readonly mode)
+  const timestamp = !isReadOnly ? (
     <span className="text-xs text-muted-foreground">
       {format(new Date(message.timestamp), "h:mm a")}
     </span>
-  )
+  ) : undefined
 
   // Actions (only for assistant messages in interactive mode)
   const messageActions =
@@ -165,7 +165,7 @@ export function MessageItem({
       timestamp={timestamp}
       actions={messageActions}
       messageType={message.messageType}
-      className={isReadOnly && isAssistant ? "flex-row-reverse" : undefined}
+      className={undefined}
     />
   )
 }
