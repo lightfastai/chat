@@ -46,9 +46,8 @@ export const setupInitialData = mutation({
       timestamp: now,
       messageType: "assistant",
       isComplete: true,
-      // Branch fields
-      branchId: "main",
-      branchSequence: 0,
+      // Conversation branch fields only
+      conversationBranchId: "main",
     })
 
     // Add a few sample messages to demonstrate the chat
@@ -59,8 +58,7 @@ export const setupInitialData = mutation({
         timestamp: now + 1000,
         messageType: "user" as const,
         isComplete: true,
-        branchId: "main",
-        branchSequence: 0,
+        conversationBranchId: "main",
       },
       {
         threadId: threadId,
@@ -68,8 +66,7 @@ export const setupInitialData = mutation({
         timestamp: now + 2000,
         messageType: "user" as const,
         isComplete: true,
-        branchId: "main",
-        branchSequence: 0,
+        conversationBranchId: "main",
       },
       {
         threadId: threadId,
@@ -77,8 +74,7 @@ export const setupInitialData = mutation({
         timestamp: now + 3000,
         messageType: "assistant" as const,
         isComplete: true,
-        branchId: "main",
-        branchSequence: 0,
+        conversationBranchId: "main",
       },
       {
         threadId: threadId,
@@ -86,8 +82,7 @@ export const setupInitialData = mutation({
         timestamp: now + 4000,
         messageType: "assistant" as const,
         isComplete: true,
-        branchId: "main",
-        branchSequence: 0,
+        conversationBranchId: "main",
       },
     ]
 

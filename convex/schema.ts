@@ -118,11 +118,8 @@ export default defineSchema({
     // Attachments - array of file IDs
     attachments: v.optional(v.array(v.id("files"))),
 
-    // v0.dev-style branching system
-    branchId: v.optional(v.string()), // "main", "b1", "b2", etc. - optional for migration
+    // REMOVED: Message-level branching - using conversation-level only
     parentMessageId: v.optional(v.id("messages")), // Previous message in conversation
-    branchFromMessageId: v.optional(v.id("messages")), // Original message this branched from
-    branchSequence: v.optional(v.number()), // 0 for main, 1-9 for branches (max 10 total)
 
     // Conversation-level branching (v0.dev style)
     conversationBranchId: v.optional(v.string()), // "main", "branch_1", "branch_2", etc.
@@ -163,12 +160,10 @@ export default defineSchema({
     ),
   })
     .index("by_thread", ["threadId"])
-    .index("by_thread_branch", ["threadId", "branchId"])
     .index("by_thread_conversation_branch", [
       "threadId",
       "conversationBranchId",
     ])
-    .index("by_branch_from", ["branchFromMessageId"])
     .index("by_branch_point", ["branchPoint"])
     .index("by_stream_id", ["streamId"]),
 

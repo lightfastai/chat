@@ -18,8 +18,7 @@ type Message = Doc<"messages"> & {
 export function ChatInterface() {
   console.log(`🔥 ChatInterface render`)
 
-  // State for editing messages
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  // REMOVED: editingMessageId - not needed for conversation-level branching
 
   // State for retry operations to prevent rapid clicking
   const [retryingMessageIds, setRetryingMessageIds] = useState<Set<string>>(
@@ -56,15 +55,11 @@ export function ChatInterface() {
     messagesCount: messages.length,
     currentBranch: branchNavigation.currentBranch,
     branchCount: branchNavigation.branches.length,
-    editingMessageId,
   })
 
-  // Branch mutations
-  const createUserMessageBranch = useMutation(
-    api.branches.createUserMessageBranch,
-  )
-  const createAssistantMessageBranch = useMutation(
-    api.branches.createAssistantMessageBranch,
+  // Conversation branch mutation
+  const createConversationBranch = useMutation(
+    api.conversationBranches.createConversationBranch,
   )
 
   // Get messages for current branch using the clean hook
@@ -111,38 +106,8 @@ export function ChatInterface() {
     }
   }, [branchNavigation.currentBranch])
 
-  // Handle editing user messages
-  const handleStartEdit = useCallback((messageId: string) => {
-    setEditingMessageId(messageId)
-  }, [])
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingMessageId(null)
-  }, [])
-
-  const handleEdit = useCallback(
-    async (messageId: string, newContent: string) => {
-      if (!currentThread) return
-
-      try {
-        // Create a new branch with the edited content
-        await createUserMessageBranch({
-          threadId: currentThread._id,
-          originalMessageId: messageId as Id<"messages">, // Type cast for Convex ID
-          newContent,
-        })
-        setEditingMessageId(null)
-      } catch (error) {
-        console.error("Error creating user message branch:", error)
-      }
-    },
-    [currentThread, createUserMessageBranch],
-  )
-
-  // Legacy branch handler (to be removed)
-  const handleBranch = useCallback(async (messageId: string) => {
-    console.log("Legacy branch functionality", messageId)
-  }, [])
+  // REMOVED: User message editing - not part of conversation-level branching
+  // REMOVED: Legacy branch handler - not needed for conversation-level branching
 
   // Manage resumable streams
   const { activeStreams, startStream, endStream } = useResumableChat()
@@ -215,7 +180,6 @@ export function ChatInterface() {
     retryingMessageIds,
   ])
 
-
   // Handle retrying assistant messages - defined after enhancedMessages
   const handleRetry = useCallback(
     async (messageId: string) => {
@@ -249,7 +213,7 @@ export function ChatInterface() {
 
       // CONVERSATION-LEVEL BRANCHING: Simply retry this specific message
       // No need to trace back to root - each retry creates a new conversation branch
-      
+
       console.log("🔍 Conversation-level retry:", {
         messageId: messageId,
         currentBranch: branchNavigation.currentBranch,
@@ -261,9 +225,9 @@ export function ChatInterface() {
       try {
         console.log("🚀 Creating conversation branch for message:", messageId)
         // Create a new conversation branch by retrying this message
-        const result = await createAssistantMessageBranch({
+        const result = await createConversationBranch({
           threadId: currentThread._id,
-          originalMessageId: messageId as Id<"messages">,
+          assistantMessageId: messageId as Id<"messages">,
         })
         console.log("✅ Branch creation successful:", result)
       } catch (error) {
@@ -280,7 +244,7 @@ export function ChatInterface() {
     },
     [
       currentThread,
-      createAssistantMessageBranch,
+      createConversationBranch,
       branchNavigation.currentBranch,
       retryingMessageIds,
       messages,
@@ -296,17 +260,12 @@ export function ChatInterface() {
       <ChatMessages
         messages={enhancedMessages}
         emptyState={emptyState}
-        onBranch={handleBranch}
-        onEdit={handleEdit}
         onRetry={handleRetry}
-        onStartEdit={handleStartEdit}
-        onCancelEdit={handleCancelEdit}
-        editingMessageId={editingMessageId || undefined}
       />
       <ChatInput
         onSendMessage={handleSendMessage}
         placeholder="Message AI assistant..."
-        disabled={isDisabled || editingMessageId !== null}
+        disabled={isDisabled}
         isLoading={isAIGenerating}
       />
     </div>

@@ -55,14 +55,14 @@ export function useChat() {
   // Determine the actual thread to use
   const currentThread = threadByClientId || threadById
 
-  // Get messages for current thread with branch support
-  const getMessages = (branchId?: string) =>
+  // Get messages for current thread with conversation branch support
+  const getMessages = (conversationBranchId?: string) =>
     useQuery(
       api.messages.list,
       currentThread
         ? {
             threadId: currentThread._id,
-            branchId: branchId,
+            conversationBranchId: conversationBranchId,
           }
         : "skip",
     ) ?? []
@@ -93,9 +93,6 @@ export function useChat() {
           timestamp: now,
           isStreaming: false,
           isComplete: true,
-          // Branch fields for optimistic update
-          branchId: "main",
-          branchSequence: 0,
           // Conversation branch fields for optimistic update
           conversationBranchId: conversationBranchId || "main",
         }

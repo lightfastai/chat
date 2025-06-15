@@ -91,8 +91,8 @@ export function useConversationBranches(
       const conversationBranchId = message.conversationBranchId
 
       if (conversationBranchId && conversationBranchId !== "main") {
-        // Use the branchPoint field if available, otherwise use branchFromMessageId
-        const branchPointId = message.branchPoint || message.branchFromMessageId
+        // Use the branchPoint field for conversation-level branching
+        const branchPointId = message.branchPoint
 
         if (branchPointId && !branchInfoMap.has(conversationBranchId)) {
           branchInfoMap.set(conversationBranchId, {
@@ -261,32 +261,32 @@ export function useConversationBranches(
     (messageId: string) => {
       // CONVERSATION-LEVEL BRANCHING ONLY:
       // Show navigation ONLY if:
-      // 1. We have multiple conversation branches 
+      // 1. We have multiple conversation branches
       // 2. This message is the LAST assistant message in the current branch
       // 3. This allows switching between different conversation outcomes
-      
+
       if (conversationTree.branches.length <= 1) {
         return null // No branches = no navigation
       }
-      
+
       // Get current branch messages
       const currentBranchMessages = getMessagesForBranch(currentBranch)
       if (currentBranchMessages.length === 0) {
         return null
       }
-      
+
       // Find the last assistant message in current branch
       const lastAssistantMessage = [...currentBranchMessages]
         .reverse()
-        .find(msg => msg.messageType === "assistant")
-      
+        .find((msg) => msg.messageType === "assistant")
+
       // Only show navigation on the LAST assistant message
       if (!lastAssistantMessage || lastAssistantMessage._id !== messageId) {
         return null
       }
-      
+
       // Show conversation branch navigation
-      const allBranches = conversationTree.branches.map(b => b.id)
+      const allBranches = conversationTree.branches.map((b) => b.id)
       const currentIndex = allBranches.indexOf(currentBranch)
 
       console.log("🌳 Conversation-level branch navigation:", {
