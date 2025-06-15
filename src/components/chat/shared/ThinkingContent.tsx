@@ -2,13 +2,10 @@
 
 import { Brain, ChevronDown, ChevronRight } from "lucide-react"
 import { useState } from "react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 
 export interface ThinkingContentProps {
   content: string
   duration?: number | null
-  variant?: "details" | "collapsible"
   isExpanded?: boolean
   onToggle?: (expanded: boolean) => void
 }
@@ -29,7 +26,6 @@ export function formatDuration(ms: number) {
 export function ThinkingContent({
   content,
   duration,
-  variant = "collapsible",
   isExpanded: controlledExpanded,
   onToggle,
 }: ThinkingContentProps) {
@@ -45,24 +41,6 @@ export function ThinkingContent({
     } else {
       setLocalExpanded(newExpanded)
     }
-  }
-
-  if (variant === "details") {
-    return (
-      <details className="mt-2">
-        <summary className="cursor-pointer text-sm text-muted-foreground">
-          View thinking process
-          {duration && (
-            <span className="ml-2 font-mono text-xs">
-              ({formatDuration(duration)})
-            </span>
-          )}
-        </summary>
-        <div className="mt-2 p-3 bg-muted/50 rounded-md text-sm">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-        </div>
-      </details>
-    )
   }
 
   return (

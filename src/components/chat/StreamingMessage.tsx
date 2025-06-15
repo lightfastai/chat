@@ -68,7 +68,6 @@ export function StreamingMessage({
         <ThinkingContent
           content={message.thinkingContent}
           duration={thinkingDuration}
-          variant="collapsible"
         />
       )}
       <div className="text-sm leading-relaxed">

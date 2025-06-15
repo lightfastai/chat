@@ -120,7 +120,6 @@ export function MessageItem({
           <ThinkingContent
             content={message.thinkingContent}
             duration={thinkingDuration}
-            variant={isReadOnly ? "details" : "collapsible"}
           />
         )}
 
