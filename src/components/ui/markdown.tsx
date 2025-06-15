@@ -44,12 +44,6 @@ const components: Partial<Components> = {
     const languageMatch = className?.match(/language-(\w+)/)
     const language = languageMatch ? languageMatch[1] : "text"
     
-    console.log("Markdown code block:", {
-      className,
-      children: String(children).substring(0, 100),
-      extractedLanguage: language,
-      languageMatch
-    })
     
     return (
       <CodeMirrorBlock

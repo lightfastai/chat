@@ -1,22 +1,19 @@
 "use client"
 
-// import "./codemirror.css" // Temporarily disabled to test syntax highlighting
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { javascript } from "@codemirror/lang-javascript"
+import { python } from "@codemirror/lang-python"
 import { css } from "@codemirror/lang-css"
 import { html } from "@codemirror/lang-html"
-import { javascript } from "@codemirror/lang-javascript"
 import { json } from "@codemirror/lang-json"
 import { markdown } from "@codemirror/lang-markdown"
-import { python } from "@codemirror/lang-python"
 import { EditorState } from "@codemirror/state"
 import { oneDark } from "@codemirror/theme-one-dark"
 import { EditorView } from "@codemirror/view"
+import { basicSetup } from "codemirror"
 import { Check, Copy } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { basicSetup } from "codemirror"
-
-// Simplified for testing - will expand later
 
 interface CodeMirrorBlockProps {
   code: string
@@ -35,12 +32,6 @@ export function CodeMirrorBlock({
   const viewRef = useRef<EditorView | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Debug what we're receiving
-  console.log("CodeMirrorBlock received:", {
-    language,
-    codeLength: code.length,
-    codePreview: code.substring(0, 50) + (code.length > 50 ? "..." : "")
-  })
 
   // Copy to clipboard functionality
   const copyToClipboard = async () => {
@@ -61,49 +52,74 @@ export function CodeMirrorBlock({
       viewRef.current.destroy()
     }
 
-    // Minimal test - start with just basicSetup
-    console.log(`Creating CodeMirror for language: ${language}`)
-    console.log("basicSetup:", basicSetup)
-    console.log("javascript function:", javascript)
-    
-    try {
-      const jsExt = javascript()
-      console.log("JavaScript extension created:", jsExt)
-    } catch (error) {
-      console.error("Error creating JavaScript extension:", error)
+    if (!editorRef.current) {
+      return
     }
     
-    // Start minimal - just basicSetup and language
-    const extensions = [
-      basicSetup,
-      javascript(), // Always use JavaScript for testing
-      oneDark, // Add dark theme back
-      EditorView.editable.of(false)
-    ]
-    
-    console.log("Final extensions:", extensions)
-
-    // Create editor state
-    const state = EditorState.create({
-      doc: code,
-      extensions,
-    })
-
-    // Create editor view
-    const view = new EditorView({
-      state,
-      parent: editorRef.current,
-    })
-
-    viewRef.current = view
+    let view
+    try {
+      // Vercel's approach: clean extension array
+      let extensions = [basicSetup]
+      
+      // Add language extension based on detected language
+      switch (language.toLowerCase()) {
+        case "javascript":
+        case "js":
+        case "jsx":
+        case "typescript":
+        case "ts":
+        case "tsx":
+          extensions.push(javascript({ jsx: true, typescript: true }))
+          break
+        case "python":
+        case "py":
+          extensions.push(python())
+          break
+        case "css":
+          extensions.push(css())
+          break
+        case "html":
+          extensions.push(html())
+          break
+        case "json":
+          extensions.push(json())
+          break
+        case "markdown":
+        case "md":
+          extensions.push(markdown())
+          break
+        // Add more languages as needed
+      }
+      
+      // Add theme last
+      extensions.push(oneDark)
+      
+      const startState = EditorState.create({
+        doc: code,
+        extensions: extensions,
+      })
+      
+      view = new EditorView({
+        state: startState,
+        parent: editorRef.current,
+      })
+      
+      viewRef.current = view
+      
+    } catch (error) {
+      console.error("Error creating view:", error)
+      return
+    }
 
     return () => {
-      view.destroy()
+      if (view) {
+        view.destroy()
+      }
     }
   }, [code, language])
 
   return (
-    <div className={cn("relative group", className)}>
+    <div className={cn("relative group not-prose", className)}>
       {showCopyButton && (
         <Button
           variant="ghost"
@@ -120,7 +136,7 @@ export function CodeMirrorBlock({
       )}
       <div
         ref={editorRef}
-        className="overflow-hidden rounded-md border border-border"
+        className="relative w-full text-sm overflow-hidden rounded-md border border-border"
       />
     </div>
   )
