@@ -9,8 +9,8 @@ import {
   SidebarHeader,
 } from "../../../components/ui/sidebar"
 import { getAuthToken } from "../../../lib/auth"
-import { SidebarSkeleton } from "./SidebarSkeleton"
 import { ServerSidebarImplementation } from "./ServerSidebarImplementation"
+import { SidebarSkeleton } from "./SidebarSkeleton"
 
 // Lightfast logo component - server-rendered
 function LightfastLogo(props: React.SVGProps<SVGSVGElement>) {
