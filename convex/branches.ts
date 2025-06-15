@@ -302,29 +302,43 @@ export const createAssistantMessageBranch = mutation({
         ? originalMessage.conversationBranchId // Stay in the existing branch
         : `branch_${args.originalMessageId}_${Date.now()}_${newBranchSequence}` // Create new branch for first retry with unique ID
 
-    // Find the actual branch point (the original message where conversation diverged)
-    let actualBranchPoint = args.originalMessageId
-    let currentMessage = originalMessage
-
-    // Trace back to find the actual divergence point in the main conversation
-    while (
-      currentMessage.branchFromMessageId &&
-      currentMessage.conversationBranchId !== "main"
-    ) {
-      const parentMessage = await ctx.db.get(currentMessage.branchFromMessageId)
-      if (!parentMessage) break
-
-      // If the parent is in the main branch or doesn't have a conversationBranchId,
-      // then the current message's branchFromMessageId is the actual branch point
-      if (
-        !parentMessage.conversationBranchId ||
-        parentMessage.conversationBranchId === "main"
+    // Find the actual branch point (the user message that prompted the assistant response)
+    // In conversation-level branching, we branch from the user message, not the assistant message
+    let actualBranchPoint: Id<"messages">
+    
+    // If this is the first retry (original message is in main branch)
+    if (!originalMessage.conversationBranchId || originalMessage.conversationBranchId === "main") {
+      // The branch point is the user message that this assistant message was responding to
+      actualBranchPoint = userMessage._id
+    } else {
+      // For subsequent retries, trace back to find the original branch point
+      let currentMessage = originalMessage
+      actualBranchPoint = userMessage._id // Default to current user message
+      
+      while (
+        currentMessage.branchFromMessageId &&
+        currentMessage.conversationBranchId !== "main"
       ) {
-        actualBranchPoint = currentMessage.branchFromMessageId
-        break
-      }
+        const parentMessage = await ctx.db.get(currentMessage.branchFromMessageId)
+        if (!parentMessage) break
 
-      currentMessage = parentMessage
+        // If the parent is in the main branch, we found the original branch point
+        if (
+          !parentMessage.conversationBranchId ||
+          parentMessage.conversationBranchId === "main"
+        ) {
+          // Get the user message that prompted this branch
+          if (parentMessage.parentMessageId) {
+            const parentUserMessage = await ctx.db.get(parentMessage.parentMessageId)
+            if (parentUserMessage && parentUserMessage.messageType === "user") {
+              actualBranchPoint = parentUserMessage._id
+            }
+          }
+          break
+        }
+
+        currentMessage = parentMessage
+      }
     }
 
     console.log(
