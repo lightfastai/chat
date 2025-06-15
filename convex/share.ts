@@ -27,9 +27,24 @@ export const shareThread = mutation({
       throw new Error("Unauthorized: You don't own this thread")
     }
 
-    // Generate a unique share ID if not already shared (24 chars for security)
-    const shareId = thread.shareId || nanoid(24)
     const now = Date.now()
+
+    // Handle race condition: if thread is already shared, use existing shareId
+    if (thread.isPublic && thread.shareId) {
+      // Thread is already shared, just update settings if provided
+      if (args.settings) {
+        await ctx.db.patch(args.threadId, {
+          shareSettings: {
+            ...thread.shareSettings,
+            ...args.settings,
+          },
+        })
+      }
+      return { shareId: thread.shareId }
+    }
+
+    // Generate a unique share ID for new share (24 chars for security)
+    const shareId = thread.shareId || nanoid(24)
 
     await ctx.db.patch(args.threadId, {
       isPublic: true,

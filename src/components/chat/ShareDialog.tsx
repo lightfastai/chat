@@ -31,6 +31,7 @@ export function ShareDialog({
   onOpenChange,
 }: ShareDialogProps) {
   const [copied, setCopied] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [settings, setSettings] = useState({
     showThinking: false,
   })
@@ -56,7 +57,10 @@ export function ShareDialog({
     : ""
 
   const handleShare = async () => {
+    if (isLoading) return // Prevent double-clicking
+
     try {
+      setIsLoading(true)
       await shareThread({
         threadId: threadId as Id<"threads">,
         settings,
@@ -69,11 +73,16 @@ export function ShareDialog({
       toast.error("Failed to share", {
         description: "There was an error sharing your chat. Please try again.",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleUnshare = async () => {
+    if (isLoading) return // Prevent double-clicking
+
     try {
+      setIsLoading(true)
       await unshareThread({
         threadId: threadId as Id<"threads">,
       })
@@ -86,6 +95,8 @@ export function ShareDialog({
         description:
           "There was an error disabling the share link. Please try again.",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -207,7 +218,11 @@ export function ShareDialog({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Done
               </Button>
-              <Button variant="destructive" onClick={handleUnshare}>
+              <Button
+                variant="destructive"
+                onClick={handleUnshare}
+                disabled={isLoading}
+              >
                 Stop sharing
               </Button>
             </>
@@ -216,7 +231,7 @@ export function ShareDialog({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleShare}>
+              <Button onClick={handleShare} disabled={isLoading}>
                 <Globe className="h-4 w-4 mr-2" />
                 Share chat
               </Button>
