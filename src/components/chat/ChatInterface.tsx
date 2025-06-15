@@ -325,29 +325,6 @@ export function ChatInterface() {
     [currentThread, createUserMessageBranch],
   )
 
-  // Handle retrying assistant messages
-  const handleRetry = useCallback(
-    async (messageId: string) => {
-      console.log("🔄 Retry button clicked for message:", messageId)
-      if (!currentThread) {
-        console.log("❌ No current thread available")
-        return
-      }
-
-      try {
-        console.log("🚀 Creating assistant message branch...")
-        // Create a new branch by retrying the assistant response
-        const result = await createAssistantMessageBranch({
-          threadId: currentThread._id,
-          originalMessageId: messageId as Id<"messages">, // Type cast for Convex ID
-        })
-        console.log("✅ Branch creation successful:", result)
-      } catch (error) {
-        console.error("❌ Error creating assistant message branch:", error)
-      }
-    },
-    [currentThread, createAssistantMessageBranch],
-  )
 
   // Legacy branch handler (to be removed)
   const handleBranch = useCallback(async (messageId: string) => {
@@ -511,6 +488,54 @@ export function ChatInterface() {
     handleBranchNavigate,
     branchNavigation,
   ])
+
+  // Find root original message by tracing back through branchFromMessageId chain
+  const findRootOriginal = useCallback((messageId: string): string => {
+    const message = enhancedMessages.find(m => m._id === messageId)
+    if (!message) return messageId
+    
+    // If this message has a branchFromMessageId, it's a variant
+    // Keep tracing back to find the root original
+    if ((message as any).branchFromMessageId) {
+      return findRootOriginal((message as any).branchFromMessageId)
+    }
+    
+    return messageId
+  }, [enhancedMessages])
+
+  // Handle retrying assistant messages - defined after enhancedMessages
+  const handleRetry = useCallback(
+    async (messageId: string) => {
+      console.log("🔄 Retry button clicked for message:", messageId)
+      if (!currentThread) {
+        console.log("❌ No current thread available")
+        return
+      }
+
+      // CRITICAL FIX: Always find the root original message
+      // This handles "retry of retry" correctly
+      const rootOriginalId = findRootOriginal(messageId)
+      
+      console.log("🔍 Retry details:", {
+        clickedMessageId: messageId,
+        rootOriginalId: rootOriginalId,
+        isRetryOfRetry: rootOriginalId !== messageId
+      })
+
+      try {
+        console.log("🚀 Creating assistant message branch for ROOT ORIGINAL:", rootOriginalId)
+        // Create a new branch by retrying the ROOT ORIGINAL response
+        const result = await createAssistantMessageBranch({
+          threadId: currentThread._id,
+          originalMessageId: rootOriginalId as Id<"messages">, // Use ROOT original message ID
+        })
+        console.log("✅ Branch creation successful:", result)
+      } catch (error) {
+        console.error("❌ Error creating assistant message branch:", error)
+      }
+    },
+    [currentThread, createAssistantMessageBranch, findRootOriginal],
+  )
 
   console.log(
     `🔥 RENDER ${currentRender} - ChatInterface RENDERING with ${enhancedMessages.length} enhanced messages`,

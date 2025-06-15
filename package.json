@@ -22,7 +22,9 @@
     "postinstall": "fumadocs-mdx",
     "turbo:build": "turbo run build",
     "turbo:lint": "turbo run lint",
-    "turbo:format": "turbo run format"
+    "turbo:format": "turbo run format",
+    "test": "bun test",
+    "test:watch": "bun test --watch"
   },
   "repository": {
     "type": "git",
