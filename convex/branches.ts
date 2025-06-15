@@ -296,9 +296,11 @@ export const createAssistantMessageBranch = mutation({
     // Create conversation branch ID for v0.dev-style branching
     // If the original message is already in a branch, stay in that branch
     // Otherwise, create a new branch for the first retry
-    const conversationBranchId = originalMessage.conversationBranchId && originalMessage.conversationBranchId !== "main"
-      ? originalMessage.conversationBranchId  // Stay in the existing branch
-      : `branch_${Date.now()}_${newBranchSequence}`  // Create new branch for first retry
+    const conversationBranchId =
+      originalMessage.conversationBranchId &&
+      originalMessage.conversationBranchId !== "main"
+        ? originalMessage.conversationBranchId // Stay in the existing branch
+        : `branch_${Date.now()}_${newBranchSequence}` // Create new branch for first retry
 
     // Find the actual branch point (the original message where conversation diverged)
     let actualBranchPoint = args.originalMessageId

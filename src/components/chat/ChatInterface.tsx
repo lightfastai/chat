@@ -180,10 +180,17 @@ export function ChatInterface() {
   }, [messages, branchNavigation, messageBranches])
 
   // Update message variants when processed messages change
+  // TEMPORARILY DISABLED to fix infinite loop - needs refactoring
   useEffect(() => {
-    // TEMPORARY FIX: Disable to fix infinite loop
+    // TODO: Re-enable message variants logic after fixing circular dependencies
+    // The logic below was causing infinite re-renders due to:
+    // processedMessages -> messageVariants -> messageBranches -> processedMessages
     return
-    
+  }, [processedMessages])
+
+  /*
+  // Original message variants logic (disabled)
+  useEffect(() => {
     console.log(
       `🔥 RENDER ${currentRender} - useEffect (message variants) starting`,
     )
@@ -271,6 +278,7 @@ export function ChatInterface() {
       `🔥 RENDER ${currentRender} - useEffect (message variants) COMPLETE`,
     )
   }, [processedMessages])
+  */
 
   // Auto-switching is now handled by the useConversationBranches hook
 
@@ -324,7 +332,6 @@ export function ChatInterface() {
     },
     [currentThread, createUserMessageBranch],
   )
-
 
   // Legacy branch handler (to be removed)
   const handleBranch = useCallback(async (messageId: string) => {
@@ -490,18 +497,24 @@ export function ChatInterface() {
   ])
 
   // Find root original message by tracing back through branchFromMessageId chain
-  const findRootOriginal = useCallback((messageId: string): string => {
-    const message = enhancedMessages.find(m => m._id === messageId)
-    if (!message) return messageId
-    
-    // If this message has a branchFromMessageId, it's a variant
-    // Keep tracing back to find the root original
-    if ((message as any).branchFromMessageId) {
-      return findRootOriginal((message as any).branchFromMessageId)
-    }
-    
-    return messageId
-  }, [enhancedMessages])
+  const findRootOriginal = useCallback(
+    (messageId: string): string => {
+      const message = enhancedMessages.find((m) => m._id === messageId)
+      if (!message) return messageId
+
+      // If this message has a branchFromMessageId, it's a variant
+      // Keep tracing back to find the root original
+      const messageWithBranch = message as Message & {
+        branchFromMessageId?: string
+      }
+      if (messageWithBranch.branchFromMessageId) {
+        return findRootOriginal(messageWithBranch.branchFromMessageId)
+      }
+
+      return messageId
+    },
+    [enhancedMessages],
+  )
 
   // Handle retrying assistant messages - defined after enhancedMessages
   const handleRetry = useCallback(
@@ -515,15 +528,18 @@ export function ChatInterface() {
       // CRITICAL FIX: Always find the root original message
       // This handles "retry of retry" correctly
       const rootOriginalId = findRootOriginal(messageId)
-      
+
       console.log("🔍 Retry details:", {
         clickedMessageId: messageId,
         rootOriginalId: rootOriginalId,
-        isRetryOfRetry: rootOriginalId !== messageId
+        isRetryOfRetry: rootOriginalId !== messageId,
       })
 
       try {
-        console.log("🚀 Creating assistant message branch for ROOT ORIGINAL:", rootOriginalId)
+        console.log(
+          "🚀 Creating assistant message branch for ROOT ORIGINAL:",
+          rootOriginalId,
+        )
         // Create a new branch by retrying the ROOT ORIGINAL response
         const result = await createAssistantMessageBranch({
           threadId: currentThread._id,
