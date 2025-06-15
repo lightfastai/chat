@@ -8,7 +8,6 @@ import React from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Doc } from "../../../convex/_generated/dataModel"
 import { AttachmentPreview } from "./AttachmentPreview"
-import { BranchNavigation } from "./BranchNavigation"
 import { MessageActions } from "./MessageActions"
 import { MessageEdit } from "./MessageEdit"
 import { StreamingMessage } from "./StreamingMessage"
@@ -117,17 +116,6 @@ export function MessageDisplay({
       </Avatar>
 
       <div className="flex-1 relative">
-        {/* Show branch navigation if available */}
-        {branchInfo && (
-          <div className="mb-2">
-            <BranchNavigation
-              currentBranch={branchInfo.currentBranch}
-              totalBranches={branchInfo.totalBranches}
-              onNavigate={branchInfo.onNavigate}
-            />
-          </div>
-        )}
-
         {/* Show edit interface or regular message */}
         {isEditing && !isAI ? (
           <MessageEdit
@@ -150,6 +138,7 @@ export function MessageDisplay({
                   : undefined
               }
               thinkingDuration={thinkingDuration}
+              branchInfo={branchInfo}
             />
 
             {/* Show attachments if present */}

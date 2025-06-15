@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { Brain, ChevronDown, ChevronRight, Key } from "lucide-react"
 import { useState } from "react"
 import type { Doc } from "../../../convex/_generated/dataModel"
+import { BranchNavigation } from "./BranchNavigation"
 
 type Message = Doc<"messages"> & { _streamId?: string | null }
 
@@ -15,6 +16,11 @@ interface StreamingMessageProps {
   className?: string
   modelName?: string
   thinkingDuration?: number | null
+  branchInfo?: {
+    currentBranch: number
+    totalBranches: number
+    onNavigate: (branchSequence: number) => void
+  }
 }
 
 export function StreamingMessage({
@@ -22,6 +28,7 @@ export function StreamingMessage({
   className,
   modelName,
   thinkingDuration,
+  branchInfo,
 }: StreamingMessageProps) {
   const { streamingText, isComplete } = useResumableStream({
     streamId: message._streamId || null,
@@ -55,28 +62,41 @@ export function StreamingMessage({
 
   return (
     <div className={cn("space-y-1", className)}>
-      {/* Model name and thinking duration at the top, like non-streaming UI */}
-      <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-        {modelName && <span>{modelName}</span>}
-        {message.usedUserApiKey && (
-          <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
-            <Key className="w-3 h-3 mr-1" />
-            Your API Key
-          </Badge>
-        )}
-        {thinkingDuration && (
-          <>
-            <span>•</span>
-            <span className="font-mono">
-              Thought for {formatDuration(thinkingDuration)}
-            </span>
-          </>
-        )}
-        {message.isStreaming && !isComplete && !thinkingDuration && (
-          <>
-            {modelName && <span>•</span>}
-            <span>{isThinking ? "Thinking" : "Responding"}</span>
-          </>
+      {/* Model name and thinking duration at the top, with branch navigation on the right */}
+      <div className="text-xs text-muted-foreground mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {modelName && <span>{modelName}</span>}
+          {message.usedUserApiKey && (
+            <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+              <Key className="w-3 h-3 mr-1" />
+              Your API Key
+            </Badge>
+          )}
+          {thinkingDuration && (
+            <>
+              <span>•</span>
+              <span className="font-mono">
+                Thought for {formatDuration(thinkingDuration)}
+              </span>
+            </>
+          )}
+          {message.isStreaming && !isComplete && !thinkingDuration && (
+            <>
+              {modelName && <span>•</span>}
+              <span>{isThinking ? "Thinking" : "Responding"}</span>
+            </>
+          )}
+        </div>
+
+        {/* Branch navigation on the right */}
+        {branchInfo && (
+          <div className="flex-shrink-0">
+            <BranchNavigation
+              currentBranch={branchInfo.currentBranch}
+              totalBranches={branchInfo.totalBranches}
+              onNavigate={branchInfo.onNavigate}
+            />
+          </div>
         )}
       </div>
       {/* Reasoning/thinking content (Claude's thoughts) */}
