@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as messages from "../messages.js";
 import type * as setup from "../setup.js";
+import type * as share from "../share.js";
 import type * as threads from "../threads.js";
 import type * as titles from "../titles.js";
 import type * as userSettings from "../userSettings.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   "lib/encryption": typeof lib_encryption;
   messages: typeof messages;
   setup: typeof setup;
+  share: typeof share;
   threads: typeof threads;
   titles: typeof titles;
   userSettings: typeof userSettings;

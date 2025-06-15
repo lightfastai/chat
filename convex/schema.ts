@@ -79,6 +79,17 @@ export default defineSchema({
     isTitleGenerating: v.optional(v.boolean()),
     isGenerating: v.optional(v.boolean()),
     pinned: v.optional(v.boolean()),
+    // Share functionality
+    isPublic: v.optional(v.boolean()), // Whether the thread is publicly accessible
+    shareId: v.optional(v.string()), // Unique ID for share links
+    sharedAt: v.optional(v.number()), // Timestamp when first shared
+    shareSettings: v.optional(
+      v.object({
+        allowFeedback: v.optional(v.boolean()), // Allow viewers to provide feedback
+        showThinking: v.optional(v.boolean()), // Show thinking content to viewers
+        expiresAt: v.optional(v.number()), // Optional expiration timestamp
+      }),
+    ),
     // Thread-level usage tracking (denormalized for performance)
     usage: v.optional(
       v.object({
@@ -105,7 +116,8 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_client_id", ["clientId"])
-    .index("by_user_client", ["userId", "clientId"]),
+    .index("by_user_client", ["userId", "clientId"])
+    .index("by_share_id", ["shareId"]),
 
   messages: defineTable({
     threadId: v.id("threads"),

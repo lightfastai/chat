@@ -24,6 +24,13 @@ const DynamicTokenUsageHeader = dynamic(
   },
 )
 
+const DynamicShareButton = dynamic(
+  () => import("./ShareButtonWrapper").then((mod) => mod.ShareButtonWrapper),
+  {
+    ssr: true,
+  },
+)
+
 // Server component for chat header - can be static with PPR
 async function ChatHeader() {
   return (
@@ -36,16 +43,23 @@ async function ChatHeader() {
           <DynamicChatTitle />
         </Suspense>
       </div>
-      <Suspense
-        fallback={
-          <div className="flex items-center gap-2">
-            <div className="h-6 w-16 bg-muted animate-pulse rounded" />
-            <div className="h-6 w-20 bg-muted animate-pulse rounded" />
-          </div>
-        }
-      >
-        <DynamicTokenUsageHeader />
-      </Suspense>
+      <div className="flex items-center gap-2">
+        <Suspense
+          fallback={<div className="h-8 w-16 bg-muted animate-pulse rounded" />}
+        >
+          <DynamicShareButton />
+        </Suspense>
+        <Suspense
+          fallback={
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-16 bg-muted animate-pulse rounded" />
+              <div className="h-6 w-20 bg-muted animate-pulse rounded" />
+            </div>
+          }
+        >
+          <DynamicTokenUsageHeader />
+        </Suspense>
+      </div>
     </header>
   )
 }

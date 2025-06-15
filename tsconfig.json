@@ -22,7 +22,8 @@
     "module": "esnext",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/convex/*": ["./convex/*"]
     },
     "allowJs": true
   },
