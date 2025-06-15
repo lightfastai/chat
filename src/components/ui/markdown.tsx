@@ -1,5 +1,6 @@
 "use client"
 
+import { CodeMirrorBlock } from "@/components/ui/code-mirror-block"
 import { cn } from "@/lib/utils"
 import { memo } from "react"
 import ReactMarkdown, { type Components } from "react-markdown"
@@ -45,8 +46,49 @@ const components: Partial<Components> = {
     )
   },
 
-  // Pre component for code blocks
+  // Pre component for code blocks - enhanced with CodeMirror
   pre({ children, className, ...props }: MarkdownComponentProps) {
+    // Extract code content and language from children
+    // Check if children contains a code element (React element structure)
+    let codeElement: React.ReactElement | null = null
+
+    if (Array.isArray(children)) {
+      codeElement = children.find(
+        (child) =>
+          child &&
+          typeof child === "object" &&
+          "type" in child &&
+          child.type === "code",
+      )
+    } else if (
+      children &&
+      typeof children === "object" &&
+      "type" in children &&
+      children.type === "code"
+    ) {
+      codeElement = children
+    }
+
+    if (codeElement && "props" in codeElement) {
+      const code = codeElement.props.children
+      const codeClassName = codeElement.props.className || ""
+
+      // Extract language from className (e.g., "language-javascript" -> "javascript")
+      const languageMatch = codeClassName.match(/language-(\w+)/)
+      const language = languageMatch ? languageMatch[1] : "text"
+
+      return (
+        <div className="my-4">
+          <CodeMirrorBlock
+            code={String(code)}
+            language={language}
+            className={className}
+          />
+        </div>
+      )
+    }
+
+    // Fallback to original pre element for non-code content
     return (
       <div className="flex flex-col my-4">
         <pre
