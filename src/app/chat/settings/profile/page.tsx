@@ -15,7 +15,14 @@ export default async function ProfilePage() {
   // Get user data - middleware ensures authentication
   const user = await getCurrentUser()
 
-  // Middleware handles auth, so user should always exist here
-  // If not, ProfileSection can handle the edge case
-  return <ProfileSection user={user!} />
+  // Handle null user case gracefully
+  if (!user) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Unable to load profile information.</p>
+      </div>
+    )
+  }
+
+  return <ProfileSection user={user} />
 }
