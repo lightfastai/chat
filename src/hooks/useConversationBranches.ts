@@ -256,79 +256,66 @@ export function useConversationBranches(
     setCurrentBranch(branchId)
   }, [])
 
-  // Get branch navigation for a specific message
+  // Get branch navigation for conversation-level branching
   const getBranchNavigation = useCallback(
     (messageId: string) => {
-      // For conversation-level branching, show navigation on ASSISTANT messages that have been retried
-      // We need to find if this assistant message has variants (retries)
+      // CONVERSATION-LEVEL BRANCHING ONLY:
+      // Show navigation ONLY if:
+      // 1. We have multiple conversation branches 
+      // 2. This message is the LAST assistant message in the current branch
+      // 3. This allows switching between different conversation outcomes
       
-      // First, check if this message has variants (direct retries of this message)
-      const allMessages = conversationTree.branches.flatMap(b => b.messages)
-      const hasDirectRetries = allMessages.some(msg => msg.branchFromMessageId === messageId)
-      
-      // Also check if this message is itself a retry (has branchFromMessageId)
-      const currentMessage = allMessages.find(msg => msg._id === messageId)
-      const isRetry = currentMessage?.branchFromMessageId
-      
-      // CRITICAL: Only show navigation if this specific message has actual variants
-      // Don't show navigation just because there are other retries in the conversation
-      if (hasDirectRetries || isRetry) {
-        // Find the root original message to get all variants
-        let rootOriginalId = messageId
-        if (isRetry) {
-          // Trace back to find root original
-          let current = currentMessage
-          while (current?.branchFromMessageId) {
-            const parent = allMessages.find(m => m._id === current.branchFromMessageId)
-            if (!parent) break
-            current = parent
-            rootOriginalId = current._id
-          }
-        }
-        
-        // Find all conversation branches that contain variants of the root original
-        const variantBranches = conversationTree.branches.filter(branch => {
-          return branch.messages.some(msg => 
-            msg._id === rootOriginalId || msg.branchFromMessageId === rootOriginalId
-          )
-        })
-        
-        if (variantBranches.length > 1) {
-          const branchIds = variantBranches.map(b => b.id)
-          const currentIndex = branchIds.indexOf(currentBranch)
-
-          console.log("🌳 Assistant message branch navigation:", {
-            messageId,
-            rootOriginalId,
-            hasDirectRetries,
-            isRetry,
-            variantBranches: branchIds,
-            currentBranch,
-            currentIndex,
-          })
-
-          return {
-            currentIndex: currentIndex >= 0 ? currentIndex : 0,
-            totalBranches: branchIds.length,
-            onNavigate: (index: number) => {
-              const targetBranch = branchIds[index]
-              console.log(
-                `🌳 Navigating to conversation branch ${index}: ${targetBranch}`,
-              )
-              if (targetBranch) {
-                switchToBranch(targetBranch)
-              }
-            },
-          }
-        }
+      if (conversationTree.branches.length <= 1) {
+        return null // No branches = no navigation
       }
+      
+      // Get current branch messages
+      const currentBranchMessages = getMessagesForBranch(currentBranch)
+      if (currentBranchMessages.length === 0) {
+        return null
+      }
+      
+      // Find the last assistant message in current branch
+      const lastAssistantMessage = [...currentBranchMessages]
+        .reverse()
+        .find(msg => msg.messageType === "assistant")
+      
+      // Only show navigation on the LAST assistant message
+      if (!lastAssistantMessage || lastAssistantMessage._id !== messageId) {
+        return null
+      }
+      
+      // Show conversation branch navigation
+      const allBranches = conversationTree.branches.map(b => b.id)
+      const currentIndex = allBranches.indexOf(currentBranch)
 
-      return null
+      console.log("🌳 Conversation-level branch navigation:", {
+        messageId,
+        currentBranch,
+        allBranches,
+        currentIndex,
+        isLastAssistant: true,
+      })
+
+      return {
+        currentIndex: currentIndex >= 0 ? currentIndex : 0,
+        totalBranches: allBranches.length,
+        onNavigate: (index: number) => {
+          const targetBranch = allBranches[index]
+          console.log(
+            `🌳 Navigating to conversation branch ${index}: ${targetBranch}`,
+          )
+          if (targetBranch) {
+            switchToBranch(targetBranch)
+          }
+        },
+      }
     },
     [
       conversationTree.branches,
       currentBranch,
       switchToBranch,
+      getMessagesForBranch,
     ],
   )
 

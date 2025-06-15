@@ -215,25 +215,6 @@ export function ChatInterface() {
     retryingMessageIds,
   ])
 
-  // Find root original message by tracing back through branchFromMessageId chain
-  const findRootOriginal = useCallback(
-    (messageId: string): string => {
-      const message = enhancedMessages.find((m) => m._id === messageId)
-      if (!message) return messageId
-
-      // If this message has a branchFromMessageId, it's a variant
-      // Keep tracing back to find the root original
-      const messageWithBranch = message as Message & {
-        branchFromMessageId?: string
-      }
-      if (messageWithBranch.branchFromMessageId) {
-        return findRootOriginal(messageWithBranch.branchFromMessageId)
-      }
-
-      return messageId
-    },
-    [enhancedMessages],
-  )
 
   // Handle retrying assistant messages - defined after enhancedMessages
   const handleRetry = useCallback(
@@ -266,28 +247,23 @@ export function ChatInterface() {
         return
       }
 
-      // CRITICAL FIX: Always find the root original message
-      // This handles "retry of retry" correctly
-      const rootOriginalId = findRootOriginal(messageId)
-
-      console.log("🔍 Retry details:", {
-        clickedMessageId: messageId,
-        rootOriginalId: rootOriginalId,
-        isRetryOfRetry: rootOriginalId !== messageId,
+      // CONVERSATION-LEVEL BRANCHING: Simply retry this specific message
+      // No need to trace back to root - each retry creates a new conversation branch
+      
+      console.log("🔍 Conversation-level retry:", {
+        messageId: messageId,
+        currentBranch: branchNavigation.currentBranch,
       })
 
       // Mark message as being retried
       setRetryingMessageIds((prev) => new Set([...prev, messageId]))
 
       try {
-        console.log(
-          "🚀 Creating assistant message branch for ROOT ORIGINAL:",
-          rootOriginalId,
-        )
-        // Create a new branch by retrying the ROOT ORIGINAL response
+        console.log("🚀 Creating conversation branch for message:", messageId)
+        // Create a new conversation branch by retrying this message
         const result = await createAssistantMessageBranch({
           threadId: currentThread._id,
-          originalMessageId: rootOriginalId as Id<"messages">, // Use ROOT original message ID
+          originalMessageId: messageId as Id<"messages">,
         })
         console.log("✅ Branch creation successful:", result)
       } catch (error) {
@@ -305,7 +281,7 @@ export function ChatInterface() {
     [
       currentThread,
       createAssistantMessageBranch,
-      findRootOriginal,
+      branchNavigation.currentBranch,
       retryingMessageIds,
       messages,
     ],

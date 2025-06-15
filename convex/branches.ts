@@ -73,73 +73,7 @@ export const getConversationBranches = query({
   },
 })
 
-// Get all branch variants for a specific message
-export const getBranchVariants = query({
-  args: {
-    messageId: v.id("messages"),
-  },
-  returns: v.array(
-    v.object({
-      _id: v.id("messages"),
-      _creationTime: v.number(),
-      threadId: v.id("threads"),
-      body: v.string(),
-      timestamp: v.number(),
-      messageType: v.union(v.literal("user"), v.literal("assistant")),
-      branchId: v.optional(v.string()),
-      branchSequence: v.optional(v.number()),
-      model: v.optional(v.string()),
-      modelId: v.optional(v.string()),
-    }),
-  ),
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      return []
-    }
-
-    // Get the original message
-    const originalMessage = await ctx.db.get(args.messageId)
-    if (!originalMessage) {
-      return []
-    }
-
-    // Verify thread access
-    const thread = await ctx.db.get(originalMessage.threadId)
-    if (!thread || thread.userId !== userId) {
-      return []
-    }
-
-    // Get all branch variants (including the original)
-    const variants = await ctx.db
-      .query("messages")
-      .withIndex("by_branch_from", (q) =>
-        q.eq("branchFromMessageId", args.messageId),
-      )
-      .collect()
-
-    // Include the original message as sequence 0
-    const allVariants = [originalMessage, ...variants]
-
-    // Sort by branch sequence (treat undefined as 0)
-    allVariants.sort(
-      (a, b) => (a.branchSequence || 0) - (b.branchSequence || 0),
-    )
-
-    return allVariants.map((msg) => ({
-      _id: msg._id,
-      _creationTime: msg._creationTime,
-      threadId: msg.threadId,
-      body: msg.body,
-      timestamp: msg.timestamp,
-      messageType: msg.messageType,
-      branchId: msg.branchId,
-      branchSequence: msg.branchSequence,
-      model: msg.model,
-      modelId: msg.modelId,
-    }))
-  },
-})
+// REMOVED: getBranchVariants - not needed for conversation-level branching
 
 // Create a branch from a user message (edit functionality)
 export const createUserMessageBranch = mutation({
