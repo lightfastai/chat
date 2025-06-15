@@ -85,9 +85,7 @@ export default defineSchema({
     sharedAt: v.optional(v.number()), // Timestamp when first shared
     shareSettings: v.optional(
       v.object({
-        allowFeedback: v.optional(v.boolean()), // Allow viewers to provide feedback
         showThinking: v.optional(v.boolean()), // Show thinking content to viewers
-        expiresAt: v.optional(v.number()), // Optional expiration timestamp
       }),
     ),
     // Thread-level usage tracking (denormalized for performance)
@@ -176,4 +174,15 @@ export default defineSchema({
     .index("by_message", ["messageId"])
     .index("by_user_message", ["userId", "messageId"])
     .index("by_thread", ["threadId"]),
+
+  shareAccess: defineTable({
+    shareId: v.string(),
+    accessedAt: v.number(),
+    ipHash: v.optional(v.string()), // Hashed IP for rate limiting
+    userAgent: v.optional(v.string()),
+    success: v.boolean(), // Whether the access was successful
+  })
+    .index("by_share_id", ["shareId"])
+    .index("by_share_time", ["shareId", "accessedAt"])
+    .index("by_ip_time", ["ipHash", "accessedAt"]),
 })

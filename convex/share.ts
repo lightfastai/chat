@@ -8,9 +8,7 @@ export const shareThread = mutation({
     threadId: v.id("threads"),
     settings: v.optional(
       v.object({
-        allowFeedback: v.optional(v.boolean()),
         showThinking: v.optional(v.boolean()),
-        expiresAt: v.optional(v.number()),
       }),
     ),
   },
@@ -29,8 +27,8 @@ export const shareThread = mutation({
       throw new Error("Unauthorized: You don't own this thread")
     }
 
-    // Generate a unique share ID if not already shared
-    const shareId = thread.shareId || nanoid(10)
+    // Generate a unique share ID if not already shared (24 chars for security)
+    const shareId = thread.shareId || nanoid(24)
     const now = Date.now()
 
     await ctx.db.patch(args.threadId, {
@@ -39,7 +37,6 @@ export const shareThread = mutation({
       sharedAt: thread.sharedAt || now,
       shareSettings: args.settings ||
         thread.shareSettings || {
-          allowFeedback: false,
           showThinking: false,
         },
     })
@@ -79,9 +76,7 @@ export const updateShareSettings = mutation({
   args: {
     threadId: v.id("threads"),
     settings: v.object({
-      allowFeedback: v.optional(v.boolean()),
       showThinking: v.optional(v.boolean()),
-      expiresAt: v.optional(v.number()),
     }),
   },
   handler: async (ctx, args) => {
@@ -114,6 +109,65 @@ export const updateShareSettings = mutation({
   },
 })
 
+// Mutation to log share access attempts and perform rate limiting
+export const logShareAccess = mutation({
+  args: {
+    shareId: v.string(),
+    clientInfo: v.optional(
+      v.object({
+        ipHash: v.optional(v.string()),
+        userAgent: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    const hourAgo = now - 60 * 60 * 1000 // 1 hour ago
+
+    // Rate limiting: Check access attempts from this IP in the last hour
+    if (args.clientInfo?.ipHash) {
+      const recentAttempts = await ctx.db
+        .query("shareAccess")
+        .withIndex("by_ip_time", (q) =>
+          q.eq("ipHash", args.clientInfo!.ipHash).gte("accessedAt", hourAgo),
+        )
+        .collect()
+
+      // Allow max 100 attempts per hour per IP
+      if (recentAttempts.length >= 100) {
+        // Log the rate limit violation
+        await ctx.db.insert("shareAccess", {
+          shareId: args.shareId,
+          accessedAt: now,
+          ipHash: args.clientInfo.ipHash,
+          userAgent: args.clientInfo.userAgent,
+          success: false,
+        })
+        return { allowed: false }
+      }
+    }
+
+    // Check if thread exists and is public
+    const thread = await ctx.db
+      .query("threads")
+      .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
+      .first()
+
+    const success = !!thread?.isPublic
+
+    // Log access attempt
+    await ctx.db.insert("shareAccess", {
+      shareId: args.shareId,
+      accessedAt: now,
+      ipHash: args.clientInfo?.ipHash,
+      userAgent: args.clientInfo?.userAgent,
+      success,
+    })
+
+    return { allowed: success }
+  },
+})
+
 export const getSharedThread = query({
   args: {
     shareId: v.string(),
@@ -126,14 +180,6 @@ export const getSharedThread = query({
       .first()
 
     if (!thread || !thread.isPublic) {
-      return null
-    }
-
-    // Check if share link has expired
-    if (
-      thread.shareSettings?.expiresAt &&
-      thread.shareSettings.expiresAt < Date.now()
-    ) {
       return null
     }
 

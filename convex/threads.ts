@@ -60,9 +60,7 @@ export const list = query({
       sharedAt: v.optional(v.number()),
       shareSettings: v.optional(
         v.object({
-          allowFeedback: v.optional(v.boolean()),
           showThinking: v.optional(v.boolean()),
-          expiresAt: v.optional(v.number()),
         }),
       ),
       // Thread-level usage tracking (denormalized for performance)
@@ -127,9 +125,7 @@ export const get = query({
       sharedAt: v.optional(v.number()),
       shareSettings: v.optional(
         v.object({
-          allowFeedback: v.optional(v.boolean()),
           showThinking: v.optional(v.boolean()),
-          expiresAt: v.optional(v.number()),
         }),
       ),
       // Thread-level usage tracking (denormalized for performance)
@@ -198,9 +194,7 @@ export const getByClientId = query({
       sharedAt: v.optional(v.number()),
       shareSettings: v.optional(
         v.object({
-          allowFeedback: v.optional(v.boolean()),
           showThinking: v.optional(v.boolean()),
-          expiresAt: v.optional(v.number()),
         }),
       ),
       // Thread-level usage tracking (denormalized for performance)

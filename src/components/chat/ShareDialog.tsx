@@ -32,7 +32,6 @@ export function ShareDialog({
 }: ShareDialogProps) {
   const [copied, setCopied] = useState(false)
   const [settings, setSettings] = useState({
-    allowFeedback: false,
     showThinking: false,
   })
 
@@ -47,7 +46,6 @@ export function ShareDialog({
   useEffect(() => {
     if (shareInfo?.shareSettings) {
       setSettings({
-        allowFeedback: shareInfo.shareSettings.allowFeedback || false,
         showThinking: shareInfo.shareSettings.showThinking || false,
       })
     }
@@ -176,22 +174,6 @@ export function ShareDialog({
 
               <div className="space-y-3">
                 <h4 className="text-sm font-medium">Share settings</h4>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="allow-feedback">Allow feedback</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Viewers can rate messages with thumbs up/down
-                    </p>
-                  </div>
-                  <Switch
-                    id="allow-feedback"
-                    checked={settings.allowFeedback}
-                    onCheckedChange={(checked) =>
-                      handleSettingChange("allowFeedback", checked)
-                    }
-                  />
-                </div>
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">

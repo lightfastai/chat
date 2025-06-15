@@ -1488,9 +1488,7 @@ export const getThreadById = internalQuery({
       sharedAt: v.optional(v.number()),
       shareSettings: v.optional(
         v.object({
-          allowFeedback: v.optional(v.boolean()),
           showThinking: v.optional(v.boolean()),
-          expiresAt: v.optional(v.number()),
         }),
       ),
       usage: v.optional(

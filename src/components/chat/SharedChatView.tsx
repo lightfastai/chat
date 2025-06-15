@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { api } from "@/convex/_generated/api"
 import { cn } from "@/lib/utils"
-import { useQuery } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { format } from "date-fns"
 import { AlertCircle, Loader2, Share2 } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -15,10 +16,58 @@ interface SharedChatViewProps {
   shareId: string
 }
 
-export function SharedChatView({ shareId }: SharedChatViewProps) {
-  const sharedData = useQuery(api.share.getSharedThread, { shareId })
+function hashString(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = (hash << 5) - hash + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36)
+}
 
-  if (sharedData === undefined) {
+export function SharedChatView({ shareId }: SharedChatViewProps) {
+  // Create a simple client fingerprint for rate limiting
+  const clientInfo = useMemo(() => {
+    if (typeof window === "undefined") return undefined
+
+    // Create a basic fingerprint without tracking personal info
+    const fingerprint = [
+      navigator.userAgent,
+      screen.width,
+      screen.height,
+      new Date().getTimezoneOffset(),
+    ].join("|")
+
+    return {
+      ipHash: hashString(fingerprint), // Client-side hash, not real IP
+      userAgent: navigator.userAgent.substring(0, 100), // Limit length
+    }
+  }, [])
+
+  const logAccess = useMutation(api.share.logShareAccess)
+  const [accessAllowed, setAccessAllowed] = useState<boolean | null>(null)
+
+  const sharedData = useQuery(
+    api.share.getSharedThread,
+    accessAllowed ? { shareId } : "skip",
+  )
+
+  // Log access attempt on component mount
+  useEffect(() => {
+    if (accessAllowed === null) {
+      logAccess({ shareId, clientInfo })
+        .then((result) => {
+          setAccessAllowed(result.allowed)
+        })
+        .catch(() => {
+          setAccessAllowed(false)
+        })
+    }
+  }, [shareId, clientInfo, logAccess, accessAllowed])
+
+  // Show loading while checking access or loading data
+  if (accessAllowed === null || (accessAllowed && sharedData === undefined)) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -26,7 +75,8 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
     )
   }
 
-  if (sharedData === null) {
+  // Show error if access not allowed or data not found
+  if (!accessAllowed || sharedData === null) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <AlertCircle className="h-12 w-12 text-muted-foreground" />
@@ -38,7 +88,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
     )
   }
 
-  const { thread, messages, owner } = sharedData
+  const { thread, messages, owner } = sharedData!
 
   return (
     <div className="flex flex-col h-screen">
