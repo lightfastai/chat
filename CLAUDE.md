@@ -595,8 +595,10 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 1. ✅ `bun run build` - Must pass without errors
 2. ✅ `bun run lint` - Must pass without errors
 3. ✅ Code formatted with `bun run format`
-4. ✅ All changes tested locally
-5. ✅ **Chat branching tests** - Run ALL test scenarios above and verify they pass
+4. ✅ `bun test` - Run automated tests and verify they pass
+5. ✅ **Write tests for new features** - Add test files for new functionality using bun test runner
+6. ✅ All changes tested locally
+7. ✅ **Chat branching tests** - Run ALL test scenarios above and verify they pass
 
 ### Before PR Creation
 1. ✅ Feature branch pushed to remote
