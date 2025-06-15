@@ -181,17 +181,18 @@ export function ChatInterface() {
     console.log(
       `🔥 RENDER ${currentRender} - useEffect (message variants) starting`,
     )
-    if (!messages.length) {
+    if (!processedMessages.length) {
       console.log(
-        `🔥 RENDER ${currentRender} - useEffect (message variants) early return - no messages`,
+        `🔥 RENDER ${currentRender} - useEffect (message variants) early return - no processed messages`,
       )
       return
     }
 
     const messageGroups = new Map<string, Message[]>()
 
-    // Build groups the same way as in processedMessages
-    for (const message of messages) {
+    // Build groups using processedMessages (already filtered by conversation branch)
+    // This ensures consistency between what we process and what we display
+    for (const message of processedMessages) {
       if (!message.branchFromMessageId) {
         if (!messageGroups.has(message._id)) {
           messageGroups.set(message._id, [])
@@ -212,8 +213,8 @@ export function ChatInterface() {
     >()
     const updatedMessageBranches = { ...messageBranches }
 
-    // Only process original messages (not branches)
-    const originalMessages = messages.filter((msg) => !msg.branchFromMessageId)
+    // Only process original messages (not branches) from processedMessages
+    const originalMessages = processedMessages.filter((msg) => !msg.branchFromMessageId)
 
     for (const originalMessage of originalMessages) {
       const variants = messageGroups.get(originalMessage._id) || []
@@ -261,7 +262,7 @@ export function ChatInterface() {
     console.log(
       `🔥 RENDER ${currentRender} - useEffect (message variants) COMPLETE`,
     )
-  }, [messages, messageBranches])
+  }, [processedMessages, messageBranches])
 
   // Auto-switching is now handled by the useConversationBranches hook
 
