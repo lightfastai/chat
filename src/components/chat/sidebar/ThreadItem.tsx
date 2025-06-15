@@ -18,12 +18,12 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
   const href = `/chat/${thread.clientId || thread._id}`
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem className="w-full">
       <a 
         href={href} 
-        className="block w-full px-2 py-1.5 text-sm rounded-md hover:bg-accent overflow-hidden"
+        className="block px-2 py-1.5 text-sm rounded-md hover:bg-accent"
       >
-        <div className="truncate">
+        <div className="truncate max-w-[220px]">
           {thread.title}
         </div>
       </a>
