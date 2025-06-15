@@ -85,9 +85,26 @@ export function CodeMirrorBlock({
 
     // Create extensions array (following Vercel's fixed oneDark approach)
     const langExtension = getLanguageExtension(language)
+    console.log(`CodeMirror: Loading language "${language}", extension:`, langExtension)
     
+    // Build extensions in the exact order Vercel uses: basicSetup, language, theme
     const extensions = [
       basicSetup,
+    ]
+
+    // Add language extension first (before theme)
+    if (langExtension) {
+      extensions.push(langExtension)
+      console.log(`CodeMirror: Added language extension for "${language}"`)
+    } else {
+      console.log(`CodeMirror: No language extension found for "${language}", using plain text`)
+    }
+
+    // Add theme after language extension
+    extensions.push(oneDark)
+
+    // Add custom theme and settings last
+    extensions.push(
       EditorView.theme({
         "&": {
           fontSize: "0.875rem",
@@ -105,13 +122,7 @@ export function CodeMirrorBlock({
         },
       }),
       EditorView.editable.of(false), // Make read-only
-      oneDark, // Always use oneDark theme like Vercel
-    ]
-
-    // Add language extension if available
-    if (langExtension) {
-      extensions.push(langExtension)
-    }
+    )
 
     // Create editor state
     const state = EditorState.create({
