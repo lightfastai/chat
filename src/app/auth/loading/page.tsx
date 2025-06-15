@@ -3,13 +3,14 @@ import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { AuthLoadingClient } from "./client"
 
-export default function AuthLoadingPage({
+export default async function AuthLoadingPage({
   searchParams,
 }: {
-  searchParams: { provider?: string; redirectTo?: string }
+  searchParams: Promise<{ provider?: string; redirectTo?: string }>
 }) {
+  const params = await searchParams
   // If no provider is specified, redirect to signin
-  if (!searchParams.provider) {
+  if (!params.provider) {
     redirect("/signin")
   }
 
@@ -28,8 +29,8 @@ export default function AuthLoadingPage({
         <Suspense fallback={null}>
           <div className="hidden">
             <AuthLoadingClient
-              provider={searchParams.provider}
-              redirectTo={searchParams.redirectTo}
+              provider={params.provider}
+              redirectTo={params.redirectTo}
             />
           </div>
         </Suspense>

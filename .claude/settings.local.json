@@ -68,7 +68,10 @@
       "Bash(git merge:*)",
       "Bash(--title \"feat: move signin to server actions\" )",
       "Bash(--body \"## Summary\nImplements server actions for authentication to improve security and provide better error handling and loading states.\n\n- ✅ Server-side validation of signin parameters\n- ✅ Progressive enhancement with form-based signin\n- ✅ Proper loading states and error handling\n- ✅ Hybrid approach maintaining OAuth flow compatibility\n\n## Changes\n- Created \\`src/app/actions/auth.ts\\` with server actions for authentication\n- Updated \\`SignInOptions\\` component to use server validation before client OAuth\n- Added new \\`SignInForm\\` component with progressive enhancement\n- Implemented proper loading states with \\`useTransition\\` and \\`useFormStatus\\`\n- Added toast notifications for error feedback\n\n## Test Plan\n- [ ] Sign in with GitHub works (production only)\n- [ ] Sign in as Guest works (non-production)\n- [ ] Loading states display during signin\n- [ ] Error messages show appropriately\n- [ ] No console errors during signin flow\n- [ ] Form submission works without JavaScript (progressive enhancement)\n\nCloses #80\n\n🤖 Generated with [Claude Code](https://claude.ai/code)\")",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(SKIP_ENV_VALIDATION=true bun run build)",
+      "Bash(bun run lint:*)",
+      "Bash(bun test:*)"
     ],
     "deny": []
   }
