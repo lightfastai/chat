@@ -148,3 +148,6 @@ tmp_repo/
 
 # Turborepo cache
 .turbo/
+
+# Fumadocs generated files
+.source/
