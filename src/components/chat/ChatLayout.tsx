@@ -57,7 +57,7 @@ interface ChatLayoutProps {
 // Main server layout component
 export function ChatLayout({ children }: ChatLayoutProps) {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full">
         <ServerSidebar />
         <SidebarInset className="flex flex-col border-l border-r-0 border-t border-b">
