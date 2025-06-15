@@ -1,10 +1,11 @@
 "use client"
 
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { api } from "@/convex/_generated/api"
 import { getModelDisplayName } from "@/lib/ai"
 import { useMutation, useQuery } from "convex/react"
-import { AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle, Info, Loader2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { MessageItem } from "./shared"
 
@@ -98,13 +99,16 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
         <div className="p-4 pb-16">
           <div className="space-y-6 max-w-3xl mx-auto">
             {/* Disclaimer */}
-            <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-6">
-              This is a copy of a chat between Lightfast and{" "}
-              {owner?.name || "a user"}. Content may include unverified or
-              unsafe content that do not represent the views of Lightfast.
-              Shared snapshot may contain attachments and data not displayed
-              here.
-            </div>
+            <Alert className="mb-6">
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                This is a copy of a chat between Lightfast and{" "}
+                {owner?.name || "a user"}. Content may include unverified or
+                unsafe content that do not represent the views of Lightfast.
+                Shared snapshot may contain attachments and data not displayed
+                here.
+              </AlertDescription>
+            </Alert>
             {messages.map((message) => {
               const isAI = message.messageType === "assistant"
               const modelName = isAI

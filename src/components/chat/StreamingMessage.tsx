@@ -4,9 +4,9 @@ import { Badge } from "@/components/ui/badge"
 import { Markdown } from "@/components/ui/markdown"
 import { useResumableStream } from "@/hooks/useResumableStream"
 import { cn } from "@/lib/utils"
-import { Brain, ChevronDown, ChevronRight, Key } from "lucide-react"
-import { useState } from "react"
+import { Key } from "lucide-react"
 import type { Doc } from "../../../convex/_generated/dataModel"
+import { ThinkingContent, formatDuration } from "./shared/ThinkingContent"
 
 type Message = Doc<"messages"> & { _streamId?: string | null }
 
@@ -37,22 +37,6 @@ export function StreamingMessage({
   // Show thinking indicator if streaming but no text yet
   const isThinking = message.isStreaming && !displayText && !isComplete
 
-  // Helper function to format duration
-  const formatDuration = (ms: number) => {
-    if (ms < 1000) {
-      return `${Math.round(ms)}ms`
-    }
-    if (ms < 60000) {
-      return `${(ms / 1000).toFixed(1)}s`
-    }
-    const minutes = Math.floor(ms / 60000)
-    const seconds = Math.floor((ms % 60000) / 1000)
-    return `${minutes}m ${seconds}s`
-  }
-
-  // Collapsible state for reasoning content
-  const [isThinkingExpanded, setIsThinkingExpanded] = useState(false)
-
   return (
     <div className={cn("space-y-1", className)}>
       {/* Model name and thinking duration at the top, like non-streaming UI */}
@@ -81,33 +65,11 @@ export function StreamingMessage({
       </div>
       {/* Reasoning/thinking content (Claude's thoughts) */}
       {message.hasThinkingContent && message.thinkingContent && (
-        <div className="mb-4 rounded-lg border border-muted bg-muted/20 p-3">
-          <button
-            type="button"
-            onClick={() => setIsThinkingExpanded(!isThinkingExpanded)}
-            className="flex w-full items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {isThinkingExpanded ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
-            <Brain className="h-3 w-3" />
-            <span>View reasoning process</span>
-            {thinkingDuration && (
-              <span className="ml-auto font-mono text-[10px]">
-                {formatDuration(thinkingDuration)}
-              </span>
-            )}
-          </button>
-          {isThinkingExpanded && (
-            <div className="mt-3 text-xs text-muted-foreground space-y-2">
-              <p className="whitespace-pre-wrap font-mono leading-relaxed">
-                {message.thinkingContent}
-              </p>
-            </div>
-          )}
-        </div>
+        <ThinkingContent
+          content={message.thinkingContent}
+          duration={thinkingDuration}
+          variant="collapsible"
+        />
       )}
       <div className="text-sm leading-relaxed">
         {isThinking && !displayText ? (

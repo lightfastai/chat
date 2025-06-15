@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Markdown } from "@/components/ui/markdown"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
 import { Key } from "lucide-react"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
@@ -141,12 +140,8 @@ export function MessageItem({
     </div>
   )
 
-  // Timestamp (only show in non-readonly mode)
-  const timestamp = !isReadOnly ? (
-    <span className="text-xs text-muted-foreground">
-      {format(new Date(message.timestamp), "h:mm a")}
-    </span>
-  ) : undefined
+  // Timestamp - disabled for now
+  const timestamp = undefined
 
   // Actions (only for assistant messages in interactive mode)
   const messageActions =
