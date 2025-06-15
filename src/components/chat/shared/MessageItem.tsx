@@ -125,34 +125,19 @@ export function MessageItem({
           />
         )}
 
-      {/* Message body */}
-      {isReadOnly && !isAssistant ? (
-        // Simple text display for user messages in read-only mode
-        <div className="inline-block rounded-lg px-4 py-2 bg-muted">
-          <p className="whitespace-pre-wrap">{message.body}</p>
-        </div>
-      ) : isReadOnly && isAssistant ? (
-        // Styled message for assistant in read-only mode
-        <div className="inline-block rounded-lg px-4 py-2 bg-primary text-primary-foreground">
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <Markdown>{message.body}</Markdown>
-          </div>
-        </div>
-      ) : (
-        // Interactive mode message display
-        <div className="text-sm leading-relaxed">
-          {isThinking && !displayText ? (
-            <span className="text-muted-foreground italic">Thinking</span>
-          ) : displayText ? (
-            <>
-              <Markdown className="text-sm">{displayText}</Markdown>
-              {isStreaming && !isComplete && (
-                <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-              )}
-            </>
-          ) : null}
-        </div>
-      )}
+      {/* Message body - unified for both read-only and interactive modes */}
+      <div className="text-sm leading-relaxed">
+        {isThinking && !displayText ? (
+          <span className="text-muted-foreground italic">Thinking</span>
+        ) : displayText ? (
+          <>
+            <Markdown className="text-sm">{displayText}</Markdown>
+            {isStreaming && !isComplete && (
+              <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
+            )}
+          </>
+        ) : null}
+      </div>
     </div>
   )
 

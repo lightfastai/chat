@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { api } from "@/convex/_generated/api"
+import { getModelDisplayName } from "@/lib/ai"
 import { useMutation, useQuery } from "convex/react"
 import { format } from "date-fns"
 import { AlertCircle, Loader2, Share2 } from "lucide-react"
@@ -106,17 +107,31 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 
       {/* Messages */}
       <ScrollArea className="flex-1">
-        <div className="max-w-4xl mx-auto p-6 space-y-6">
-          {messages.map((message) => (
-            <MessageItem
-              key={message._id}
-              message={message}
-              owner={owner || undefined}
-              showThinking={thread.shareSettings?.showThinking}
-              isReadOnly={true}
-              showActions={false}
-            />
-          ))}
+        <div className="p-4 pb-16">
+          <div className="space-y-6 max-w-3xl mx-auto">
+            {messages.map((message) => {
+              const isAI = message.messageType === "assistant"
+              const modelName = isAI
+                ? message.modelId
+                  ? getModelDisplayName(message.modelId)
+                  : message.model
+                    ? getModelDisplayName(message.model)
+                    : "AI Assistant"
+                : undefined
+
+              return (
+                <MessageItem
+                  key={message._id}
+                  message={message}
+                  owner={owner || undefined}
+                  showThinking={thread.shareSettings?.showThinking}
+                  isReadOnly={true}
+                  showActions={false}
+                  modelName={modelName}
+                />
+              )
+            })}
+          </div>
         </div>
       </ScrollArea>
 
