@@ -113,7 +113,7 @@ function LandingHeader() {
           >
             Docs
           </Link>
-          <Link href="https://chat.lightfast.ai/signin">
+          <Link href="/signin">
             <Button variant="outline">Sign In</Button>
           </Link>
         </div>
