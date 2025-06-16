@@ -11,7 +11,7 @@ export const getUserSettings = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
-      throw new ConvexError("Unauthorized")
+      return null
     }
 
     const settings = await ctx.db

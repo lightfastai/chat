@@ -91,7 +91,11 @@ export function UserDropdown({
         {showSettings && (
           <>
             <DropdownMenuItem asChild>
-              <Link href={settingsHref} className="cursor-pointer">
+              <Link
+                href={settingsHref}
+                className="cursor-pointer"
+                prefetch={true}
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </Link>

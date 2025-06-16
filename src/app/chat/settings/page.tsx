@@ -23,32 +23,27 @@ export default async function SettingsPage() {
 }
 
 async function SettingsPageWithData() {
-  try {
-    // Get authentication token for server-side requests
-    const token = await getAuthToken()
+  // Get authentication token for server-side requests
+  const token = await getAuthToken()
 
-    // Middleware ensures authentication, so token should exist
-    if (!token) {
-      throw new Error("Authentication required")
-    }
-
-    // Preload both user data and settings for instant tab switching
-    const [preloadedUser, preloadedUserSettings] = await Promise.all([
-      preloadQuery(api.users.current, {}, { token }),
-      preloadQuery(api.userSettings.getUserSettings, {}, { token }),
-    ])
-
-    // Pass preloaded data to unified settings component
-    return (
-      <SettingsContent
-        preloadedUser={preloadedUser}
-        preloadedUserSettings={preloadedUserSettings}
-      />
-    )
-  } catch (error) {
-    console.error("Failed to load user data:", error)
+  // Middleware ensures authentication, so token should exist
+  if (!token) {
     return <SettingsError />
   }
+
+  // Preload both user data and settings for instant tab switching
+  const [preloadedUser, preloadedUserSettings] = await Promise.all([
+    preloadQuery(api.users.current, {}, { token }),
+    preloadQuery(api.userSettings.getUserSettings, {}, { token }),
+  ])
+
+  // Pass preloaded data to unified settings component
+  return (
+    <SettingsContent
+      preloadedUser={preloadedUser}
+      preloadedUserSettings={preloadedUserSettings}
+    />
+  )
 }
 
 // Loading skeleton for settings

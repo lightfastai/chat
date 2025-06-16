@@ -19,8 +19,32 @@ export function SettingsContent({
   preloadedUserSettings,
 }: SettingsContentProps) {
   const pathname = usePathname()
-  const user = usePreloadedQuery(preloadedUser)
-  const userSettings = usePreloadedQuery(preloadedUserSettings)
+
+  // Use try-catch to handle any preload query errors gracefully
+  let user: {
+    _id: string
+    _creationTime: number
+    name?: string
+    email?: string
+    image?: string
+    emailVerificationTime?: number
+    phoneVerificationTime?: number
+    isAnonymous?: boolean
+  } | null = null
+  let userSettings: {
+    hasOpenAIKey: boolean
+    hasAnthropicKey: boolean
+    hasOpenRouterKey: boolean
+  } | null = null
+
+  try {
+    user = usePreloadedQuery(preloadedUser)
+    userSettings = usePreloadedQuery(preloadedUserSettings)
+  } catch (error) {
+    console.error("Error loading preloaded data:", error)
+    // Return null to trigger Suspense boundary instead of error state
+    return null
+  }
 
   // Determine initial tab based on URL
   const initialTab =
@@ -50,8 +74,9 @@ export function SettingsContent({
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
+  // During navigation, user might be null temporarily - let Suspense handle it
   if (!user) {
-    return <ErrorState />
+    return null // This will trigger the Suspense boundary fallback
   }
 
   return (
@@ -81,20 +106,6 @@ export function SettingsContent({
           <ApiKeysSection userSettings={userSettings} />
         </TabsContent>
       </Tabs>
-    </div>
-  )
-}
-
-function ErrorState() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-        <p className="text-muted-foreground">Unable to load settings.</p>
-      </div>
-      <div className="border rounded-lg p-6 text-center text-muted-foreground">
-        <p>Something went wrong. Please try refreshing the page.</p>
-      </div>
     </div>
   )
 }
