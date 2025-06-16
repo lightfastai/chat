@@ -54,29 +54,55 @@ export function useChat() {
   // Determine the actual thread to use
   const currentThread = threadByClientId || threadById
 
-  // Get messages for current thread (including optimistic messages for new chats)
+  // Get messages for current thread
   const messages =
     useQuery(
       api.messages.list,
-      currentThread
-        ? { threadId: currentThread._id }
-        : currentClientId
-          ? { threadId: `temp-${currentClientId}` as Id<"threads"> }
-          : "skip",
+      currentThread ? { threadId: currentThread._id } : "skip",
     ) ?? []
 
   // Mutations with proper Convex optimistic updates
   const createThreadAndSend = useMutation(
     api.messages.createThreadAndSend,
   ).withOptimisticUpdate((localStore, args) => {
-    const { body, modelId, clientId } = args
-
-    // Create optimistic user message for new threads
+    const { title, clientId, body, modelId } = args
     const now = Date.now()
+    const tempThreadId = crypto.randomUUID() as Id<"threads">
+
+    // 1. Create optimistic thread for immediate sidebar display
+    const optimisticThread: Doc<"threads"> = {
+      _id: tempThreadId,
+      _creationTime: now,
+      clientId,
+      title,
+      userId: "temp" as Id<"users">, // Temporary user ID
+      createdAt: now,
+      lastMessageAt: now,
+      isTitleGenerating: true,
+      isGenerating: true,
+    }
+
+    // Get existing threads from the store
+    const existingThreads = localStore.getQuery(api.threads.list, {}) || []
+
+    // Add the new thread at the beginning
+    localStore.setQuery(api.threads.list, {}, [
+      optimisticThread,
+      ...existingThreads,
+    ])
+
+    // 2. Also update thread by clientId query
+    localStore.setQuery(
+      api.threads.getByClientId,
+      { clientId },
+      optimisticThread,
+    )
+
+    // 3. Create optimistic message
     const optimisticMessage: Doc<"messages"> = {
       _id: crypto.randomUUID() as Id<"messages">,
       _creationTime: now,
-      threadId: `temp-${clientId}` as Id<"threads">, // Temporary thread ID
+      threadId: tempThreadId,
       body,
       messageType: "user",
       modelId,
@@ -85,12 +111,10 @@ export function useChat() {
       isComplete: true,
     }
 
-    // Store optimistic message with clientId-based key for new threads
-    localStore.setQuery(
-      api.messages.list,
-      { threadId: `temp-${clientId}` as Id<"threads"> },
-      [optimisticMessage],
-    )
+    // Set the optimistic message for this thread
+    localStore.setQuery(api.messages.list, { threadId: tempThreadId }, [
+      optimisticMessage,
+    ])
   })
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
@@ -125,9 +149,6 @@ export function useChat() {
     },
   )
 
-  // Use messages directly - Convex optimistic updates handle everything
-  const allMessages = messages
-
   const handleSendMessage = async (
     message: string,
     modelId: string,
@@ -146,7 +167,6 @@ export function useChat() {
         window.location.replace(`/chat/${clientId}`)
 
         // Create thread + send message atomically with optimistic updates
-        // The optimistic update will show the message immediately
         await createThreadAndSend({
           title: "Generating title...",
           clientId: clientId,
@@ -206,7 +226,7 @@ export function useChat() {
   }
 
   return {
-    messages: allMessages,
+    messages,
     currentThread,
     isNewChat,
     handleSendMessage,
