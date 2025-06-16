@@ -34,9 +34,6 @@ export function useConversationBranches(
   messages: Message[],
 ): ConversationBranchNavigation {
   const [currentBranch, setCurrentBranch] = useState<string>("main")
-  const [lastAutoSwitchBranch, setLastAutoSwitchBranch] = useState<
-    string | null
-  >(null)
 
   // Build conversation tree from messages
   const conversationTree = useMemo(() => {
@@ -179,29 +176,35 @@ export function useConversationBranches(
   useEffect(() => {
     if (conversationTree.branches.length <= 1) return
 
-    // Find the newest non-main branch that we haven't auto-switched to yet
+    // Find the newest non-main branch by parsing timestamps from branch IDs
     const nonMainBranches = conversationTree.branches.filter(
       (b) => b.id !== "main",
     )
 
     if (nonMainBranches.length > 0) {
-      // Sort by branch ID (which contains timestamp) to get newest
-      const newestBranch = nonMainBranches
-        .sort((a, b) => a.id.localeCompare(b.id))
-        .pop()
+      // Extract timestamp from branch ID and sort numerically
+      const branchesWithTimestamps = nonMainBranches.map(branch => {
+        // Extract timestamp from branch ID format: branch_{messageId}_{timestamp}_{suffix}
+        const parts = branch.id.split('_')
+        const timestamp = parts.length >= 3 ? parseInt(parts[2], 10) || 0 : 0
+        return { branch, timestamp }
+      })
+
+      // Sort by timestamp (newest first) and get the newest branch
+      const newestBranch = branchesWithTimestamps
+        .sort((a, b) => b.timestamp - a.timestamp)[0]?.branch
 
       if (
         newestBranch &&
         newestBranch.id !== currentBranch &&
-        newestBranch.id !== lastAutoSwitchBranch &&
         newestBranch.messages.length > 0
       ) {
-        console.log("🌳 Auto-switching to newest branch:", newestBranch.id)
+        console.log("🌳 Auto-switching to newest branch:", newestBranch.id, 
+                   "from current:", currentBranch)
         setCurrentBranch(newestBranch.id)
-        setLastAutoSwitchBranch(newestBranch.id)
       }
     }
-  }, [conversationTree, currentBranch, lastAutoSwitchBranch])
+  }, [conversationTree, currentBranch])
 
   // Get messages for a specific branch
   const getMessagesForBranch = useCallback(
