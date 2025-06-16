@@ -29,16 +29,17 @@ export const metadata: Metadata = {
 }
 
 interface SignInPageProps {
-  searchParams: {
+  searchParams: Promise<{
     from?: string
     error?: string
-  }
+  }>
 }
 
-export default function SignInPage({ searchParams }: SignInPageProps) {
+export default async function SignInPage({ searchParams }: SignInPageProps) {
   // Authentication check moved to middleware for better performance
-  const redirectTo = searchParams.from || "/chat"
-  const error = searchParams.error
+  const params = await searchParams
+  const redirectTo = params.from || "/chat"
+  const error = params.error
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
