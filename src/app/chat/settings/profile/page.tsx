@@ -1,7 +1,6 @@
 import { ProfileSection } from "@/components/settings/ProfileSection"
-import { getCurrentUser, isAuthenticated } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import type { Metadata } from "next"
-import { redirect } from "next/navigation"
 
 export const metadata: Metadata = {
   title: "Profile - Settings",
@@ -16,15 +15,9 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export default async function ProfilePage() {
-  // Server-side authentication check
-  const [authenticated, user] = await Promise.all([
-    isAuthenticated(),
-    getCurrentUser(),
-  ])
+  // Get user data - middleware ensures authentication
+  const user = await getCurrentUser()
 
-  if (!authenticated || !user) {
-    redirect("/signin")
-  }
-
-  return <ProfileSection user={user} />
+  // User will always exist here due to middleware protection
+  return <ProfileSection user={user!} />
 }
