@@ -362,7 +362,7 @@ const ChatInputComponent = ({
 
               {/* Controls area - always at bottom */}
               <div
-                className={`flex items-center justify-between p-2 bg-transparent dark:bg-input/10 border-t transition-[color,box-shadow] ${
+                className={`flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow] ${
                   isComponentDisabled ? "cursor-not-allowed" : ""
                 }`}
               >
