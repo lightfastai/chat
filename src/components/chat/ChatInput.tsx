@@ -339,7 +339,7 @@ const ChatInputComponent = ({
           <div className="flex-1 min-w-0">
             {/* Main input container */}
             <div
-              className={`w-full border flex flex-col transition-all ${
+              className={`w-full border flex flex-col transition-all bg-transparent dark:bg-input/10 ${
                 attachments.length > 0 ? "rounded-t-md" : "rounded-md"
               } ${isLoading ? "opacity-75" : ""}`}
             >
