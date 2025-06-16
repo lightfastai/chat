@@ -14,7 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as auth from "../auth.js";
-import type * as branches from "../branches.js";
+import type * as conversation_branches from "../conversation_branches.js";
 import type * as feedback from "../feedback.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
@@ -37,7 +37,7 @@ import type * as webSearch from "../webSearch.js";
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  branches: typeof branches;
+  conversation_branches: typeof conversation_branches;
   feedback: typeof feedback;
   files: typeof files;
   http: typeof http;
