@@ -333,7 +333,7 @@ const ChatInputComponent = ({
             >
               {/* Textarea area - grows with content up to max height */}
               <div
-                className="flex-1"
+                className="flex-1 bg-background"
                 style={{ maxHeight: "180px", overflowY: "auto" }}
               >
                 <Textarea
@@ -342,7 +342,7 @@ const ChatInputComponent = ({
                   onChange={handleMessageChange}
                   onKeyPress={handleKeyPress}
                   placeholder={placeholder}
-                  className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3"
+                  className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3 bg-transparent"
                   maxLength={maxLength}
                   disabled={disabled || isSending}
                   style={{
@@ -353,7 +353,7 @@ const ChatInputComponent = ({
               </div>
 
               {/* Controls area - always at bottom */}
-              <div className="flex items-center justify-between p-2 bg-input/10">
+              <div className="flex items-center justify-between p-2 bg-background border-t">
                 <div className="flex items-center gap-2">
                   <Select
                     value={selectedModelId}
