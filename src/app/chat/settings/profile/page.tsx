@@ -1,6 +1,5 @@
-import { ProfileSection } from "@/components/settings/ProfileSection"
-import { getCurrentUser } from "@/lib/auth"
 import type { Metadata } from "next"
+import { redirect } from "next/navigation"
 
 export const metadata: Metadata = {
   title: "Profile - Settings",
@@ -11,13 +10,8 @@ export const metadata: Metadata = {
   },
 }
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-
-export default async function ProfilePage() {
-  // Get user data - middleware ensures authentication
-  const user = await getCurrentUser()
-
-  // User will always exist here due to middleware protection
-  return <ProfileSection user={user!} />
+// This page now redirects to the main settings page
+// The SettingsContent component will handle tab routing based on URL
+export default function ProfilePage() {
+  redirect("/chat/settings")
 }

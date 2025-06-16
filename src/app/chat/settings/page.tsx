@@ -1,4 +1,4 @@
-import { ProfileSectionWithPreload } from "@/components/settings/ProfileSectionWithPreload"
+import { SettingsContent } from "@/components/settings/SettingsContent"
 import { getAuthToken } from "@/lib/auth"
 import { preloadQuery } from "convex/nextjs"
 import type { Metadata } from "next"
@@ -6,20 +6,17 @@ import { Suspense } from "react"
 import { api } from "../../../../convex/_generated/api"
 
 export const metadata: Metadata = {
-  title: "Profile - Settings",
-  description: "View and manage your profile information.",
+  title: "Settings",
+  description: "Manage your account settings and preferences.",
   robots: {
     index: false,
     follow: false,
   },
 }
 
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-
 export default async function SettingsPage() {
   return (
-    <Suspense fallback={<ProfileSkeleton />}>
+    <Suspense fallback={<SettingsSkeleton />}>
       <SettingsPageWithData />
     </Suspense>
   )
@@ -35,19 +32,27 @@ async function SettingsPageWithData() {
       throw new Error("Authentication required")
     }
 
-    // Preload user data for PPR - this will be cached and streamed instantly
-    const preloadedUser = await preloadQuery(api.users.current, {}, { token })
+    // Preload both user data and settings for instant tab switching
+    const [preloadedUser, preloadedUserSettings] = await Promise.all([
+      preloadQuery(api.users.current, {}, { token }),
+      preloadQuery(api.userSettings.getUserSettings, {}, { token }),
+    ])
 
-    // Pass preloaded data to client component
-    return <ProfileSectionWithPreload preloadedUser={preloadedUser} />
+    // Pass preloaded data to unified settings component
+    return (
+      <SettingsContent
+        preloadedUser={preloadedUser}
+        preloadedUserSettings={preloadedUserSettings}
+      />
+    )
   } catch (error) {
     console.error("Failed to load user data:", error)
-    return <ProfileError />
+    return <SettingsError />
   }
 }
 
-// Loading skeleton for profile
-function ProfileSkeleton() {
+// Loading skeleton for settings
+function SettingsSkeleton() {
   return (
     <div className="space-y-6">
       <div>
@@ -68,14 +73,12 @@ function ProfileSkeleton() {
 }
 
 // Error state
-function ProfileError() {
+function SettingsError() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Profile</h3>
-        <p className="text-sm text-muted-foreground">
-          Unable to load profile information.
-        </p>
+        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <p className="text-muted-foreground">Unable to load settings.</p>
       </div>
       <div className="border rounded-lg p-6 text-center text-muted-foreground">
         <p>Something went wrong. Please try refreshing the page.</p>

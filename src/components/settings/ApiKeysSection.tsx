@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { validateApiKeyFormat } from "@/lib/ai/apiKeyValidation"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQuery } from "convex/react"
+import { useMutation } from "convex/react"
 import { ExternalLink, Eye, EyeOff, Key, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
@@ -76,12 +76,19 @@ const OpenRouterApiKeyFormSchema = z.object({
 })
 type OpenRouterApiKeyFormValues = z.infer<typeof OpenRouterApiKeyFormSchema>
 
-export function ApiKeysSection() {
+interface ApiKeysSectionProps {
+  userSettings: {
+    hasOpenAIKey: boolean
+    hasAnthropicKey: boolean
+    hasOpenRouterKey: boolean
+  } | null
+}
+
+export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
   const [showOpenAI, setShowOpenAI] = useState(false)
   const [showAnthropic, setShowAnthropic] = useState(false)
   const [showOpenRouter, setShowOpenRouter] = useState(false)
 
-  const userSettings = useQuery(api.userSettings.getUserSettings)
   const updateApiKeys = useMutation(api.userSettings.updateApiKeys)
   const removeApiKey = useMutation(api.userSettings.removeApiKey)
 
