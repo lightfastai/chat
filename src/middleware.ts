@@ -14,6 +14,11 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   // Cache auth status for this request to avoid multiple checks
   const isAuthenticated = await convexAuth.isAuthenticated()
 
+  // Redirect authenticated users from root to /chat
+  if (pathname === "/" && isAuthenticated) {
+    return nextjsMiddlewareRedirect(request, "/chat")
+  }
+
   // Redirect authenticated users away from auth pages
   if (isSignInPage(request) && isAuthenticated) {
     // Preserve the 'from' parameter if it exists
