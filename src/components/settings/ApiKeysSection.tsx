@@ -209,13 +209,13 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
             <SettingsRow
               title="OpenAI"
               description={
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                   <span>Used for GPT models.</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-auto p-0 text-muted-foreground hover:underline"
+                    className="h-auto justify-start p-0 text-muted-foreground hover:underline sm:justify-center"
                     onClick={() =>
                       window.open(
                         "https://platform.openai.com/api-keys",
@@ -235,14 +235,14 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="sr-only">OpenAI API Key</FormLabel>
-                    <div className="flex items-center space-x-2">
-                      <div className="relative">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="relative flex-1 sm:flex-initial">
                         <FormControl>
                           <Input
                             {...field}
                             type={showOpenAI ? "text" : "password"}
                             placeholder="sk-..."
-                            className="w-48"
+                            className="w-full pr-10 sm:w-48"
                             onFocus={(e) => {
                               if (e.target.value === "********") {
                                 openaiForm.setValue("openaiKey", "")
@@ -264,27 +264,29 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                           )}
                         </Button>
                       </div>
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={openaiForm.formState.isSubmitting}
-                      >
-                        {openaiForm.formState.isSubmitting && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Save
-                      </Button>
-                      {userSettings?.hasOpenAIKey && (
+                      <div className="flex gap-2">
                         <Button
-                          type="button"
-                          variant="ghost"
+                          type="submit"
                           size="sm"
-                          onClick={() => handleRemoveApiKey("openai")}
-                          className="text-red-600 hover:text-red-700"
+                          disabled={openaiForm.formState.isSubmitting}
                         >
-                          Remove
+                          {openaiForm.formState.isSubmitting && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
+                          Save
                         </Button>
-                      )}
+                        {userSettings?.hasOpenAIKey && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveApiKey("openai")}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -300,13 +302,13 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
             <SettingsRow
               title="Anthropic"
               description={
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                   <span>Used for Claude models.</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-auto p-0 text-muted-foreground hover:underline"
+                    className="h-auto justify-start p-0 text-muted-foreground hover:underline sm:justify-center"
                     onClick={() =>
                       window.open(
                         "https://console.anthropic.com/settings/keys",
@@ -326,14 +328,14 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="sr-only">Anthropic API Key</FormLabel>
-                    <div className="flex items-center space-x-2">
-                      <div className="relative">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="relative flex-1 sm:flex-initial">
                         <FormControl>
                           <Input
                             {...field}
                             type={showAnthropic ? "text" : "password"}
                             placeholder="sk-ant-..."
-                            className="w-48"
+                            className="w-full pr-10 sm:w-48"
                             onFocus={(e) => {
                               if (e.target.value === "********") {
                                 anthropicForm.setValue("anthropicKey", "")
@@ -355,27 +357,29 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                           )}
                         </Button>
                       </div>
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={anthropicForm.formState.isSubmitting}
-                      >
-                        {anthropicForm.formState.isSubmitting && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Save
-                      </Button>
-                      {userSettings?.hasAnthropicKey && (
+                      <div className="flex gap-2">
                         <Button
-                          type="button"
-                          variant="ghost"
+                          type="submit"
                           size="sm"
-                          onClick={() => handleRemoveApiKey("anthropic")}
-                          className="text-red-600 hover:text-red-700"
+                          disabled={anthropicForm.formState.isSubmitting}
                         >
-                          Remove
+                          {anthropicForm.formState.isSubmitting && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
+                          Save
                         </Button>
-                      )}
+                        {userSettings?.hasAnthropicKey && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveApiKey("anthropic")}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -391,13 +395,13 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
             <SettingsRow
               title="OpenRouter"
               description={
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
                   <span>Used for OpenRouter models (Llama, Gemini, etc.).</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-auto p-0 text-muted-foreground hover:underline"
+                    className="h-auto justify-start p-0 text-muted-foreground hover:underline sm:justify-center"
                     onClick={() =>
                       window.open("https://openrouter.ai/keys", "_blank")
                     }
@@ -416,14 +420,14 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                     <FormLabel className="sr-only">
                       OpenRouter API Key
                     </FormLabel>
-                    <div className="flex items-center space-x-2">
-                      <div className="relative">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="relative flex-1 sm:flex-initial">
                         <FormControl>
                           <Input
                             {...field}
                             type={showOpenRouter ? "text" : "password"}
                             placeholder="sk-or-..."
-                            className="w-48"
+                            className="w-full pr-10 sm:w-48"
                             onFocus={(e) => {
                               if (e.target.value === "********") {
                                 openrouterForm.setValue("openrouterKey", "")
@@ -445,27 +449,29 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                           )}
                         </Button>
                       </div>
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={openrouterForm.formState.isSubmitting}
-                      >
-                        {openrouterForm.formState.isSubmitting && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Save
-                      </Button>
-                      {userSettings?.hasOpenRouterKey && (
+                      <div className="flex gap-2">
                         <Button
-                          type="button"
-                          variant="ghost"
+                          type="submit"
                           size="sm"
-                          onClick={() => handleRemoveApiKey("openrouter")}
-                          className="text-red-600 hover:text-red-700"
+                          disabled={openrouterForm.formState.isSubmitting}
                         >
-                          Remove
+                          {openrouterForm.formState.isSubmitting && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
+                          Save
                         </Button>
-                      )}
+                        {userSettings?.hasOpenRouterKey && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveApiKey("openrouter")}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     <FormMessage />
                   </FormItem>
