@@ -4,7 +4,7 @@ import type { ModelId } from "@/lib/ai/types"
 import { isClientId, nanoid } from "@/lib/nanoid"
 import { useMutation, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc, Id } from "../../convex/_generated/dataModel"
 
@@ -13,10 +13,6 @@ export function useChat() {
 
   // Store the temporary thread ID to maintain consistency across URL changes
   const tempThreadIdRef = useRef<Id<"threads"> | null>(null)
-
-  // Store temporary optimistic message during URL transition
-  const [optimisticMessage, setOptimisticMessage] =
-    useState<Doc<"messages"> | null>(null)
 
   // Extract current thread info from pathname with clientId support
   const pathInfo = useMemo(() => {
@@ -44,6 +40,13 @@ export function useChat() {
   const currentClientId = pathInfo.type === "clientId" ? pathInfo.id : null
   const isNewChat = currentThreadId === "new" && !currentClientId
 
+  // Pre-generate thread ID for new chats to ensure query is active
+  useEffect(() => {
+    if (isNewChat && !tempThreadIdRef.current) {
+      tempThreadIdRef.current = nanoid(32) as Id<"threads">
+    }
+  }, [isNewChat])
+
   // Get thread by clientId if we have one
   const threadByClientId = useQuery(
     api.threads.getByClientId,
@@ -64,7 +67,8 @@ export function useChat() {
   // Get messages for current thread
   // IMPORTANT: For optimistic updates to work when transitioning from /chat to /chat/{clientId},
   // we need to use the temporary thread ID when we have a clientId but no server thread yet
-  const messageThreadId = currentThread?._id || tempThreadIdRef.current || null
+  // ALWAYS use tempThreadIdRef if it's set, even on /chat, to ensure query is active
+  const messageThreadId = tempThreadIdRef.current || currentThread?._id || null
 
   // Memoize the query args to prevent unnecessary re-subscriptions
   const queryArgs = useMemo(
@@ -74,34 +78,14 @@ export function useChat() {
 
   const convexMessages = useQuery(api.messages.list, queryArgs) ?? []
 
-  // Clear temp thread ID and optimistic message when we get a real thread from server
+  // Clear temp thread ID when we get a real thread from server
   useEffect(() => {
     if (currentThread && tempThreadIdRef.current) {
       tempThreadIdRef.current = null
     }
-    // Clear optimistic message once it appears in convex messages
-    if (
-      optimisticMessage &&
-      convexMessages.some((msg) => msg.body === optimisticMessage.body)
-    ) {
-      setOptimisticMessage(null)
-    }
-  }, [currentThread, optimisticMessage, convexMessages])
+  }, [currentThread])
 
-  // Combine Convex messages with the optimistic message during transitions
-  const messages = useMemo(() => {
-    if (optimisticMessage && messageThreadId === optimisticMessage.threadId) {
-      // Check if the message already exists in convexMessages
-      const exists = convexMessages.some(
-        (msg) => msg.body === optimisticMessage.body,
-      )
-      if (!exists) {
-        // Add optimistic message at the beginning (newest first)
-        return [optimisticMessage, ...convexMessages]
-      }
-    }
-    return convexMessages
-  }, [convexMessages, optimisticMessage, messageThreadId])
+  const messages = convexMessages
 
   // DEBUG: Log message query details for debugging
   useEffect(() => {
@@ -225,32 +209,12 @@ export function useChat() {
         // 🚀 Generate client ID for new chat
         const clientId = nanoid()
 
-        // Pre-generate the temporary thread ID
-        const tempThreadId = nanoid(32) as Id<"threads">
-        tempThreadIdRef.current = tempThreadId
-
-        // Create local optimistic message that will be displayed immediately
-        const now = Date.now()
-        const localOptimisticMessage: Doc<"messages"> = {
-          _id: nanoid(32) as Id<"messages">,
-          _creationTime: now,
-          threadId: tempThreadId,
-          body: message,
-          messageType: "user",
-          modelId: modelId as ModelId,
-          timestamp: now,
-          isStreaming: false,
-          isComplete: true,
-        }
-
-        // Set the optimistic message in state - this will display immediately
-        setOptimisticMessage(localOptimisticMessage)
-
-        // Update URL immediately
-        window.history.replaceState({}, "", `/chat/${clientId}`)
+        // Use the pre-generated thread ID (from useEffect)
+        const tempThreadId = tempThreadIdRef.current!
 
         // Create thread + send message with Convex optimistic updates
-        await createThreadAndSend({
+        // Do this FIRST while the query is still using the same thread ID
+        const createPromise = createThreadAndSend({
           title: "Generating title...",
           clientId: clientId,
           body: message,
@@ -258,6 +222,13 @@ export function useChat() {
           attachments,
           webSearchEnabled,
         })
+
+        // Then update URL - the query should maintain its optimistic updates
+        // because the threadId hasn't changed
+        window.history.replaceState({}, "", `/chat/${clientId}`)
+
+        // Wait for the mutation to complete
+        await createPromise
 
         return
       }
