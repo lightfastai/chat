@@ -60,8 +60,16 @@ async function SidebarWithPreloadedData() {
     // Preload threads data for PPR - this will be cached and streamed instantly
     const preloadedThreads = await preloadQuery(api.threads.list, {}, { token })
 
+    // Preload user data for PPR - this will be cached and streamed instantly
+    const preloadedUser = await preloadQuery(api.users.current, {}, { token })
+
     // Pass preloaded data to server component - only threads list will be client-side
-    return <ServerSidebarImplementation preloadedThreads={preloadedThreads} />
+    return (
+      <ServerSidebarImplementation
+        preloadedThreads={preloadedThreads}
+        preloadedUser={preloadedUser}
+      />
+    )
   } catch (error) {
     // Log error but still render - don't break the UI
     console.warn("Server-side thread preload failed:", error)

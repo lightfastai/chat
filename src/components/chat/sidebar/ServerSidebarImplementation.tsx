@@ -13,12 +13,13 @@ import { Plus } from "lucide-react"
 import Link from "next/link"
 import { Suspense } from "react"
 import type { api } from "../../../../convex/_generated/api"
-import { UserDropdown } from "../../auth/UserDropdown"
+import { PreloadedUserDropdown } from "../../auth/PreloadedUserDropdown"
 import { ActiveMenuItem } from "./ActiveMenuItem"
 import { PreloadedThreadsList } from "./PreloadedThreadsList"
 
 interface ServerSidebarImplementationProps {
   preloadedThreads: Preloaded<typeof api.threads.list>
+  preloadedUser: Preloaded<typeof api.users.current>
 }
 
 // Lightfast logo component - server-rendered
@@ -49,6 +50,7 @@ function LightfastLogo(props: React.SVGProps<SVGSVGElement>) {
 // Main server component - renders static parts with reactive threads list
 export function ServerSidebarImplementation({
   preloadedThreads,
+  preloadedUser,
 }: ServerSidebarImplementationProps) {
   return (
     <Sidebar variant="inset" className="w-64 max-w-64">
@@ -89,7 +91,10 @@ export function ServerSidebarImplementation({
       </SidebarContent>
 
       <SidebarFooter>
-        <UserDropdown className="w-full justify-start" />
+        <PreloadedUserDropdown
+          preloadedUser={preloadedUser}
+          className="w-full justify-start"
+        />
       </SidebarFooter>
     </Sidebar>
   )
