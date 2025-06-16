@@ -67,11 +67,7 @@ export function useChat() {
   // Get messages for current thread
   // IMPORTANT: For optimistic updates to work when transitioning from /chat to /chat/{clientId},
   // we need to use the temporary thread ID when we have a clientId but no server thread yet
-  const messageThreadId =
-    currentThread?._id ||
-    (currentClientId && tempThreadIdRef.current) ||
-    (isNewChat && tempThreadIdRef.current) || // Also check for new chat with temp thread
-    null
+  const messageThreadId = currentThread?._id || tempThreadIdRef.current || null
 
   const messages =
     useQuery(
@@ -100,9 +96,9 @@ export function useChat() {
     const now = Date.now()
 
     // Use stored temp thread ID if available (for consistency across URL changes)
-    // Otherwise generate a new one
+    // Otherwise generate a new one using nanoid with the same format as Convex IDs
     const tempThreadId =
-      tempThreadIdRef.current || (crypto.randomUUID() as Id<"threads">)
+      tempThreadIdRef.current || (nanoid(32) as Id<"threads">)
     tempThreadIdRef.current = tempThreadId
 
     // 1. Create optimistic thread for immediate sidebar display
@@ -136,7 +132,7 @@ export function useChat() {
 
     // 3. Create optimistic message
     const optimisticMessage: Doc<"messages"> = {
-      _id: crypto.randomUUID() as Id<"messages">,
+      _id: nanoid(32) as Id<"messages">,
       _creationTime: now,
       threadId: tempThreadId,
       body,
@@ -164,7 +160,7 @@ export function useChat() {
       if (existingMessages !== undefined) {
         const now = Date.now()
         const optimisticMessage: Doc<"messages"> = {
-          _id: crypto.randomUUID() as Id<"messages">,
+          _id: nanoid(32) as Id<"messages">,
           _creationTime: now,
           threadId,
           body,
@@ -198,14 +194,6 @@ export function useChat() {
         // 🚀 Generate client ID for new chat
         const clientId = nanoid()
 
-        // Pre-generate the temporary thread ID to ensure consistency
-        const tempThreadId = crypto.randomUUID() as Id<"threads">
-        tempThreadIdRef.current = tempThreadId
-
-        // Update URL immediately without navigation events
-        // Using window.history.replaceState like Vercel's AI chatbot for smoothest UX
-        window.history.replaceState({}, "", `/chat/${clientId}`)
-
         // Create thread + send message atomically with optimistic updates
         await createThreadAndSend({
           title: "Generating title...",
@@ -215,6 +203,10 @@ export function useChat() {
           attachments,
           webSearchEnabled,
         })
+
+        // Update URL after the optimistic update is complete
+        // This ensures the message is already visible when the URL changes
+        window.history.replaceState({}, "", `/chat/${clientId}`)
 
         return
       }
