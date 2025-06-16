@@ -1,14 +1,6 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   Form,
   FormControl,
@@ -21,12 +13,14 @@ import { Input } from "@/components/ui/input"
 import { validateApiKeyFormat } from "@/lib/ai/apiKeyValidation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "convex/react"
-import { ExternalLink, Eye, EyeOff, Key, Loader2 } from "lucide-react"
+import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 import { api } from "../../../convex/_generated/api"
+import { SettingsHeader } from "./SettingsHeader"
+import { SettingsRow } from "./SettingsRow"
 
 const OpenAIApiKeyFormSchema = z.object({
   openaiKey: z
@@ -205,37 +199,23 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">API Keys</h3>
-        <p className="text-sm text-muted-foreground">
-          Add your own API keys to use your personal accounts for AI
-          interactions. Your keys are encrypted and stored securely.
-        </p>
-      </div>
+    <div>
+      <SettingsHeader title="API Keys" badge="Beta" />
 
-      <div className="space-y-4">
+      <div className="mt-6 divide-y divide-border">
+        {/* OpenAI */}
         <Form {...openaiForm}>
-          <form
-            onSubmit={openaiForm.handleSubmit(onOpenAISubmit)}
-            className="space-y-4"
-          >
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Key className="h-4 w-4" />
-                    <CardTitle className="text-base">OpenAI API Key</CardTitle>
-                    {userSettings?.hasOpenAIKey && (
-                      <Badge variant="secondary" className="text-xs">
-                        Configured
-                      </Badge>
-                    )}
-                  </div>
+          <form onSubmit={openaiForm.handleSubmit(onOpenAISubmit)}>
+            <SettingsRow
+              title="OpenAI"
+              description={
+                <div className="flex items-center space-x-2">
+                  <span>Used for GPT models.</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="h-auto p-0 text-muted-foreground hover:underline"
                     onClick={() =>
                       window.open(
                         "https://platform.openai.com/api-keys",
@@ -243,101 +223,90 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                       )
                     }
                   >
-                    <ExternalLink className="h-3 w-3" />
+                    Get API Key
+                    <ExternalLink className="ml-1 h-3 w-3" />
                   </Button>
                 </div>
-                <CardDescription>Used for GPT models.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={openaiForm.control}
-                  name="openaiKey"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="sr-only">OpenAI API Key</FormLabel>
-                      <div className="flex items-center space-x-2">
-                        <div className="relative flex-1">
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type={showOpenAI ? "text" : "password"}
-                              placeholder="sk-..."
-                              onFocus={(e) => {
-                                if (e.target.value === "********") {
-                                  openaiForm.setValue("openaiKey", "")
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowOpenAI(!showOpenAI)}
-                          >
-                            {showOpenAI ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        {userSettings?.hasOpenAIKey && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveApiKey("openai")}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            Remove
-                          </Button>
-                        )}
+              }
+            >
+              <FormField
+                control={openaiForm.control}
+                name="openaiKey"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">OpenAI API Key</FormLabel>
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type={showOpenAI ? "text" : "password"}
+                            placeholder="sk-..."
+                            className="w-48"
+                            onFocus={(e) => {
+                              if (e.target.value === "********") {
+                                openaiForm.setValue("openaiKey", "")
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowOpenAI(!showOpenAI)}
+                        >
+                          {showOpenAI ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end pt-4">
-                  <Button
-                    type="submit"
-                    disabled={openaiForm.formState.isSubmitting}
-                  >
-                    {openaiForm.formState.isSubmitting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Save
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={openaiForm.formState.isSubmitting}
+                      >
+                        {openaiForm.formState.isSubmitting && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save
+                      </Button>
+                      {userSettings?.hasOpenAIKey && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveApiKey("openai")}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SettingsRow>
           </form>
         </Form>
 
+        {/* Anthropic */}
         <Form {...anthropicForm}>
-          <form
-            onSubmit={anthropicForm.handleSubmit(onAnthropicSubmit)}
-            className="space-y-4"
-          >
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Key className="h-4 w-4" />
-                    <CardTitle className="text-base">
-                      Anthropic API Key
-                    </CardTitle>
-                    {userSettings?.hasAnthropicKey && (
-                      <Badge variant="secondary" className="text-xs">
-                        Configured
-                      </Badge>
-                    )}
-                  </div>
+          <form onSubmit={anthropicForm.handleSubmit(onAnthropicSubmit)}>
+            <SettingsRow
+              title="Anthropic"
+              description={
+                <div className="flex items-center space-x-2">
+                  <span>Used for Claude models.</span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="h-auto p-0 text-muted-foreground hover:underline"
                     onClick={() =>
                       window.open(
                         "https://console.anthropic.com/settings/keys",
@@ -345,180 +314,168 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                       )
                     }
                   >
-                    <ExternalLink className="h-3 w-3" />
+                    Get API Key
+                    <ExternalLink className="ml-1 h-3 w-3" />
                   </Button>
                 </div>
-                <CardDescription>Used for Claude models.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={anthropicForm.control}
-                  name="anthropicKey"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="sr-only">
-                        Anthropic API Key
-                      </FormLabel>
-                      <div className="flex items-center space-x-2">
-                        <div className="relative flex-1">
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type={showAnthropic ? "text" : "password"}
-                              placeholder="sk-ant-..."
-                              onFocus={(e) => {
-                                if (e.target.value === "********") {
-                                  anthropicForm.setValue("anthropicKey", "")
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowAnthropic(!showAnthropic)}
-                          >
-                            {showAnthropic ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        {userSettings?.hasAnthropicKey && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveApiKey("anthropic")}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            Remove
-                          </Button>
-                        )}
+              }
+            >
+              <FormField
+                control={anthropicForm.control}
+                name="anthropicKey"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">
+                      Anthropic API Key
+                    </FormLabel>
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type={showAnthropic ? "text" : "password"}
+                            placeholder="sk-ant-..."
+                            className="w-48"
+                            onFocus={(e) => {
+                              if (e.target.value === "********") {
+                                anthropicForm.setValue("anthropicKey", "")
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowAnthropic(!showAnthropic)}
+                        >
+                          {showAnthropic ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end pt-4">
-                  <Button
-                    type="submit"
-                    disabled={anthropicForm.formState.isSubmitting}
-                  >
-                    {anthropicForm.formState.isSubmitting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Save
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={anthropicForm.formState.isSubmitting}
+                      >
+                        {anthropicForm.formState.isSubmitting && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save
+                      </Button>
+                      {userSettings?.hasAnthropicKey && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveApiKey("anthropic")}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SettingsRow>
           </form>
         </Form>
 
+        {/* OpenRouter */}
         <Form {...openrouterForm}>
-          <form
-            onSubmit={openrouterForm.handleSubmit(onOpenRouterSubmit)}
-            className="space-y-4"
-          >
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Key className="h-4 w-4" />
-                    <CardTitle className="text-base">
-                      OpenRouter API Key
-                    </CardTitle>
-                    {userSettings?.hasOpenRouterKey && (
-                      <Badge variant="secondary" className="text-xs">
-                        Configured
-                      </Badge>
-                    )}
-                  </div>
+          <form onSubmit={openrouterForm.handleSubmit(onOpenRouterSubmit)}>
+            <SettingsRow
+              title="OpenRouter"
+              description={
+                <div className="flex items-center space-x-2">
+                  <span>
+                    Used for OpenRouter models (Llama, Gemini, etc.).
+                  </span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="h-auto p-0 text-muted-foreground hover:underline"
                     onClick={() =>
                       window.open("https://openrouter.ai/keys", "_blank")
                     }
                   >
-                    <ExternalLink className="h-3 w-3" />
+                    Get API Key
+                    <ExternalLink className="ml-1 h-3 w-3" />
                   </Button>
                 </div>
-                <CardDescription>
-                  Used for OpenRouter models (Llama, Gemini, etc.).
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={openrouterForm.control}
-                  name="openrouterKey"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="sr-only">
-                        OpenRouter API Key
-                      </FormLabel>
-                      <div className="flex items-center space-x-2">
-                        <div className="relative flex-1">
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type={showOpenRouter ? "text" : "password"}
-                              placeholder="sk-or-..."
-                              onFocus={(e) => {
-                                if (e.target.value === "********") {
-                                  openrouterForm.setValue("openrouterKey", "")
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3"
-                            onClick={() => setShowOpenRouter(!showOpenRouter)}
-                          >
-                            {showOpenRouter ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        {userSettings?.hasOpenRouterKey && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveApiKey("openrouter")}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            Remove
-                          </Button>
-                        )}
+              }
+            >
+              <FormField
+                control={openrouterForm.control}
+                name="openrouterKey"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">
+                      OpenRouter API Key
+                    </FormLabel>
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type={showOpenRouter ? "text" : "password"}
+                            placeholder="sk-or-..."
+                            className="w-48"
+                            onFocus={(e) => {
+                              if (e.target.value === "********") {
+                                openrouterForm.setValue("openrouterKey", "")
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowOpenRouter(!showOpenRouter)}
+                        >
+                          {showOpenRouter ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end pt-4">
-                  <Button
-                    type="submit"
-                    disabled={openrouterForm.formState.isSubmitting}
-                  >
-                    {openrouterForm.formState.isSubmitting && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Save
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={openrouterForm.formState.isSubmitting}
+                      >
+                        {openrouterForm.formState.isSubmitting && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Save
+                      </Button>
+                      {userSettings?.hasOpenRouterKey && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveApiKey("openrouter")}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SettingsRow>
           </form>
         </Form>
       </div>
