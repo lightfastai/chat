@@ -106,9 +106,17 @@ function LandingHeader() {
             <LightfastLogo className="w-6 h-5 text-foreground" />
           </Link>
         </div>
-        <Link href="/signin">
-          <Button variant="outline">Sign In</Button>
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/docs"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Docs
+          </Link>
+          <Link href="https://chat.lightfast.ai/signin">
+            <Button variant="outline">Sign In</Button>
+          </Link>
+        </div>
       </div>
     </header>
   )
