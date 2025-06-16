@@ -1,4 +1,5 @@
 import { SettingsContent } from "@/components/settings/SettingsContent"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { getAuthToken } from "@/lib/auth"
 import { preloadQuery } from "convex/nextjs"
 import type { Metadata } from "next"
@@ -16,13 +17,13 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   return (
-    <div className="h-full overflow-y-auto">
+    <ScrollArea className="h-full">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <Suspense fallback={<SettingsSkeleton />}>
           <SettingsPageWithData />
         </Suspense>
       </div>
-    </div>
+    </ScrollArea>
   )
 }
 

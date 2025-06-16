@@ -60,14 +60,6 @@ export function SettingsContent({
 
   return (
     <div className="space-y-8 sm:space-y-12">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Settings
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Manage your account settings and preferences
-        </p>
-      </div>
       <ProfileSection user={user} userSettings={userSettings} />
       <ApiKeysSection userSettings={userSettings} />
     </div>
