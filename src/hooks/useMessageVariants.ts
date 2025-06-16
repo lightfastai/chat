@@ -53,7 +53,9 @@ export function useMessageVariants(
             : "NOT FOUND",
         )
       } else {
-        // This is an original message - find the previous user message in the same branch
+        // This is an original message - find the user message that directly precedes it
+        // We need to be more precise: find the most recent user message that doesn't have 
+        // any assistant messages between it and our target message
         const candidates = messages
           .filter(
             (m) =>
@@ -74,13 +76,31 @@ export function useMessageVariants(
           })),
         )
 
-        userMessage = candidates[0]
+        // For each candidate, check if there are any assistant messages between it and our target
+        for (const candidate of candidates) {
+          const assistantMessagesBetween = messages.filter(
+            (m) =>
+              m.messageType === "assistant" &&
+              m.timestamp > candidate.timestamp &&
+              m.timestamp < targetMessage.timestamp &&
+              (m.conversationBranchId || "main") ===
+                (targetMessage.conversationBranchId || "main"),
+          )
+
+          // If no assistant messages between this candidate and our target, this is the right user message
+          if (assistantMessagesBetween.length === 0) {
+            userMessage = candidate
+            break
+          }
+        }
+
         console.log(
           "🔍 Selected user message:",
           userMessage
             ? {
                 id: userMessage._id,
                 body: userMessage.body.substring(0, 20),
+                timestamp: userMessage.timestamp,
               }
             : "NOT FOUND",
         )
