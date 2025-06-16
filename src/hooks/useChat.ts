@@ -3,13 +3,12 @@
 import type { ModelId } from "@/lib/ai/types"
 import { isClientId, nanoid } from "@/lib/nanoid"
 import { useMutation, useQuery } from "convex/react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useMemo } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc, Id } from "../../convex/_generated/dataModel"
 
 export function useChat() {
-  const router = useRouter()
   const pathname = usePathname()
 
   // Extract current thread info from pathname with clientId support
@@ -142,11 +141,9 @@ export function useChat() {
         // 🚀 Generate client ID for new chat
         const clientId = nanoid()
 
-        // Navigate to the new URL with clientId AFTER optimistic update shows message
-        // Small delay ensures optimistic message appears before navigation
-        setTimeout(() => {
-          router.replace(`/chat/${clientId}`)
-        }, 50)
+        // Update URL immediately without navigation events
+        // This avoids jarring router navigation and happens simultaneously with optimistic update
+        window.location.replace(`/chat/${clientId}`)
 
         // Create thread + send message atomically with optimistic updates
         // The optimistic update will show the message immediately
