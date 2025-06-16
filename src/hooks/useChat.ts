@@ -69,11 +69,13 @@ export function useChat() {
   // we need to use the temporary thread ID when we have a clientId but no server thread yet
   const messageThreadId = currentThread?._id || tempThreadIdRef.current || null
 
-  const messages =
-    useQuery(
-      api.messages.list,
-      messageThreadId ? { threadId: messageThreadId } : "skip",
-    ) ?? []
+  // Memoize the query args to prevent unnecessary re-subscriptions
+  const queryArgs = useMemo(
+    () => (messageThreadId ? { threadId: messageThreadId } : "skip"),
+    [messageThreadId],
+  )
+
+  const messages = useQuery(api.messages.list, queryArgs) ?? []
 
   // DEBUG: Log message query details for debugging
   useEffect(() => {
@@ -197,14 +199,24 @@ export function useChat() {
         // 🚀 Generate client ID for new chat
         const clientId = nanoid()
 
-        // Pre-generate the temporary thread ID to ensure consistency
+        // Pre-generate the temporary thread ID FIRST
+        // This needs to happen before any mutations to ensure consistency
         const tempThreadId = nanoid(32) as Id<"threads">
+
+        // CRITICAL: Set the ref before the mutation
+        // This ensures the query will use this ID when it starts
         tempThreadIdRef.current = tempThreadId
 
-        // Update URL immediately for instant navigation
+        // Update URL to trigger navigation and start the query
+        // This must happen BEFORE the mutation to ensure the query is active
         window.history.replaceState({}, "", `/chat/${clientId}`)
 
-        // Create thread + send message atomically with optimistic updates
+        // Force a synchronous flush to ensure React processes the URL change
+        // and starts the query before we apply optimistic updates
+        await new Promise((resolve) => requestAnimationFrame(resolve))
+
+        // Now create thread + send message with optimistic updates
+        // The query should be active at this point
         await createThreadAndSend({
           title: "Generating title...",
           clientId: clientId,
