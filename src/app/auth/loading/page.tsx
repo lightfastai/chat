@@ -27,12 +27,10 @@ export default async function AuthLoadingPage({
 
         {/* Client component loads in background */}
         <Suspense fallback={null}>
-          <div className="hidden">
-            <AuthLoadingClient
-              provider={params.provider}
-              redirectTo={params.redirectTo}
-            />
-          </div>
+          <AuthLoadingClient
+            provider={params.provider}
+            redirectTo={params.redirectTo}
+          />
         </Suspense>
 
         {/* No JS fallback */}

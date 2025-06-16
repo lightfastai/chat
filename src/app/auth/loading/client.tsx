@@ -25,15 +25,24 @@ export function AuthLoadingClient({
     async function performSignIn() {
       // Validate provider
       if (!provider || (provider !== "github" && provider !== "anonymous")) {
-        console.error("Invalid provider:", provider)
         router.push(`/signin?error=${encodeURIComponent("Invalid provider")}`)
         return
       }
 
       try {
-        // Initiate sign in - this will cause a redirect for OAuth
-        await signIn(provider, { redirectTo })
-        // If we're still here (anonymous auth), the redirect will happen via Convex
+        // Add timeout to prevent infinite hanging
+        const signInPromise = signIn(provider, { redirectTo })
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Sign in timed out")), 10000),
+        )
+
+        await Promise.race([signInPromise, timeoutPromise])
+
+        // For anonymous auth, we need to manually redirect
+        if (provider === "anonymous") {
+          router.push(redirectTo)
+        }
+        // For OAuth providers like GitHub, the browser will redirect automatically
       } catch (err) {
         console.error("Sign in error:", err)
         router.push(
