@@ -77,6 +77,12 @@ const ChatInputComponent = ({
   const generateUploadUrl = useMutation(api.files.generateUploadUrl)
   const createFile = useMutation(api.files.createFile)
 
+  // Determine if the entire component should be disabled
+  const isComponentDisabled = useMemo(
+    () => disabled || isLoading || isSending,
+    [disabled, isLoading, isSending],
+  )
+
   // Memoize expensive computations
   const allModels = useMemo(() => getAllModels(), [])
   const selectedModel = useMemo(
@@ -205,7 +211,7 @@ const ChatInputComponent = ({
   // Use the file drop hook
   const { isDragging, dragHandlers } = useFileDrop({
     onDrop: handleFileUpload,
-    disabled: disabled || isUploading,
+    disabled: isComponentDisabled || isUploading,
   })
 
   const handleFileInputChange = useCallback(
@@ -329,7 +335,7 @@ const ChatInputComponent = ({
             <div
               className={`w-full border flex flex-col transition-all ${
                 attachments.length > 0 ? "rounded-t-md" : "rounded-md"
-              } ${isLoading ? "opacity-75 cursor-not-allowed" : ""}`}
+              } ${isComponentDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               {/* Textarea area - grows with content up to max height */}
               <div
@@ -344,7 +350,7 @@ const ChatInputComponent = ({
                   placeholder={placeholder}
                   className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3"
                   maxLength={maxLength}
-                  disabled={disabled || isSending}
+                  disabled={isComponentDisabled}
                   style={{
                     lineHeight: "24px",
                     minHeight: "48px",
@@ -358,6 +364,7 @@ const ChatInputComponent = ({
                   <Select
                     value={selectedModelId}
                     onValueChange={handleModelChange}
+                    disabled={isComponentDisabled}
                   >
                     <SelectTrigger className="h-6 w-[140px] text-xs border-0">
                       <SelectValue>{selectedModel?.displayName}</SelectValue>
@@ -406,7 +413,7 @@ const ChatInputComponent = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
+                        disabled={isComponentDisabled || isUploading}
                         className="h-6 w-6 p-0"
                       >
                         {isUploading ? (
@@ -428,7 +435,7 @@ const ChatInputComponent = ({
                         variant={webSearchEnabled ? "default" : "ghost"}
                         size="sm"
                         className="h-6 w-6 p-0"
-                        disabled={disabled || isSending}
+                        disabled={isComponentDisabled}
                       >
                         <Globe className="w-3 h-3" />
                       </Button>
@@ -493,7 +500,7 @@ const ChatInputComponent = ({
                           type="button"
                           onClick={() => removeAttachment(attachment.id)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-destructive/10 rounded"
-                          disabled={isUploading}
+                          disabled={isComponentDisabled || isUploading}
                           aria-label={`Remove ${attachment.name}`}
                         >
                           <X className="w-3 h-3 text-destructive" />

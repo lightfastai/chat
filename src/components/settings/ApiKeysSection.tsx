@@ -325,9 +325,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                 name="anthropicKey"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="sr-only">
-                      Anthropic API Key
-                    </FormLabel>
+                    <FormLabel className="sr-only">Anthropic API Key</FormLabel>
                     <div className="flex items-center space-x-2">
                       <div className="relative">
                         <FormControl>
@@ -394,9 +392,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
               title="OpenRouter"
               description={
                 <div className="flex items-center space-x-2">
-                  <span>
-                    Used for OpenRouter models (Llama, Gemini, etc.).
-                  </span>
+                  <span>Used for OpenRouter models (Llama, Gemini, etc.).</span>
                   <Button
                     type="button"
                     variant="ghost"
