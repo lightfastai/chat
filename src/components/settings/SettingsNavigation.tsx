@@ -30,7 +30,7 @@ export function SettingsNavigation({ children }: SettingsNavigationProps) {
 
     // Navigate to the appropriate route
     if (value === "profile") {
-      router.push("/chat/settings/profile")
+      router.push("/chat/settings")
     } else if (value === "api-keys") {
       router.push("/chat/settings/api-keys")
     }
