@@ -81,7 +81,7 @@ interface ApiKeysSectionProps {
     hasOpenAIKey: boolean
     hasAnthropicKey: boolean
     hasOpenRouterKey: boolean
-  } | null
+  } | null | undefined
 }
 
 export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {

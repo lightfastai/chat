@@ -19,7 +19,7 @@ interface ProfileSectionProps {
     hasOpenAIKey: boolean
     hasAnthropicKey: boolean
     hasOpenRouterKey: boolean
-  } | null // Not used in ProfileSection but passed for consistency
+  } | null | undefined // Not used in ProfileSection but passed for consistency
 }
 
 export function ProfileSection({ user }: ProfileSectionProps) {

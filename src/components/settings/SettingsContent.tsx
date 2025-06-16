@@ -50,7 +50,7 @@ export function SettingsContent({
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  if (!user || !userSettings) {
+  if (!user) {
     return <ErrorState />
   }
 
