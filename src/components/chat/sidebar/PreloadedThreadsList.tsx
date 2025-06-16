@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sidebar"
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react"
 import { useCallback } from "react"
+import { toast } from "sonner"
 import { api } from "../../../../convex/_generated/api"
 import type { Doc, Id } from "../../../../convex/_generated/dataModel"
 import { ThreadItem } from "./ThreadItem"
@@ -96,9 +97,29 @@ export function PreloadedThreadsList({
     const handlePinToggle = useCallback(
       async (threadId: Id<"threads">) => {
         try {
-          await togglePinned({ threadId })
+          await togglePinned.withOptimisticUpdate((localStore, args) => {
+            // Get the current threads list
+            const currentThreads = localStore.getQuery(api.threads.list)
+            if (!currentThreads) return
+
+            // Find the thread being toggled
+            const threadIndex = currentThreads.findIndex(
+              (t) => t._id === args.threadId,
+            )
+            if (threadIndex === -1) return
+
+            // Create a new array with the updated thread
+            const updatedThreads = [...currentThreads]
+            const thread = { ...updatedThreads[threadIndex] }
+            thread.pinned = !thread.pinned
+            updatedThreads[threadIndex] = thread
+
+            // Update the query result
+            localStore.setQuery(api.threads.list, {}, updatedThreads)
+          })({ threadId })
         } catch (error) {
           console.error("Failed to toggle pin:", error)
+          toast.error("Failed to update pin status. Please try again.")
         }
       },
       [togglePinned],

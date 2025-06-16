@@ -3,7 +3,7 @@
 import { SidebarMenuAction, SidebarMenuItem } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import { Pin } from "lucide-react"
-import { useCallback, useState } from "react"
+import { useCallback } from "react"
 import type { Id } from "../../../../convex/_generated/dataModel"
 import { ActiveMenuItem } from "./ActiveMenuItem"
 
@@ -19,18 +19,11 @@ interface ThreadItemProps {
 }
 
 export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
-  const [isPinning, setIsPinning] = useState(false)
-
   const handlePinClick = useCallback(
     async (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      setIsPinning(true)
-      try {
-        await onPinToggle(thread._id)
-      } finally {
-        setIsPinning(false)
-      }
+      await onPinToggle(thread._id)
     },
     [onPinToggle, thread._id],
   )
@@ -53,20 +46,13 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
       <SidebarMenuAction
         showOnHover
         onClick={handlePinClick}
-        disabled={isPinning}
         className={cn(
           thread.pinned && "text-primary",
           // Prevent focus ring overflow
           "focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-[-1px] focus-visible:outline-ring",
         )}
       >
-        <Pin
-          className={cn(
-            "h-3 w-3",
-            thread.pinned && "fill-current",
-            isPinning && "animate-pulse",
-          )}
-        />
+        <Pin className={cn("h-3 w-3", thread.pinned && "fill-current")} />
       </SidebarMenuAction>
     </SidebarMenuItem>
   )
