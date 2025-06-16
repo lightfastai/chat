@@ -77,8 +77,8 @@ const ChatInputComponent = ({
   const generateUploadUrl = useMutation(api.files.generateUploadUrl)
   const createFile = useMutation(api.files.createFile)
 
-  // Determine if the entire component should be disabled
-  const isComponentDisabled = useMemo(
+  // Determine if submission should be disabled (but allow typing)
+  const isSubmitDisabled = useMemo(
     () => disabled || isLoading || isSending,
     [disabled, isLoading, isSending],
   )
@@ -211,7 +211,7 @@ const ChatInputComponent = ({
   // Use the file drop hook
   const { isDragging, dragHandlers } = useFileDrop({
     onDrop: handleFileUpload,
-    disabled: isComponentDisabled || isUploading,
+    disabled: isSubmitDisabled || isUploading,
   })
 
   const handleFileInputChange = useCallback(
@@ -230,7 +230,13 @@ const ChatInputComponent = ({
 
   // Memoize event handlers
   const handleSendMessage = useCallback(async () => {
-    if (!message.trim() || isSending || disabled) return
+    if (!message.trim()) return
+    
+    // Show visual indicator if submit is disabled
+    if (isSubmitDisabled) {
+      toast.info("Please wait for the current response to complete")
+      return
+    }
 
     setIsSending(true)
 
@@ -268,11 +274,11 @@ const ChatInputComponent = ({
     }
   }, [
     message,
-    isSending,
-    disabled,
+    isSubmitDisabled,
     onSendMessage,
     selectedModelId,
     attachments,
+    webSearchEnabled,
   ])
 
   const handleKeyPress = useCallback(
@@ -302,8 +308,8 @@ const ChatInputComponent = ({
 
   // Memoize computed values
   const canSend = useMemo(
-    () => message.trim() && !isSending && !disabled && !isLoading,
-    [message, isSending, disabled, isLoading],
+    () => message.trim() && !isSubmitDisabled,
+    [message, isSubmitDisabled],
   )
 
   // Helper function to format file size
@@ -335,7 +341,7 @@ const ChatInputComponent = ({
             <div
               className={`w-full border flex flex-col transition-all ${
                 attachments.length > 0 ? "rounded-t-md" : "rounded-md"
-              } ${isComponentDisabled ? "opacity-60 cursor-not-allowed" : ""}`}
+              } ${isLoading ? "opacity-75" : ""}`}
             >
               {/* Textarea area - grows with content up to max height */}
               <div
@@ -348,11 +354,9 @@ const ChatInputComponent = ({
                   onChange={handleMessageChange}
                   onKeyPress={handleKeyPress}
                   placeholder={placeholder}
-                  className={`w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3 ${
-                    isComponentDisabled ? "cursor-not-allowed" : ""
-                  }`}
+                  className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3"
                   maxLength={maxLength}
-                  disabled={isComponentDisabled}
+                  disabled={disabled}
                   style={{
                     lineHeight: "24px",
                     minHeight: "48px",
@@ -361,16 +365,12 @@ const ChatInputComponent = ({
               </div>
 
               {/* Controls area - always at bottom */}
-              <div
-                className={`flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow] ${
-                  isComponentDisabled ? "cursor-not-allowed" : ""
-                }`}
-              >
+              <div className="flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow]">
                 <div className="flex items-center gap-2">
                   <Select
                     value={selectedModelId}
                     onValueChange={handleModelChange}
-                    disabled={isComponentDisabled}
+                    disabled={disabled}
                   >
                     <SelectTrigger className="h-6 w-[140px] text-xs border-0">
                       <SelectValue>{selectedModel?.displayName}</SelectValue>
@@ -419,7 +419,7 @@ const ChatInputComponent = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={isComponentDisabled || isUploading}
+                        disabled={disabled || isUploading}
                         className="h-6 w-6 p-0"
                       >
                         {isUploading ? (
@@ -441,7 +441,7 @@ const ChatInputComponent = ({
                         variant={webSearchEnabled ? "default" : "ghost"}
                         size="sm"
                         className="h-6 w-6 p-0"
-                        disabled={isComponentDisabled}
+                        disabled={disabled}
                       >
                         <Globe className="w-3 h-3" />
                       </Button>
@@ -476,11 +476,7 @@ const ChatInputComponent = ({
 
             {/* Attachments container - appears below input */}
             {attachments.length > 0 && (
-              <div
-                className={`w-full border-l border-r border-b rounded-b-md bg-secondary/20 p-3 transition-all animate-in slide-in-from-top-1 duration-200 ${
-                  isComponentDisabled ? "cursor-not-allowed" : ""
-                }`}
-              >
+              <div className="w-full border-l border-r border-b rounded-b-md bg-secondary/20 p-3 transition-all animate-in slide-in-from-top-1 duration-200">
                 <div className="flex flex-wrap gap-2">
                   {attachments.map((attachment) => {
                     const isImage = attachment.type.startsWith("image/")
@@ -510,7 +506,7 @@ const ChatInputComponent = ({
                           type="button"
                           onClick={() => removeAttachment(attachment.id)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-destructive/10 rounded"
-                          disabled={isComponentDisabled || isUploading}
+                          disabled={disabled || isUploading}
                           aria-label={`Remove ${attachment.name}`}
                         >
                           <X className="w-3 h-3 text-destructive" />
