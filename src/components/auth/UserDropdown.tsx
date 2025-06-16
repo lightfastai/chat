@@ -13,6 +13,7 @@ import {
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useQuery } from "convex/react"
 import { ChevronDown, LogOut, Settings, User } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { api } from "../../../convex/_generated/api"
 import { cn } from "../../lib/utils"
@@ -90,10 +91,10 @@ export function UserDropdown({
         {showSettings && (
           <>
             <DropdownMenuItem asChild>
-              <a href={settingsHref} className="cursor-pointer">
+              <Link href={settingsHref} className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
-              </a>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>

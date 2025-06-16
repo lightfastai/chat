@@ -77,11 +77,14 @@ const OpenRouterApiKeyFormSchema = z.object({
 type OpenRouterApiKeyFormValues = z.infer<typeof OpenRouterApiKeyFormSchema>
 
 interface ApiKeysSectionProps {
-  userSettings: {
-    hasOpenAIKey: boolean
-    hasAnthropicKey: boolean
-    hasOpenRouterKey: boolean
-  } | null | undefined
+  userSettings:
+    | {
+        hasOpenAIKey: boolean
+        hasAnthropicKey: boolean
+        hasOpenRouterKey: boolean
+      }
+    | null
+    | undefined
 }
 
 export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
