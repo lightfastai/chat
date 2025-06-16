@@ -2,7 +2,7 @@
 
 import { SidebarMenuAction, SidebarMenuItem } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
-import { Pin } from "lucide-react"
+import { GitBranch, Pin } from "lucide-react"
 import { useCallback } from "react"
 import type { Id } from "../../../../convex/_generated/dataModel"
 import { ActiveMenuItem } from "./ActiveMenuItem"
@@ -14,6 +14,11 @@ interface ThreadItemProps {
     title: string
     isTitleGenerating?: boolean
     pinned?: boolean
+    branchedFrom?: {
+      threadId: Id<"threads">
+      messageId: Id<"messages">
+      timestamp: number
+    }
   }
   onPinToggle: (threadId: Id<"threads">) => void
 }
@@ -34,14 +39,20 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
         threadId={thread._id}
         href={`/chat/${thread.clientId || thread._id}`}
       >
-        <span
-          className={cn(
-            "font-medium truncate text-ellipsis overflow-hidden min-w-0 flex-1",
-            thread.isTitleGenerating && "animate-pulse blur-[0.5px] opacity-70",
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {thread.branchedFrom && (
+            <GitBranch className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
           )}
-        >
-          {thread.title}
-        </span>
+          <span
+            className={cn(
+              "font-medium truncate text-ellipsis overflow-hidden min-w-0 flex-1",
+              thread.isTitleGenerating &&
+                "animate-pulse blur-[0.5px] opacity-70",
+            )}
+          >
+            {thread.title}
+          </span>
+        </div>
       </ActiveMenuItem>
       <SidebarMenuAction
         showOnHover

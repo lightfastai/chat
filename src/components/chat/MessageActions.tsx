@@ -4,10 +4,17 @@ import { Button } from "@/components/ui/button"
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard"
 import { cn } from "@/lib/utils"
 import { useMutation, useQuery } from "convex/react"
-import { CheckIcon, ClipboardIcon, ThumbsDown, ThumbsUp } from "lucide-react"
+import {
+  CheckIcon,
+  ClipboardIcon,
+  GitBranch,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react"
 import React from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Doc } from "../../../convex/_generated/dataModel"
+import { BranchDialog } from "./BranchDialog"
 import { FeedbackModal } from "./FeedbackModal"
 
 interface MessageActionsProps {
@@ -17,6 +24,7 @@ interface MessageActionsProps {
 
 export function MessageActions({ message, className }: MessageActionsProps) {
   const [showFeedbackModal, setShowFeedbackModal] = React.useState(false)
+  const [showBranchDialog, setShowBranchDialog] = React.useState(false)
   const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 })
 
   const feedback = useQuery(api.feedback.getUserFeedbackForMessage, {
@@ -94,6 +102,15 @@ export function MessageActions({ message, className }: MessageActionsProps) {
             )}
           </Button>
         )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setShowBranchDialog(true)}
+          aria-label="Branch from here"
+        >
+          <GitBranch className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
       {showFeedbackModal && (
@@ -102,6 +119,16 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           onClose={() => setShowFeedbackModal(false)}
           messageId={message._id}
           existingFeedback={feedback}
+        />
+      )}
+
+      {showBranchDialog && (
+        <BranchDialog
+          isOpen={showBranchDialog}
+          onClose={() => setShowBranchDialog(false)}
+          messageId={message._id}
+          threadId={message.threadId}
+          currentModelId={message.modelId}
         />
       )}
     </>

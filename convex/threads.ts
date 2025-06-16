@@ -1,5 +1,10 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
+import {
+  ALL_MODEL_IDS,
+  type ModelId,
+  getProviderFromModelId,
+} from "../src/lib/ai/types.js"
 import { mutation, query } from "./_generated/server.js"
 
 // Create a new thread
@@ -54,6 +59,14 @@ export const list = query({
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
       pinned: v.optional(v.boolean()),
+      // Branch information
+      branchedFrom: v.optional(
+        v.object({
+          threadId: v.id("threads"),
+          messageId: v.id("messages"),
+          timestamp: v.number(),
+        }),
+      ),
       // Share functionality
       isPublic: v.optional(v.boolean()),
       shareId: v.optional(v.string()),
@@ -119,6 +132,14 @@ export const get = query({
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
       pinned: v.optional(v.boolean()),
+      // Branch information
+      branchedFrom: v.optional(
+        v.object({
+          threadId: v.id("threads"),
+          messageId: v.id("messages"),
+          timestamp: v.number(),
+        }),
+      ),
       // Share functionality
       isPublic: v.optional(v.boolean()),
       shareId: v.optional(v.string()),
@@ -188,6 +209,14 @@ export const getByClientId = query({
       isTitleGenerating: v.optional(v.boolean()),
       isGenerating: v.optional(v.boolean()),
       pinned: v.optional(v.boolean()),
+      // Branch information
+      branchedFrom: v.optional(
+        v.object({
+          threadId: v.id("threads"),
+          messageId: v.id("messages"),
+          timestamp: v.number(),
+        }),
+      ),
       // Share functionality
       isPublic: v.optional(v.boolean()),
       shareId: v.optional(v.string()),
@@ -356,5 +385,97 @@ export const togglePinned = mutation({
       pinned: !thread.pinned,
     })
     return null
+  },
+})
+
+// Create a new thread branched from a specific message
+export const branchFromMessage = mutation({
+  args: {
+    originalThreadId: v.id("threads"),
+    branchFromMessageId: v.id("messages"),
+    modelId: v.union(...ALL_MODEL_IDS.map((id) => v.literal(id))),
+  },
+  returns: v.id("threads"),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new Error("User must be authenticated")
+    }
+
+    // Verify access to original thread
+    const originalThread = await ctx.db.get(args.originalThreadId)
+    if (!originalThread || originalThread.userId !== userId) {
+      throw new Error("Original thread not found or access denied")
+    }
+
+    // Get all messages up to and including the branch point
+    const allMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.originalThreadId))
+      .order("asc")
+      .collect()
+
+    // Find the branch point message
+    const branchPointIndex = allMessages.findIndex(
+      (msg) => msg._id === args.branchFromMessageId,
+    )
+
+    if (branchPointIndex === -1) {
+      throw new Error("Branch point message not found")
+    }
+
+    // Get messages to copy (up to and including branch point)
+    const messagesToCopy = allMessages.slice(0, branchPointIndex + 1)
+
+    // Create new thread with branch info
+    const now = Date.now()
+    const newThreadId = await ctx.db.insert("threads", {
+      title: `${originalThread.title} (Branch)`,
+      userId: userId,
+      createdAt: now,
+      lastMessageAt: now,
+      branchedFrom: {
+        threadId: args.originalThreadId,
+        messageId: args.branchFromMessageId,
+        timestamp: now,
+      },
+    })
+
+    // Copy messages to new thread
+    for (const message of messagesToCopy) {
+      await ctx.db.insert("messages", {
+        threadId: newThreadId,
+        body: message.body,
+        timestamp: message.timestamp,
+        messageType: message.messageType,
+        model: message.model,
+        modelId: message.modelId,
+        attachments: message.attachments,
+        isComplete: true,
+        // Don't copy streaming-related fields
+        usage: message.usage,
+        thinkingContent: message.thinkingContent,
+        hasThinkingContent: message.hasThinkingContent,
+      })
+    }
+
+    // If the branch point was an assistant message, add a system note
+    const branchMessage = allMessages[branchPointIndex]
+    if (branchMessage.messageType === "assistant") {
+      // Get the provider from the modelId
+      const provider = getProviderFromModelId(args.modelId as ModelId)
+
+      await ctx.db.insert("messages", {
+        threadId: newThreadId,
+        body: `*[Branched from previous conversation. Continuing with ${args.modelId}]*`,
+        timestamp: now,
+        messageType: "assistant",
+        model: provider,
+        modelId: args.modelId,
+        isComplete: true,
+      })
+    }
+
+    return newThreadId
   },
 })
