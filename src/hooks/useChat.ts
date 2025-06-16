@@ -210,7 +210,7 @@ export function useChat() {
         const clientId = nanoid()
 
         // Use the pre-generated thread ID (from useEffect)
-        const tempThreadId = tempThreadIdRef.current!
+        // The tempThreadIdRef.current is already set and used in messageThreadId
 
         // Create thread + send message with Convex optimistic updates
         // Do this FIRST while the query is still using the same thread ID
