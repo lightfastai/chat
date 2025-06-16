@@ -35,14 +35,24 @@ export function MessageActions({
   const [showFeedbackModal, setShowFeedbackModal] = React.useState(false)
   const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 })
 
-  const feedback = useQuery(api.feedback.getUserFeedbackForMessage, {
-    messageId: message._id,
-  })
+  // Check if this is a real database ID (not a temporary UUID)
+  const isRealDatabaseId = !message._id.includes("-") && message._id.length > 30
+  
+  const feedback = useQuery(
+    api.feedback.getUserFeedbackForMessage,
+    isRealDatabaseId ? { messageId: message._id } : "skip"
+  )
 
   const submitFeedback = useMutation(api.feedback.submitFeedback)
   const removeFeedback = useMutation(api.feedback.removeFeedback)
 
   const handleFeedback = async (rating: "positive" | "negative") => {
+    // Only allow feedback on real database messages
+    if (!isRealDatabaseId) {
+      console.warn("Cannot submit feedback for temporary message ID:", message._id)
+      return
+    }
+
     if (rating === "negative") {
       setShowFeedbackModal(true)
       return
@@ -107,8 +117,10 @@ export function MessageActions({
                 "h-7 w-7 transition-colors",
                 feedback?.rating === "positive" &&
                   "text-green-600 hover:text-green-700",
+                !isRealDatabaseId && "opacity-50 cursor-not-allowed"
               )}
               onClick={() => handleFeedback("positive")}
+              disabled={!isRealDatabaseId}
               aria-label="Like message"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
@@ -120,8 +132,10 @@ export function MessageActions({
                 "h-7 w-7 transition-colors",
                 feedback?.rating === "negative" &&
                   "text-red-600 hover:text-red-700",
+                !isRealDatabaseId && "opacity-50 cursor-not-allowed"
               )}
               onClick={() => handleFeedback("negative")}
+              disabled={!isRealDatabaseId}
               aria-label="Dislike message"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
@@ -158,7 +172,7 @@ export function MessageActions({
         )}
       </div>
 
-      {showFeedbackModal && (
+      {showFeedbackModal && isRealDatabaseId && (
         <FeedbackModal
           isOpen={showFeedbackModal}
           onClose={() => setShowFeedbackModal(false)}
