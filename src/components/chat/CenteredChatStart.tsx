@@ -2,9 +2,9 @@
 
 import { useAuth } from "@/hooks/useAuth"
 import { useTimeGreeting } from "@/hooks/useTimeGreeting"
+import { ZapIcon } from "lucide-react"
 import type { Id } from "../../../convex/_generated/dataModel"
 import { ChatInput } from "./ChatInput"
-import { ZapIcon } from "lucide-react"
 
 interface CenteredChatStartProps {
   onSendMessage: (
