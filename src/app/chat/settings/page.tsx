@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   return (
-    <ScrollArea className="h-full">
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <ScrollArea className="h-full w-full">
+      <div className="min-h-full px-4 pb-8 pt-8 sm:px-6 lg:px-8">
         <Suspense fallback={<SettingsSkeleton />}>
           <SettingsPageWithData />
         </Suspense>
@@ -104,7 +104,7 @@ function SettingsSkeleton() {
 // Error state
 function SettingsError() {
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 py-8 text-center">
+    <div className="space-y-4 text-center">
       <h2 className="text-2xl font-bold tracking-tight">Error</h2>
       <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive sm:p-6">
         <p className="font-medium">Unable to load settings</p>

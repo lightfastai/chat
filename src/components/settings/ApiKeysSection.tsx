@@ -215,7 +215,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-auto justify-start p-0 text-muted-foreground hover:underline sm:justify-center"
+                    className="h-auto p-0 text-muted-foreground hover:underline"
                     onClick={() =>
                       window.open(
                         "https://platform.openai.com/api-keys",
@@ -308,7 +308,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-auto justify-start p-0 text-muted-foreground hover:underline sm:justify-center"
+                    className="h-auto p-0 text-muted-foreground hover:underline"
                     onClick={() =>
                       window.open(
                         "https://console.anthropic.com/settings/keys",
@@ -401,7 +401,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="h-auto justify-start p-0 text-muted-foreground hover:underline sm:justify-center"
+                    className="h-auto p-0 text-muted-foreground hover:underline"
                     onClick={() =>
                       window.open("https://openrouter.ai/keys", "_blank")
                     }
