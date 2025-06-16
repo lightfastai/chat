@@ -3,14 +3,14 @@
 import type { ModelId } from "@/lib/ai/types"
 import { isClientId, nanoid } from "@/lib/nanoid"
 import { useMutation, useQuery } from "convex/react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useMemo } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc, Id } from "../../convex/_generated/dataModel"
 
 export function useChat() {
   const pathname = usePathname()
-  const router = useRouter()
+
   // Extract current thread info from pathname with clientId support
   const pathInfo = useMemo(() => {
     if (pathname === "/chat") {
@@ -163,8 +163,8 @@ export function useChat() {
         const clientId = nanoid()
 
         // Update URL immediately without navigation events
-        // This avoids jarring router navigation and happens simultaneously with optimistic update
-        router.replace(`/chat/${clientId}`)
+        // Using window.history.replaceState like Vercel's AI chatbot for smoothest UX
+        window.history.replaceState({}, "", `/chat/${clientId}`)
 
         // Create thread + send message atomically with optimistic updates
         await createThreadAndSend({
