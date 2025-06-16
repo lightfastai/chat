@@ -120,8 +120,9 @@ export const createConversationBranch = mutation({
       isGenerating: true,
     })
 
-    // Create unique conversation branch ID
-    const conversationBranchId = `branch_${args.assistantMessageId}_${Date.now()}`
+    // Create unique conversation branch ID with random suffix to prevent race conditions
+    const randomSuffix = crypto.randomUUID().substring(0, 8)
+    const conversationBranchId = `branch_${args.assistantMessageId}_${Date.now()}_${randomSuffix}`
 
     // The branch point is the user message that prompted the assistant response
     const branchPoint = userMessage._id

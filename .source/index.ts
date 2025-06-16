@@ -1,12 +1,12 @@
 import { _runtime } from "fumadocs-mdx"
 import type * as _source from "../source.config"
-import * as docs_0 from "../src/content/docs/ai-models.mdx?collection=docs&hash=1749957936767"
+import * as docs_0 from "../src/content/docs/ai-models.mdx?collection=docs&hash=1750045232744"
 // @ts-nocheck -- skip type checking
-import * as docs_5 from "../src/content/docs/api/overview.mdx?collection=docs&hash=1749957936767"
-import * as docs_1 from "../src/content/docs/authentication.mdx?collection=docs&hash=1749957936767"
-import * as docs_2 from "../src/content/docs/chat.mdx?collection=docs&hash=1749957936767"
-import * as docs_3 from "../src/content/docs/index.mdx?collection=docs&hash=1749957936767"
-import * as docs_4 from "../src/content/docs/installation.mdx?collection=docs&hash=1749957936767"
+import * as docs_5 from "../src/content/docs/api/overview.mdx?collection=docs&hash=1750045232744"
+import * as docs_1 from "../src/content/docs/authentication.mdx?collection=docs&hash=1750045232744"
+import * as docs_2 from "../src/content/docs/chat.mdx?collection=docs&hash=1750045232744"
+import * as docs_3 from "../src/content/docs/index.mdx?collection=docs&hash=1750045232744"
+import * as docs_4 from "../src/content/docs/installation.mdx?collection=docs&hash=1750045232744"
 export const docs = _runtime.docs<typeof _source.docs>(
   [
     {
