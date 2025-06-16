@@ -45,6 +45,10 @@ export function useChat() {
     if (isNewChat && !tempThreadIdRef.current) {
       tempThreadIdRef.current = nanoid(32) as Id<"threads">
     }
+    // Clear temp thread ID when we're no longer on a new chat
+    if (!isNewChat && tempThreadIdRef.current) {
+      tempThreadIdRef.current = null
+    }
   }, [isNewChat])
 
   // Get thread by clientId if we have one
@@ -78,12 +82,6 @@ export function useChat() {
 
   const convexMessages = useQuery(api.messages.list, queryArgs) ?? []
 
-  // Clear temp thread ID when we get a real thread from server
-  useEffect(() => {
-    if (currentThread && tempThreadIdRef.current) {
-      tempThreadIdRef.current = null
-    }
-  }, [currentThread])
 
   const messages = convexMessages
 
