@@ -72,8 +72,9 @@ export function Footer({ className }: FooterProps) {
             <div className="flex flex-col items-center gap-2">
               <nav className="flex items-center gap-2 md:gap-4">
                 <Link
-                  prefetch={true}
-                  href="/"
+                  href="https://lightfast.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="hover:text-foreground text-xs transition-all duration-200 hover:underline hover:underline-offset-4"
                 >
                   Home
