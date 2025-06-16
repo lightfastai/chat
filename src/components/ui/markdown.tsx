@@ -38,13 +38,12 @@ const components: Partial<Components> = {
         </code>
       )
     }
-    
+
     // Block code - use CodeMirror for syntax highlighting
     // Extract language from className (e.g., "language-javascript" -> "javascript")
     const languageMatch = className?.match(/language-(\w+)/)
     const language = languageMatch ? languageMatch[1] : "text"
-    
-    
+
     return (
       <CodeMirrorBlock
         code={String(children)}
@@ -56,11 +55,7 @@ const components: Partial<Components> = {
 
   // Pre component - now just a container since CodeMirror is handled in code component
   pre({ children }: MarkdownComponentProps) {
-    return (
-      <div className="flex flex-col my-4">
-        {children}
-      </div>
-    )
+    return <div className="flex flex-col my-4">{children}</div>
   },
 
   // Typography components

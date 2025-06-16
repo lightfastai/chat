@@ -2,12 +2,12 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { javascript } from "@codemirror/lang-javascript"
-import { python } from "@codemirror/lang-python"
 import { css } from "@codemirror/lang-css"
 import { html } from "@codemirror/lang-html"
+import { javascript } from "@codemirror/lang-javascript"
 import { json } from "@codemirror/lang-json"
 import { markdown } from "@codemirror/lang-markdown"
+import { python } from "@codemirror/lang-python"
 import { EditorState } from "@codemirror/state"
 import { oneDark } from "@codemirror/theme-one-dark"
 import { EditorView } from "@codemirror/view"
@@ -32,7 +32,6 @@ export function CodeMirrorBlock({
   const viewRef = useRef<EditorView | null>(null)
   const [copied, setCopied] = useState(false)
 
-
   // Copy to clipboard functionality
   const copyToClipboard = async () => {
     try {
@@ -55,12 +54,12 @@ export function CodeMirrorBlock({
     if (!editorRef.current) {
       return
     }
-    
-    let view
+
+    let view: EditorView | undefined
     try {
       // Vercel's approach: clean extension array
-      let extensions = [basicSetup]
-      
+      const extensions = [basicSetup]
+
       // Add language extension based on detected language
       switch (language.toLowerCase()) {
         case "javascript":
@@ -90,22 +89,21 @@ export function CodeMirrorBlock({
           break
         // Add more languages as needed
       }
-      
+
       // Add theme last
       extensions.push(oneDark)
-      
+
       const startState = EditorState.create({
         doc: code,
         extensions: extensions,
       })
-      
+
       view = new EditorView({
         state: startState,
         parent: editorRef.current,
       })
-      
+
       viewRef.current = view
-      
     } catch (error) {
       console.error("Error creating view:", error)
       return
