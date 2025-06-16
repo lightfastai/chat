@@ -11,7 +11,8 @@ type Message = Doc<"messages">
 
 export function ChatInterface() {
   // Use custom chat hook with optimistic updates
-  const { messages, handleSendMessage, emptyState, isDisabled } = useChat()
+  const { messages, currentThread, handleSendMessage, emptyState, isDisabled } =
+    useChat()
 
   // Manage resumable streams
   const { activeStreams, startStream, endStream } = useResumableChat()
@@ -37,13 +38,14 @@ export function ChatInterface() {
     }
   }, [streamingMessages, messages, activeStreams, startStream, endStream])
 
-  // Check if AI is currently generating (any message is streaming)
+  // Check if AI is currently generating (any message is streaming or thread is generating)
   const isAIGenerating = useMemo(() => {
     return (
+      currentThread?.isGenerating ||
       messages.some((msg) => msg.isStreaming && !msg.isComplete) ||
       activeStreams.size > 0
     )
-  }, [messages, activeStreams])
+  }, [currentThread, messages, activeStreams])
 
   // Enhance messages with streaming text
   const enhancedMessages = useMemo(() => {
