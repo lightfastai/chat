@@ -348,7 +348,9 @@ const ChatInputComponent = ({
                   onChange={handleMessageChange}
                   onKeyPress={handleKeyPress}
                   placeholder={placeholder}
-                  className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3"
+                  className={`w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3 ${
+                    isComponentDisabled ? "cursor-not-allowed" : ""
+                  }`}
                   maxLength={maxLength}
                   disabled={isComponentDisabled}
                   style={{
@@ -359,7 +361,11 @@ const ChatInputComponent = ({
               </div>
 
               {/* Controls area - always at bottom */}
-              <div className="flex items-center justify-between p-2 bg-input/10">
+              <div
+                className={`flex items-center justify-between p-2 bg-input/10 ${
+                  isComponentDisabled ? "cursor-not-allowed" : ""
+                }`}
+              >
                 <div className="flex items-center gap-2">
                   <Select
                     value={selectedModelId}
@@ -470,7 +476,11 @@ const ChatInputComponent = ({
 
             {/* Attachments container - appears below input */}
             {attachments.length > 0 && (
-              <div className="w-full border-l border-r border-b rounded-b-md bg-secondary/20 p-3 transition-all animate-in slide-in-from-top-1 duration-200">
+              <div
+                className={`w-full border-l border-r border-b rounded-b-md bg-secondary/20 p-3 transition-all animate-in slide-in-from-top-1 duration-200 ${
+                  isComponentDisabled ? "cursor-not-allowed" : ""
+                }`}
+              >
                 <div className="flex flex-wrap gap-2">
                   {attachments.map((attachment) => {
                     const isImage = attachment.type.startsWith("image/")
