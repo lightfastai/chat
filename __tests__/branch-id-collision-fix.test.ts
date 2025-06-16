@@ -44,8 +44,8 @@ describe("Branch ID Collision Fix", () => {
     }
 
     const branchId = generateBranchId("msg_test", Date.now())
-    const suffix = branchId.split('_').pop()
-    
+    const suffix = branchId.split("_").pop()
+
     expect(suffix).toBeDefined()
     expect(suffix!.length).toBe(8)
   })
