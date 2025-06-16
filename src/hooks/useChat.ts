@@ -99,7 +99,10 @@ export function useChat() {
     // Otherwise generate a new one using nanoid with the same format as Convex IDs
     const tempThreadId =
       tempThreadIdRef.current || (nanoid(32) as Id<"threads">)
-    tempThreadIdRef.current = tempThreadId
+    // Only update the ref if we generated a new ID
+    if (!tempThreadIdRef.current) {
+      tempThreadIdRef.current = tempThreadId
+    }
 
     // 1. Create optimistic thread for immediate sidebar display
     const optimisticThread: Doc<"threads"> = {
@@ -194,6 +197,13 @@ export function useChat() {
         // 🚀 Generate client ID for new chat
         const clientId = nanoid()
 
+        // Pre-generate the temporary thread ID to ensure consistency
+        const tempThreadId = nanoid(32) as Id<"threads">
+        tempThreadIdRef.current = tempThreadId
+
+        // Update URL immediately for instant navigation
+        window.history.replaceState({}, "", `/chat/${clientId}`)
+
         // Create thread + send message atomically with optimistic updates
         await createThreadAndSend({
           title: "Generating title...",
@@ -203,10 +213,6 @@ export function useChat() {
           attachments,
           webSearchEnabled,
         })
-
-        // Update URL after the optimistic update is complete
-        // This ensures the message is already visible when the URL changes
-        window.history.replaceState({}, "", `/chat/${clientId}`)
 
         return
       }
