@@ -579,6 +579,80 @@ src/components/
 - **AI model management**: Multi-provider support with token tracking
 - **Thread-based chat**: Complex schema with resumable streaming chunks
 
+### Non-blocking SSR Pattern with Convex Prefetch
+
+This project uses a non-blocking Server-Side Rendering pattern with Convex's `preloadQuery` for optimal performance with Partial Pre-Rendering (PPR).
+
+#### Pattern Overview
+Instead of blocking the render with await calls, use Suspense boundaries and preloaded queries:
+
+```tsx
+// ❌ Blocking pattern - avoid this
+export default async function Page() {
+  const user = await getCurrentUser() // Blocks rendering
+  return <Profile user={user} />
+}
+
+// ✅ Non-blocking pattern - use this
+export default async function Page() {
+  return (
+    <Suspense fallback={<ProfileSkeleton />}>
+      <PageWithData />
+    </Suspense>
+  )
+}
+
+async function PageWithData() {
+  const token = await getAuthToken()
+  const preloadedUser = await preloadQuery(api.users.current, {}, { token })
+  return <ProfileWithPreload preloadedUser={preloadedUser} />
+}
+```
+
+#### Implementation Steps
+
+1. **Create a wrapper component with Suspense**:
+```tsx
+export default async function SettingsPage() {
+  return (
+    <Suspense fallback={<LoadingSkeleton />}>
+      <SettingsPageWithData />
+    </Suspense>
+  )
+}
+```
+
+2. **Preload data in a separate component**:
+```tsx
+async function SettingsPageWithData() {
+  const token = await getAuthToken()
+  if (!token) return <ErrorState />
+  
+  const preloadedData = await preloadQuery(api.query.name, args, { token })
+  return <ClientComponent preloadedData={preloadedData} />
+}
+```
+
+3. **Create a client component to use preloaded data**:
+```tsx
+"use client"
+import { usePreloadedQuery } from "convex/react"
+
+export function ClientComponent({ preloadedData }) {
+  const data = usePreloadedQuery(preloadedData) // Instant, non-blocking
+  return <ActualComponent data={data} />
+}
+```
+
+#### Benefits
+- **Non-blocking**: UI streams in progressively with PPR
+- **Better UX**: Shows loading states immediately
+- **Optimal caching**: Convex handles query caching automatically
+- **Type-safe**: Full TypeScript support with Preloaded types
+
+#### Reference Implementation
+See `src/components/chat/sidebar/ServerSidebar.tsx` and `src/app/chat/settings/page.tsx` for complete examples.
+
 
 ## Turborepo Integration
 
