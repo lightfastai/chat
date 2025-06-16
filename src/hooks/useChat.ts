@@ -55,16 +55,45 @@ export function useChat() {
   // Determine the actual thread to use
   const currentThread = threadByClientId || threadById
 
-  // Get messages for current thread
+  // Get messages for current thread (including optimistic messages for new chats)
   const messages =
     useQuery(
       api.messages.list,
-      currentThread ? { threadId: currentThread._id } : "skip",
+      currentThread
+        ? { threadId: currentThread._id }
+        : currentClientId
+          ? { threadId: `temp-${currentClientId}` as Id<"threads"> }
+          : "skip",
     ) ?? []
 
   // Mutations with proper Convex optimistic updates
-  const createThreadAndSend = useMutation(api.messages.createThreadAndSend)
-  // Note: Optimistic updates for new threads are handled via instant navigation to clientId URL
+  const createThreadAndSend = useMutation(
+    api.messages.createThreadAndSend,
+  ).withOptimisticUpdate((localStore, args) => {
+    const { body, modelId, clientId } = args
+
+    // Create optimistic user message for new threads
+    const now = Date.now()
+    const optimisticMessage: Doc<"messages"> = {
+      _id: crypto.randomUUID() as Id<"messages">,
+      _creationTime: now,
+      threadId: `temp-${clientId}` as Id<"threads">, // Temporary thread ID
+      body,
+      messageType: "user",
+      modelId,
+      timestamp: now,
+      isStreaming: false,
+      isComplete: true,
+    }
+
+    // Store optimistic message with clientId-based key for new threads
+    localStore.setQuery(
+      api.messages.list,
+      { threadId: `temp-${clientId}` as Id<"threads"> },
+      [optimisticMessage],
+    )
+  })
+
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
     (localStore, args) => {
       const { threadId, body, modelId } = args
@@ -110,11 +139,17 @@ export function useChat() {
 
     try {
       if (isNewChat) {
-        // 🚀 Generate client ID and navigate instantly
+        // 🚀 Generate client ID for new chat
         const clientId = nanoid()
-        router.replace(`/chat/${clientId}`)
+
+        // Navigate to the new URL with clientId AFTER optimistic update shows message
+        // Small delay ensures optimistic message appears before navigation
+        setTimeout(() => {
+          router.replace(`/chat/${clientId}`)
+        }, 50)
 
         // Create thread + send message atomically with optimistic updates
+        // The optimistic update will show the message immediately
         await createThreadAndSend({
           title: "Generating title...",
           clientId: clientId,
