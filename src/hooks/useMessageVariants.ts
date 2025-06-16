@@ -32,26 +32,21 @@ export function useMessageVariants(
       // Find the user message that prompted this assistant response
       let userMessage = null
 
-      console.log("🔍 Finding user message for assistant:", {
-        messageId,
-        hasBranchPoint: !!targetMessage.branchPoint,
-        branchPoint: targetMessage.branchPoint,
-        conversationBranch: targetMessage.conversationBranchId || "main",
-      })
+      console.log(`🔍 Finding user message for assistant: ${messageId}`)
+      console.log(`🔍 - hasBranchPoint: ${!!targetMessage.branchPoint}`)
+      console.log(`🔍 - branchPoint: ${targetMessage.branchPoint}`)
+      console.log(`🔍 - conversationBranch: ${targetMessage.conversationBranchId || "main"}`)
 
       if (targetMessage.branchPoint) {
         // This is a retry message - find the user message it branches from
         userMessage = messages.find((m) => m._id === targetMessage.branchPoint)
-        console.log(
-          "🔍 Found user message via branchPoint:",
-          userMessage
-            ? {
-                id: userMessage._id,
-                body: userMessage.body.substring(0, 20),
-                type: userMessage.messageType,
-              }
-            : "NOT FOUND",
-        )
+        if (userMessage) {
+          console.log(`🔍 Found user message via branchPoint: ${userMessage._id}`)
+          console.log(`🔍 - body: "${userMessage.body.substring(0, 20)}"`)
+          console.log(`🔍 - type: ${userMessage.messageType}`)
+        } else {
+          console.log("🔍 Found user message via branchPoint: NOT FOUND")
+        }
       } else {
         // This is an original message - find the user message that directly precedes it
         // We need to be more precise: find the most recent user message that doesn't have 
@@ -66,15 +61,10 @@ export function useMessageVariants(
           )
           .sort((a, b) => b.timestamp - a.timestamp)
 
-        console.log(
-          "🔍 User message candidates:",
-          candidates.map((c) => ({
-            id: c._id,
-            body: c.body.substring(0, 20),
-            timestamp: c.timestamp,
-            branch: c.conversationBranchId || "main",
-          })),
-        )
+        console.log(`🔍 User message candidates: ${candidates.length} found`)
+        candidates.forEach((c, idx) => {
+          console.log(`🔍 - [${idx}] ${c._id}: "${c.body.substring(0, 20)}" (ts:${c.timestamp}, branch:${c.conversationBranchId || "main"})`)
+        })
 
         // For each candidate, check if there are any assistant messages between it and our target
         for (const candidate of candidates) {
@@ -87,23 +77,25 @@ export function useMessageVariants(
                 (targetMessage.conversationBranchId || "main"),
           )
 
+          console.log(`🔍 Checking candidate ${candidate._id}: ${assistantMessagesBetween.length} assistant messages between it and target`)
+          
           // If no assistant messages between this candidate and our target, this is the right user message
           if (assistantMessagesBetween.length === 0) {
+            console.log(`🔍 Selected candidate ${candidate._id} - no assistant messages in between`)
             userMessage = candidate
             break
+          } else {
+            console.log(`🔍 Skipping candidate ${candidate._id} - has ${assistantMessagesBetween.length} assistant messages in between`)
           }
         }
 
-        console.log(
-          "🔍 Selected user message:",
-          userMessage
-            ? {
-                id: userMessage._id,
-                body: userMessage.body.substring(0, 20),
-                timestamp: userMessage.timestamp,
-              }
-            : "NOT FOUND",
-        )
+        if (userMessage) {
+          console.log(`🔍 Final selected user message: ${userMessage._id}`)
+          console.log(`🔍 - body: "${userMessage.body.substring(0, 20)}"`)
+          console.log(`🔍 - timestamp: ${userMessage.timestamp}`)
+        } else {
+          console.log("🔍 Final selected user message: NOT FOUND")
+        }
       }
 
       if (!userMessage) {
@@ -132,26 +124,21 @@ export function useMessageVariants(
             )),
       )
 
-      console.log("🔍 Original response search:", {
-        userMessageId: userMessage._id,
-        userTimestamp: userMessage.timestamp,
-        allAssistantMessages: messages
-          .filter((m) => m.messageType === "assistant")
-          .map((m) => ({
-            id: m._id,
-            timestamp: m.timestamp,
-            branchPoint: m.branchPoint,
-            branch: m.conversationBranchId || "main",
-            body: m.body.substring(0, 30),
-          })),
-        originalResponse: originalResponse
-          ? {
-              id: originalResponse._id,
-              branch: originalResponse.conversationBranchId || "main",
-              body: originalResponse.body.substring(0, 30),
-            }
-          : null,
+      console.log(`🔍 Original response search for user: ${userMessage._id} (ts:${userMessage.timestamp})`)
+      
+      const allAssistantMessages = messages.filter((m) => m.messageType === "assistant")
+      console.log(`🔍 All assistant messages: ${allAssistantMessages.length} found`)
+      allAssistantMessages.forEach((m, idx) => {
+        console.log(`🔍 - [${idx}] ${m._id}: "${m.body.substring(0, 30)}" (ts:${m.timestamp}, branch:${m.conversationBranchId || "main"}, branchPoint:${m.branchPoint || "none"})`)
       })
+      
+      if (originalResponse) {
+        console.log(`🔍 Found original response: ${originalResponse._id}`)
+        console.log(`🔍 - branch: ${originalResponse.conversationBranchId || "main"}`)
+        console.log(`🔍 - body: "${originalResponse.body.substring(0, 30)}"`)
+      } else {
+        console.log("🔍 Original response: NOT FOUND")
+      }
 
       if (originalResponse) {
         variants.push(originalResponse)
@@ -163,15 +150,10 @@ export function useMessageVariants(
           m.messageType === "assistant" && m.branchPoint === userMessage._id,
       )
 
-      console.log(
-        "🔍 Retries found:",
-        retries.map((r) => ({
-          id: r._id,
-          branchPoint: r.branchPoint,
-          branch: r.conversationBranchId,
-          body: r.body.substring(0, 30),
-        })),
-      )
+      console.log(`🔍 Retries found: ${retries.length}`)
+      retries.forEach((r, idx) => {
+        console.log(`🔍 - retry[${idx}] ${r._id}: "${r.body.substring(0, 30)}" (branch:${r.conversationBranchId}, branchPoint:${r.branchPoint})`)
+      })
 
       variants.push(...retries)
 
@@ -184,8 +166,14 @@ export function useMessageVariants(
         (a, b) => a.timestamp - b.timestamp,
       )
 
+      console.log(`🔍 Total unique variants: ${sortedVariants.length}`)
+      sortedVariants.forEach((v, idx) => {
+        console.log(`🔍 - variant[${idx}] ${v._id}: "${v.body.substring(0, 20)}" (ts:${v.timestamp}, branch:${v.conversationBranchId || "main"})`)
+      })
+
       // If no variants or only one variant, don't show navigation
       if (sortedVariants.length <= 1) {
+        console.log("🌳 No navigation needed - only 1 variant or less")
         return null
       }
 
@@ -193,33 +181,15 @@ export function useMessageVariants(
       const currentIndex = sortedVariants.findIndex((v) => v._id === messageId)
 
       if (currentIndex === -1) {
+        console.log("🌳 Current message not found in variants - returning null")
         return null
       }
 
-      console.log("🌳 Message-level variant navigation:", {
-        messageId,
-        userMessageId: userMessage._id,
-        variantCount: sortedVariants.length,
-        currentIndex,
-        variants: sortedVariants.map((v) => ({
-          id: v._id,
-          branch: v.conversationBranchId,
-          branchPoint: v.branchPoint,
-          timestamp: v.timestamp,
-        })),
-        originalResponse: originalResponse
-          ? {
-              id: originalResponse._id,
-              branch: originalResponse.conversationBranchId,
-              branchPoint: originalResponse.branchPoint,
-            }
-          : null,
-        retries: retries.map((r) => ({
-          id: r._id,
-          branch: r.conversationBranchId,
-          branchPoint: r.branchPoint,
-        })),
-      })
+      console.log(`🌳 Message-level variant navigation for ${messageId}:`)
+      console.log(`🌳 - userMessageId: ${userMessage._id}`)
+      console.log(`🌳 - variantCount: ${sortedVariants.length}`)
+      console.log(`🌳 - currentIndex: ${currentIndex}`)
+      console.log(`🌳 - will show navigation: ${currentIndex + 1}/${sortedVariants.length}`)
 
       return {
         currentIndex,
