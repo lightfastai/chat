@@ -3,6 +3,7 @@
 import { usePreloadedQuery } from "convex/react"
 import type { Preloaded } from "convex/react"
 import type { api } from "../../../convex/_generated/api"
+import type { Id } from "../../../convex/_generated/dataModel"
 import { ApiKeysSection } from "./ApiKeysSection"
 import { ProfileSection } from "./ProfileSection"
 
@@ -11,12 +12,39 @@ interface SettingsContentProps {
   preloadedUserSettings: Preloaded<typeof api.userSettings.getUserSettings>
 }
 
+// Type definitions based on what the API queries return
+type User = {
+  _id: Id<"users">
+  _creationTime: number
+  name?: string
+  email?: string
+  image?: string
+  emailVerificationTime?: number
+  phone?: string
+  phoneVerificationTime?: number
+  isAnonymous?: boolean
+} | null
+
+type UserSettings = {
+  _id: Id<"userSettings">
+  userId: Id<"users">
+  preferences?: {
+    defaultModel?: string
+    preferredProvider?: string
+  }
+  createdAt: number
+  updatedAt: number
+  hasOpenAIKey: boolean
+  hasAnthropicKey: boolean
+  hasOpenRouterKey: boolean
+} | null
+
 export function SettingsContent({
   preloadedUser,
   preloadedUserSettings,
 }: SettingsContentProps) {
-  let user: any = null
-  let userSettings: any = null
+  let user: User = null
+  let userSettings: UserSettings = null
 
   try {
     user = usePreloadedQuery(preloadedUser)
