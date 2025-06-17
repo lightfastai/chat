@@ -134,6 +134,10 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           optimisticMessages,
         )
 
+        // Store the temp thread ID in session storage for useChat to pick up
+        // This ensures consistency across the optimistic update and actual navigation
+        sessionStorage.setItem(`branch_temp_thread_${clientId}`, tempThreadId)
+
         // DEBUG: Also log what we're setting for debugging
         console.log("🚀 Optimistic branch - setting messages:", {
           tempThreadId,

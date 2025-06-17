@@ -13,6 +13,8 @@ export function useChat() {
 
   // Store the temporary thread ID to maintain consistency across URL changes
   const tempThreadIdRef = useRef<Id<"threads"> | null>(null)
+  // Store previous pathname to detect navigation changes
+  const prevPathnameRef = useRef(pathname)
 
   // Extract current thread info from pathname with clientId support
   const pathInfo = useMemo(() => {
@@ -64,9 +66,39 @@ export function useChat() {
     }
   }, [currentThread])
 
+  // Reset temporary thread ID when navigating away
+  useEffect(() => {
+    if (prevPathnameRef.current !== pathname) {
+      // Navigation occurred - only reset temp thread if moving to a different chat
+      const prevMatch = prevPathnameRef.current.match(/^\/chat\/(.+)$/)
+      const currentMatch = pathname.match(/^\/chat\/(.+)$/)
+
+      if (!prevMatch || !currentMatch || prevMatch[1] !== currentMatch[1]) {
+        tempThreadIdRef.current = null
+      }
+
+      prevPathnameRef.current = pathname
+    }
+  }, [pathname])
+
   // Get messages for current thread
   // IMPORTANT: For optimistic updates to work when transitioning from /chat to /chat/{clientId},
   // we need to use the temporary thread ID when we have a clientId but no server thread yet
+
+  // Check for stored temp thread ID from branching
+  const storedTempThreadId = currentClientId
+    ? (sessionStorage.getItem(
+        `branch_temp_thread_${currentClientId}`,
+      ) as Id<"threads"> | null)
+    : null
+
+  // Use stored temp thread ID if available and we don't have a server thread yet
+  if (storedTempThreadId && !currentThread && !tempThreadIdRef.current) {
+    tempThreadIdRef.current = storedTempThreadId
+    // Clean up stored value
+    sessionStorage.removeItem(`branch_temp_thread_${currentClientId}`)
+  }
+
   const messageThreadId =
     currentThread?._id ||
     (currentClientId && tempThreadIdRef.current) ||

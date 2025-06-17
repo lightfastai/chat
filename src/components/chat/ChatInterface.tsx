@@ -17,11 +17,14 @@ export function ChatInterface() {
 
   // Track if user has ever sent a message to prevent flicker
   const hasEverSentMessage = useRef(false)
+  // Track if we've already shown centered view to prevent flicker
+  const hasShownCenteredView = useRef(false)
 
   // Reset when we're in a truly new chat, set when messages exist
   useEffect(() => {
     if (isNewChat && messages.length === 0) {
       hasEverSentMessage.current = false
+      hasShownCenteredView.current = false
     } else if (messages.length > 0) {
       hasEverSentMessage.current = true
     }
@@ -72,7 +75,12 @@ export function ChatInterface() {
   }, [messages, activeStreams])
 
   // Show centered layout only for truly new chats that have never had messages
-  if (isNewChat && !hasEverSentMessage.current) {
+  // Use hasShownCenteredView to prevent flicker during transitions
+  const shouldShowCentered =
+    isNewChat && !hasEverSentMessage.current && !hasShownCenteredView.current
+
+  if (shouldShowCentered) {
+    hasShownCenteredView.current = true
     return (
       <CenteredChatStart
         onSendMessage={handleSendMessage}

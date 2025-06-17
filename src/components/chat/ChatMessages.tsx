@@ -139,8 +139,12 @@ export function ChatMessages({
           {messages
             ?.slice()
             .reverse()
-            .map((msg) => (
-              <MessageDisplay key={msg._id} message={msg} userName="User" />
+            .map((msg, index) => (
+              <MessageDisplay
+                key={`${msg._id}-${msg._creationTime}-${index}`}
+                message={msg}
+                userName="User"
+              />
             ))}
 
           {isLoading && (
