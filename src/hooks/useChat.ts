@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useRef } from "react"
 import { api } from "../../convex/_generated/api"
-import type { Doc, Id } from "../../convex/_generated/dataModel"
+import type { Id } from "../../convex/_generated/dataModel"
 
 // Simplified approach - no complex client message queue
 
@@ -167,7 +167,7 @@ export function useChat() {
         const clientId = nanoid()
         
         // Only update URL after successful creation
-        const threadId = await createThreadAndSend({
+        await createThreadAndSend({
           title: "Generating title...",
           clientId: clientId,
           body: message,
