@@ -10,10 +10,8 @@ import { ShareButton } from "./ShareButton"
 
 export function ShareButtonWrapper() {
   // Get preloaded data from context
-  const {
-    preloadedThreadById,
-    preloadedThreadByClientId,
-  } = useChatPreloadContext()
+  const { preloadedThreadById, preloadedThreadByClientId } =
+    useChatPreloadContext()
   const pathname = usePathname()
 
   // Extract threadId from pathname since useParams() doesn't update with window.history.replaceState()

@@ -84,7 +84,9 @@ async function ChatThreadPageWithPreloadedData({
       // We can't preload messages yet since we don't know the thread ID
       // The useChat hook will handle this case
       return (
-        <ChatPreloadProvider preloadedThreadByClientId={preloadedThreadByClientId}>
+        <ChatPreloadProvider
+          preloadedThreadByClientId={preloadedThreadByClientId}
+        >
           <ChatInterface
             preloadedThreadByClientId={preloadedThreadByClientId}
           />
@@ -115,7 +117,7 @@ async function ChatThreadPageWithPreloadedData({
     )
 
     return (
-      <ChatPreloadProvider 
+      <ChatPreloadProvider
         preloadedThreadById={preloadedThreadById}
         preloadedThreadUsage={preloadedThreadUsage}
       >

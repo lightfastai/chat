@@ -134,8 +134,8 @@ export function ChatMessages({
 
   return (
     <ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
-      <div className="p-4 pb-16">
-        <div className="space-y-6 max-w-3xl mx-auto">
+      <div className="p-2 sm:p-4 pb-16">
+        <div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
           {messages
             ?.slice()
             .reverse()

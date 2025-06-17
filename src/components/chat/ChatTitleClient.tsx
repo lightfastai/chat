@@ -11,10 +11,8 @@ import { useChatPreloadContext } from "./ChatPreloadContext"
 // Client component for dynamic chat title that updates based on current thread
 export function ChatTitleClient() {
   // Get preloaded data from context
-  const {
-    preloadedThreadById,
-    preloadedThreadByClientId,
-  } = useChatPreloadContext()
+  const { preloadedThreadById, preloadedThreadByClientId } =
+    useChatPreloadContext()
   const pathname = usePathname()
 
   // Extract current thread info from pathname with clientId support
@@ -86,11 +84,16 @@ export function ChatTitleClient() {
     if (pathInfo.type === "settings") {
       return "Settings"
     }
-    if (currentClientId && !currentThread) {
+    // Show empty string while loading any thread (whether by client ID or server ID)
+    if (!currentThread && (currentClientId || currentThreadId !== "new")) {
       return ""
     }
     return currentThread?.title || "Chat"
   }
 
-  return <h1 className="text-lg font-semibold">{getTitle()}</h1>
+  return (
+    <h1 className="text-base sm:text-lg font-semibold truncate">
+      {getTitle()}
+    </h1>
+  )
 }

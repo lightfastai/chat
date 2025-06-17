@@ -332,7 +332,7 @@ const ChatInputComponent = ({
   }
 
   return (
-    <div className={`p-4 flex-shrink-0 ${className}`} {...dragHandlers}>
+    <div className={`p-2 sm:p-4 flex-shrink-0 ${className}`} {...dragHandlers}>
       <div className="max-w-3xl mx-auto relative">
         {/* Drag overlay */}
         {isDragging && (

@@ -12,16 +12,16 @@ import { ServerSidebar } from "./sidebar/ServerSidebar"
 // Server component for chat header - can be static with PPR
 function ChatHeader() {
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 px-4">
+    <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 px-2 sm:px-4">
       <SidebarTrigger className="-ml-1" />
-      <div className="flex items-center gap-2 flex-1">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
         <Suspense
           fallback={<div className="h-6 w-24 bg-muted animate-pulse rounded" />}
         >
           <ChatTitleClient />
         </Suspense>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <Suspense
           fallback={
             <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export function ChatLayout({ children }: ChatLayoutProps) {
     <SidebarProvider>
       <div className="flex h-screen w-full">
         <ServerSidebar />
-        <SidebarInset className="flex flex-col border-l border-r-0 border-t border-b">
+        <SidebarInset className="flex flex-col border-l border-r-0 border-t border-b h-full">
           <ChatHeader />
           <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
         </SidebarInset>

@@ -45,11 +45,11 @@ export function CenteredChatStart({
     preloadedUserData?.email || preloadedUserData?.name || email || displayName
 
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-0 px-4">
-      <div className="w-full max-w-3xl mx-auto -mt-16">
+    <div className="flex flex-col items-center justify-center h-full min-h-0 px-2 sm:px-4">
+      <div className="w-full max-w-3xl mx-auto -mt-8 sm:-mt-16">
         <div className="text-center mb-4">
-          <h1 className="text-4xl font-semibold text-foreground mb-2 flex items-center justify-center gap-4">
-            <ZapIcon className="w-8 h-8 inline-block" />
+          <h1 className="text-2xl sm:text-4xl font-semibold text-foreground mb-2 flex items-center justify-center gap-2 sm:gap-4">
+            <ZapIcon className="w-6 h-6 sm:w-8 sm:h-8 inline-block" />
             {greeting}, {userName}
           </h1>
         </div>
