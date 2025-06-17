@@ -27,6 +27,11 @@ export function useChat() {
 
     const id = match[1]
 
+    // Handle special routes
+    if (id === "settings" || id.startsWith("settings/")) {
+      return { type: "settings", id: "settings" }
+    }
+
     // Check if it's a client-generated ID (nanoid)
     if (isClientId(id)) {
       return { type: "clientId", id }
@@ -38,18 +43,19 @@ export function useChat() {
 
   const currentThreadId = pathInfo.type === "threadId" ? pathInfo.id : "new"
   const currentClientId = pathInfo.type === "clientId" ? pathInfo.id : null
+  const isSettingsPage = pathInfo.type === "settings"
   const isNewChat = currentThreadId === "new" && !currentClientId
 
-  // Get thread by clientId if we have one
+  // Get thread by clientId if we have one (skip for settings)
   const threadByClientId = useQuery(
     api.threads.getByClientId,
-    currentClientId ? { clientId: currentClientId } : "skip",
+    currentClientId && !isSettingsPage ? { clientId: currentClientId } : "skip",
   )
 
-  // Get thread by ID for regular threads
+  // Get thread by ID for regular threads (skip for settings)
   const threadById = useQuery(
     api.threads.get,
-    currentThreadId !== "new"
+    currentThreadId !== "new" && !isSettingsPage
       ? { threadId: currentThreadId as Id<"threads"> }
       : "skip",
   )

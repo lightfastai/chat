@@ -15,23 +15,34 @@ export function ShareButtonWrapper() {
     ? pathname.slice(6) // Remove "/chat/" prefix
     : undefined
 
+  // Handle special routes
+  const isSettingsPage =
+    urlThreadId === "settings" || urlThreadId?.startsWith("settings/")
+
   // Check if it's a client-generated ID
   const isClient = urlThreadId ? isClientId(urlThreadId) : false
   const isNewChat = pathname === "/chat"
 
-  // Get thread by clientId if needed
+  // Get thread by clientId if needed (skip for settings)
   const threadByClientId = useQuery(
     api.threads.getByClientId,
-    isClient && urlThreadId ? { clientId: urlThreadId } : "skip",
+    isClient && urlThreadId && !isSettingsPage
+      ? { clientId: urlThreadId }
+      : "skip",
   )
 
-  // Get thread by actual ID if needed
+  // Get thread by actual ID if needed (skip for settings)
   const threadById = useQuery(
     api.threads.get,
-    urlThreadId && !isClient
+    urlThreadId && !isClient && !isSettingsPage
       ? { threadId: urlThreadId as Id<"threads"> }
       : "skip",
   )
+
+  // Don't show share button on settings page
+  if (isSettingsPage) {
+    return null
+  }
 
   // Determine the actual Convex thread ID
   let threadId: Id<"threads"> | undefined

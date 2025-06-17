@@ -37,27 +37,32 @@ export default async function SettingsPage() {
 }
 
 async function SettingsPageWithData() {
-  // Get authentication token for server-side requests
-  const token = await getAuthToken()
+  try {
+    // Get authentication token for server-side requests
+    const token = await getAuthToken()
 
-  // Middleware ensures authentication, so token should exist
-  if (!token) {
+    // Middleware ensures authentication, so token should exist
+    if (!token) {
+      return <SettingUnauthenticated />
+    }
+
+    // Preload both user data and settings for instant tab switching
+    const [preloadedUser, preloadedUserSettings] = await Promise.all([
+      preloadQuery(api.users.current, {}, { token }),
+      preloadQuery(api.userSettings.getUserSettings, {}, { token }),
+    ])
+
+    // Pass preloaded data to unified settings component
+    return (
+      <SettingsContent
+        preloadedUser={preloadedUser}
+        preloadedUserSettings={preloadedUserSettings}
+      />
+    )
+  } catch (error) {
+    console.error("Error loading settings:", error)
     return <SettingsError />
   }
-
-  // Preload both user data and settings for instant tab switching
-  const [preloadedUser, preloadedUserSettings] = await Promise.all([
-    preloadQuery(api.users.current, {}, { token }),
-    preloadQuery(api.userSettings.getUserSettings, {}, { token }),
-  ])
-
-  // Pass preloaded data to unified settings component
-  return (
-    <SettingsContent
-      preloadedUser={preloadedUser}
-      preloadedUserSettings={preloadedUserSettings}
-    />
-  )
 }
 
 // Helper for skeleton row
@@ -120,6 +125,20 @@ function SettingsError() {
         <p className="text-sm">
           Something went wrong. Please try refreshing the page.
         </p>
+      </div>
+    </div>
+  )
+}
+
+function SettingUnauthenticated() {
+  return (
+    <div className="space-y-4 text-center">
+      <h2 className="text-2xl font-bold tracking-tight">
+        You are not logged in
+      </h2>
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive sm:p-6">
+        <p className="font-medium">Please sign in to continue</p>
+        <p className="text-sm">You need to be logged in to access this page.</p>
       </div>
     </div>
   )
