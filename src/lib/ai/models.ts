@@ -653,6 +653,7 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
     },
     deprecated: true,
     replacedBy: "claude-3-5-sonnet-20241022",
+    hidden: true,
   },
   "openai/gpt-4o": {
     id: "openai/gpt-4o",
@@ -672,6 +673,7 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
     },
     deprecated: true,
     replacedBy: "gpt-4o",
+    hidden: true,
   },
   "google/gemini-pro-1.5": {
     id: "google/gemini-pro-1.5",
@@ -691,6 +693,7 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
     },
     deprecated: true,
     replacedBy: "x-ai/grok-3-beta",
+    hidden: true,
   },
   "mistralai/mistral-large": {
     id: "mistralai/mistral-large",
@@ -710,6 +713,7 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
     },
     deprecated: true,
     replacedBy: "qwen/qwen2.5-32b-instruct",
+    hidden: true,
   },
 }
 
