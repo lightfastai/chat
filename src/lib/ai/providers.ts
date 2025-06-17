@@ -44,11 +44,13 @@ export const PROVIDER_CONFIG = {
     name: "OpenRouter",
     apiKeyEnvVar: "OPENROUTER_API_KEY",
     models: [
+      "x-ai/grok-3",
+      "x-ai/grok-3-mini",
+      "qwen/qwq-32b",
+      "qwen/qwen-2.5-32b-instruct",
       "meta-llama/llama-3.3-70b-instruct",
-      "anthropic/claude-3.5-sonnet",
-      "openai/gpt-4o",
-      "google/gemini-pro-1.5",
-      "mistralai/mistral-large",
+      "meta-llama/llama-4-scout",
+      "meta-llama/llama-4-maverick",
     ],
   },
 } as const

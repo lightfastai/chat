@@ -299,12 +299,84 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
  * OpenRouter Model Configurations
  */
 export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
+  "x-ai/grok-3": {
+    id: "x-ai/grok-3",
+    provider: "openrouter",
+    name: "x-ai/grok-3",
+    displayName: "Grok 3",
+    description:
+      "xAI's most powerful reasoning model with real-time data access",
+    maxTokens: 131072,
+    costPer1KTokens: {
+      input: 0.002,
+      output: 0.002,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "x-ai/grok-3-mini": {
+    id: "x-ai/grok-3-mini",
+    provider: "openrouter",
+    name: "x-ai/grok-3-mini",
+    displayName: "Grok 3 Mini",
+    description:
+      "Fast and efficient reasoning model with real-time data access",
+    maxTokens: 131072,
+    costPer1KTokens: {
+      input: 0.0002,
+      output: 0.0002,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "qwen/qwq-32b": {
+    id: "qwen/qwq-32b",
+    provider: "openrouter",
+    name: "qwen/qwq-32b",
+    displayName: "Qwen QwQ-32B",
+    description:
+      "Advanced reasoning model optimized for mathematical and logical tasks",
+    maxTokens: 32768,
+    costPer1KTokens: {
+      input: 0.0006,
+      output: 0.0024,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,
+    },
+  },
+  "qwen/qwen-2.5-32b-instruct": {
+    id: "qwen/qwen-2.5-32b-instruct",
+    provider: "openrouter",
+    name: "qwen/qwen-2.5-32b-instruct",
+    displayName: "Qwen 2.5 32B",
+    description:
+      "Powerful multilingual model with strong coding and reasoning capabilities",
+    maxTokens: 131072,
+    costPer1KTokens: {
+      input: 0.0006,
+      output: 0.0024,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,
+    },
+  },
   "meta-llama/llama-3.3-70b-instruct": {
     id: "meta-llama/llama-3.3-70b-instruct",
     provider: "openrouter",
     name: "meta-llama/llama-3.3-70b-instruct",
     displayName: "Llama 3.3 70B",
-    description: "Meta's latest and most capable open model",
+    description: "Meta's latest multilingual model with enhanced performance",
     maxTokens: 131072,
     costPer1KTokens: {
       input: 0.00035,
@@ -316,33 +388,17 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       vision: false,
     },
   },
-  "anthropic/claude-3.5-sonnet": {
-    id: "anthropic/claude-3.5-sonnet",
+  "meta-llama/llama-4-scout": {
+    id: "meta-llama/llama-4-scout",
     provider: "openrouter",
-    name: "anthropic/claude-3.5-sonnet",
-    displayName: "Claude 3.5 Sonnet (via OpenRouter)",
-    description: "Claude 3.5 Sonnet through OpenRouter",
-    maxTokens: 200000,
-    costPer1KTokens: {
-      input: 0.003,
-      output: 0.015,
-    },
-    features: {
-      streaming: true,
-      functionCalling: true,
-      vision: true,
-    },
-  },
-  "openai/gpt-4o": {
-    id: "openai/gpt-4o",
-    provider: "openrouter",
-    name: "openai/gpt-4o",
-    displayName: "GPT-4o (via OpenRouter)",
-    description: "GPT-4o through OpenRouter",
+    name: "meta-llama/llama-4-scout",
+    displayName: "Llama 4 Scout",
+    description:
+      "Efficient multimodal model with 17B active parameters (109B total)",
     maxTokens: 128000,
     costPer1KTokens: {
-      input: 0.0025,
-      output: 0.01,
+      input: 0.001,
+      output: 0.001,
     },
     features: {
       streaming: true,
@@ -350,39 +406,22 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       vision: true,
     },
   },
-  "google/gemini-pro-1.5": {
-    id: "google/gemini-pro-1.5",
+  "meta-llama/llama-4-maverick": {
+    id: "meta-llama/llama-4-maverick",
     provider: "openrouter",
-    name: "google/gemini-pro-1.5",
-    displayName: "Gemini 1.5 Pro",
-    description: "Google's advanced multimodal model",
-    maxTokens: 2097152,
-    costPer1KTokens: {
-      input: 0.00125,
-      output: 0.005,
-    },
-    features: {
-      streaming: true,
-      functionCalling: true,
-      vision: true,
-    },
-  },
-  "mistralai/mistral-large": {
-    id: "mistralai/mistral-large",
-    provider: "openrouter",
-    name: "mistralai/mistral-large",
-    displayName: "Mistral Large",
+    name: "meta-llama/llama-4-maverick",
+    displayName: "Llama 4 Maverick",
     description:
-      "Mistral's flagship model with strong multilingual capabilities",
+      "High-capacity multimodal model with 17B active parameters (400B total)",
     maxTokens: 128000,
     costPer1KTokens: {
       input: 0.002,
-      output: 0.006,
+      output: 0.002,
     },
     features: {
       streaming: true,
       functionCalling: true,
-      vision: false,
+      vision: true,
     },
   },
 }

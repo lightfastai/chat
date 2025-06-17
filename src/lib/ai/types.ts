@@ -23,11 +23,13 @@ export type AnthropicModel =
   | "claude-3-5-haiku-20241022"
 
 export type OpenRouterModel =
+  | "x-ai/grok-3"
+  | "x-ai/grok-3-mini"
+  | "qwen/qwq-32b"
+  | "qwen/qwen-2.5-32b-instruct"
   | "meta-llama/llama-3.3-70b-instruct"
-  | "anthropic/claude-3.5-sonnet"
-  | "openai/gpt-4o"
-  | "google/gemini-pro-1.5"
-  | "mistralai/mistral-large"
+  | "meta-llama/llama-4-scout"
+  | "meta-llama/llama-4-maverick"
 
 export type ModelId = OpenAIModel | AnthropicModel | OpenRouterModel
 
@@ -96,11 +98,13 @@ export const ANTHROPIC_MODEL_IDS = [
   "claude-3-5-haiku-20241022",
 ] as const
 export const OPENROUTER_MODEL_IDS = [
+  "x-ai/grok-3",
+  "x-ai/grok-3-mini",
+  "qwen/qwq-32b",
+  "qwen/qwen-2.5-32b-instruct",
   "meta-llama/llama-3.3-70b-instruct",
-  "anthropic/claude-3.5-sonnet",
-  "openai/gpt-4o",
-  "google/gemini-pro-1.5",
-  "mistralai/mistral-large",
+  "meta-llama/llama-4-scout",
+  "meta-llama/llama-4-maverick",
 ] as const
 export const ALL_MODEL_IDS = [
   ...OPENAI_MODEL_IDS,

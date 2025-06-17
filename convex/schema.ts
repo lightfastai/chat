@@ -22,11 +22,13 @@ const modelIdValidator = v.union(
   v.literal("claude-3-5-sonnet-20240620"),
   v.literal("claude-3-5-haiku-20241022"),
   // OpenRouter models
+  v.literal("x-ai/grok-3"),
+  v.literal("x-ai/grok-3-mini"),
+  v.literal("qwen/qwq-32b"),
+  v.literal("qwen/qwen-2.5-32b-instruct"),
   v.literal("meta-llama/llama-3.3-70b-instruct"),
-  v.literal("anthropic/claude-3.5-sonnet"),
-  v.literal("openai/gpt-4o"),
-  v.literal("google/gemini-pro-1.5"),
-  v.literal("mistralai/mistral-large"),
+  v.literal("meta-llama/llama-4-scout"),
+  v.literal("meta-llama/llama-4-maverick"),
 )
 
 const modelProviderValidator = v.union(
