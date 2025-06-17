@@ -3,6 +3,8 @@
 import { isClientId } from "@/lib/nanoid"
 import { usePathname } from "next/navigation"
 import { useMemo } from "react"
+import { useQuery } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 import { TokenUsageHeader } from "./TokenUsageHeader"
 
@@ -36,8 +38,23 @@ export function TokenUsageHeaderWrapper() {
     return { type: "threadId", id: id as Id<"threads"> }
   }, [pathname])
 
-  const currentThreadId: Id<"threads"> | "new" =
-    pathInfo.type === "threadId" ? (pathInfo.id as Id<"threads">) : "new"
+  // Resolve client ID to actual thread ID
+  const threadByClientId = useQuery(
+    api.threads.getByClientId,
+    pathInfo.type === "clientId" ? { clientId: pathInfo.id } : "skip",
+  )
+
+  // Determine the actual thread ID
+  const currentThreadId: Id<"threads"> | "new" = useMemo(() => {
+    if (pathInfo.type === "threadId") {
+      return pathInfo.id as Id<"threads">
+    }
+    if (pathInfo.type === "clientId" && threadByClientId) {
+      return threadByClientId._id
+    }
+    return "new"
+  }, [pathInfo, threadByClientId])
+
 
   // Don't show token usage on settings page
   if (pathInfo.type === "settings") {

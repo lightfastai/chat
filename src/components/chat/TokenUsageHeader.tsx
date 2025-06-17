@@ -61,6 +61,7 @@ export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
     threadId === "new" ? "skip" : { threadId },
   )
 
+
   // For new chats, show nothing
   if (threadId === "new") {
     return null
