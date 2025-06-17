@@ -88,8 +88,13 @@ export function useChat(options: UseChatOptions = {}) {
   const currentThread = preloadedThread || threadByClientId || threadById
 
   // Clear temp thread ID when we get a real thread from server
+  // But not for optimistic threads (which have userId === "temp")
   useEffect(() => {
-    if (currentThread && tempThreadIdRef.current) {
+    if (
+      currentThread &&
+      tempThreadIdRef.current &&
+      currentThread.userId !== "temp"
+    ) {
       tempThreadIdRef.current = null
     }
   }, [currentThread])
@@ -97,6 +102,7 @@ export function useChat(options: UseChatOptions = {}) {
   // Get messages for current thread
   // IMPORTANT: For optimistic updates to work when transitioning from /chat to /chat/{clientId},
   // we need to use the temporary thread ID when we have a clientId but no server thread yet
+  // For branching scenarios, the optimistic thread will have an _id that we should use
   const messageThreadId =
     currentThread?._id ||
     (currentClientId && tempThreadIdRef.current) ||
@@ -108,15 +114,25 @@ export function useChat(options: UseChatOptions = {}) {
     ? usePreloadedQuery(options.preloadedMessages)
     : null
 
-  const messages =
-    preloadedMessages ??
-    useQuery(
-      api.messages.list,
-      messageThreadId && !preloadedMessages
-        ? { threadId: messageThreadId }
-        : "skip",
-    ) ??
-    []
+  const messagesQuery = useQuery(
+    api.messages.list,
+    messageThreadId && !preloadedMessages
+      ? { threadId: messageThreadId }
+      : "skip",
+  )
+
+  const messages = preloadedMessages ?? messagesQuery ?? []
+
+  // DEBUG: Log the actual query being made
+  useEffect(() => {
+    if (messageThreadId && !preloadedMessages) {
+      console.log("📨 Messages query:", {
+        messageThreadId,
+        messagesFound: messagesQuery?.length,
+        isSkipped: !messageThreadId || !!preloadedMessages,
+      })
+    }
+  }, [messageThreadId, messagesQuery?.length, preloadedMessages])
 
   // DEBUG: Log message query details for debugging
   useEffect(() => {
@@ -127,9 +143,19 @@ export function useChat(options: UseChatOptions = {}) {
         messageThreadId,
         messageCount: messages.length,
         firstMessage: messages[0]?.body?.slice(0, 50),
+        threadByClientId: threadByClientId?._id,
+        preloadedThread: preloadedThread?._id,
+        tempThreadIdRef: tempThreadIdRef.current,
       })
     }
-  }, [currentClientId, currentThread?._id, messageThreadId, messages.length])
+  }, [
+    currentClientId,
+    currentThread?._id,
+    messageThreadId,
+    messages.length,
+    threadByClientId?._id,
+    preloadedThread?._id,
+  ])
 
   // Mutations with proper Convex optimistic updates
   const createThreadAndSend = useMutation(
