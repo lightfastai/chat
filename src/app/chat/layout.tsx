@@ -1,16 +1,11 @@
-import { ChatLayout as ChatLayoutImplementation } from "@/components/chat/ChatLayout"
-import { TooltipProvider } from "@/components/ui/tooltip"
 import type React from "react"
 
 interface ChatLayoutProps {
   children: React.ReactNode
 }
 
-// Server component layout - provides static shell and enables SSR with PPR
+// Minimal layout that just passes through children
+// Individual chat pages handle their own layouts for prefetching optimization
 export default function ChatLayout({ children }: ChatLayoutProps) {
-  return (
-    <TooltipProvider>
-      <ChatLayoutImplementation>{children}</ChatLayoutImplementation>
-    </TooltipProvider>
-  )
+  return children
 }

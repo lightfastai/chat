@@ -1,6 +1,8 @@
 import { siteConfig } from "@/lib/site-config"
 import type { Metadata } from "next"
 import { ChatInterface } from "../../components/chat/ChatInterface"
+import { ChatLayout } from "../../components/chat/ChatLayout"
+import { TooltipProvider } from "../../components/ui/tooltip"
 
 export const metadata: Metadata = {
   title: "New Chat",
@@ -27,5 +29,11 @@ export const metadata: Metadata = {
 export default function ChatPage() {
   // This server component provides the static shell
   // Client-side hydration happens in ChatInterface and ChatLayoutClient
-  return <ChatInterface />
+  return (
+    <TooltipProvider>
+      <ChatLayout>
+        <ChatInterface />
+      </ChatLayout>
+    </TooltipProvider>
+  )
 }
