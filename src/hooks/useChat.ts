@@ -138,9 +138,10 @@ export function useChat(options: UseChatOptions = {}) {
     const { title, clientId, body, modelId } = args
     const now = Date.now()
 
-    // Create optimistic thread with a temporary ID
+    // Create optimistic thread with a temporary ID that looks like a Convex ID
     // This will be replaced by the real thread ID when the mutation completes
-    const optimisticThreadId = crypto.randomUUID() as Id<"threads">
+    // Use a format that starts with 'k' to pass our optimistic ID checks
+    const optimisticThreadId = `k${crypto.randomUUID().replace(/-/g, "")}` as Id<"threads">
 
     // Create optimistic thread for sidebar display and message association
     const optimisticThread: Partial<Doc<"threads">> & {
@@ -174,9 +175,9 @@ export function useChat(options: UseChatOptions = {}) {
       optimisticThread as Doc<"threads">,
     )
 
-    // Create optimistic messages with standard random IDs
-    const userMessageId = crypto.randomUUID() as Id<"messages">
-    const assistantMessageId = crypto.randomUUID() as Id<"messages">
+    // Create optimistic messages with IDs that look like Convex IDs
+    const userMessageId = `k${crypto.randomUUID().replace(/-/g, "")}` as Id<"messages">
+    const assistantMessageId = `k${crypto.randomUUID().replace(/-/g, "")}` as Id<"messages">
 
     // Create optimistic user message
     const optimisticUserMessage: Doc<"messages"> = {
@@ -225,7 +226,7 @@ export function useChat(options: UseChatOptions = {}) {
       if (existingMessages !== undefined) {
         const now = Date.now()
         const optimisticMessage: Doc<"messages"> = {
-          _id: crypto.randomUUID() as Id<"messages">,
+          _id: `k${crypto.randomUUID().replace(/-/g, "")}` as Id<"messages">,
           _creationTime: now,
           threadId,
           body,
