@@ -1,10 +1,8 @@
 "use client"
 
+import { ErrorBoundaryUI } from "@/components/error/ErrorBoundaryUI"
 import { AlertCircle, Home, RefreshCw } from "lucide-react"
-import Link from "next/link"
 import { useEffect } from "react"
-
-import { Button } from "@/components/ui/button"
 
 export default function ErrorBoundary({
   error,
@@ -19,52 +17,24 @@ export default function ErrorBoundary({
   }, [error])
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center gap-6 px-4">
-      <div className="flex max-w-md flex-col items-center gap-4 text-center">
-        <div className="rounded-full bg-destructive/10 p-3">
-          <AlertCircle className="h-6 w-6 text-destructive" />
-        </div>
-
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Something went wrong
-        </h1>
-
-        <p className="text-sm text-muted-foreground">
-          We encountered an unexpected error. The issue has been logged and
-          we'll look into it.
-        </p>
-
-        {process.env.NODE_ENV === "development" && error.message && (
-          <details className="mt-4 w-full rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-left">
-            <summary className="cursor-pointer text-sm font-medium text-destructive">
-              Error details
-            </summary>
-            <pre className="mt-2 overflow-auto text-xs text-muted-foreground">
-              {error.message}
-              {error.stack && (
-                <>
-                  {"\n\n"}
-                  {error.stack}
-                </>
-              )}
-            </pre>
-          </details>
-        )}
-
-        <div className="flex gap-2">
-          <Button onClick={reset} variant="default" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try again
-          </Button>
-
-          <Button asChild variant="outline" size="sm">
-            <Link href="/">
-              <Home className="mr-2 h-4 w-4" />
-              Go home
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </div>
+    <ErrorBoundaryUI
+      icon={AlertCircle}
+      title="Something went wrong"
+      description="We encountered an unexpected error. The issue has been logged and we'll look into it."
+      error={error}
+      actions={[
+        {
+          label: "Try again",
+          icon: RefreshCw,
+          onClick: reset,
+        },
+        {
+          label: "Go home",
+          icon: Home,
+          href: "/",
+        },
+      ]}
+      className="h-[calc(100vh-4rem)]"
+    />
   )
 }
