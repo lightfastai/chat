@@ -293,6 +293,204 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       pdfSupport: false,
     },
   },
+
+  // Thinking mode variants
+  "claude-4-opus-20250514-thinking": {
+    id: "claude-4-opus-20250514-thinking",
+    provider: "anthropic",
+    name: "claude-4-opus-20250514",
+    displayName: "Claude 4 Opus (Thinking)",
+    description: "Most powerful model with visible reasoning process",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.015,
+      output: 0.075,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+    thinkingConfig: {
+      enabled: true,
+      defaultBudgetTokens: 20000,
+    },
+  },
+  "claude-4-sonnet-20250514-thinking": {
+    id: "claude-4-sonnet-20250514-thinking",
+    provider: "anthropic",
+    name: "claude-4-sonnet-20250514",
+    displayName: "Claude 4 Sonnet (Thinking)",
+    description: "Balanced model with visible reasoning process",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+    thinkingConfig: {
+      enabled: true,
+      defaultBudgetTokens: 15000,
+    },
+  },
+  "claude-3-7-sonnet-20250219-thinking": {
+    id: "claude-3-7-sonnet-20250219-thinking",
+    provider: "anthropic",
+    name: "claude-3-7-sonnet-20250219",
+    displayName: "Claude 3.7 Sonnet (Thinking)",
+    description: "Enhanced Claude 3.5 with visible reasoning process",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+  },
+  "claude-3-5-sonnet-20241022-thinking": {
+    id: "claude-3-5-sonnet-20241022-thinking",
+    provider: "anthropic",
+    name: "claude-3-5-sonnet-20241022",
+    displayName: "Claude 3.5 Sonnet (Oct 2024) (Thinking)",
+    description: "Latest Claude 3.5 with visible reasoning process",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+  },
+  "claude-3-5-sonnet-20240620-thinking": {
+    id: "claude-3-5-sonnet-20240620-thinking",
+    provider: "anthropic",
+    name: "claude-3-5-sonnet-20240620",
+    displayName: "Claude 3.5 Sonnet (Jun 2024) (Thinking)",
+    description: "Original Claude 3.5 with visible reasoning process",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+  },
+  "claude-3-5-haiku-20241022-thinking": {
+    id: "claude-3-5-haiku-20241022-thinking",
+    provider: "anthropic",
+    name: "claude-3-5-haiku-20241022",
+    displayName: "Claude 3.5 Haiku (Thinking)",
+    description: "Ultra-fast model with visible reasoning process",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.0008,
+      output: 0.004,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,
+      thinking: true,
+      pdfSupport: false,
+    },
+  },
+
+  // Legacy model IDs for backward compatibility
+  "claude-sonnet-4-20250514": {
+    id: "claude-sonnet-4-20250514",
+    provider: "anthropic",
+    name: "claude-4-sonnet-20250514",
+    displayName: "Claude 4 Sonnet (Legacy)",
+    description: "Legacy model ID - use claude-4-sonnet-20250514 instead",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+    thinkingConfig: {
+      enabled: true,
+      defaultBudgetTokens: 15000,
+    },
+    deprecated: true,
+    replacedBy: "claude-4-sonnet-20250514",
+  },
+  "claude-sonnet-4-20250514-thinking": {
+    id: "claude-sonnet-4-20250514-thinking",
+    provider: "anthropic",
+    name: "claude-4-sonnet-20250514",
+    displayName: "Claude 4 Sonnet (Thinking) (Legacy)",
+    description:
+      "Legacy model ID - use claude-4-sonnet-20250514-thinking instead",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+    thinkingConfig: {
+      enabled: true,
+      defaultBudgetTokens: 15000,
+    },
+    deprecated: true,
+    replacedBy: "claude-4-sonnet-20250514-thinking",
+  },
+  "claude-3-haiku-20240307": {
+    id: "claude-3-haiku-20240307",
+    provider: "anthropic",
+    name: "claude-3-haiku-20240307",
+    displayName: "Claude 3 Haiku (Legacy)",
+    description:
+      "Legacy model ID - use claude-3-5-haiku-20241022 for latest Haiku",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.00025,
+      output: 0.00125,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,
+      pdfSupport: true,
+    },
+    deprecated: true,
+    replacedBy: "claude-3-5-haiku-20241022",
+  },
 }
 
 /**
