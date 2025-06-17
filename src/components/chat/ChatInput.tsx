@@ -375,7 +375,7 @@ const ChatInputComponent = ({
               {/* Controls area - always at bottom */}
               <div className="flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow]">
                 <div className="flex items-center gap-2">
-                  <DropdownMenu>
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
@@ -389,7 +389,7 @@ const ChatInputComponent = ({
                         <ChevronDown className="h-3 w-3 opacity-50" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-64">
+                    <DropdownMenuContent align="start" className="w-52">
                       {Object.entries(modelsByProvider).map(
                         ([provider, models]) => (
                           <DropdownMenuSub key={provider}>
