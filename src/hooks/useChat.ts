@@ -2,13 +2,24 @@
 
 import type { ModelId } from "@/lib/ai/types"
 import { isClientId, nanoid } from "@/lib/nanoid"
-import { useMutation, useQuery } from "convex/react"
+import {
+  type Preloaded,
+  useMutation,
+  usePreloadedQuery,
+  useQuery,
+} from "convex/react"
 import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useRef } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc, Id } from "../../convex/_generated/dataModel"
 
-export function useChat() {
+interface UseChatOptions {
+  preloadedThreadById?: Preloaded<typeof api.threads.get>
+  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
+  preloadedMessages?: Preloaded<typeof api.messages.list>
+}
+
+export function useChat(options: UseChatOptions = {}) {
   const pathname = usePathname()
 
   // Store the temporary thread ID to maintain consistency across URL changes
@@ -46,22 +57,35 @@ export function useChat() {
   const isSettingsPage = pathInfo.type === "settings"
   const isNewChat = currentThreadId === "new" && !currentClientId
 
-  // Get thread by clientId if we have one (skip for settings)
+  // Use preloaded thread data if available, otherwise fall back to regular queries
+  const preloadedThreadById = options.preloadedThreadById
+    ? usePreloadedQuery(options.preloadedThreadById)
+    : null
+
+  const preloadedThreadByClientId = options.preloadedThreadByClientId
+    ? usePreloadedQuery(options.preloadedThreadByClientId)
+    : null
+
+  const preloadedThread = preloadedThreadById || preloadedThreadByClientId
+
+  // Get thread by clientId if we have one (skip for settings and if preloaded)
   const threadByClientId = useQuery(
     api.threads.getByClientId,
-    currentClientId && !isSettingsPage ? { clientId: currentClientId } : "skip",
+    currentClientId && !isSettingsPage && !preloadedThread
+      ? { clientId: currentClientId }
+      : "skip",
   )
 
-  // Get thread by ID for regular threads (skip for settings)
+  // Get thread by ID for regular threads (skip for settings and if preloaded)
   const threadById = useQuery(
     api.threads.get,
-    currentThreadId !== "new" && !isSettingsPage
+    currentThreadId !== "new" && !isSettingsPage && !preloadedThread
       ? { threadId: currentThreadId as Id<"threads"> }
       : "skip",
   )
 
-  // Determine the actual thread to use
-  const currentThread = threadByClientId || threadById
+  // Determine the actual thread to use - prefer preloaded, then fallback to queries
+  const currentThread = preloadedThread || threadByClientId || threadById
 
   // Clear temp thread ID when we get a real thread from server
   useEffect(() => {
@@ -79,11 +103,20 @@ export function useChat() {
     (isNewChat && tempThreadIdRef.current) || // Also check for new chat with temp thread
     null
 
+  // Use preloaded messages if available
+  const preloadedMessages = options.preloadedMessages
+    ? usePreloadedQuery(options.preloadedMessages)
+    : null
+
   const messages =
+    preloadedMessages ??
     useQuery(
       api.messages.list,
-      messageThreadId ? { threadId: messageThreadId } : "skip",
-    ) ?? []
+      messageThreadId && !preloadedMessages
+        ? { threadId: messageThreadId }
+        : "skip",
+    ) ??
+    []
 
   // DEBUG: Log message query details for debugging
   useEffect(() => {
