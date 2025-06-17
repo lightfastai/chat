@@ -17,6 +17,7 @@ export function ChatInterface() {
 
   // Track if user has ever sent a message to prevent flicker
   const hasEverSentMessage = useRef(false)
+  const landingMessageHandled = useRef(false)
 
   // Reset when we're in a truly new chat, set when messages exist
   useEffect(() => {
@@ -26,6 +27,23 @@ export function ChatInterface() {
       hasEverSentMessage.current = true
     }
   }, [isNewChat, messages.length])
+
+  // Handle landing page message
+  useEffect(() => {
+    if (
+      isNewChat &&
+      !landingMessageHandled.current &&
+      typeof window !== "undefined"
+    ) {
+      const landingMessage = sessionStorage.getItem("landingMessage")
+      if (landingMessage) {
+        landingMessageHandled.current = true
+        sessionStorage.removeItem("landingMessage")
+        // Send the message automatically with default model
+        handleSendMessage(landingMessage, "claude-3-5-sonnet-20241022")
+      }
+    }
+  }, [isNewChat, handleSendMessage])
 
   // Manage resumable streams
   const { activeStreams, startStream, endStream } = useResumableChat()

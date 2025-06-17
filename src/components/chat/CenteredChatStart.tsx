@@ -1,5 +1,6 @@
 "use client"
 
+import { useConvexAuth } from "convex/react"
 import { useAuth } from "@/hooks/useAuth"
 import { useTimeGreeting } from "@/hooks/useTimeGreeting"
 import { ZapIcon } from "lucide-react"
@@ -22,10 +23,11 @@ export function CenteredChatStart({
   disabled = false,
   isLoading = false,
 }: CenteredChatStartProps) {
+  const { isAuthenticated } = useConvexAuth()
   const { displayName, email } = useAuth()
   const greeting = useTimeGreeting()
 
-  const userName = email || displayName
+  const userName = isAuthenticated ? email || displayName : "Guest"
 
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-0 px-4">
@@ -35,6 +37,12 @@ export function CenteredChatStart({
             <ZapIcon className="w-8 h-8 inline-block" />
             {greeting}, {userName}
           </h1>
+          {!isAuthenticated && (
+            <p className="text-muted-foreground mt-2">
+              Start chatting as a guest. Sign in to save your history and get AI
+              responses.
+            </p>
+          )}
         </div>
 
         <ChatInput
