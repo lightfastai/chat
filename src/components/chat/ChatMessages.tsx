@@ -139,7 +139,6 @@ export function ChatMessages({
   // Update display messages with flicker prevention
   useEffect(() => {
     const newMessageIds = new Set(messages.map((m) => m._id))
-    const oldMessageIds = messageIdsRef.current
 
     // Check if this is just an ID replacement (optimistic -> real)
     if (messages.length === displayMessages.length && messages.length > 0) {
