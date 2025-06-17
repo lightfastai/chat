@@ -378,9 +378,9 @@ const ChatInputComponent = ({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-6 w-[140px] px-2 text-xs justify-between font-normal"
+                        className="text-xs justify-between font-normal"
                         disabled={disabled}
                       >
                         <span className="truncate">
