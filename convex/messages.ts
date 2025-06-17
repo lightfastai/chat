@@ -1482,6 +1482,14 @@ export const getThreadById = internalQuery({
       isGenerating: v.optional(v.boolean()),
       isTitleGenerating: v.optional(v.boolean()),
       pinned: v.optional(v.boolean()),
+      // Branch information
+      branchedFrom: v.optional(
+        v.object({
+          threadId: v.id("threads"),
+          messageId: v.id("messages"),
+          timestamp: v.number(),
+        }),
+      ),
       // Share functionality
       isPublic: v.optional(v.boolean()),
       shareId: v.optional(v.string()),
