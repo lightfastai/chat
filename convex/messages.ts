@@ -984,109 +984,14 @@ export const generateAIResponse = internalAction({
             chunk: chunk.text,
             chunkId,
           })
-        } else if (
-          chunk.type === "tool-call" &&
-          chunk.toolName === "web_search"
-        ) {
-          // Handle web search tool calls
+        } else if (chunk.type === "tool-call") {
+          // Tool calls are now handled automatically by the AI SDK
+          // We just track that a tool call occurred for logging
           toolCallsProcessed++
           console.log(
-            `Processing tool call #${toolCallsProcessed} - web search with args:`,
+            `Tool call #${toolCallsProcessed} - ${chunk.toolName} with args:`,
             chunk.args,
           )
-
-          try {
-            // Perform web search directly using Exa
-            const exaApiKey = process.env.EXA_API_KEY
-            if (!exaApiKey) {
-              throw new Error("EXA_API_KEY not configured")
-            }
-
-            const exa = new Exa(exaApiKey)
-            const query = chunk.args.query as string
-            const numResults = 5 // Fixed to 5 results for simplicity
-            const includeText = true // Always include text for better results
-
-            const searchOptions: RegularSearchOptions & ContentsOptions = {
-              numResults,
-            }
-
-            if (includeText) {
-              searchOptions.text = {
-                maxCharacters: 1000,
-                includeHtmlTags: false,
-              }
-              searchOptions.highlights = {
-                numSentences: 3,
-                highlightsPerUrl: 2,
-              }
-            }
-
-            const response = await exa.search(query, searchOptions)
-
-            const searchResults = {
-              success: true,
-              results: response.results.map((result) => ({
-                id: result.id,
-                url: result.url,
-                title: result.title || "",
-                text: result.text,
-                highlights: (
-                  result as SearchResult<ContentsOptions> & {
-                    highlights?: string[]
-                  }
-                ).highlights,
-                publishedDate: result.publishedDate,
-                author: result.author,
-                score: result.score,
-              })),
-              autopromptString: response.autopromptString,
-            }
-
-            if (searchResults.success && searchResults.results) {
-              const searchSummary = `\n\n**🔍 Web Search Results for "${chunk.args.query}"**\n\n${searchResults.results
-                .slice(0, 3)
-                .map(
-                  (result, i) =>
-                    `**${i + 1}. ${result.title}**\n${result.url}\n${result.text ? `${result.text.slice(0, 250)}...` : "No preview available"}\n`,
-                )
-                .join("\n")}`
-
-              fullContent += searchSummary
-
-              // Generate unique chunk ID for the search results
-              const chunkId = `search_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-
-              // Append search results as a chunk
-              await ctx.runMutation(internal.messages.appendStreamChunk, {
-                messageId,
-                chunk: searchSummary,
-                chunkId,
-              })
-            } else {
-              const errorMessage =
-                "\n\n*❌ Web search failed: No results found*\n\n"
-              fullContent += errorMessage
-
-              const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-              await ctx.runMutation(internal.messages.appendStreamChunk, {
-                messageId,
-                chunk: errorMessage,
-                chunkId,
-              })
-            }
-          } catch (error) {
-            console.error("Error executing web search:", error)
-            const errorMessage = `\n\n*❌ Web search error: ${error instanceof Error ? error.message : "Unknown error"}*\n\n`
-            fullContent += errorMessage
-
-            const chunkId = `search_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            await ctx.runMutation(internal.messages.appendStreamChunk, {
-              messageId,
-              chunk: errorMessage,
-              chunkId,
-            })
-          }
         } else if (chunk.type === "reasoning" && chunk.text) {
           // Claude 4.0 native reasoning tokens
           if (!hasThinking) {

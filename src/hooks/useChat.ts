@@ -89,6 +89,9 @@ export function useChat(options: UseChatOptions = {}) {
   // Get messages for current thread
   const messageThreadId = currentThread?._id || null
 
+  // Check if the thread ID is an optimistic one (starts with "thread_")
+  const isOptimisticThreadId = messageThreadId?.startsWith("thread_")
+
   // Use preloaded messages if available
   const preloadedMessages = options.preloadedMessages
     ? usePreloadedQuery(options.preloadedMessages)
@@ -98,7 +101,8 @@ export function useChat(options: UseChatOptions = {}) {
     preloadedMessages ??
     useQuery(
       api.messages.list,
-      messageThreadId && !preloadedMessages
+      // Skip query if we have an optimistic thread ID to avoid validation errors
+      messageThreadId && !preloadedMessages && !isOptimisticThreadId
         ? { threadId: messageThreadId }
         : "skip",
     ) ??
@@ -121,19 +125,19 @@ export function useChat(options: UseChatOptions = {}) {
   const createThreadAndSend = useMutation(
     api.messages.createThreadAndSend,
   ).withOptimisticUpdate((localStore, args) => {
-    const { title, clientId } = args
+    const { title, clientId, body, modelId } = args
     const now = Date.now()
 
-    // For optimistic updates, we'll only update the thread list for sidebar display
-    // We won't set the thread by clientId to avoid passing fake IDs to queries
-    // The real thread will be created quickly by the server
+    // Create optimistic thread with a client-based ID
+    // This ID will be replaced by the real thread ID when the mutation completes
+    const optimisticThreadId = `thread_${clientId}` as Id<"threads">
 
-    // Create a minimal optimistic thread for sidebar display only
+    // Create optimistic thread for sidebar display and message association
     const optimisticThread: Partial<Doc<"threads">> & {
       _id: Id<"threads">
       clientId: string
     } = {
-      _id: `optimistic_${clientId}` as Id<"threads">,
+      _id: optimisticThreadId,
       _creationTime: now,
       clientId,
       title,
@@ -153,7 +157,44 @@ export function useChat(options: UseChatOptions = {}) {
       ...existingThreads,
     ])
 
-    // Don't set thread by clientId - this prevents fake IDs from being used in queries
+    // Create optimistic messages with client-based IDs
+    const userMessageId = `msg_user_${clientId}_${now}` as Id<"messages">
+    const assistantMessageId = `msg_assistant_${clientId}_${now}` as Id<"messages">
+
+    // Create optimistic user message
+    const optimisticUserMessage: Doc<"messages"> = {
+      _id: userMessageId,
+      _creationTime: now,
+      threadId: optimisticThreadId,
+      body,
+      messageType: "user",
+      modelId,
+      timestamp: now,
+      isStreaming: false,
+      isComplete: true,
+    }
+
+    // Create optimistic assistant message placeholder
+    const optimisticAssistantMessage: Doc<"messages"> = {
+      _id: assistantMessageId,
+      _creationTime: now + 1,
+      threadId: optimisticThreadId,
+      body: "", // Empty body for streaming
+      messageType: "assistant",
+      modelId,
+      timestamp: now + 1,
+      isStreaming: true,
+      isComplete: false,
+      streamId: `stream_${clientId}_${now}`,
+      thinkingStartedAt: now,
+    }
+
+    // Set optimistic messages for this thread
+    // We use the optimistic thread ID here, which will be replaced when the real data arrives
+    localStore.setQuery(api.messages.list, { threadId: optimisticThreadId }, [
+      optimisticUserMessage,
+      optimisticAssistantMessage,
+    ])
   })
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
