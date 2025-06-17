@@ -35,7 +35,7 @@ import {
 function createWebSearchTool() {
   return tool({
     description:
-      "Search the web for current information, news, and real-time data. Use this when you need up-to-date information beyond your knowledge cutoff.",
+      "Search the web for current information, news, and real-time data. Use this proactively when you need up-to-date information beyond your knowledge cutoff. After receiving search results, you must immediately analyze and explain the findings without waiting for additional prompting.",
     parameters: z.object({
       query: z
         .string()
@@ -624,18 +624,28 @@ export const generateAIResponse = internalAction({
           web_search: createWebSearchTool(),
         }
 
-        // Enhanced system prompt for web search understanding
-        systemPrompt += `\n\nYou have web search capabilities. When using web search:
+        // Enhanced agentic system prompt for web search
+        systemPrompt += `\n\nYou have web search capabilities. You should proactively search for information when needed to provide accurate, current answers.
 
-1. **Before searching**: Briefly explain what you're looking for and why
-2. **After searching**: Analyze the results by:
-   - Summarizing key findings from each source
-   - Identifying patterns or consensus across sources
-   - Noting any conflicting information
-   - Evaluating source credibility when relevant
-3. **Synthesis**: Provide a comprehensive answer that integrates the search results with your knowledge
+When you perform a web search, you MUST automatically continue with a thorough analysis following this exact pattern:
 
-Always cite sources with [Source N] notation when referencing specific information from search results.`
+1. **Search Intent** (before searching): Briefly state what specific information you're seeking and why it's relevant to the user's question.
+
+2. **Search Execution**: Perform the web search using the web_search tool.
+
+3. **Immediate Analysis** (after search results appear): Without waiting for further prompting, automatically provide:
+   - **Key Findings Summary**: Extract the most important information from each source
+   - **Cross-Source Analysis**: Identify patterns, consensus, or contradictions between sources
+   - **Information Quality**: Note the recency, credibility, and relevance of sources
+   - **Knowledge Gaps**: Identify what questions remain unanswered
+
+4. **Synthesis and Answer**: Conclude with a comprehensive response that:
+   - Directly addresses the user's original question
+   - Integrates search findings with your existing knowledge
+   - Uses [Source N] citations for specific claims
+   - Suggests follow-up searches if needed for completeness
+
+Remember: After search results appear, immediately continue analyzing and explaining them. Do not wait for the user to ask for analysis - be proactive and thorough in your response.`
 
         console.log("Web search tool created successfully")
       }
@@ -718,37 +728,7 @@ Always cite sources with [Source N] notation when referencing specific informati
         } else if (chunk.type === "tool-result") {
           // Handle tool results from automatic execution
           console.log(`Tool result for ${chunk.toolName}:`, chunk.result)
-
-          // For web search results, format them nicely
-          if (chunk.toolName === "web_search" && chunk.result) {
-            const result = chunk.result as {
-              success: boolean
-              query: string
-              results: Array<{
-                relevanceRank: number
-                title: string
-                url: string
-                summary: string
-              }>
-            }
-            if (result.success && result.results && result.results.length > 0) {
-              const formattedResults = `\n\n**🔍 Web Search Results for "${result.query}"**\n\n${result.results
-                .map(
-                  (r) =>
-                    `**[Source ${r.relevanceRank}] ${r.title}**\n${r.url}\n${r.summary}\n`,
-                )
-                .join("\n")}\n\n`
-
-              fullContent += formattedResults
-
-              const chunkId = `search_result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-              await ctx.runMutation(internal.messages.appendStreamChunk, {
-                messageId,
-                chunk: formattedResults,
-                chunkId,
-              })
-            }
-          }
+          // Let the AI naturally analyze and format the results through the conversation
         } else if (chunk.type === "reasoning" && chunk.text) {
           // Claude 4.0 native reasoning tokens
           if (!hasThinking) {
