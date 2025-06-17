@@ -1,7 +1,13 @@
 import { siteConfig } from "@/lib/site-config"
+import { preloadQuery } from "convex/nextjs"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
+import { api } from "../../../../convex/_generated/api"
+import type { Id } from "../../../../convex/_generated/dataModel"
 import { ChatInterface } from "../../../components/chat/ChatInterface"
+import { getAuthToken } from "../../../lib/auth"
+import { isClientId } from "../../../lib/nanoid"
 
 export const metadata: Metadata = {
   title: "Chat Thread",
@@ -41,8 +47,72 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
     notFound()
   }
 
-  // Server component provides the static shell
-  // Client-side queries handle data fetching and validation via pathname
-  // This enables instant navigation with prefetched data
-  return <ChatInterface />
+  return (
+    <Suspense fallback={<ChatInterface />}>
+      <ChatThreadPageWithPreloadedData threadIdString={threadIdString} />
+    </Suspense>
+  )
+}
+
+// Server component that handles data preloading with PPR optimization
+async function ChatThreadPageWithPreloadedData({
+  threadIdString,
+}: {
+  threadIdString: string
+}) {
+  try {
+    // Get authentication token for server-side requests
+    const token = await getAuthToken()
+
+    // If no authentication token, render regular chat interface
+    if (!token) {
+      return <ChatInterface />
+    }
+
+    // Determine if this is a client ID or thread ID
+    const isClientIdThread = isClientId(threadIdString)
+
+    if (isClientIdThread) {
+      // Preload thread by client ID
+      const preloadedThreadByClientId = await preloadQuery(
+        api.threads.getByClientId,
+        { clientId: threadIdString },
+        { token },
+      )
+
+      // We can't preload messages yet since we don't know the thread ID
+      // The useChat hook will handle this case
+      return (
+        <ChatInterface preloadedThreadByClientId={preloadedThreadByClientId} />
+      )
+    }
+
+    // Preload thread by ID
+    const threadId = threadIdString as Id<"threads">
+    const preloadedThreadById = await preloadQuery(
+      api.threads.get,
+      { threadId },
+      { token },
+    )
+
+    // Preload messages for this thread
+    const preloadedMessages = await preloadQuery(
+      api.messages.list,
+      { threadId },
+      { token },
+    )
+
+    return (
+      <ChatInterface
+        preloadedThreadById={preloadedThreadById}
+        preloadedMessages={preloadedMessages}
+      />
+    )
+  } catch (error) {
+    // Log error but still render - don't break the UI
+    console.warn("Server-side chat data preload failed:", error)
+
+    // Fallback to regular chat interface
+    return <ChatInterface />
+  }
 }

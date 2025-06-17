@@ -2,7 +2,9 @@
 
 import { useChat } from "@/hooks/useChat"
 import { useResumableChat } from "@/hooks/useResumableStream"
+import type { Preloaded } from "convex/react"
 import { useEffect, useMemo, useRef } from "react"
+import type { api } from "../../../convex/_generated/api"
 import type { Doc } from "../../../convex/_generated/dataModel"
 import { CenteredChatStart } from "./CenteredChatStart"
 import { ChatInput } from "./ChatInput"
@@ -10,10 +12,24 @@ import { ChatMessages } from "./ChatMessages"
 
 type Message = Doc<"messages">
 
-export function ChatInterface() {
-  // Use custom chat hook with optimistic updates
+interface ChatInterfaceProps {
+  preloadedThreadById?: Preloaded<typeof api.threads.get>
+  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
+  preloadedMessages?: Preloaded<typeof api.messages.list>
+}
+
+export function ChatInterface({
+  preloadedThreadById,
+  preloadedThreadByClientId,
+  preloadedMessages,
+}: ChatInterfaceProps = {}) {
+  // Use custom chat hook with optimistic updates and preloaded data
   const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
-    useChat()
+    useChat({
+      preloadedThreadById,
+      preloadedThreadByClientId,
+      preloadedMessages,
+    })
 
   // Track if user has ever sent a message to prevent flicker
   const hasEverSentMessage = useRef(false)
