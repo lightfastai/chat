@@ -1,4 +1,4 @@
-import { nanoid } from "nanoid"
+import { nanoid } from "@/lib/nanoid"
 
 export interface GuestMessage {
   id: string
