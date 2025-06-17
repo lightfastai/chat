@@ -112,21 +112,23 @@ export function MessageActions({ message, className }: MessageActionsProps) {
       )
 
       if (branchPointIndex !== -1) {
-        // Find the last user message before or at the branch point
+        // Find the user message that prompted the assistant response we're branching from
+        // Note: originalMessages is in descending order (newest first)
+        // So we search forward from the branch point to find the user message
         let lastUserMessageIndex = -1
-        for (let i = branchPointIndex; i >= 0; i--) {
+        for (let i = branchPointIndex; i < originalMessages.length; i++) {
           if (originalMessages[i].messageType === "user") {
             lastUserMessageIndex = i
             break
           }
         }
 
-        // Copy messages up to and including the last user message
-        // Note: originalMessages is in descending order (newest first)
-        // We want all messages from index 0 up to and INCLUDING the copyUpToIndex
-        const copyUpToIndex =
-          lastUserMessageIndex !== -1 ? lastUserMessageIndex : branchPointIndex
-        const messagesToCopy = originalMessages.slice(0, copyUpToIndex + 1)
+        // Copy messages to match backend behavior
+        // Backend copies from oldest to user message (inclusive)
+        // Frontend has newest first, so we copy from user message to oldest (end of array)
+        const messagesToCopy = lastUserMessageIndex !== -1
+          ? originalMessages.slice(lastUserMessageIndex) // Copy from user message to end (includes all older messages)
+          : originalMessages.slice(branchPointIndex)     // Fallback: copy from branch point to end
 
         // Create optimistic copies with the SAME tempThreadId
         const optimisticMessages = messagesToCopy.map((msg) => ({
@@ -150,7 +152,7 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           originalMessageCount: originalMessages.length,
           branchPointIndex,
           lastUserMessageIndex,
-          copyUpToIndex,
+          sliceStart: lastUserMessageIndex !== -1 ? lastUserMessageIndex : branchPointIndex,
           copiedMessageCount: optimisticMessages.length,
           firstMessage: optimisticMessages[0]?.body?.slice(0, 50),
           lastMessage: optimisticMessages[optimisticMessages.length - 1]?.body?.slice(0, 50)
