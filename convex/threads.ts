@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { ALL_MODEL_IDS } from "../src/lib/ai/types.js"
+import { internal } from "./_generated/api.js"
 import { mutation, query } from "./_generated/server.js"
 
 // Create a new thread
@@ -443,6 +444,7 @@ export const branchFromMessage = mutation({
       userId: userId,
       createdAt: now,
       lastMessageAt: now,
+      isGenerating: true, // Set to true since we'll generate AI response
       branchedFrom: {
         threadId: args.originalThreadId,
         messageId: args.branchFromMessageId,
@@ -451,6 +453,7 @@ export const branchFromMessage = mutation({
     })
 
     // Copy messages to new thread
+    let lastUserMessage = ""
     for (const message of messagesToCopy) {
       await ctx.db.insert("messages", {
         threadId: newThreadId,
@@ -465,6 +468,20 @@ export const branchFromMessage = mutation({
         usage: message.usage,
         thinkingContent: message.thinkingContent,
         hasThinkingContent: message.hasThinkingContent,
+      })
+
+      // Track the last user message for AI response
+      if (message.messageType === "user") {
+        lastUserMessage = message.body
+      }
+    }
+
+    // Schedule AI response with the selected model
+    if (lastUserMessage) {
+      await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
+        threadId: newThreadId,
+        userMessage: lastUserMessage,
+        modelId: args.modelId,
       })
     }
 
