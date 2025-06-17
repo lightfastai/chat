@@ -1,30 +1,18 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { getAllModels } from "@/lib/ai/models"
 import type { ModelId } from "@/lib/ai/types"
 import { nanoid } from "@/lib/nanoid"
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard"
 import { cn } from "@/lib/utils"
 import { useMutation, useQuery } from "convex/react"
-import {
-  CheckIcon,
-  ClipboardIcon,
-  GitBranch,
-  ThumbsDown,
-  ThumbsUp,
-} from "lucide-react"
+import { CheckIcon, ClipboardIcon, ThumbsDown, ThumbsUp } from "lucide-react"
 import React from "react"
 import { toast } from "sonner"
 import { api } from "../../../convex/_generated/api"
 import type { Doc, Id } from "../../../convex/_generated/dataModel"
 import { FeedbackModal } from "./FeedbackModal"
+import { ModelBranchDropdown } from "./ModelBranchDropdown"
 
 interface MessageActionsProps {
   message: Doc<"messages">
@@ -126,9 +114,10 @@ export function MessageActions({ message, className }: MessageActionsProps) {
         // Copy messages to match backend behavior
         // Backend copies from oldest to user message (inclusive)
         // Frontend has newest first, so we copy from user message to oldest (end of array)
-        const messagesToCopy = lastUserMessageIndex !== -1
-          ? originalMessages.slice(lastUserMessageIndex) // Copy from user message to end (includes all older messages)
-          : originalMessages.slice(branchPointIndex)     // Fallback: copy from branch point to end
+        const messagesToCopy =
+          lastUserMessageIndex !== -1
+            ? originalMessages.slice(lastUserMessageIndex) // Copy from user message to end (includes all older messages)
+            : originalMessages.slice(branchPointIndex) // Fallback: copy from branch point to end
 
         // Create optimistic copies with the SAME tempThreadId
         const optimisticMessages = messagesToCopy.map((msg) => ({
@@ -152,16 +141,19 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           originalMessageCount: originalMessages.length,
           branchPointIndex,
           lastUserMessageIndex,
-          sliceStart: lastUserMessageIndex !== -1 ? lastUserMessageIndex : branchPointIndex,
+          sliceStart:
+            lastUserMessageIndex !== -1
+              ? lastUserMessageIndex
+              : branchPointIndex,
           copiedMessageCount: optimisticMessages.length,
           firstMessage: optimisticMessages[0]?.body?.slice(0, 50),
-          lastMessage: optimisticMessages[optimisticMessages.length - 1]?.body?.slice(0, 50)
+          lastMessage: optimisticMessages[
+            optimisticMessages.length - 1
+          ]?.body?.slice(0, 50),
         })
       }
     }
   })
-
-  const allModels = getAllModels()
 
   const handleFeedback = async (rating: "positive" | "negative") => {
     if (rating === "negative") {
@@ -259,32 +251,7 @@ export function MessageActions({ message, className }: MessageActionsProps) {
             )}
           </Button>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Branch from here"
-            >
-              <GitBranch className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            {allModels.map((model) => (
-              <DropdownMenuItem
-                key={model.id}
-                onClick={() => handleBranch(model.id as ModelId)}
-                className="flex flex-col items-start py-2"
-              >
-                <span className="font-medium">{model.displayName}</span>
-                <span className="text-xs text-muted-foreground">
-                  {model.description}
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ModelBranchDropdown onBranch={handleBranch} />
       </div>
 
       {showFeedbackModal && (

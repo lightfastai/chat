@@ -9,9 +9,9 @@ import { ShareButton } from "./ShareButton"
 
 export function ShareButtonWrapper() {
   const pathname = usePathname()
-  
+
   // Extract threadId from pathname since useParams() doesn't update with window.history.replaceState()
-  const urlThreadId = pathname.startsWith("/chat/") 
+  const urlThreadId = pathname.startsWith("/chat/")
     ? pathname.slice(6) // Remove "/chat/" prefix
     : undefined
 
@@ -41,13 +41,13 @@ export function ShareButtonWrapper() {
   }
 
   // For content detection:
-  // - If we have a real thread, it definitely has content 
+  // - If we have a real thread, it definitely has content
   // - If we're on /chat/{clientId}, assume there's content (user must have sent a message to get here)
   // - If we're on /chat, there's no content yet
   // Using pathname to ensure we react to URL changes from window.history.replaceState()
   const hasShareableContent = Boolean(
     threadId || // Real thread exists - definitely has content
-    (!isNewChat && isClient && urlThreadId) // Not on /chat AND client ID URL - user sent message
+      (!isNewChat && isClient && urlThreadId), // Not on /chat AND client ID URL - user sent message
   )
 
   return <ShareButton threadId={threadId} hasContent={hasShareableContent} />
