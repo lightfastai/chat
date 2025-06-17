@@ -192,6 +192,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       enabled: true,
       defaultBudgetTokens: 20000,
     },
+    hidden: true,
   },
   "claude-4-sonnet-20250514": {
     id: "claude-4-sonnet-20250514",
@@ -243,7 +244,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
     id: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
     name: "claude-3-5-sonnet-20241022",
-    displayName: "Claude 3.5 Sonnet (2024-10-22)",
+    displayName: "Claude 3.5 Sonnet",
     description: "Fast and capable model for most tasks",
     maxTokens: 200000,
     costPer1KTokens: {
@@ -274,6 +275,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       vision: true,
       pdfSupport: true,
     },
+    hidden: true,
   },
   "claude-3-5-haiku-20241022": {
     id: "claude-3-5-haiku-20241022",
@@ -292,6 +294,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       vision: false,
       pdfSupport: false,
     },
+    hidden: true,
   },
 
   // Thinking mode variants
@@ -317,6 +320,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       enabled: true,
       defaultBudgetTokens: 20000,
     },
+    hidden: true,
   },
   "claude-4-sonnet-20250514-thinking": {
     id: "claude-4-sonnet-20250514-thinking",
@@ -378,6 +382,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       thinking: true,
       pdfSupport: true,
     },
+    hidden: true,
   },
   "claude-3-5-sonnet-20240620-thinking": {
     id: "claude-3-5-sonnet-20240620-thinking",
@@ -397,6 +402,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       thinking: true,
       pdfSupport: true,
     },
+    hidden: true,
   },
   "claude-3-5-haiku-20241022-thinking": {
     id: "claude-3-5-haiku-20241022-thinking",
@@ -416,6 +422,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       thinking: true,
       pdfSupport: false,
     },
+    hidden: true,
   },
 
   // Legacy model IDs for backward compatibility
@@ -443,6 +450,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
     },
     deprecated: true,
     replacedBy: "claude-4-sonnet-20250514",
+    hidden: true,
   },
   "claude-sonnet-4-20250514-thinking": {
     id: "claude-sonnet-4-20250514-thinking",
@@ -469,6 +477,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
     },
     deprecated: true,
     replacedBy: "claude-4-sonnet-20250514-thinking",
+    hidden: true,
   },
   "claude-3-haiku-20240307": {
     id: "claude-3-haiku-20240307",
@@ -490,6 +499,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
     },
     deprecated: true,
     replacedBy: "claude-3-5-haiku-20241022",
+    hidden: true,
   },
 }
 
@@ -600,18 +610,25 @@ export const ALL_MODELS: Record<ModelId, ModelConfig> = {
 export const DEFAULT_MODEL_ID: ModelId = "gpt-4o-mini"
 
 /**
- * Get models by provider
+ * Get models by provider (excluding hidden models)
  */
 export function getModelsByProvider(provider: ModelProvider): ModelConfig[] {
   return Object.values(ALL_MODELS).filter(
-    (model) => model.provider === provider,
+    (model) => model.provider === provider && !model.hidden,
   )
 }
 
 /**
- * Get all available models
+ * Get all available models (excluding hidden models)
  */
 export function getAllModels(): ModelConfig[] {
+  return Object.values(ALL_MODELS).filter((model) => !model.hidden)
+}
+
+/**
+ * Get all models including hidden ones (for internal use)
+ */
+export function getAllModelsIncludingHidden(): ModelConfig[] {
   return Object.values(ALL_MODELS)
 }
 

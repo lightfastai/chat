@@ -66,6 +66,7 @@ export interface ModelConfig {
   }
   deprecated?: boolean
   replacedBy?: string
+  hidden?: boolean
 }
 
 export interface ChatMessage {
