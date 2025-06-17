@@ -6,7 +6,7 @@ import {
 import { NextResponse } from "next/server"
 
 const isSignInPage = createRouteMatcher(["/signin"])
-const isProtectedRoute = createRouteMatcher(["/chat(.*)", "/settings(.*)"])
+const isProtectedRoute = createRouteMatcher(["/settings(.*)"])
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   const { pathname } = request.nextUrl
@@ -27,12 +27,15 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
     return nextjsMiddlewareRedirect(request, redirectTo)
   }
 
-  // Redirect unauthenticated users to signin with preserved destination
+  // Settings routes always require authentication
   if (isProtectedRoute(request) && !isAuthenticated) {
     const url = new URL("/signin", request.url)
     url.searchParams.set("from", pathname)
     return NextResponse.redirect(url)
   }
+
+  // Chat routes are accessible to guests
+  // Guest mode will be handled at the application level
 
   // Add prefetch headers for chat routes to improve performance
   const response = NextResponse.next()

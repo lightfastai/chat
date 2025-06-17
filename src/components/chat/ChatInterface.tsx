@@ -1,6 +1,6 @@
 "use client"
 
-import { useChat } from "@/hooks/useChat"
+import { useChatWithGuest } from "@/hooks/useChatWithGuest"
 import { useResumableChat } from "@/hooks/useResumableStream"
 import { useEffect, useMemo, useRef } from "react"
 import type { Doc } from "../../../convex/_generated/dataModel"
@@ -13,7 +13,7 @@ type Message = Doc<"messages">
 export function ChatInterface() {
   // Use custom chat hook with optimistic updates
   const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
-    useChat()
+    useChatWithGuest()
 
   // Track if user has ever sent a message to prevent flicker
   const hasEverSentMessage = useRef(false)

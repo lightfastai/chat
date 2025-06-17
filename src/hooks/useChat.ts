@@ -87,7 +87,7 @@ export function useChat() {
         currentThread: currentThread?._id,
         messageThreadId,
         messageCount: messages.length,
-        firstMessage: messages[0]?.body?.slice(0, 50)
+        firstMessage: messages[0]?.body?.slice(0, 50),
       })
     }
   }, [currentClientId, currentThread?._id, messageThreadId, messages.length])
