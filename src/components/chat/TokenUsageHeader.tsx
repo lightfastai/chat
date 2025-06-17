@@ -40,10 +40,13 @@ function getModelDisplayName(model: string): string {
 }
 
 export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
-  // Skip query for new chats
+  // Check if this is an optimistic thread ID (not a real Convex ID)
+  const isOptimisticThreadId = threadId !== "new" && !threadId.startsWith("k")
+
+  // Skip query for new chats or optimistic IDs
   const usage = useQuery(
     api.messages.getThreadUsage,
-    threadId === "new" ? "skip" : { threadId },
+    threadId === "new" || isOptimisticThreadId ? "skip" : { threadId },
   )
 
   // For new chats, show nothing

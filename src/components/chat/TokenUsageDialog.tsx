@@ -67,12 +67,15 @@ export function TokenUsageDialog({
     ? usePreloadedQuery(preloadedThreadUsage)
     : null
 
-  // Skip query for new chats or if we have preloaded data
+  // Check if this is an optimistic thread ID (not a real Convex ID)
+  const isOptimisticThreadId = threadId !== "new" && !threadId.startsWith("k")
+
+  // Skip query for new chats, optimistic IDs, or if we have preloaded data
   const usage =
     preloadedUsage ??
     useQuery(
       api.messages.getThreadUsage,
-      threadId === "new" || preloadedUsage ? "skip" : { threadId },
+      threadId === "new" || isOptimisticThreadId || preloadedUsage ? "skip" : { threadId },
     )
 
   // For new chats, show nothing

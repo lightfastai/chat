@@ -36,9 +36,13 @@ export function ShareDialog({
     showThinking: false,
   })
 
-  const shareInfo = useQuery(api.share.getThreadShareInfo, {
-    threadId,
-  })
+  // Check if this is an optimistic thread ID (not a real Convex ID)
+  const isOptimisticThreadId = !threadId.startsWith("k")
+
+  const shareInfo = useQuery(
+    api.share.getThreadShareInfo,
+    isOptimisticThreadId ? "skip" : { threadId }
+  )
 
   const shareThread = useMutation(api.share.shareThread)
   const unshareThread = useMutation(api.share.unshareThread)
@@ -57,7 +61,7 @@ export function ShareDialog({
     : ""
 
   const handleShare = async () => {
-    if (isLoading) return // Prevent double-clicking
+    if (isLoading || isOptimisticThreadId) return // Prevent double-clicking or optimistic IDs
 
     try {
       setIsLoading(true)
@@ -79,7 +83,7 @@ export function ShareDialog({
   }
 
   const handleUnshare = async () => {
-    if (isLoading) return // Prevent double-clicking
+    if (isLoading || isOptimisticThreadId) return // Prevent double-clicking or optimistic IDs
 
     try {
       setIsLoading(true)
@@ -123,7 +127,7 @@ export function ShareDialog({
     const newSettings = { ...settings, [key]: value }
     setSettings(newSettings)
 
-    if (shareInfo?.isPublic) {
+    if (shareInfo?.isPublic && !isOptimisticThreadId) {
       try {
         await updateShareSettings({
           threadId,

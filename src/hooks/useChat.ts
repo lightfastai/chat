@@ -89,8 +89,8 @@ export function useChat(options: UseChatOptions = {}) {
   // Get messages for current thread
   const messageThreadId = currentThread?._id || null
 
-  // Check if the thread ID is an optimistic one (starts with "thread_")
-  const isOptimisticThreadId = messageThreadId?.startsWith("thread_")
+  // Check if the thread ID is an optimistic one (not a real Convex ID)
+  const isOptimisticThreadId = messageThreadId && !messageThreadId.startsWith("k")
 
   // Use preloaded messages if available
   const preloadedMessages = options.preloadedMessages
@@ -128,9 +128,9 @@ export function useChat(options: UseChatOptions = {}) {
     const { title, clientId, body, modelId } = args
     const now = Date.now()
 
-    // Create optimistic thread with a client-based ID
-    // This ID will be replaced by the real thread ID when the mutation completes
-    const optimisticThreadId = `thread_${clientId}` as Id<"threads">
+    // Create optimistic thread with a temporary ID
+    // This will be replaced by the real thread ID when the mutation completes
+    const optimisticThreadId = crypto.randomUUID() as Id<"threads">
 
     // Create optimistic thread for sidebar display and message association
     const optimisticThread: Partial<Doc<"threads">> & {
@@ -157,9 +157,16 @@ export function useChat(options: UseChatOptions = {}) {
       ...existingThreads,
     ])
 
-    // Create optimistic messages with client-based IDs
-    const userMessageId = `msg_user_${clientId}_${now}` as Id<"messages">
-    const assistantMessageId = `msg_assistant_${clientId}_${now}` as Id<"messages">
+    // Also set the thread by clientId so it can be found while optimistic
+    localStore.setQuery(
+      api.threads.getByClientId,
+      { clientId },
+      optimisticThread as Doc<"threads">,
+    )
+
+    // Create optimistic messages with standard random IDs
+    const userMessageId = crypto.randomUUID() as Id<"messages">
+    const assistantMessageId = crypto.randomUUID() as Id<"messages">
 
     // Create optimistic user message
     const optimisticUserMessage: Doc<"messages"> = {
