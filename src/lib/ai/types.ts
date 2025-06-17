@@ -41,6 +41,11 @@ export type OpenRouterModel =
   | "meta-llama/llama-3.3-70b-instruct"
   | "meta-llama/llama-4-scout"
   | "meta-llama/llama-4-maverick"
+  // Legacy OpenRouter model IDs for backward compatibility
+  | "anthropic/claude-3.5-sonnet"
+  | "openai/gpt-4o"
+  | "google/gemini-pro-1.5"
+  | "mistralai/mistral-large"
 
 export type ModelId = OpenAIModel | AnthropicModel | OpenRouterModel
 
@@ -129,6 +134,11 @@ export const OPENROUTER_MODEL_IDS = [
   "meta-llama/llama-3.3-70b-instruct",
   "meta-llama/llama-4-scout",
   "meta-llama/llama-4-maverick",
+  // Legacy OpenRouter model IDs for backward compatibility
+  "anthropic/claude-3.5-sonnet",
+  "openai/gpt-4o",
+  "google/gemini-pro-1.5",
+  "mistralai/mistral-large",
 ] as const
 export const ALL_MODEL_IDS = [
   ...OPENAI_MODEL_IDS,

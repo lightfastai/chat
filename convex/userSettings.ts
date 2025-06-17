@@ -135,6 +135,11 @@ export const updatePreferences = mutation({
         v.literal("meta-llama/llama-3.3-70b-instruct"),
         v.literal("meta-llama/llama-4-scout"),
         v.literal("meta-llama/llama-4-maverick"),
+        // Legacy OpenRouter model IDs for backward compatibility
+        v.literal("anthropic/claude-3.5-sonnet"),
+        v.literal("openai/gpt-4o"),
+        v.literal("google/gemini-pro-1.5"),
+        v.literal("mistralai/mistral-large"),
       ),
     ),
     preferredProvider: v.optional(

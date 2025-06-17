@@ -622,6 +622,85 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       vision: true,
     },
   },
+
+  // Legacy OpenRouter model IDs for backward compatibility
+  "anthropic/claude-3.5-sonnet": {
+    id: "anthropic/claude-3.5-sonnet",
+    provider: "openrouter",
+    name: "anthropic/claude-3.5-sonnet",
+    displayName: "Claude 3.5 Sonnet (Legacy OpenRouter)",
+    description:
+      "Legacy OpenRouter model - use claude-3-5-sonnet-20241022 instead",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+    deprecated: true,
+    replacedBy: "claude-3-5-sonnet-20241022",
+  },
+  "openai/gpt-4o": {
+    id: "openai/gpt-4o",
+    provider: "openrouter",
+    name: "openai/gpt-4o",
+    displayName: "GPT-4o (Legacy OpenRouter)",
+    description: "Legacy OpenRouter model - use gpt-4o instead",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.0025,
+      output: 0.01,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+    deprecated: true,
+    replacedBy: "gpt-4o",
+  },
+  "google/gemini-pro-1.5": {
+    id: "google/gemini-pro-1.5",
+    provider: "openrouter",
+    name: "google/gemini-pro-1.5",
+    displayName: "Gemini 1.5 Pro (Legacy OpenRouter)",
+    description: "Legacy OpenRouter model - no longer available",
+    maxTokens: 2097152,
+    costPer1KTokens: {
+      input: 0.00125,
+      output: 0.005,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+    deprecated: true,
+    replacedBy: "x-ai/grok-3-beta",
+  },
+  "mistralai/mistral-large": {
+    id: "mistralai/mistral-large",
+    provider: "openrouter",
+    name: "mistralai/mistral-large",
+    displayName: "Mistral Large (Legacy OpenRouter)",
+    description: "Legacy OpenRouter model - no longer available",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.002,
+      output: 0.006,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,
+    },
+    deprecated: true,
+    replacedBy: "qwen/qwen2.5-32b-instruct",
+  },
 }
 
 /**
