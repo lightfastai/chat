@@ -306,8 +306,11 @@ const ChatInputComponent = ({
     [],
   )
 
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+
   const handleModelChange = useCallback((value: string) => {
     setSelectedModelId(value)
+    setDropdownOpen(false)
   }, [])
 
   const handleWebSearchToggle = useCallback(() => {
@@ -375,7 +378,11 @@ const ChatInputComponent = ({
               {/* Controls area - always at bottom */}
               <div className="flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow]">
                 <div className="flex items-center gap-2">
-                  <DropdownMenu modal={false}>
+                  <DropdownMenu
+                    modal={false}
+                    open={dropdownOpen}
+                    onOpenChange={setDropdownOpen}
+                  >
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
