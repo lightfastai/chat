@@ -20,13 +20,36 @@ export function ShareButtonWrapper() {
     isClient && urlThreadId ? { clientId: urlThreadId } : "skip",
   )
 
+  // Get thread by actual ID if needed
+  const threadById = useQuery(
+    api.threads.get,
+    urlThreadId && !isClient
+      ? { threadId: urlThreadId as Id<"threads"> }
+      : "skip",
+  )
+
   // Determine the actual Convex thread ID
   let threadId: Id<"threads"> | undefined
-  if (isClient && threadByClientId) {
-    threadId = threadByClientId._id
-  } else if (urlThreadId && !isClient) {
-    threadId = urlThreadId as Id<"threads">
+  const currentThread = threadByClientId || threadById
+  if (currentThread) {
+    threadId = currentThread._id
   }
 
-  return <ShareButton threadId={threadId} />
+  // Check for messages in the current chat to determine if it's shareable
+  // For client IDs, we can check messages using the client ID as the thread ID
+  // (optimistic updates store messages with client ID as the thread identifier)
+  const messageThreadId = threadId || (isClient && urlThreadId ? urlThreadId as Id<"threads"> : null)
+  const messages = useQuery(
+    api.messages.list,
+    messageThreadId ? { threadId: messageThreadId } : "skip",
+  )
+
+  // Chat is shareable if:
+  // 1. We have a real Convex thread ID, OR
+  // 2. We have messages (even with just client ID - optimistic updates)
+  const hasShareableContent = Boolean(
+    threadId || (messages && messages.length > 0),
+  )
+
+  return <ShareButton threadId={threadId} hasContent={hasShareableContent} />
 }

@@ -13,17 +13,23 @@ import { ShareDialog } from "./ShareDialog"
 
 interface ShareButtonProps {
   threadId?: Id<"threads">
+  hasContent?: boolean
 }
 
-export function ShareButton({ threadId }: ShareButtonProps) {
+export function ShareButton({
+  threadId,
+  hasContent = false,
+}: ShareButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
 
-  const isDisabled = !threadId
+  const isDisabled = !hasContent
+  const isLoading = hasContent && !threadId // Has content but thread not ready yet
+
   const button = (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => !isDisabled && setIsOpen(true)}
+      onClick={() => !isDisabled && threadId && setIsOpen(true)}
       disabled={isDisabled}
       className="gap-2"
     >
@@ -41,10 +47,23 @@ export function ShareButton({ threadId }: ShareButtonProps) {
     )
   }
 
+  if (isLoading) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent>Preparing chat for sharing...</TooltipContent>
+      </Tooltip>
+    )
+  }
+
   return (
     <>
       {button}
-      <ShareDialog threadId={threadId} open={isOpen} onOpenChange={setIsOpen} />
+      <ShareDialog
+        threadId={threadId!}
+        open={isOpen}
+        onOpenChange={setIsOpen}
+      />
     </>
   )
 }
