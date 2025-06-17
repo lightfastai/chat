@@ -389,7 +389,7 @@ const ChatInputComponent = ({
                         <ChevronDown className="h-3 w-3 opacity-50" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-52">
+                    <DropdownMenuContent align="start" className="w-64">
                       {Object.entries(modelsByProvider).map(
                         ([provider, models]) => (
                           <DropdownMenuSub key={provider}>
