@@ -9,7 +9,7 @@ import Exa, {
   type SearchResult,
 } from "exa-js"
 import { z } from "zod"
-import { api, internal } from "./_generated/api.js"
+import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
 import {
   type ActionCtx,

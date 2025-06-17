@@ -9,7 +9,7 @@ import {
   useQuery,
 } from "convex/react"
 import { usePathname } from "next/navigation"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc, Id } from "../../convex/_generated/dataModel"
 
