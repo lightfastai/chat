@@ -14,7 +14,15 @@ const DynamicChatTitle = dynamic(
   },
 )
 
-// Removed TokenUsageHeader - now shown on individual messages
+const DynamicTokenUsageHeader = dynamic(
+  () =>
+    import("./TokenUsageHeaderWrapper").then(
+      (mod) => mod.TokenUsageHeaderWrapper,
+    ),
+  {
+    ssr: true,
+  },
+)
 
 const DynamicShareButton = dynamic(
   () => import("./ShareButtonWrapper").then((mod) => mod.ShareButtonWrapper),
@@ -40,6 +48,16 @@ async function ChatHeader() {
           fallback={<div className="h-8 w-16 bg-muted animate-pulse rounded" />}
         >
           <DynamicShareButton />
+        </Suspense>
+        <Suspense
+          fallback={
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-16 bg-muted animate-pulse rounded" />
+              <div className="h-6 w-20 bg-muted animate-pulse rounded" />
+            </div>
+          }
+        >
+          <DynamicTokenUsageHeader />
         </Suspense>
       </div>
     </header>

@@ -296,6 +296,16 @@ export const createThreadAndSend = mutation({
       lastMessageAt: now,
       isTitleGenerating: true,
       isGenerating: true, // Set immediately to prevent race conditions
+      // Initialize usage field so header displays even with 0 tokens
+      usage: {
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalTokens: 0,
+        totalReasoningTokens: 0,
+        totalCachedInputTokens: 0,
+        messageCount: 0,
+        modelStats: {},
+      },
     })
 
     // Insert user message

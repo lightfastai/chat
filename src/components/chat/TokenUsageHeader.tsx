@@ -71,10 +71,8 @@ export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
     return null
   }
   
-  // Only hide if truly no tokens (not even 0)
-  if (usage.totalTokens === 0 && usage.messageCount === 0) {
-    return null
-  }
+  // Show usage even if 0, as long as we have the data structure
+  // This allows showing 0 tokens for new threads that haven't sent messages yet
 
   return (
     <TooltipProvider>

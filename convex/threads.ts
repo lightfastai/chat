@@ -37,6 +37,16 @@ export const create = mutation({
       createdAt: now,
       lastMessageAt: now,
       isTitleGenerating: true, // New threads start with title generation pending
+      // Initialize usage field so header displays even with 0 tokens
+      usage: {
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalTokens: 0,
+        totalReasoningTokens: 0,
+        totalCachedInputTokens: 0,
+        messageCount: 0,
+        modelStats: {},
+      },
     })
   },
 })
@@ -450,10 +460,30 @@ export const branchFromMessage = mutation({
         messageId: args.branchFromMessageId,
         timestamp: now,
       },
+      // Initialize usage field so header displays even with 0 tokens
+      usage: {
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalTokens: 0,
+        totalReasoningTokens: 0,
+        totalCachedInputTokens: 0,
+        messageCount: 0,
+        modelStats: {},
+      },
     })
 
-    // Copy messages to new thread
+    // Copy messages to new thread and accumulate usage
     let lastUserMessage = ""
+    let accumulatedUsage = {
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalTokens: 0,
+      totalReasoningTokens: 0,
+      totalCachedInputTokens: 0,
+      messageCount: 0,
+      modelStats: {} as Record<string, any>,
+    }
+
     for (const message of messagesToCopy) {
       await ctx.db.insert("messages", {
         threadId: newThreadId,
@@ -474,6 +504,42 @@ export const branchFromMessage = mutation({
       if (message.messageType === "user") {
         lastUserMessage = message.body
       }
+
+      // Accumulate usage from assistant messages
+      if (message.messageType === "assistant" && message.usage) {
+        const usage = message.usage
+        accumulatedUsage.totalInputTokens += usage.inputTokens || 0
+        accumulatedUsage.totalOutputTokens += usage.outputTokens || 0
+        accumulatedUsage.totalTokens += usage.totalTokens || 0
+        accumulatedUsage.totalReasoningTokens += usage.reasoningTokens || 0
+        accumulatedUsage.totalCachedInputTokens += usage.cachedInputTokens || 0
+        accumulatedUsage.messageCount += 1
+
+        // Update model stats
+        const modelId = message.modelId || message.model || "unknown"
+        if (!accumulatedUsage.modelStats[modelId]) {
+          accumulatedUsage.modelStats[modelId] = {
+            messageCount: 0,
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+            reasoningTokens: 0,
+            cachedInputTokens: 0,
+          }
+        }
+        const stats = accumulatedUsage.modelStats[modelId]
+        stats.messageCount += 1
+        stats.inputTokens += usage.inputTokens || 0
+        stats.outputTokens += usage.outputTokens || 0
+        stats.totalTokens += usage.totalTokens || 0
+        stats.reasoningTokens += usage.reasoningTokens || 0
+        stats.cachedInputTokens += usage.cachedInputTokens || 0
+      }
+    }
+
+    // Update the thread with accumulated usage
+    if (accumulatedUsage.messageCount > 0) {
+      await ctx.db.patch(newThreadId, { usage: accumulatedUsage })
     }
 
     // Schedule AI response with the selected model
