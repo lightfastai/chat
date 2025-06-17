@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -306,8 +307,11 @@ const ChatInputComponent = ({
     [],
   )
 
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+
   const handleModelChange = useCallback((value: string) => {
     setSelectedModelId(value)
+    setDropdownOpen(false)
   }, [])
 
   const handleWebSearchToggle = useCallback(() => {
@@ -375,7 +379,11 @@ const ChatInputComponent = ({
               {/* Controls area - always at bottom */}
               <div className="flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow]">
                 <div className="flex items-center gap-2">
-                  <DropdownMenu>
+                  <DropdownMenu
+                    modal={false}
+                    open={dropdownOpen}
+                    onOpenChange={setDropdownOpen}
+                  >
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
@@ -396,22 +404,24 @@ const ChatInputComponent = ({
                             <DropdownMenuSubTrigger>
                               <span>{providerNames[provider] || provider}</span>
                             </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="w-64">
-                              {models.map((model) => (
-                                <DropdownMenuItem
-                                  key={model.id}
-                                  onClick={() => handleModelChange(model.id)}
-                                  className="flex flex-col items-start py-2"
-                                >
-                                  <span className="font-medium">
-                                    {model.displayName}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {model.description}
-                                  </span>
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
+                            <DropdownMenuPortal>
+                              <DropdownMenuSubContent className="w-64">
+                                {models.map((model) => (
+                                  <DropdownMenuItem
+                                    key={model.id}
+                                    onClick={() => handleModelChange(model.id)}
+                                    className="flex flex-col items-start py-2"
+                                  >
+                                    <span className="font-medium">
+                                      {model.displayName}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {model.description}
+                                    </span>
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuPortal>
                           </DropdownMenuSub>
                         ),
                       )}

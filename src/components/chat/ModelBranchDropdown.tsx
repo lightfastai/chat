@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -73,20 +74,22 @@ export function ModelBranchDropdown({
             <DropdownMenuSubTrigger>
               <span>{providerNames[provider] || provider}</span>
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-64">
-              {models.map((model) => (
-                <DropdownMenuItem
-                  key={model.id}
-                  onClick={() => handleModelSelect(model.id as ModelId)}
-                  className="flex flex-col items-start py-2"
-                >
-                  <span className="font-medium">{model.displayName}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {model.description}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-64">
+                {models.map((model) => (
+                  <DropdownMenuItem
+                    key={model.id}
+                    onClick={() => handleModelSelect(model.id as ModelId)}
+                    className="flex flex-col items-start py-2"
+                  >
+                    <span className="font-medium">{model.displayName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {model.description}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
           </DropdownMenuSub>
         ))}
       </DropdownMenuContent>
