@@ -1,0 +1,38 @@
+export const siteConfig = {
+  name: "Lightfast",
+  url: "https://chat.lightfast.ai",
+  ogImage: "https://lightfast.ai/og.jpg",
+  description: "Lightfast is an integration layer for AI design workflows",
+  keywords: [
+    "Lightfast",
+    "AI",
+    "Design",
+    "Blender",
+    "Unreal Engine",
+    "Ableton",
+    "MCP",
+    "Model Context Protocol",
+    "AI Copilot",
+    "AI Copilot for Creatives",
+    "AI Copilot for Blender",
+    "AI Copilot for TouchDesigner",
+    "AI Copilot for Houdini",
+    "AI Copilot for Unreal Engine",
+  ] as string[],
+  authors: [
+    {
+      name: "Lightfast",
+      url: "https://lightfast.ai",
+    },
+  ] as Array<{ name: string; url: string }>,
+  creator: "Lightfast",
+  links: {
+    twitter: "https://x.com/lightfastai",
+    github: "https://github.com/lightfastai",
+    discord: "https://discord.gg/YqPDfcar2C",
+    privacy: "https://lightfast.ai/legal/privacy",
+    terms: "https://lightfast.ai/legal/terms",
+    chat: "https://chat.lightfast.ai",
+  },
+  location: "3141, Melbourne, VIC, Australia",
+} as const

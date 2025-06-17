@@ -1,5 +1,6 @@
 import { SettingsContent } from "@/components/settings/SettingsContent"
 import { getAuthToken } from "@/lib/auth"
+import { siteConfig } from "@/lib/site-config"
 import { preloadQuery } from "convex/nextjs"
 import type { Metadata } from "next"
 import { Suspense } from "react"
@@ -8,6 +9,15 @@ import { api } from "../../../../convex/_generated/api"
 export const metadata: Metadata = {
   title: "Settings",
   description: "Manage your account settings and preferences.",
+  openGraph: {
+    title: `Settings - ${siteConfig.name}`,
+    description: "Manage your account settings and preferences.",
+    url: `${siteConfig.url}/chat/settings`,
+  },
+  twitter: {
+    title: `Settings - ${siteConfig.name}`,
+    description: "Manage your account settings and preferences.",
+  },
   robots: {
     index: false,
     follow: false,

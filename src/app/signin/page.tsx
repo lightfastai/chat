@@ -1,10 +1,11 @@
 import { SignInButtons } from "@/components/auth/SignInButtons"
 import { Card, CardContent } from "@/components/ui/card"
+import { siteConfig } from "@/lib/site-config"
 import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Sign In - Lightfast",
+  title: "Sign In",
   description:
     "Sign in to access your AI chat conversations with real-time streaming responses.",
   keywords: [
@@ -13,16 +14,18 @@ export const metadata: Metadata = {
     "authentication",
     "GitHub OAuth",
     "real-time chat",
+    "Lightfast",
   ],
   openGraph: {
-    title: "Sign In - AI Chat",
+    title: `Sign In - ${siteConfig.name}`,
     description:
       "Sign in to access your AI chat conversations with real-time streaming responses.",
     type: "website",
+    url: `${siteConfig.url}/signin`,
   },
   twitter: {
     card: "summary",
-    title: "Sign In - AI Chat",
+    title: `Sign In - ${siteConfig.name}`,
     description:
       "Sign in to access your AI chat conversations with real-time streaming responses.",
   },

@@ -1,10 +1,19 @@
+import { siteConfig } from "@/lib/site-config"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { ChatInterface } from "../../../components/chat/ChatInterface"
 
 export const metadata: Metadata = {
-  title: "Chat Thread - Lightfast",
+  title: "Chat Thread",
   description: "Continue your AI conversation.",
+  openGraph: {
+    title: `Chat Thread - ${siteConfig.name}`,
+    description: "Continue your AI conversation.",
+  },
+  twitter: {
+    title: `Chat Thread - ${siteConfig.name}`,
+    description: "Continue your AI conversation.",
+  },
   robots: {
     index: false,
     follow: false,

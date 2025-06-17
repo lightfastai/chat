@@ -1,3 +1,4 @@
+import { siteConfig } from "@/lib/site-config"
 import { source } from "@/lib/source"
 import { DocsBody, DocsPage } from "fumadocs-ui/page"
 import type { Metadata } from "next"
@@ -39,5 +40,14 @@ export async function generateMetadata(props: {
   return {
     title: page.data.title,
     description: page.data.description,
+    openGraph: {
+      title: `${page.data.title} - ${siteConfig.name}`,
+      description: page.data.description,
+      url: `${siteConfig.url}/docs/${params.slug?.join("/") || ""}`,
+    },
+    twitter: {
+      title: `${page.data.title} - ${siteConfig.name}`,
+      description: page.data.description,
+    },
   }
 }

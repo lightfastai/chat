@@ -2,98 +2,73 @@ import { AuthRedirectHandler } from "@/components/auth/AuthRedirectHandler"
 import { LandingChatInput } from "@/components/landing/LandingChatInput"
 import { Footer } from "@/components/layout/Footer"
 import { Button } from "@/components/ui/button"
+import { Icons } from "@/components/ui/icons"
+import { siteConfig } from "@/lib/site-config"
 import { Zap } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 
 export const metadata: Metadata = {
-  title: "Lightfast - Open Source Chat App",
-  description:
-    "Open source chat application designed for personal and internal business needs. Built for flexibility, privacy, and customization with intelligent AI conversations.",
-  keywords: [
-    "AI chat",
-    "artificial intelligence",
-    "open source",
-    "real-time chat",
-    "conversational AI",
-    "intelligent chat",
-    "AI assistant",
-    "machine learning",
-    "natural language processing",
-    "Lightfast",
-  ],
-  authors: [{ name: "Lightfast" }],
-  creator: "Lightfast",
-  publisher: "Lightfast",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
+  title: {
+    default: siteConfig.name,
+    template: `%s - ${siteConfig.name}`,
   },
+  metadataBase: new URL(siteConfig.url),
+  description: siteConfig.description,
+  keywords: siteConfig.keywords,
+  authors: siteConfig.authors,
+  creator: siteConfig.creator,
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://lightfast.ai",
-    title: "Lightfast - Open Source Chat App",
-    description:
-      "Open source chat application designed for personal and internal business needs with intelligent AI conversations.",
-    siteName: "Lightfast",
+    url: siteConfig.url,
+    title: siteConfig.name,
+    description: siteConfig.description,
+    siteName: siteConfig.name,
     images: [
       {
-        url: "https://lightfast.ai/og-image.png",
+        url: siteConfig.ogImage,
         width: 1200,
         height: 630,
-        alt: "Lightfast - Open Source Chat App",
+        alt: siteConfig.name,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Lightfast - Open Source Chat App",
-    description:
-      "Open source chat application designed for personal and internal business needs with intelligent AI conversations.",
-    images: ["https://lightfast.ai/og-image.png"],
-    creator: "@lightfast_ai",
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: [siteConfig.ogImage],
+    creator: siteConfig.links.twitter,
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-16x16.png",
+    apple: "/apple-touch-icon.png",
+    other: [
+      {
+        rel: "icon",
+        url: "/favicon-32x32.png",
+      },
+      {
+        rel: "icon",
+        url: "/android-chrome-192x192.png",
+      },
+      {
+        rel: "icon",
+        url: "/android-chrome-512x512.png",
+      },
+    ],
   },
-  verification: {
-    google: "google-site-verification-code",
+  applicationName: siteConfig.name,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: siteConfig.name,
   },
-}
-
-// Lightfast logo component
-function LightfastLogo(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      width="104"
-      height="70"
-      viewBox="0 0 104 70"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label="Lightfast"
-      {...props}
-    >
-      <title>Lightfast</title>
-      <path
-        d="M15.3354 57.3195H47.1597V69.7863H0.543457V0.632019H15.3354V57.3195Z"
-        fill="currentColor"
-      />
-      <path
-        d="M79.6831 69.7863H65.2798L89.0532 0.658386H103.457L79.6831 69.7863Z"
-        fill="currentColor"
-      />
-    </svg>
-  )
+  formatDetection: {
+    telephone: false,
+  },
 }
 
 // Server-side header component for landing page
@@ -103,7 +78,7 @@ function LandingHeader() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/">
-            <LightfastLogo className="w-6 h-5 text-foreground" />
+            <Icons.logo className="w-6 h-5 text-foreground" />
           </Link>
         </div>
         <div className="flex items-center gap-4">
