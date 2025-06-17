@@ -4,17 +4,15 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { isClientId } from "@/lib/nanoid"
 import { useQuery } from "convex/react"
-import { useParams, usePathname } from "next/navigation"
+import { useParams } from "next/navigation"
 import { ShareButton } from "./ShareButton"
 
 export function ShareButtonWrapper() {
   const params = useParams()
-  const pathname = usePathname()
   const urlThreadId = params.threadId as string | undefined
 
   // Check if it's a client-generated ID
   const isClient = urlThreadId ? isClientId(urlThreadId) : false
-  const isNewChat = pathname === "/chat"
 
   // Get thread by clientId if needed
   const threadByClientId = useQuery(
