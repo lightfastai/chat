@@ -47,5 +47,17 @@ export function ShareButtonWrapper() {
     (!isNewChat && isClient && urlThreadId) // Not on /chat AND client ID URL - user sent message
   )
 
+  // Debug logging
+  console.log("ShareButtonWrapper Debug:", {
+    pathname,
+    urlThreadId,
+    isClient,
+    isNewChat,
+    threadId,
+    hasShareableContent,
+    threadByClientId: !!threadByClientId,
+    threadById: !!threadById,
+  })
+
   return <ShareButton threadId={threadId} hasContent={hasShareableContent} />
 }
