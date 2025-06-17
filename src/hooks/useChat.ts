@@ -86,6 +86,18 @@ export function useChat(options: UseChatOptions = {}) {
 
   // Determine the actual thread to use - prefer preloaded, then fallback to queries
   const currentThread = preloadedThread || threadByClientId || threadById
+  
+  // DEBUG: Log thread resolution for branching
+  useEffect(() => {
+    if (currentClientId && currentThread) {
+      console.log("🧵 Thread resolved for clientId:", {
+        clientId: currentClientId,
+        threadId: currentThread._id,
+        isOptimistic: currentThread.userId === "temp",
+        hasUUID: currentThread._id.includes("-"),
+      })
+    }
+  }, [currentClientId, currentThread])
 
   // Clear temp thread ID when we get a real thread from server
   useEffect(() => {

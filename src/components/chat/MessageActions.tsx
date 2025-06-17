@@ -150,6 +150,13 @@ export function MessageActions({ message, className }: MessageActionsProps) {
             optimisticMessages.length - 1
           ]?.body?.slice(0, 50),
         })
+        
+        // DEBUG: Log the query args we're setting
+        console.log("🔑 Setting messages query with args:", {
+          queryName: "api.messages.list",
+          args: { threadId: tempThreadId },
+          messageCount: optimisticMessages.length,
+        })
       }
     }
   })
