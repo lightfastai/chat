@@ -1,0 +1,150 @@
+---
+title: AI Models
+description: Understanding and configuring AI models in Lightfast Chat
+---
+
+# AI Models
+
+Lightfast Chat supports multiple AI providers and models, giving you flexibility to choose the best model for your specific needs.
+
+## Supported Providers
+
+### Anthropic
+- **Claude Sonnet 4**: The most advanced model for complex reasoning, coding, and analysis
+- **Claude Sonnet 3.5**: Balanced performance and cost
+- **Claude Haiku**: Fast responses for simple queries
+
+### OpenAI
+- **GPT-4**: Excellent for creative writing and general conversations
+- **GPT-4 Turbo**: Optimized for speed and cost
+- **GPT-3.5 Turbo**: Quick and cost-effective for basic tasks
+
+## Model Configuration
+
+### API Keys Setup
+
+Configure your API keys in the environment variables:
+
+```bash
+# Anthropic API Key
+ANTHROPIC_API_KEY=your_anthropic_key_here
+
+# OpenAI API Key  
+OPENAI_API_KEY=your_openai_key_here
+```
+
+### Model Selection
+
+Models can be selected:
+1. **Per conversation**: Choose a model when starting a new thread
+2. **Mid-conversation**: Switch models during a conversation
+3. **Default setting**: Set a preferred default model in settings
+
+## Model Comparison
+
+### Performance Characteristics
+
+| Model | Speed | Quality | Cost | Best For |
+|-------|-------|---------|------|----------|
+| Claude Sonnet 4 | Medium | Excellent | High | Complex reasoning, coding |
+| GPT-4 | Medium | Excellent | High | Creative writing, analysis |
+| GPT-3.5 Turbo | Fast | Good | Low | Simple queries, quick tasks |
+| Claude Haiku | Very Fast | Good | Low | Rapid responses, basic tasks |
+
+### Use Case Recommendations
+
+**For Coding and Technical Tasks:**
+- Primary: Claude Sonnet 4
+- Alternative: GPT-4
+
+**For Creative Writing:**
+- Primary: GPT-4
+- Alternative: Claude Sonnet 4
+
+**For Quick Questions:**
+- Primary: GPT-3.5 Turbo
+- Alternative: Claude Haiku
+
+**For Analysis and Research:**
+- Primary: Claude Sonnet 4
+- Alternative: GPT-4
+
+## Advanced Configuration
+
+### Model Parameters
+
+Some models support additional parameters:
+
+- **Temperature**: Controls creativity (0.0-1.0)
+- **Max tokens**: Maximum response length
+- **Top-p**: Nucleus sampling parameter
+
+### Custom Model Settings
+
+You can configure model-specific settings in the application:
+
+1. Go to Settings → AI Models
+2. Select your preferred model
+3. Adjust parameters as needed
+4. Save your configuration
+
+## Token Management
+
+### Understanding Tokens
+
+- **Input tokens**: Your message to the AI
+- **Output tokens**: The AI's response
+- **Context tokens**: Previous conversation history
+
+### Token Limits
+
+Each model has different context limits:
+
+- **Claude Sonnet 4**: 200K tokens
+- **GPT-4**: 128K tokens  
+- **GPT-3.5 Turbo**: 16K tokens
+
+### Optimizing Token Usage
+
+**Tips to reduce token consumption:**
+- Keep conversations focused
+- Start new threads for different topics
+- Summarize long conversations
+- Use more efficient models for simple tasks
+
+## Model Switching
+
+### When to Switch Models
+
+- **Quality improvement**: Switch to higher-quality model for complex tasks
+- **Speed optimization**: Use faster models for simple queries
+- **Cost reduction**: Use cheaper models when appropriate
+- **Feature requirements**: Some models have unique capabilities
+
+### Switching Process
+
+1. Click the model selector in the chat interface
+2. Choose your new model
+3. The switch applies to new messages only
+4. Previous messages retain their original model context
+
+## Troubleshooting
+
+### Common Issues
+
+**Model unavailable**: Check API key configuration and account status.
+
+**Rate limiting**: Switch to a different model or wait for rate limit reset.
+
+**Context limit exceeded**: Start a new thread or summarize the conversation.
+
+**Poor responses**: Try a different model or adjust your prompting strategy.
+
+### Performance Tips
+
+- Use the most appropriate model for each task
+- Monitor token usage to optimize costs
+- Experiment with different models for best results
+- Keep conversations focused and well-structured
+
+Next: [Settings](/docs/settings)

@@ -299,10 +299,10 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
  * OpenRouter Model Configurations
  */
 export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
-  "x-ai/grok-3": {
-    id: "x-ai/grok-3",
+  "x-ai/grok-3-beta": {
+    id: "x-ai/grok-3-beta",
     provider: "openrouter",
-    name: "x-ai/grok-3",
+    name: "x-ai/grok-3-beta",
     displayName: "Grok 3",
     description:
       "xAI's most powerful reasoning model with real-time data access",
@@ -317,10 +317,10 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       vision: true,
     },
   },
-  "x-ai/grok-3-mini": {
-    id: "x-ai/grok-3-mini",
+  "x-ai/grok-3-mini-beta": {
+    id: "x-ai/grok-3-mini-beta",
     provider: "openrouter",
-    name: "x-ai/grok-3-mini",
+    name: "x-ai/grok-3-mini-beta",
     displayName: "Grok 3 Mini",
     description:
       "Fast and efficient reasoning model with real-time data access",
@@ -353,10 +353,10 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       vision: false,
     },
   },
-  "qwen/qwen-2.5-32b-instruct": {
-    id: "qwen/qwen-2.5-32b-instruct",
+  "qwen/qwen2.5-32b-instruct": {
+    id: "qwen/qwen2.5-32b-instruct",
     provider: "openrouter",
-    name: "qwen/qwen-2.5-32b-instruct",
+    name: "qwen/qwen2.5-32b-instruct",
     displayName: "Qwen 2.5 32B",
     description:
       "Powerful multilingual model with strong coding and reasoning capabilities",
