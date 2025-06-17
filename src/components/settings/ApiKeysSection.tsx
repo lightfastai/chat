@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input"
 import { validateApiKeyFormat } from "@/lib/ai/apiKeyValidation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "convex/react"
-import { Eye, EyeOff, ExternalLink, Loader2 } from "lucide-react"
+import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -211,15 +212,14 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
               description={
                 <span>
                   Used for GPT models.{" "}
-                  <a
+                  <Link
                     href="https://platform.openai.com/api-keys"
                     target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center text-muted-foreground hover:underline"
                   >
                     Get API Key
                     <ExternalLink className="ml-1 h-3 w-3" />
-                  </a>
+                  </Link>
                 </span>
               }
             >
@@ -298,15 +298,14 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
               description={
                 <span>
                   Used for Claude models.{" "}
-                  <a
+                  <Link
                     href="https://console.anthropic.com/settings/keys"
                     target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center text-muted-foreground hover:underline"
                   >
                     Get API Key
                     <ExternalLink className="ml-1 h-3 w-3" />
-                  </a>
+                  </Link>
                 </span>
               }
             >
@@ -385,15 +384,14 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
               description={
                 <span>
                   Used for OpenRouter models (Llama, Gemini, etc.).{" "}
-                  <a
+                  <Link
                     href="https://openrouter.ai/keys"
                     target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center text-muted-foreground hover:underline"
                   >
                     Get API Key
                     <ExternalLink className="ml-1 h-3 w-3" />
-                  </a>
+                  </Link>
                 </span>
               }
             >
