@@ -276,60 +276,6 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       pdfSupport: false,
     },
   },
-  "claude-3-opus-20240229": {
-    id: "claude-3-opus-20240229",
-    provider: "anthropic",
-    name: "claude-3-opus-20240229",
-    displayName: "Claude 3 Opus",
-    description: "Powerful model for complex reasoning and creativity",
-    maxTokens: 200000,
-    costPer1KTokens: {
-      input: 0.015,
-      output: 0.075,
-    },
-    features: {
-      streaming: true,
-      functionCalling: true,
-      vision: true,
-      pdfSupport: true,
-    },
-  },
-  "claude-3-sonnet-20240229": {
-    id: "claude-3-sonnet-20240229",
-    provider: "anthropic",
-    name: "claude-3-sonnet-20240229",
-    displayName: "Claude 3 Sonnet",
-    description: "Balanced performance for general tasks",
-    maxTokens: 200000,
-    costPer1KTokens: {
-      input: 0.003,
-      output: 0.015,
-    },
-    features: {
-      streaming: true,
-      functionCalling: true,
-      vision: true,
-      pdfSupport: true,
-    },
-  },
-  "claude-3-haiku-20240307": {
-    id: "claude-3-haiku-20240307",
-    provider: "anthropic",
-    name: "claude-3-haiku-20240307",
-    displayName: "Claude 3 Haiku",
-    description: "Fast and cost-effective for simple tasks",
-    maxTokens: 200000,
-    costPer1KTokens: {
-      input: 0.00025,
-      output: 0.00125,
-    },
-    features: {
-      streaming: true,
-      functionCalling: true,
-      vision: true,
-      pdfSupport: true,
-    },
-  },
 }
 
 /**

@@ -20,9 +20,6 @@ export type AnthropicModel =
   | "claude-3-5-sonnet-20241022"
   | "claude-3-5-sonnet-20240620"
   | "claude-3-5-haiku-20241022"
-  | "claude-3-opus-20240229"
-  | "claude-3-sonnet-20240229"
-  | "claude-3-haiku-20240307"
 
 export type OpenRouterModel =
   | "meta-llama/llama-3.3-70b-instruct"
@@ -95,9 +92,6 @@ export const ANTHROPIC_MODEL_IDS = [
   "claude-3-5-sonnet-20241022",
   "claude-3-5-sonnet-20240620",
   "claude-3-5-haiku-20241022",
-  "claude-3-opus-20240229",
-  "claude-3-sonnet-20240229",
-  "claude-3-haiku-20240307",
 ] as const
 export const OPENROUTER_MODEL_IDS = [
   "meta-llama/llama-3.3-70b-instruct",

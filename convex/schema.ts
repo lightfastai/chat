@@ -20,9 +20,6 @@ const modelIdValidator = v.union(
   v.literal("claude-3-5-sonnet-20241022"),
   v.literal("claude-3-5-sonnet-20240620"),
   v.literal("claude-3-5-haiku-20241022"),
-  v.literal("claude-3-opus-20240229"),
-  v.literal("claude-3-sonnet-20240229"),
-  v.literal("claude-3-haiku-20240307"),
   // OpenRouter models
   v.literal("meta-llama/llama-3.3-70b-instruct"),
   v.literal("anthropic/claude-3.5-sonnet"),
