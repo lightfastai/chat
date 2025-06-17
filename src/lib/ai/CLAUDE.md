@@ -64,6 +64,46 @@ After adding/updating a model:
 3. Verify error messages are helpful
 4. Check that the system prompt reflects capabilities
 
+## Model Deletion and Migration Process
+
+**CRITICAL**: When removing or renaming model IDs, you MUST maintain backward compatibility with existing production data.
+
+### Process for Model Changes
+
+1. **Never remove model IDs directly** - Production database may contain messages with those model IDs
+2. **Add legacy model IDs** to both `types.ts` and `convex/schema.ts` for backward compatibility
+3. **Mark as deprecated** in model configurations rather than removing entirely
+4. **Gradual migration** - Only remove after confirming no production data uses the old IDs
+
+### Example: Adding Legacy Support
+
+```typescript
+// In types.ts - Add legacy models to AnthropicModel type
+export type AnthropicModel =
+  | "claude-4-sonnet-20250514"           // Current format
+  | "claude-sonnet-4-20250514"           // Legacy format - keep for compatibility!
+
+// In convex/schema.ts - Add legacy models to validator
+const modelIdValidator = v.union(
+  v.literal("claude-4-sonnet-20250514"),    // Current format
+  v.literal("claude-sonnet-4-20250514"),    // Legacy format - keep for compatibility!
+)
+
+// In models.ts - Add deprecated flag to legacy models
+"claude-sonnet-4-20250514": {
+  id: "claude-sonnet-4-20250514", 
+  deprecated: true,                        // Mark as deprecated
+  replacedBy: "claude-4-sonnet-20250514",  // Point to new model
+  // ... rest of config
+}
+```
+
+### Build Failure Prevention
+
+- **Schema validation errors** occur when production database contains model IDs not in the schema
+- **Always test builds** after model changes: `SKIP_ENV_VALIDATION=true bun run build`
+- **Check production logs** for usage of model IDs before removing them
+
 ## File Organization
 
 - `types.ts` - Defines ModelConfig interface with feature flags

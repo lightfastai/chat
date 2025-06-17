@@ -21,6 +21,17 @@ export type AnthropicModel =
   | "claude-3-5-sonnet-20241022"
   | "claude-3-5-sonnet-20240620"
   | "claude-3-5-haiku-20241022"
+  // Thinking mode variants
+  | "claude-4-opus-20250514-thinking"
+  | "claude-4-sonnet-20250514-thinking"
+  | "claude-3-7-sonnet-20250219-thinking"
+  | "claude-3-5-sonnet-20241022-thinking"
+  | "claude-3-5-sonnet-20240620-thinking"
+  | "claude-3-5-haiku-20241022-thinking"
+  // Legacy model IDs for backward compatibility
+  | "claude-sonnet-4-20250514"
+  | "claude-sonnet-4-20250514-thinking"
+  | "claude-3-haiku-20240307"
 
 export type OpenRouterModel =
   | "meta-llama/llama-3.3-70b-instruct"
@@ -53,6 +64,8 @@ export interface ModelConfig {
     enabled: boolean
     defaultBudgetTokens: number
   }
+  deprecated?: boolean
+  replacedBy?: string
 }
 
 export interface ChatMessage {
@@ -94,6 +107,17 @@ export const ANTHROPIC_MODEL_IDS = [
   "claude-3-5-sonnet-20241022",
   "claude-3-5-sonnet-20240620",
   "claude-3-5-haiku-20241022",
+  // Thinking mode variants
+  "claude-4-opus-20250514-thinking",
+  "claude-4-sonnet-20250514-thinking",
+  "claude-3-7-sonnet-20250219-thinking",
+  "claude-3-5-sonnet-20241022-thinking",
+  "claude-3-5-sonnet-20240620-thinking",
+  "claude-3-5-haiku-20241022-thinking",
+  // Legacy model IDs for backward compatibility
+  "claude-sonnet-4-20250514",
+  "claude-sonnet-4-20250514-thinking",
+  "claude-3-haiku-20240307",
 ] as const
 export const OPENROUTER_MODEL_IDS = [
   "meta-llama/llama-3.3-70b-instruct",

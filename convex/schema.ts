@@ -21,6 +21,17 @@ const modelIdValidator = v.union(
   v.literal("claude-3-5-sonnet-20241022"),
   v.literal("claude-3-5-sonnet-20240620"),
   v.literal("claude-3-5-haiku-20241022"),
+  // Thinking mode variants
+  v.literal("claude-4-opus-20250514-thinking"),
+  v.literal("claude-4-sonnet-20250514-thinking"),
+  v.literal("claude-3-7-sonnet-20250219-thinking"),
+  v.literal("claude-3-5-sonnet-20241022-thinking"),
+  v.literal("claude-3-5-sonnet-20240620-thinking"),
+  v.literal("claude-3-5-haiku-20241022-thinking"),
+  // Legacy model IDs for backward compatibility with existing production data
+  v.literal("claude-sonnet-4-20250514"),
+  v.literal("claude-sonnet-4-20250514-thinking"),
+  v.literal("claude-3-haiku-20240307"),
   // OpenRouter models
   v.literal("meta-llama/llama-3.3-70b-instruct"),
   v.literal("anthropic/claude-3.5-sonnet"),
