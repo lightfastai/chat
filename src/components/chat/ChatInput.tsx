@@ -2,14 +2,14 @@
 
 import { Button } from "@/components/ui/button"
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
@@ -20,6 +20,7 @@ import { useFileDrop } from "@/hooks/useFileDrop"
 import { DEFAULT_MODEL_ID, getAllModels, getModelById } from "@/lib/ai"
 import { useMutation } from "convex/react"
 import {
+  ChevronDown,
   FileIcon,
   FileText,
   Globe,
@@ -103,6 +104,13 @@ const ChatInputComponent = ({
       {} as Record<string, typeof allModels>,
     )
   }, [allModels])
+
+  // Provider display names
+  const providerNames: Record<string, string> = {
+    openai: "OpenAI",
+    anthropic: "Anthropic",
+    openrouter: "OpenRouter",
+  }
 
   // Memoize textarea height adjustment
   const adjustTextareaHeight = useCallback(() => {
@@ -367,42 +375,48 @@ const ChatInputComponent = ({
               {/* Controls area - always at bottom */}
               <div className="flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow]">
                 <div className="flex items-center gap-2">
-                  <Select
-                    value={selectedModelId}
-                    onValueChange={handleModelChange}
-                    disabled={disabled}
-                  >
-                    <SelectTrigger className="h-6 w-[140px] text-xs border-0">
-                      <SelectValue>{selectedModel?.displayName}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-[140px] px-2 text-xs justify-between font-normal"
+                        disabled={disabled}
+                      >
+                        <span className="truncate">
+                          {selectedModel?.displayName}
+                        </span>
+                        <ChevronDown className="h-3 w-3 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-52">
                       {Object.entries(modelsByProvider).map(
                         ([provider, models]) => (
-                          <SelectGroup key={provider}>
-                            <SelectLabel className="text-xs font-medium capitalize">
-                              {provider}
-                            </SelectLabel>
-                            {models.map((model) => (
-                              <SelectItem
-                                key={model.id}
-                                value={model.id}
-                                className="text-xs"
-                              >
-                                <div className="flex flex-col">
-                                  <span>{model.displayName}</span>
-                                  {model.features.thinking && (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      Extended reasoning mode
-                                    </span>
-                                  )}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
+                          <DropdownMenuSub key={provider}>
+                            <DropdownMenuSubTrigger>
+                              <span>{providerNames[provider] || provider}</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="w-64">
+                              {models.map((model) => (
+                                <DropdownMenuItem
+                                  key={model.id}
+                                  onClick={() => handleModelChange(model.id)}
+                                  className="flex flex-col items-start py-2"
+                                >
+                                  <span className="font-medium">
+                                    {model.displayName}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {model.description}
+                                  </span>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                         ),
                       )}
-                    </SelectContent>
-                  </Select>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
                   {/* File attachment button */}
                   <input
