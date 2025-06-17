@@ -105,11 +105,60 @@ export function useChat() {
     (isNewChat && tempThreadIdRef.current) || // Also check for new chat with temp thread
     null
 
-  const messages =
+  const rawMessages =
     useQuery(
       api.messages.list,
       messageThreadId ? { threadId: messageThreadId } : "skip",
     ) ?? []
+  
+  // Track previous messages to detect when optimistic messages are replaced
+  const prevMessagesRef = useRef<typeof rawMessages>([])
+  
+  // Stabilize messages to prevent flickering during optimistic->real transitions
+  const messages = useMemo(() => {
+    const prev = prevMessagesRef.current
+    const curr = rawMessages
+    
+    // If we have the same number of messages and they're just ID changes, preserve order
+    if (prev.length === curr.length && prev.length > 0) {
+      // Check if this is just an ID update (optimistic -> real)
+      const lastPrevMsg = prev[0]
+      const lastCurrMsg = curr[0]
+      
+      if (lastPrevMsg._id.startsWith('optimistic_') && 
+          !lastCurrMsg._id.startsWith('optimistic_') &&
+          lastPrevMsg.body === lastCurrMsg.body &&
+          lastPrevMsg.messageType === lastCurrMsg.messageType) {
+        // This is likely the optimistic message being replaced by the real one
+        console.log("🔄 Detected optimistic->real transition, preserving order")
+        // Return current messages but maintain visual stability
+        prevMessagesRef.current = curr
+        return curr
+      }
+    }
+    
+    prevMessagesRef.current = curr
+    return curr
+  }, [rawMessages])
+  
+  // DEBUG: Log when messages change
+  useEffect(() => {
+    console.log("📊 Messages state change:", {
+      messageThreadId,
+      messageCount: messages.length,
+      messages: messages.map(m => ({
+        id: m._id,
+        type: m.messageType,
+        body: m.body.slice(0, 30),
+        isStreaming: m.isStreaming,
+        isComplete: m.isComplete
+      })),
+      isNewChat,
+      currentClientId,
+      currentThread: currentThread?._id,
+      tempThreadId: tempThreadIdRef.current
+    })
+  }, [messages, messageThreadId])
 
   // DEBUG: Log message query details for debugging
   useEffect(() => {
@@ -166,9 +215,10 @@ export function useChat() {
       optimisticThread,
     )
 
-    // 3. Create optimistic message
+    // 3. Create optimistic message with a special prefix for tracking
+    const optimisticId = `optimistic_${crypto.randomUUID()}` as Id<"messages">
     const optimisticMessage: Doc<"messages"> = {
-      _id: crypto.randomUUID() as Id<"messages">,
+      _id: optimisticId,
       _creationTime: now,
       threadId: tempThreadId,
       body,
@@ -195,8 +245,9 @@ export function useChat() {
       // If we've loaded the messages for this thread, add optimistic message
       if (existingMessages !== undefined) {
         const now = Date.now()
+        const optimisticId = `optimistic_${crypto.randomUUID()}` as Id<"messages">
         const optimisticMessage: Doc<"messages"> = {
-          _id: crypto.randomUUID() as Id<"messages">,
+          _id: optimisticId,
           _creationTime: now,
           threadId,
           body,

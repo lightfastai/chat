@@ -139,13 +139,21 @@ export function ChatMessages({
           {messages
             ?.slice()
             .reverse()
-            .map((msg, index) => (
-              <MessageDisplay
-                key={`${msg._id}-${msg._creationTime}-${index}`}
-                message={msg}
-                userName="User"
-              />
-            ))}
+            .map((msg, index) => {
+              // Use a stable key based on content and position for optimistic messages
+              const isOptimistic = msg._id.startsWith('optimistic_')
+              const stableKey = isOptimistic 
+                ? `${msg.messageType}-${msg.timestamp}-${msg.body.slice(0, 20)}-${index}`
+                : msg._id
+              
+              return (
+                <MessageDisplay
+                  key={stableKey}
+                  message={msg}
+                  userName="User"
+                />
+              )
+            })}
 
           {isLoading && (
             <div className="text-center text-muted-foreground py-4">
