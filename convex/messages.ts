@@ -698,6 +698,11 @@ export const generateAIResponseWithMessage = internalAction({
           fullText,
         })
       }
+
+      // Clear the generation flag on success
+      await ctx.runMutation(internal.messages.clearGenerationFlag, {
+        threadId: args.threadId,
+      })
     } catch (error) {
       console.error("Error in generateAIResponseWithMessage:", error)
 
