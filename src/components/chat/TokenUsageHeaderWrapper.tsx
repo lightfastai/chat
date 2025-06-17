@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { useMemo } from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
-import { TokenUsageHeader } from "./TokenUsageHeader"
+import { TokenUsageDialog } from "./TokenUsageDialog"
 
 export function TokenUsageHeaderWrapper() {
   const pathname = usePathname()
@@ -60,5 +60,5 @@ export function TokenUsageHeaderWrapper() {
     return null
   }
 
-  return <TokenUsageHeader threadId={currentThreadId} />
+  return <TokenUsageDialog threadId={currentThreadId} />
 }
