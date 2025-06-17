@@ -123,9 +123,10 @@ export function MessageActions({ message, className }: MessageActionsProps) {
 
         // Copy messages up to and including the last user message
         // Note: originalMessages is in descending order (newest first)
+        // We want all messages from index 0 up to and INCLUDING the copyUpToIndex
         const copyUpToIndex =
           lastUserMessageIndex !== -1 ? lastUserMessageIndex : branchPointIndex
-        const messagesToCopy = originalMessages.slice(copyUpToIndex)
+        const messagesToCopy = originalMessages.slice(0, copyUpToIndex + 1)
 
         // Create optimistic copies with the SAME tempThreadId
         const optimisticMessages = messagesToCopy.map((msg) => ({
@@ -146,8 +147,13 @@ export function MessageActions({ message, className }: MessageActionsProps) {
         console.log("🚀 Optimistic branch - setting messages:", {
           tempThreadId,
           clientId,
-          messageCount: optimisticMessages.length,
-          firstMessage: optimisticMessages[0]?.body?.slice(0, 50)
+          originalMessageCount: originalMessages.length,
+          branchPointIndex,
+          lastUserMessageIndex,
+          copyUpToIndex,
+          copiedMessageCount: optimisticMessages.length,
+          firstMessage: optimisticMessages[0]?.body?.slice(0, 50),
+          lastMessage: optimisticMessages[optimisticMessages.length - 1]?.body?.slice(0, 50)
         })
       }
     }
