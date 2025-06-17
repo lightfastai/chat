@@ -54,9 +54,13 @@ export function MessageActions({ message, className }: MessageActionsProps) {
       threadId: originalThreadId,
     })
 
+    // CRITICAL: Use a deterministic temp thread ID that can be referenced later
+    // This matches the pattern used in useChat.ts for createThreadAndSend
+    const tempThreadId = crypto.randomUUID() as Id<"threads">
+
     // Create optimistic branched thread for immediate sidebar display
     const optimisticThread: Doc<"threads"> = {
-      _id: crypto.randomUUID() as Id<"threads">,
+      _id: tempThreadId,
       _creationTime: now,
       clientId,
       title: originalThread?.title || "Branched conversation",
@@ -89,7 +93,8 @@ export function MessageActions({ message, className }: MessageActionsProps) {
       ...existingThreads,
     ])
 
-    // Also update thread by clientId query for instant routing
+    // CRITICAL: Update thread by clientId query for instant routing
+    // This allows useChat hook to find the thread immediately
     localStore.setQuery(
       api.threads.getByClientId,
       { clientId },
@@ -117,23 +122,33 @@ export function MessageActions({ message, className }: MessageActionsProps) {
         }
 
         // Copy messages up to and including the last user message
+        // Note: originalMessages is in descending order (newest first)
         const copyUpToIndex =
           lastUserMessageIndex !== -1 ? lastUserMessageIndex : branchPointIndex
         const messagesToCopy = originalMessages.slice(copyUpToIndex)
 
-        // Create optimistic copies with new thread ID
+        // Create optimistic copies with the SAME tempThreadId
         const optimisticMessages = messagesToCopy.map((msg) => ({
           ...msg,
           _id: crypto.randomUUID() as Id<"messages">,
-          threadId: optimisticThread._id,
+          threadId: tempThreadId, // Use the same tempThreadId as the thread
         }))
 
-        // Set optimistic messages for the new thread
+        // CRITICAL: Set optimistic messages using the tempThreadId
+        // This ensures useChat hook can find them immediately
         localStore.setQuery(
           api.messages.list,
-          { threadId: optimisticThread._id },
+          { threadId: tempThreadId },
           optimisticMessages,
         )
+
+        // DEBUG: Also log what we're setting for debugging
+        console.log("🚀 Optimistic branch - setting messages:", {
+          tempThreadId,
+          clientId,
+          messageCount: optimisticMessages.length,
+          firstMessage: optimisticMessages[0]?.body?.slice(0, 50)
+        })
       }
     }
   })

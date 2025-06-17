@@ -79,6 +79,19 @@ export function useChat() {
       messageThreadId ? { threadId: messageThreadId } : "skip",
     ) ?? []
 
+  // DEBUG: Log message query details for debugging
+  useEffect(() => {
+    if (currentClientId) {
+      console.log("🔍 useChat debug - branching scenario:", {
+        currentClientId,
+        currentThread: currentThread?._id,
+        messageThreadId,
+        messageCount: messages.length,
+        firstMessage: messages[0]?.body?.slice(0, 50)
+      })
+    }
+  }, [currentClientId, currentThread?._id, messageThreadId, messages.length])
+
   // Mutations with proper Convex optimistic updates
   const createThreadAndSend = useMutation(
     api.messages.createThreadAndSend,
