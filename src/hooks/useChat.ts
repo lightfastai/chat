@@ -137,7 +137,8 @@ export function useChat(options: UseChatOptions = {}) {
     // If we have a thread and it matches our current context, use it
     if (currentThread?._id) {
       // For clientId routes, verify the thread's clientId matches the URL
-      if (currentClientId && currentThread.clientId !== currentClientId) {
+      // ONLY check this if the thread actually has a clientId (optimistic threads)
+      if (currentClientId && currentThread.clientId && currentThread.clientId !== currentClientId) {
         console.log("⚠️ Thread clientId mismatch, not using stale thread:", {
           urlClientId: currentClientId,
           threadClientId: currentThread.clientId,
@@ -145,14 +146,24 @@ export function useChat(options: UseChatOptions = {}) {
         })
         return null
       }
+      
+      // DEBUG: Log when we use a thread
+      console.log("✅ Using thread for messages:", {
+        threadId: currentThread._id,
+        hasClientId: !!currentThread.clientId,
+        urlClientId: currentClientId,
+        isOptimistic: currentThread.userId === "temp",
+      })
       return currentThread._id
     }
 
     // Fallback to tempThreadIdRef for new chats
     if ((currentClientId || isNewChat) && tempThreadIdRef.current) {
+      console.log("📌 Using tempThreadIdRef:", tempThreadIdRef.current)
       return tempThreadIdRef.current
     }
 
+    console.log("❌ No thread ID available for messages")
     return null
   }, [currentThread, currentClientId, isNewChat])
 
