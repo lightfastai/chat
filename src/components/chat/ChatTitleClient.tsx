@@ -1,14 +1,33 @@
 "use client"
 
 import { isClientId } from "@/lib/nanoid"
-import { useQuery } from "convex/react"
+import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { useMemo } from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
+import { useChatPreloadContext } from "./ChatPreloadContext"
+
+interface ChatTitleClientProps {
+  preloadedThreadById?: Preloaded<typeof api.threads.get>
+  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
+}
 
 // Client component for dynamic chat title that updates based on current thread
-export function ChatTitleClient() {
+export function ChatTitleClient({
+  preloadedThreadById: propPreloadedThreadById,
+  preloadedThreadByClientId: propPreloadedThreadByClientId,
+}: ChatTitleClientProps = {}) {
+  // Get preloaded data from context, fallback to props
+  const {
+    preloadedThreadById: contextPreloadedThreadById,
+    preloadedThreadByClientId: contextPreloadedThreadByClientId,
+  } = useChatPreloadContext()
+
+  const preloadedThreadById =
+    propPreloadedThreadById || contextPreloadedThreadById
+  const preloadedThreadByClientId =
+    propPreloadedThreadByClientId || contextPreloadedThreadByClientId
   const pathname = usePathname()
 
   // Extract current thread info from pathname with clientId support
@@ -42,22 +61,36 @@ export function ChatTitleClient() {
   const currentClientId = pathInfo.type === "clientId" ? pathInfo.id : null
   const isSettingsPage = pathInfo.type === "settings"
 
-  // Get thread by clientId if we have one (skip for settings)
+  // Use preloaded thread data if available
+  const preloadedThreadByIdData = preloadedThreadById
+    ? usePreloadedQuery(preloadedThreadById)
+    : null
+
+  const preloadedThreadByClientIdData = preloadedThreadByClientId
+    ? usePreloadedQuery(preloadedThreadByClientId)
+    : null
+
+  const preloadedThread =
+    preloadedThreadByIdData || preloadedThreadByClientIdData
+
+  // Get thread by clientId if we have one (skip for settings and if preloaded)
   const threadByClientId = useQuery(
     api.threads.getByClientId,
-    currentClientId && !isSettingsPage ? { clientId: currentClientId } : "skip",
+    currentClientId && !isSettingsPage && !preloadedThread
+      ? { clientId: currentClientId }
+      : "skip",
   )
 
-  // Get thread by ID for regular threads (skip for settings)
+  // Get thread by ID for regular threads (skip for settings and if preloaded)
   const threadById = useQuery(
     api.threads.get,
-    currentThreadId !== "new" && !isSettingsPage
+    currentThreadId !== "new" && !isSettingsPage && !preloadedThread
       ? { threadId: currentThreadId as Id<"threads"> }
       : "skip",
   )
 
-  // Determine the actual thread to use
-  const currentThread = threadByClientId || threadById
+  // Determine the actual thread to use - prefer preloaded, then fallback to queries
+  const currentThread = preloadedThread || threadByClientId || threadById
 
   const getTitle = () => {
     if (pathInfo.type === "new") {

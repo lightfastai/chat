@@ -6,6 +6,8 @@ import { Suspense } from "react"
 import { api } from "../../../../convex/_generated/api"
 import type { Id } from "../../../../convex/_generated/dataModel"
 import { ChatInterface } from "../../../components/chat/ChatInterface"
+import { ChatLayout } from "../../../components/chat/ChatLayout"
+import { TooltipProvider } from "../../../components/ui/tooltip"
 import { getAuthToken } from "../../../lib/auth"
 import { isClientId } from "../../../lib/nanoid"
 
@@ -48,7 +50,15 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
   }
 
   return (
-    <Suspense fallback={<ChatInterface />}>
+    <Suspense
+      fallback={
+        <TooltipProvider>
+          <ChatLayout>
+            <ChatInterface />
+          </ChatLayout>
+        </TooltipProvider>
+      }
+    >
       <ChatThreadPageWithPreloadedData threadIdString={threadIdString} />
     </Suspense>
   )
@@ -66,7 +76,13 @@ async function ChatThreadPageWithPreloadedData({
 
     // If no authentication token, render regular chat interface
     if (!token) {
-      return <ChatInterface />
+      return (
+        <TooltipProvider>
+          <ChatLayout>
+            <ChatInterface />
+          </ChatLayout>
+        </TooltipProvider>
+      )
     }
 
     // Determine if this is a client ID or thread ID
@@ -83,7 +99,13 @@ async function ChatThreadPageWithPreloadedData({
       // We can't preload messages yet since we don't know the thread ID
       // The useChat hook will handle this case
       return (
-        <ChatInterface preloadedThreadByClientId={preloadedThreadByClientId} />
+        <TooltipProvider>
+          <ChatLayout preloadedThreadByClientId={preloadedThreadByClientId}>
+            <ChatInterface
+              preloadedThreadByClientId={preloadedThreadByClientId}
+            />
+          </ChatLayout>
+        </TooltipProvider>
       )
     }
 
@@ -102,17 +124,37 @@ async function ChatThreadPageWithPreloadedData({
       { token },
     )
 
+    // Also preload thread usage for the header
+    const preloadedThreadUsage = await preloadQuery(
+      api.messages.getThreadUsage,
+      { threadId },
+      { token },
+    )
+
     return (
-      <ChatInterface
-        preloadedThreadById={preloadedThreadById}
-        preloadedMessages={preloadedMessages}
-      />
+      <TooltipProvider>
+        <ChatLayout
+          preloadedThreadById={preloadedThreadById}
+          preloadedThreadUsage={preloadedThreadUsage}
+        >
+          <ChatInterface
+            preloadedThreadById={preloadedThreadById}
+            preloadedMessages={preloadedMessages}
+          />
+        </ChatLayout>
+      </TooltipProvider>
     )
   } catch (error) {
     // Log error but still render - don't break the UI
     console.warn("Server-side chat data preload failed:", error)
 
     // Fallback to regular chat interface
-    return <ChatInterface />
+    return (
+      <TooltipProvider>
+        <ChatLayout>
+          <ChatInterface />
+        </ChatLayout>
+      </TooltipProvider>
+    )
   }
 }

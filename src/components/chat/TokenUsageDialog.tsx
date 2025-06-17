@@ -10,13 +10,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useQuery } from "convex/react"
+import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
 import { Activity, Brain, ChevronRight } from "lucide-react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 
 interface TokenUsageDialogProps {
   threadId: Id<"threads"> | "new"
+  preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>
 }
 
 // Helper function to format token counts
@@ -57,12 +58,22 @@ function getModelDisplayName(model: string): string {
   }
 }
 
-export function TokenUsageDialog({ threadId }: TokenUsageDialogProps) {
-  // Skip query for new chats
-  const usage = useQuery(
-    api.messages.getThreadUsage,
-    threadId === "new" ? "skip" : { threadId },
-  )
+export function TokenUsageDialog({
+  threadId,
+  preloadedThreadUsage,
+}: TokenUsageDialogProps) {
+  // Use preloaded usage data if available
+  const preloadedUsage = preloadedThreadUsage
+    ? usePreloadedQuery(preloadedThreadUsage)
+    : null
+
+  // Skip query for new chats or if we have preloaded data
+  const usage =
+    preloadedUsage ??
+    useQuery(
+      api.messages.getThreadUsage,
+      threadId === "new" || preloadedUsage ? "skip" : { threadId },
+    )
 
   // For new chats, show nothing
   if (threadId === "new") {

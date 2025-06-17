@@ -3,11 +3,19 @@
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { isClientId } from "@/lib/nanoid"
-import { useQuery } from "convex/react"
+import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { ShareButton } from "./ShareButton"
 
-export function ShareButtonWrapper() {
+interface ShareButtonWrapperProps {
+  preloadedThreadById?: Preloaded<typeof api.threads.get>
+  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
+}
+
+export function ShareButtonWrapper({
+  preloadedThreadById,
+  preloadedThreadByClientId,
+}: ShareButtonWrapperProps = {}) {
   const pathname = usePathname()
 
   // Extract threadId from pathname since useParams() doesn't update with window.history.replaceState()
@@ -23,18 +31,30 @@ export function ShareButtonWrapper() {
   const isClient = urlThreadId ? isClientId(urlThreadId) : false
   const isNewChat = pathname === "/chat"
 
-  // Get thread by clientId if needed (skip for settings)
+  // Use preloaded thread data if available
+  const preloadedThreadByIdData = preloadedThreadById
+    ? usePreloadedQuery(preloadedThreadById)
+    : null
+
+  const preloadedThreadByClientIdData = preloadedThreadByClientId
+    ? usePreloadedQuery(preloadedThreadByClientId)
+    : null
+
+  const preloadedThread =
+    preloadedThreadByIdData || preloadedThreadByClientIdData
+
+  // Get thread by clientId if needed (skip for settings and if preloaded)
   const threadByClientId = useQuery(
     api.threads.getByClientId,
-    isClient && urlThreadId && !isSettingsPage
+    isClient && urlThreadId && !isSettingsPage && !preloadedThread
       ? { clientId: urlThreadId }
       : "skip",
   )
 
-  // Get thread by actual ID if needed (skip for settings)
+  // Get thread by actual ID if needed (skip for settings and if preloaded)
   const threadById = useQuery(
     api.threads.get,
-    urlThreadId && !isClient && !isSettingsPage
+    urlThreadId && !isClient && !isSettingsPage && !preloadedThread
       ? { threadId: urlThreadId as Id<"threads"> }
       : "skip",
   )
@@ -46,7 +66,7 @@ export function ShareButtonWrapper() {
 
   // Determine the actual Convex thread ID
   let threadId: Id<"threads"> | undefined
-  const currentThread = threadByClientId || threadById
+  const currentThread = preloadedThread || threadByClientId || threadById
   if (currentThread) {
     threadId = currentThread._id
   }

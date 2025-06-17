@@ -1,14 +1,24 @@
 "use client"
 
 import { isClientId } from "@/lib/nanoid"
-import { useQuery } from "convex/react"
+import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { useMemo } from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 import { TokenUsageDialog } from "./TokenUsageDialog"
 
-export function TokenUsageHeaderWrapper() {
+interface TokenUsageHeaderWrapperProps {
+  preloadedThreadById?: Preloaded<typeof api.threads.get>
+  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
+  preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>
+}
+
+export function TokenUsageHeaderWrapper({
+  preloadedThreadById,
+  preloadedThreadByClientId,
+  preloadedThreadUsage,
+}: TokenUsageHeaderWrapperProps = {}) {
   const pathname = usePathname()
 
   // Extract current thread info from pathname with clientId support
@@ -38,10 +48,24 @@ export function TokenUsageHeaderWrapper() {
     return { type: "threadId", id: id as Id<"threads"> }
   }, [pathname])
 
-  // Resolve client ID to actual thread ID
+  // Use preloaded thread data if available
+  const preloadedThreadByIdData = preloadedThreadById
+    ? usePreloadedQuery(preloadedThreadById)
+    : null
+
+  const preloadedThreadByClientIdData = preloadedThreadByClientId
+    ? usePreloadedQuery(preloadedThreadByClientId)
+    : null
+
+  const preloadedThread =
+    preloadedThreadByIdData || preloadedThreadByClientIdData
+
+  // Resolve client ID to actual thread ID (skip if we have preloaded data)
   const threadByClientId = useQuery(
     api.threads.getByClientId,
-    pathInfo.type === "clientId" ? { clientId: pathInfo.id } : "skip",
+    pathInfo.type === "clientId" && !preloadedThread
+      ? { clientId: pathInfo.id }
+      : "skip",
   )
 
   // Determine the actual thread ID
@@ -49,16 +73,24 @@ export function TokenUsageHeaderWrapper() {
     if (pathInfo.type === "threadId") {
       return pathInfo.id as Id<"threads">
     }
-    if (pathInfo.type === "clientId" && threadByClientId) {
-      return threadByClientId._id
+    if (pathInfo.type === "clientId") {
+      const thread = preloadedThreadByClientIdData || threadByClientId
+      if (thread) {
+        return thread._id
+      }
     }
     return "new"
-  }, [pathInfo, threadByClientId])
+  }, [pathInfo, preloadedThreadByClientIdData, threadByClientId])
 
   // Don't show token usage on settings page
   if (pathInfo.type === "settings") {
     return null
   }
 
-  return <TokenUsageDialog threadId={currentThreadId} />
+  return (
+    <TokenUsageDialog
+      threadId={currentThreadId}
+      preloadedThreadUsage={preloadedThreadUsage}
+    />
+  )
 }

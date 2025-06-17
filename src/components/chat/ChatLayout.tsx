@@ -3,36 +3,26 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import dynamic from "next/dynamic"
+import type { Preloaded } from "convex/react"
 import { Suspense } from "react"
+import type { api } from "../../../convex/_generated/api"
+import { ChatTitleClient } from "./ChatTitleClient"
+import { ShareButtonWrapper } from "./ShareButtonWrapper"
+import { TokenUsageHeaderWrapper } from "./TokenUsageHeaderWrapper"
 import { ServerSidebar } from "./sidebar/ServerSidebar"
 
-const DynamicChatTitle = dynamic(
-  () => import("./ChatTitleClient").then((mod) => mod.ChatTitleClient),
-  {
-    ssr: true,
-  },
-)
-
-const DynamicTokenUsageHeader = dynamic(
-  () =>
-    import("./TokenUsageHeaderWrapper").then(
-      (mod) => mod.TokenUsageHeaderWrapper,
-    ),
-  {
-    ssr: true,
-  },
-)
-
-const DynamicShareButton = dynamic(
-  () => import("./ShareButtonWrapper").then((mod) => mod.ShareButtonWrapper),
-  {
-    ssr: true,
-  },
-)
+interface ChatHeaderProps {
+  preloadedThreadById?: Preloaded<typeof api.threads.get>
+  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
+  preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>
+}
 
 // Server component for chat header - can be static with PPR
-async function ChatHeader() {
+function ChatHeader({
+  preloadedThreadById,
+  preloadedThreadByClientId,
+  preloadedThreadUsage,
+}: ChatHeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 px-4">
       <SidebarTrigger className="-ml-1" />
@@ -40,7 +30,10 @@ async function ChatHeader() {
         <Suspense
           fallback={<div className="h-6 w-24 bg-muted animate-pulse rounded" />}
         >
-          <DynamicChatTitle />
+          <ChatTitleClient
+            preloadedThreadById={preloadedThreadById}
+            preloadedThreadByClientId={preloadedThreadByClientId}
+          />
         </Suspense>
       </div>
       <div className="flex items-center gap-2">
@@ -52,12 +45,19 @@ async function ChatHeader() {
             </div>
           }
         >
-          <DynamicTokenUsageHeader />
+          <TokenUsageHeaderWrapper
+            preloadedThreadById={preloadedThreadById}
+            preloadedThreadByClientId={preloadedThreadByClientId}
+            preloadedThreadUsage={preloadedThreadUsage}
+          />
         </Suspense>
         <Suspense
           fallback={<div className="h-8 w-16 bg-muted animate-pulse rounded" />}
         >
-          <DynamicShareButton />
+          <ShareButtonWrapper
+            preloadedThreadById={preloadedThreadById}
+            preloadedThreadByClientId={preloadedThreadByClientId}
+          />
         </Suspense>
       </div>
     </header>
@@ -66,16 +66,28 @@ async function ChatHeader() {
 
 interface ChatLayoutProps {
   children: React.ReactNode
+  preloadedThreadById?: Preloaded<typeof api.threads.get>
+  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
+  preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>
 }
 
 // Main server layout component
-export function ChatLayout({ children }: ChatLayoutProps) {
+export function ChatLayout({
+  children,
+  preloadedThreadById,
+  preloadedThreadByClientId,
+  preloadedThreadUsage,
+}: ChatLayoutProps) {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full">
         <ServerSidebar />
         <SidebarInset className="flex flex-col border-l border-r-0 border-t border-b">
-          <ChatHeader />
+          <ChatHeader
+            preloadedThreadById={preloadedThreadById}
+            preloadedThreadByClientId={preloadedThreadByClientId}
+            preloadedThreadUsage={preloadedThreadUsage}
+          />
           <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
         </SidebarInset>
       </div>
