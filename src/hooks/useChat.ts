@@ -3,7 +3,7 @@
 import type { ModelId } from "@/lib/ai/types"
 import { isClientId, nanoid } from "@/lib/nanoid"
 import { useMutation, useQuery } from "convex/react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
@@ -12,12 +12,13 @@ import type { Id } from "../../convex/_generated/dataModel"
 
 export function useChat() {
   const pathname = usePathname()
+  const router = useRouter()
 
   // Store the temporary thread ID to maintain consistency across URL changes
   const tempThreadIdRef = useRef<Id<"threads"> | null>(null)
   // Store previous pathname to detect navigation changes
   const prevPathnameRef = useRef(pathname)
-  
+
   // Remove complex client message queue - keep it simple
 
   // Extract current thread info from pathname with clientId support
@@ -147,10 +148,70 @@ export function useChat() {
     }
   }, [currentClientId, currentThread?._id, messageThreadId, messages.length])
 
-  // Simplified mutation without complex optimistic updates
-  const createThreadAndSend = useMutation(api.messages.createThreadAndSend)
+  // Optimistic mutation for new chat flow
+  const createThreadAndSend = useMutation(
+    api.messages.createThreadAndSend,
+  ).withOptimisticUpdate((localStore, args) => {
+    const { clientId, body, modelId } = args
+    const now = Date.now()
 
-  // Simplified mutation without optimistic updates to prevent flickering
+    // Create optimistic thread for sidebar
+    const optimisticThread = {
+      _id: crypto.randomUUID() as Id<"threads">,
+      _creationTime: now,
+      clientId,
+      title: "New conversation",
+      userId: "temp" as Id<"users">,
+      createdAt: now,
+      lastMessageAt: now,
+      isGenerating: true,
+      usage: {
+        totalInputTokens: 0,
+        totalOutputTokens: 0,
+        totalTokens: 0,
+        totalReasoningTokens: 0,
+        totalCachedInputTokens: 0,
+        messageCount: 1,
+        modelStats: {},
+      },
+    }
+
+    // Add to thread list
+    const existingThreads = localStore.getQuery(api.threads.list, {}) || []
+    localStore.setQuery(api.threads.list, {}, [
+      optimisticThread,
+      ...existingThreads,
+    ])
+
+    // Set by clientId for immediate lookup
+    localStore.setQuery(
+      api.threads.getByClientId,
+      { clientId },
+      optimisticThread,
+    )
+
+    // Create optimistic user message
+    const optimisticUserMessage = {
+      _id: crypto.randomUUID() as Id<"messages">,
+      _creationTime: now,
+      threadId: optimisticThread._id,
+      messageType: "user" as const,
+      body,
+      timestamp: now,
+      modelId: modelId as ModelId,
+      isStreaming: false,
+      isComplete: true,
+      usage: undefined,
+      streamId: undefined,
+    }
+
+    // Set optimistic messages for the thread
+    localStore.setQuery(api.messages.list, { threadId: optimisticThread._id }, [
+      optimisticUserMessage,
+    ])
+  })
+
+  // Regular send mutation (for existing threads)
   const sendMessage = useMutation(api.messages.send)
 
   const handleSendMessage = async (
@@ -163,10 +224,13 @@ export function useChat() {
 
     try {
       if (isNewChat) {
-        // Simple approach: just create thread and let server handle everything
+        // Generate client ID for optimistic navigation
         const clientId = nanoid()
-        
-        // Only update URL after successful creation
+
+        // Navigate immediately with router.push for better UX
+        router.push(`/chat/${clientId}`)
+
+        // Create thread with optimistic updates
         await createThreadAndSend({
           title: "Generating title...",
           clientId: clientId,
@@ -175,9 +239,7 @@ export function useChat() {
           attachments,
           webSearchEnabled,
         })
-        
-        // Navigate to the new thread after creation
-        window.history.replaceState({}, "", `/chat/${clientId}`)
+
         return
       }
 
