@@ -3,19 +3,17 @@
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { isClientId } from "@/lib/nanoid"
-import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
+import { usePreloadedQuery, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
+import { useChatPreloadContext } from "./ChatPreloadContext"
 import { ShareButton } from "./ShareButton"
 
-interface ShareButtonWrapperProps {
-  preloadedThreadById?: Preloaded<typeof api.threads.get>
-  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
-}
-
-export function ShareButtonWrapper({
-  preloadedThreadById,
-  preloadedThreadByClientId,
-}: ShareButtonWrapperProps = {}) {
+export function ShareButtonWrapper() {
+  // Get preloaded data from context
+  const {
+    preloadedThreadById,
+    preloadedThreadByClientId,
+  } = useChatPreloadContext()
   const pathname = usePathname()
 
   // Extract threadId from pathname since useParams() doesn't update with window.history.replaceState()

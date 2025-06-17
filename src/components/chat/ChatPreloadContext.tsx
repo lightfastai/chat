@@ -10,25 +10,34 @@ interface ChatPreloadContextValue {
   preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>
 }
 
-const ChatPreloadContext = createContext<ChatPreloadContextValue | null>(null)
+const ChatPreloadContext = createContext<ChatPreloadContextValue>({})
 
 interface ChatPreloadProviderProps {
   children: React.ReactNode
-  value: ChatPreloadContextValue
+  preloadedThreadById?: Preloaded<typeof api.threads.get>
+  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
+  preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>
 }
 
 export function ChatPreloadProvider({
   children,
-  value,
+  preloadedThreadById,
+  preloadedThreadByClientId,
+  preloadedThreadUsage,
 }: ChatPreloadProviderProps) {
   return (
-    <ChatPreloadContext.Provider value={value}>
+    <ChatPreloadContext.Provider
+      value={{
+        preloadedThreadById,
+        preloadedThreadByClientId,
+        preloadedThreadUsage,
+      }}
+    >
       {children}
     </ChatPreloadContext.Provider>
   )
 }
 
 export function useChatPreloadContext() {
-  const context = useContext(ChatPreloadContext)
-  return context || {}
+  return useContext(ChatPreloadContext)
 }

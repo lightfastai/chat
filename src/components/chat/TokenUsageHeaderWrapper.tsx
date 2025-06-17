@@ -1,24 +1,21 @@
 "use client"
 
 import { isClientId } from "@/lib/nanoid"
-import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
+import { usePreloadedQuery, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { useMemo } from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
+import { useChatPreloadContext } from "./ChatPreloadContext"
 import { TokenUsageDialog } from "./TokenUsageDialog"
 
-interface TokenUsageHeaderWrapperProps {
-  preloadedThreadById?: Preloaded<typeof api.threads.get>
-  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
-  preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>
-}
-
-export function TokenUsageHeaderWrapper({
-  preloadedThreadById,
-  preloadedThreadByClientId,
-  preloadedThreadUsage,
-}: TokenUsageHeaderWrapperProps = {}) {
+export function TokenUsageHeaderWrapper() {
+  // Get preloaded data from context
+  const {
+    preloadedThreadById,
+    preloadedThreadByClientId,
+    preloadedThreadUsage,
+  } = useChatPreloadContext()
   const pathname = usePathname()
 
   // Extract current thread info from pathname with clientId support

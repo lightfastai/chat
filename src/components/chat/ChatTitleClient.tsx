@@ -1,33 +1,20 @@
 "use client"
 
 import { isClientId } from "@/lib/nanoid"
-import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
+import { usePreloadedQuery, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { useMemo } from "react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 import { useChatPreloadContext } from "./ChatPreloadContext"
 
-interface ChatTitleClientProps {
-  preloadedThreadById?: Preloaded<typeof api.threads.get>
-  preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
-}
-
 // Client component for dynamic chat title that updates based on current thread
-export function ChatTitleClient({
-  preloadedThreadById: propPreloadedThreadById,
-  preloadedThreadByClientId: propPreloadedThreadByClientId,
-}: ChatTitleClientProps = {}) {
-  // Get preloaded data from context, fallback to props
+export function ChatTitleClient() {
+  // Get preloaded data from context
   const {
-    preloadedThreadById: contextPreloadedThreadById,
-    preloadedThreadByClientId: contextPreloadedThreadByClientId,
+    preloadedThreadById,
+    preloadedThreadByClientId,
   } = useChatPreloadContext()
-
-  const preloadedThreadById =
-    propPreloadedThreadById || contextPreloadedThreadById
-  const preloadedThreadByClientId =
-    propPreloadedThreadByClientId || contextPreloadedThreadByClientId
   const pathname = usePathname()
 
   // Extract current thread info from pathname with clientId support

@@ -16,12 +16,14 @@ interface ChatInterfaceProps {
   preloadedThreadById?: Preloaded<typeof api.threads.get>
   preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
   preloadedMessages?: Preloaded<typeof api.messages.list>
+  preloadedUser?: Preloaded<typeof api.users.current>
 }
 
 export function ChatInterface({
   preloadedThreadById,
   preloadedThreadByClientId,
   preloadedMessages,
+  preloadedUser,
 }: ChatInterfaceProps = {}) {
   // Use custom chat hook with optimistic updates and preloaded data
   const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
@@ -94,6 +96,7 @@ export function ChatInterface({
         onSendMessage={handleSendMessage}
         disabled={isDisabled}
         isLoading={isAIGenerating}
+        preloadedUser={preloadedUser}
       />
     )
   }
