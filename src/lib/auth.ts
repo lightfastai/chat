@@ -44,6 +44,15 @@ export async function getAuthToken() {
   try {
     return await convexAuthNextjsToken()
   } catch (error) {
+    // Don't catch PPR postpone errors - let them bubble up for Next.js to handle
+    if (
+      error &&
+      typeof error === "object" &&
+      "$$typeof" in error &&
+      String(error.$$typeof) === "Symbol(react.postpone)"
+    ) {
+      throw error
+    }
     console.error("Error getting auth token:", error)
     return null
   }
