@@ -16,84 +16,56 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   return (
-    <div className="h-full overflow-y-auto overscroll-contain">
-      <div className="container max-w-4xl mx-auto p-6 pb-20">
-        <Suspense fallback={<SettingsSkeleton />}>
-          <SettingsPageWithData />
-        </Suspense>
-      </div>
-    </div>
+    <Suspense fallback={<SettingsSkeleton />}>
+      <SettingsPageWithData />
+    </Suspense>
   )
 }
 
 async function SettingsPageWithData() {
-  // Get authentication token for server-side requests
-  const token = await getAuthToken()
+  try {
+    // Get authentication token for server-side requests
+    const token = await getAuthToken()
 
-  // Middleware ensures authentication, so token should exist
-  if (!token) {
+    // Middleware ensures authentication, so token should exist
+    if (!token) {
+      throw new Error("Authentication required")
+    }
+
+    // Preload both user data and settings for instant tab switching
+    const [preloadedUser, preloadedUserSettings] = await Promise.all([
+      preloadQuery(api.users.current, {}, { token }),
+      preloadQuery(api.userSettings.getUserSettings, {}, { token }),
+    ])
+
+    // Pass preloaded data to unified settings component
+    return (
+      <SettingsContent
+        preloadedUser={preloadedUser}
+        preloadedUserSettings={preloadedUserSettings}
+      />
+    )
+  } catch (error) {
+    console.error("Failed to load user data:", error)
     return <SettingsError />
   }
-
-  // Preload both user data and settings for instant tab switching
-  const [preloadedUser, preloadedUserSettings] = await Promise.all([
-    preloadQuery(api.users.current, {}, { token }),
-    preloadQuery(api.userSettings.getUserSettings, {}, { token }),
-  ])
-
-  // Pass preloaded data to unified settings component
-  return (
-    <SettingsContent
-      preloadedUser={preloadedUser}
-      preloadedUserSettings={preloadedUserSettings}
-    />
-  )
-}
-
-// Helper for skeleton row
-function SkeletonRow({ controlWidth = "w-48" }: { controlWidth?: string }) {
-  return (
-    <div className="flex items-center justify-between py-4">
-      <div className="flex-1 space-y-2">
-        <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-        <div className="h-4 w-40 animate-pulse rounded bg-muted" />
-      </div>
-      <div className={`h-10 ${controlWidth} animate-pulse rounded bg-muted`} />
-    </div>
-  )
 }
 
 // Loading skeleton for settings
 function SettingsSkeleton() {
   return (
-    <div className="space-y-8 sm:space-y-12">
-      {/* User Settings Skeleton */}
+    <div className="space-y-6">
       <div>
-        <div className="h-7 w-48 animate-pulse rounded bg-muted" />
-        <div className="mt-6 divide-y divide-border">
-          {/* Profile Picture Row */}
-          <div className="flex items-center justify-between py-4">
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-40 animate-pulse rounded bg-muted" />
-            </div>
-            <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
-          </div>
-          <SkeletonRow controlWidth="w-64" />
-          <SkeletonRow controlWidth="w-32" />
-        </div>
+        <div className="h-6 w-24 bg-muted rounded animate-pulse" />
+        <div className="h-4 w-48 bg-muted rounded animate-pulse mt-2" />
       </div>
-
-      {/* API Keys Skeleton */}
-      <div>
-        <div className="flex items-center space-x-2">
-          <div className="h-7 w-32 animate-pulse rounded bg-muted" />
-          <div className="h-5 w-12 animate-pulse rounded bg-muted" />
-        </div>
-        <div className="mt-6 divide-y divide-border">
-          <SkeletonRow controlWidth="w-[22rem]" />
-          <SkeletonRow controlWidth="w-[22rem]" />
-          <SkeletonRow controlWidth="w-[22rem]" />
+      <div className="border rounded-lg p-6">
+        <div className="flex items-start space-x-4">
+          <div className="h-16 w-16 bg-muted rounded-full animate-pulse" />
+          <div className="space-y-2 flex-1">
+            <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+          </div>
         </div>
       </div>
     </div>
@@ -103,13 +75,13 @@ function SettingsSkeleton() {
 // Error state
 function SettingsError() {
   return (
-    <div className="space-y-4 text-center">
-      <h2 className="text-2xl font-bold tracking-tight">Error</h2>
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive sm:p-6">
-        <p className="font-medium">Unable to load settings</p>
-        <p className="text-sm">
-          Something went wrong. Please try refreshing the page.
-        </p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <p className="text-muted-foreground">Unable to load settings.</p>
+      </div>
+      <div className="border rounded-lg p-6 text-center text-muted-foreground">
+        <p>Something went wrong. Please try refreshing the page.</p>
       </div>
     </div>
   )
