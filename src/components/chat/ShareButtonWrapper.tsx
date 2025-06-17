@@ -4,15 +4,17 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { isClientId } from "@/lib/nanoid"
 import { useQuery } from "convex/react"
-import { useParams } from "next/navigation"
+import { useParams, usePathname } from "next/navigation"
 import { ShareButton } from "./ShareButton"
 
 export function ShareButtonWrapper() {
   const params = useParams()
+  const pathname = usePathname()
   const urlThreadId = params.threadId as string | undefined
 
   // Check if it's a client-generated ID
   const isClient = urlThreadId ? isClientId(urlThreadId) : false
+  const isNewChat = pathname === "/chat"
 
   // Get thread by clientId if needed
   const threadByClientId = useQuery(
@@ -35,20 +37,13 @@ export function ShareButtonWrapper() {
     threadId = currentThread._id
   }
 
-  // Check for messages in the current chat to determine if it's shareable
-  // For client IDs, we can check messages using the client ID as the thread ID
-  // (optimistic updates store messages with client ID as the thread identifier)
-  const messageThreadId = threadId || (isClient && urlThreadId ? urlThreadId as Id<"threads"> : null)
-  const messages = useQuery(
-    api.messages.list,
-    messageThreadId ? { threadId: messageThreadId } : "skip",
-  )
-
-  // Chat is shareable if:
-  // 1. We have a real Convex thread ID, OR
-  // 2. We have messages (even with just client ID - optimistic updates)
+  // For content detection, we need a simpler approach:
+  // - If we have a real thread, it definitely has content 
+  // - If we're on /chat/{clientId}, assume there's content (user must have sent a message to get here)
+  // - If we're on /chat, there's no content yet
   const hasShareableContent = Boolean(
-    threadId || (messages && messages.length > 0),
+    threadId || // Real thread exists - definitely has content
+    (isClient && urlThreadId) // Client ID URL - user sent message to get here
   )
 
   return <ShareButton threadId={threadId} hasContent={hasShareableContent} />
