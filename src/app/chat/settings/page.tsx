@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="container max-w-4xl mx-auto p-6">
+    <div className="h-full overflow-y-auto overscroll-contain">
+      <div className="container max-w-4xl mx-auto p-6 pb-20">
         <Suspense fallback={<SettingsSkeleton />}>
           <SettingsPageWithData />
         </Suspense>
