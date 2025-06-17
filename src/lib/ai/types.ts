@@ -14,11 +14,14 @@ export type OpenAIModel =
   | "o4-mini"
   | "gpt-3.5-turbo"
 export type AnthropicModel =
-  | "claude-3-5-sonnet-20241022"
-  | "claude-3-7-sonnet-20241022"
-  | "claude-3-7-sonnet-20241022-reasoning"
+  | "claude-4-opus-20250514"
   | "claude-4-sonnet-20250514"
-  | "claude-4-sonnet-20250514-reasoning"
+  | "claude-3-7-sonnet-20250219"
+  | "claude-3-5-sonnet-20241022"
+  | "claude-3-5-sonnet-20240620"
+  | "claude-3-5-haiku-20241022"
+  | "claude-3-opus-20240229"
+  | "claude-3-sonnet-20240229"
   | "claude-3-haiku-20240307"
 
 export type OpenRouterModel =
@@ -86,11 +89,14 @@ export const OPENAI_MODEL_IDS = [
   "gpt-3.5-turbo",
 ] as const
 export const ANTHROPIC_MODEL_IDS = [
-  "claude-3-5-sonnet-20241022",
-  "claude-3-7-sonnet-20241022",
-  "claude-3-7-sonnet-20241022-reasoning",
+  "claude-4-opus-20250514",
   "claude-4-sonnet-20250514",
-  "claude-4-sonnet-20250514-reasoning",
+  "claude-3-7-sonnet-20250219",
+  "claude-3-5-sonnet-20241022",
+  "claude-3-5-sonnet-20240620",
+  "claude-3-5-haiku-20241022",
+  "claude-3-opus-20240229",
+  "claude-3-sonnet-20240229",
   "claude-3-haiku-20240307",
 ] as const
 export const OPENROUTER_MODEL_IDS = [

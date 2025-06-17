@@ -14,11 +14,14 @@ const modelIdValidator = v.union(
   v.literal("o4-mini"),
   v.literal("gpt-3.5-turbo"),
   // Anthropic models
-  v.literal("claude-3-5-sonnet-20241022"),
-  v.literal("claude-3-7-sonnet-20241022"),
-  v.literal("claude-3-7-sonnet-20241022-reasoning"),
+  v.literal("claude-4-opus-20250514"),
   v.literal("claude-4-sonnet-20250514"),
-  v.literal("claude-4-sonnet-20250514-reasoning"),
+  v.literal("claude-3-7-sonnet-20250219"),
+  v.literal("claude-3-5-sonnet-20241022"),
+  v.literal("claude-3-5-sonnet-20240620"),
+  v.literal("claude-3-5-haiku-20241022"),
+  v.literal("claude-3-opus-20240229"),
+  v.literal("claude-3-sonnet-20240229"),
   v.literal("claude-3-haiku-20240307"),
   // OpenRouter models
   v.literal("meta-llama/llama-3.3-70b-instruct"),

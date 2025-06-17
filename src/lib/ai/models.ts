@@ -153,11 +153,80 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
  * Anthropic Model Configurations
  */
 export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
+  "claude-4-opus-20250514": {
+    id: "claude-4-opus-20250514",
+    provider: "anthropic",
+    name: "claude-4-opus-20250514",
+    displayName: "Claude 4 Opus",
+    description: "Most powerful model for complex tasks",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.015,
+      output: 0.075,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+    thinkingConfig: {
+      enabled: true,
+      defaultBudgetTokens: 20000,
+    },
+  },
+  "claude-4-sonnet-20250514": {
+    id: "claude-4-sonnet-20250514",
+    provider: "anthropic",
+    name: "claude-4-sonnet-20250514",
+    displayName: "Claude 4 Sonnet",
+    description: "Latest generation superior coding and reasoning model",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+    thinkingConfig: {
+      enabled: true,
+      defaultBudgetTokens: 12000,
+    },
+  },
+  "claude-3-7-sonnet-20250219": {
+    id: "claude-3-7-sonnet-20250219",
+    provider: "anthropic",
+    name: "claude-3-7-sonnet-20250219",
+    displayName: "Claude 3.7 Sonnet",
+    description: "Enhanced performance model with improved capabilities",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+    thinkingConfig: {
+      enabled: true,
+      defaultBudgetTokens: 12000,
+    },
+  },
   "claude-3-5-sonnet-20241022": {
     id: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
     name: "claude-3-5-sonnet-20241022",
-    displayName: "Claude 3.5 Sonnet",
+    displayName: "Claude 3.5 Sonnet (2024-10-22)",
     description: "Fast and capable model for most tasks",
     maxTokens: 200000,
     costPer1KTokens: {
@@ -171,12 +240,12 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       pdfSupport: true,
     },
   },
-  "claude-3-7-sonnet-20241022": {
-    id: "claude-3-7-sonnet-20241022",
+  "claude-3-5-sonnet-20240620": {
+    id: "claude-3-5-sonnet-20240620",
     provider: "anthropic",
-    name: "claude-3-7-sonnet-20241022",
-    displayName: "Claude 3.7 Sonnet",
-    description: "Enhanced performance model with improved capabilities",
+    name: "claude-3-5-sonnet-20240620",
+    displayName: "Claude 3.5 Sonnet (2024-06-20)",
+    description: "Previous version of Claude 3.5 Sonnet",
     maxTokens: 200000,
     costPer1KTokens: {
       input: 0.003,
@@ -189,54 +258,48 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       pdfSupport: true,
     },
   },
-  "claude-3-7-sonnet-20241022-reasoning": {
-    id: "claude-3-7-sonnet-20241022-reasoning",
+  "claude-3-5-haiku-20241022": {
+    id: "claude-3-5-haiku-20241022",
     provider: "anthropic",
-    name: "claude-3-7-sonnet-20241022",
-    displayName: "Claude 3.7 Sonnet (Reasoning)",
-    description: "Claude 3.7 with extended reasoning capabilities",
+    name: "claude-3-5-haiku-20241022",
+    displayName: "Claude 3.5 Haiku",
+    description: "Ultra-fast model for lightweight tasks",
     maxTokens: 200000,
     costPer1KTokens: {
-      input: 0.003,
-      output: 0.015,
+      input: 0.0008,
+      output: 0.004,
     },
     features: {
       streaming: true,
       functionCalling: true,
-      vision: true,
-      thinking: true,
-      pdfSupport: true,
-    },
-    thinkingConfig: {
-      enabled: true,
-      defaultBudgetTokens: 12000,
+      vision: false,
+      pdfSupport: false,
     },
   },
-  "claude-4-sonnet-20250514": {
-    id: "claude-4-sonnet-20250514",
+  "claude-3-opus-20240229": {
+    id: "claude-3-opus-20240229",
     provider: "anthropic",
-    name: "claude-sonnet-4-20250514",
-    displayName: "Claude 4 Sonnet",
-    description: "Latest generation superior coding and reasoning model",
+    name: "claude-3-opus-20240229",
+    displayName: "Claude 3 Opus",
+    description: "Powerful model for complex reasoning and creativity",
     maxTokens: 200000,
     costPer1KTokens: {
-      input: 0.003,
-      output: 0.015,
+      input: 0.015,
+      output: 0.075,
     },
     features: {
       streaming: true,
       functionCalling: true,
       vision: true,
-      thinking: false,
       pdfSupport: true,
     },
   },
-  "claude-4-sonnet-20250514-reasoning": {
-    id: "claude-4-sonnet-20250514-reasoning",
+  "claude-3-sonnet-20240229": {
+    id: "claude-3-sonnet-20240229",
     provider: "anthropic",
-    name: "claude-sonnet-4-20250514",
-    displayName: "Claude 4 Sonnet (Reasoning)",
-    description: "Claude 4 with extended reasoning for complex tasks",
+    name: "claude-3-sonnet-20240229",
+    displayName: "Claude 3 Sonnet",
+    description: "Balanced performance for general tasks",
     maxTokens: 200000,
     costPer1KTokens: {
       input: 0.003,
@@ -246,12 +309,7 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       streaming: true,
       functionCalling: true,
       vision: true,
-      thinking: true,
       pdfSupport: true,
-    },
-    thinkingConfig: {
-      enabled: true,
-      defaultBudgetTokens: 12000,
     },
   },
   "claude-3-haiku-20240307": {
