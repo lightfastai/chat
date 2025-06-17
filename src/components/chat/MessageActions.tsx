@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 import { useMutation, useQuery } from "convex/react"
 import { CheckIcon, ClipboardIcon, ThumbsDown, ThumbsUp } from "lucide-react"
 import React from "react"
-import { toast } from "sonner"
 import { api } from "../../../convex/_generated/api"
 import type { Doc, Id } from "../../../convex/_generated/dataModel"
 import { FeedbackModal } from "./FeedbackModal"
@@ -188,9 +187,6 @@ export function MessageActions({ message, className }: MessageActionsProps) {
       // Using window.history.replaceState like Vercel's AI chatbot for smoothest UX
       window.history.replaceState({}, "", `/chat/${clientId}`)
 
-      // Show immediate feedback
-      toast.success("Creating new branch...")
-
       // Create branch in background - the useChat hook will handle optimistic updates
       await branchThread({
         originalThreadId: message.threadId,
@@ -198,11 +194,8 @@ export function MessageActions({ message, className }: MessageActionsProps) {
         modelId,
         clientId, // Pass clientId to backend
       })
-
-      toast.success("Branch created successfully")
     } catch (error) {
       console.error("Failed to create branch:", error)
-      toast.error("Failed to create branch")
       // TODO: Revert URL on error - could navigate back to original thread
     }
   }
