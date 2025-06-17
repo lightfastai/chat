@@ -39,20 +39,18 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
         threadId={thread._id}
         href={`/chat/${thread.clientId || thread._id}`}
       >
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          {thread.branchedFrom && (
-            <GitBranch className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+        {thread.branchedFrom && (
+          <GitBranch className="h-3 w-3 flex-shrink-0 text-muted-foreground mr-1.5" />
+        )}
+        <span
+          className={cn(
+            "font-medium truncate text-ellipsis overflow-hidden min-w-0 flex-1",
+            thread.isTitleGenerating &&
+              "animate-pulse blur-[0.5px] opacity-70",
           )}
-          <span
-            className={cn(
-              "font-medium truncate text-ellipsis overflow-hidden min-w-0 flex-1",
-              thread.isTitleGenerating &&
-                "animate-pulse blur-[0.5px] opacity-70",
-            )}
-          >
-            {thread.title}
-          </span>
-        </div>
+        >
+          {thread.title}
+        </span>
       </ActiveMenuItem>
       <SidebarMenuAction
         showOnHover
