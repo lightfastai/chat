@@ -173,8 +173,8 @@ export function useChat(options: UseChatOptions = {}) {
       optimisticThread,
     )
 
-    // 3. Create optimistic message
-    const optimisticMessage: Doc<"messages"> = {
+    // 3. Create optimistic user message
+    const optimisticUserMessage: Doc<"messages"> = {
       _id: crypto.randomUUID() as Id<"messages">,
       _creationTime: now,
       threadId: tempThreadId,
@@ -186,9 +186,25 @@ export function useChat(options: UseChatOptions = {}) {
       isComplete: true,
     }
 
-    // Set the optimistic message for this thread
+    // 4. Create optimistic assistant message placeholder
+    const optimisticAssistantMessage: Doc<"messages"> = {
+      _id: crypto.randomUUID() as Id<"messages">,
+      _creationTime: now + 1,
+      threadId: tempThreadId,
+      body: "", // Empty body for streaming
+      messageType: "assistant",
+      modelId,
+      timestamp: now + 1,
+      isStreaming: true,
+      isComplete: false,
+      streamId: `stream_${now}_optimistic`,
+      thinkingStartedAt: now,
+    }
+
+    // Set both optimistic messages for this thread
     localStore.setQuery(api.messages.list, { threadId: tempThreadId }, [
-      optimisticMessage,
+      optimisticUserMessage,
+      optimisticAssistantMessage,
     ])
   })
 
