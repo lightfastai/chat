@@ -9,6 +9,7 @@ import type { Doc } from "../../../../convex/_generated/dataModel"
 import { MessageAvatar } from "./MessageAvatar"
 import { MessageLayout } from "./MessageLayout"
 import { ThinkingContent, formatDuration } from "./ThinkingContent"
+import { MessageUsageChip } from "../MessageUsageChip"
 
 type Message = Doc<"messages"> & { _streamId?: string | null }
 
@@ -84,7 +85,8 @@ export function MessageItem({
         (modelName ||
           message.usedUserApiKey ||
           thinkingDuration ||
-          isStreaming) && (
+          isStreaming ||
+          message.usage) && (
           <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
             {modelName && <span>{modelName}</span>}
             {message.usedUserApiKey && (
@@ -108,6 +110,15 @@ export function MessageItem({
               <>
                 {modelName && <span>•</span>}
                 <span>{isThinking ? "Thinking" : ""}</span>
+              </>
+            )}
+            {/* Show usage chip for completed messages */}
+            {!isStreaming && message.usage && (
+              <>
+                {(modelName || message.usedUserApiKey || thinkingDuration) && (
+                  <span>•</span>
+                )}
+                <MessageUsageChip usage={message.usage} />
               </>
             )}
           </div>
