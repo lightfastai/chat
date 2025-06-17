@@ -8,6 +8,8 @@ import { useEffect, useMemo, useRef } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc, Id } from "../../convex/_generated/dataModel"
 
+// Simplified approach - no complex client message queue
+
 export function useChat() {
   const pathname = usePathname()
 
@@ -15,6 +17,8 @@ export function useChat() {
   const tempThreadIdRef = useRef<Id<"threads"> | null>(null)
   // Store previous pathname to detect navigation changes
   const prevPathnameRef = useRef(pathname)
+  
+  // Remove complex client message queue - keep it simple
 
   // Extract current thread info from pathname with clientId support
   const pathInfo = useMemo(() => {
@@ -99,11 +103,8 @@ export function useChat() {
     sessionStorage.removeItem(`branch_temp_thread_${currentClientId}`)
   }
 
-  const messageThreadId =
-    currentThread?._id ||
-    (currentClientId && tempThreadIdRef.current) ||
-    (isNewChat && tempThreadIdRef.current) || // Also check for new chat with temp thread
-    null
+  // Simple approach: only query when we have a real server thread
+  const messageThreadId = currentThread?._id || null
 
   const rawMessages =
     useQuery(
@@ -111,37 +112,8 @@ export function useChat() {
       messageThreadId ? { threadId: messageThreadId } : "skip",
     ) ?? []
 
-  // Track previous messages to detect when optimistic messages are replaced
-  const prevMessagesRef = useRef<typeof rawMessages>([])
-
-  // Stabilize messages to prevent flickering during optimistic->real transitions
-  const messages = useMemo(() => {
-    const prev = prevMessagesRef.current
-    const curr = rawMessages
-
-    // If we have the same number of messages and they're just ID changes, preserve order
-    if (prev.length === curr.length && prev.length > 0) {
-      // Check if this is just an ID update (optimistic -> real)
-      const lastPrevMsg = prev[0]
-      const lastCurrMsg = curr[0]
-
-      if (
-        lastPrevMsg._id.startsWith("optimistic_") &&
-        !lastCurrMsg._id.startsWith("optimistic_") &&
-        lastPrevMsg.body === lastCurrMsg.body &&
-        lastPrevMsg.messageType === lastCurrMsg.messageType
-      ) {
-        // This is likely the optimistic message being replaced by the real one
-        console.log("🔄 Detected optimistic->real transition, preserving order")
-        // Return current messages but maintain visual stability
-        prevMessagesRef.current = curr
-        return curr
-      }
-    }
-
-    prevMessagesRef.current = curr
-    return curr
-  }, [rawMessages])
+  // No complex message stabilization - just use raw messages
+  const messages = rawMessages
 
   // DEBUG: Log when messages change
   useEffect(() => {
@@ -175,101 +147,11 @@ export function useChat() {
     }
   }, [currentClientId, currentThread?._id, messageThreadId, messages.length])
 
-  // Mutations with proper Convex optimistic updates
-  const createThreadAndSend = useMutation(
-    api.messages.createThreadAndSend,
-  ).withOptimisticUpdate((localStore, args) => {
-    const { title, clientId, body, modelId } = args
-    const now = Date.now()
+  // Simplified mutation without complex optimistic updates
+  const createThreadAndSend = useMutation(api.messages.createThreadAndSend)
 
-    // Use stored temp thread ID if available (for consistency across URL changes)
-    // Otherwise generate a new one
-    const tempThreadId =
-      tempThreadIdRef.current || (crypto.randomUUID() as Id<"threads">)
-    tempThreadIdRef.current = tempThreadId
-
-    // 1. Create optimistic thread for immediate sidebar display
-    const optimisticThread: Doc<"threads"> = {
-      _id: tempThreadId,
-      _creationTime: now,
-      clientId,
-      title,
-      userId: "temp" as Id<"users">, // Temporary user ID
-      createdAt: now,
-      lastMessageAt: now,
-      isTitleGenerating: true,
-      isGenerating: true,
-    }
-
-    // Get existing threads from the store
-    const existingThreads = localStore.getQuery(api.threads.list, {}) || []
-
-    // Add the new thread at the beginning
-    localStore.setQuery(api.threads.list, {}, [
-      optimisticThread,
-      ...existingThreads,
-    ])
-
-    // 2. Also update thread by clientId query
-    localStore.setQuery(
-      api.threads.getByClientId,
-      { clientId },
-      optimisticThread,
-    )
-
-    // 3. Create optimistic message with a special prefix for tracking
-    const optimisticId = `optimistic_${crypto.randomUUID()}` as Id<"messages">
-    const optimisticMessage: Doc<"messages"> = {
-      _id: optimisticId,
-      _creationTime: now,
-      threadId: tempThreadId,
-      body,
-      messageType: "user",
-      modelId,
-      timestamp: now,
-      isStreaming: false,
-      isComplete: true,
-    }
-
-    // Set the optimistic message for this thread
-    localStore.setQuery(api.messages.list, { threadId: tempThreadId }, [
-      optimisticMessage,
-    ])
-  })
-
-  const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
-    (localStore, args) => {
-      const { threadId, body, modelId } = args
-      const existingMessages = localStore.getQuery(api.messages.list, {
-        threadId,
-      })
-
-      // If we've loaded the messages for this thread, add optimistic message
-      if (existingMessages !== undefined) {
-        const now = Date.now()
-        const optimisticId =
-          `optimistic_${crypto.randomUUID()}` as Id<"messages">
-        const optimisticMessage: Doc<"messages"> = {
-          _id: optimisticId,
-          _creationTime: now,
-          threadId,
-          body,
-          messageType: "user",
-          modelId,
-          timestamp: now,
-          isStreaming: false,
-          isComplete: true,
-        }
-
-        // Create new array with optimistic message at the beginning
-        // (since backend returns messages in desc order - newest first)
-        localStore.setQuery(api.messages.list, { threadId }, [
-          optimisticMessage,
-          ...existingMessages,
-        ])
-      }
-    },
-  )
+  // Simplified mutation without optimistic updates to prevent flickering
+  const sendMessage = useMutation(api.messages.send)
 
   const handleSendMessage = async (
     message: string,
@@ -281,19 +163,11 @@ export function useChat() {
 
     try {
       if (isNewChat) {
-        // 🚀 Generate client ID for new chat
+        // Simple approach: just create thread and let server handle everything
         const clientId = nanoid()
-
-        // Pre-generate the temporary thread ID to ensure consistency
-        const tempThreadId = crypto.randomUUID() as Id<"threads">
-        tempThreadIdRef.current = tempThreadId
-
-        // Update URL immediately without navigation events
-        // Using window.history.replaceState like Vercel's AI chatbot for smoothest UX
-        window.history.replaceState({}, "", `/chat/${clientId}`)
-
-        // Create thread + send message atomically with optimistic updates
-        await createThreadAndSend({
+        
+        // Only update URL after successful creation
+        const threadId = await createThreadAndSend({
           title: "Generating title...",
           clientId: clientId,
           body: message,
@@ -301,12 +175,14 @@ export function useChat() {
           attachments,
           webSearchEnabled,
         })
-
+        
+        // Navigate to the new thread after creation
+        window.history.replaceState({}, "", `/chat/${clientId}`)
         return
       }
 
       if (currentClientId && !currentThread) {
-        // We have a clientId but thread doesn't exist yet, create it + send message
+        // Create thread with existing clientId
         await createThreadAndSend({
           title: "Generating title...",
           clientId: currentClientId,
@@ -316,7 +192,7 @@ export function useChat() {
           webSearchEnabled,
         })
       } else if (currentThread) {
-        // Normal message sending with Convex optimistic update
+        // Send message to existing thread
         await sendMessage({
           threadId: currentThread._id,
           body: message,
