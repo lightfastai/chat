@@ -29,6 +29,10 @@ export function ChatMessages({
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastScrollPositionRef = useRef(0)
 
+  // Track message IDs to detect replacements vs new messages
+  const messageIdsRef = useRef<Set<string>>(new Set())
+  const [displayMessages, setDisplayMessages] = useState(messages)
+
   // Check if user is near bottom of scroll area
   const checkIfNearBottom = useCallback(() => {
     if (!viewportRef.current) return true
@@ -96,13 +100,13 @@ export function ChatMessages({
 
   // Auto-scroll when new messages arrive
   useEffect(() => {
-    if (!messages.length) return
+    if (!displayMessages.length) return
 
-    const hasNewMessage = messages.length > lastMessageCountRef.current
-    lastMessageCountRef.current = messages.length
+    const hasNewMessage = displayMessages.length > lastMessageCountRef.current
+    lastMessageCountRef.current = displayMessages.length
 
     // Check if any message is currently streaming
-    const hasStreamingMessage = messages.some(
+    const hasStreamingMessage = displayMessages.some(
       (msg) => msg.isStreaming && !msg.isComplete,
     )
 
@@ -121,37 +125,60 @@ export function ChatMessages({
 
     // If there's a new message and user is scrolling, reset the user scrolling flag
     // This ensures they see their own messages
-    if (hasNewMessage && messages[0]?.messageType === "user") {
+    if (hasNewMessage && displayMessages[0]?.messageType === "user") {
       setIsUserScrolling(false)
       scrollToBottom(false)
     }
-  }, [messages, isNearBottom, isUserScrolling, scrollToBottom])
+  }, [displayMessages, isNearBottom, isUserScrolling, scrollToBottom])
 
   // Scroll to bottom on initial load
   useEffect(() => {
     scrollToBottom(false)
   }, [scrollToBottom])
 
+  // Update display messages with flicker prevention
+  useEffect(() => {
+    const newMessageIds = new Set(messages.map((m) => m._id))
+    const oldMessageIds = messageIdsRef.current
+
+    // Check if this is just an ID replacement (optimistic -> real)
+    if (messages.length === displayMessages.length && messages.length > 0) {
+      // Look for optimistic message replacements
+      const possibleReplacement = displayMessages.some(
+        (msg) =>
+          msg._id.startsWith("optimistic_") && !newMessageIds.has(msg._id),
+      )
+
+      if (possibleReplacement) {
+        console.log("🔄 Smooth transition: optimistic -> real message")
+        // Update messages smoothly without flickering
+        setDisplayMessages(messages)
+        messageIdsRef.current = newMessageIds
+        return
+      }
+    }
+
+    // Normal update
+    setDisplayMessages(messages)
+    messageIdsRef.current = newMessageIds
+  }, [messages, displayMessages])
+
   return (
     <ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
       <div className="p-4 pb-16">
         <div className="space-y-6 max-w-3xl mx-auto">
-          {messages
+          {displayMessages
             ?.slice()
             .reverse()
             .map((msg, index) => {
               // Use a stable key based on content and position for optimistic messages
-              const isOptimistic = msg._id.startsWith('optimistic_')
-              const stableKey = isOptimistic 
+              const isOptimistic = msg._id.startsWith("optimistic_")
+              const stableKey = isOptimistic
                 ? `${msg.messageType}-${msg.timestamp}-${msg.body.slice(0, 20)}-${index}`
                 : msg._id
-              
+
               return (
-                <MessageDisplay
-                  key={stableKey}
-                  message={msg}
-                  userName="User"
-                />
+                <MessageDisplay key={stableKey} message={msg} userName="User" />
               )
             })}
 
@@ -164,7 +191,7 @@ export function ChatMessages({
       </div>
 
       {/* Scroll to bottom button when user has scrolled up */}
-      {!isNearBottom && messages.length > 0 && (
+      {!isNearBottom && displayMessages.length > 0 && (
         <button
           type="button"
           onClick={() => {

@@ -14,14 +14,14 @@ export function ChatInterface() {
   // Use custom chat hook with optimistic updates
   const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
     useChat()
-  
+
   // DEBUG: Log renders
   useEffect(() => {
     console.log("🎨 ChatInterface render:", {
       messageCount: messages.length,
       isNewChat,
       currentThread: currentThread?._id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
   })
 
