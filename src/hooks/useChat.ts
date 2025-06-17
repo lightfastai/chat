@@ -209,9 +209,10 @@ export function useChat(options: UseChatOptions = {}) {
 
     // Set optimistic messages for this thread
     // We use the optimistic thread ID here, which will be replaced when the real data arrives
+    // Messages are returned in descending order (newest first) by the backend
     localStore.setQuery(api.messages.list, { threadId: optimisticThreadId }, [
-      optimisticUserMessage,
-      optimisticAssistantMessage,
+      optimisticAssistantMessage, // Assistant message has timestamp now + 1
+      optimisticUserMessage,      // User message has timestamp now
     ])
   })
 
