@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default async function SettingsPage() {
   return (
     <ScrollArea className="h-full w-full">
-      <div className="min-h-full px-4 pb-8 pt-8 sm:px-6 lg:px-8">
+      <div className="min-h-full">
         <Suspense fallback={<SettingsSkeleton />}>
           <SettingsPageWithData />
         </Suspense>

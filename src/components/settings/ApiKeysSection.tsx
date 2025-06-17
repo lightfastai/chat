@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { validateApiKeyFormat } from "@/lib/ai/apiKeyValidation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "convex/react"
-import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, ExternalLink, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
@@ -209,24 +209,18 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
             <SettingsRow
               title="OpenAI"
               description={
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                  <span>Used for GPT models.</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 text-muted-foreground hover:underline"
-                    onClick={() =>
-                      window.open(
-                        "https://platform.openai.com/api-keys",
-                        "_blank",
-                      )
-                    }
+                <span>
+                  Used for GPT models.{" "}
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-muted-foreground hover:underline"
                   >
                     Get API Key
                     <ExternalLink className="ml-1 h-3 w-3" />
-                  </Button>
-                </div>
+                  </a>
+                </span>
               }
             >
               <FormField
@@ -302,24 +296,18 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
             <SettingsRow
               title="Anthropic"
               description={
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                  <span>Used for Claude models.</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 text-muted-foreground hover:underline"
-                    onClick={() =>
-                      window.open(
-                        "https://console.anthropic.com/settings/keys",
-                        "_blank",
-                      )
-                    }
+                <span>
+                  Used for Claude models.{" "}
+                  <a
+                    href="https://console.anthropic.com/settings/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-muted-foreground hover:underline"
                   >
                     Get API Key
                     <ExternalLink className="ml-1 h-3 w-3" />
-                  </Button>
-                </div>
+                  </a>
+                </span>
               }
             >
               <FormField
@@ -395,21 +383,18 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
             <SettingsRow
               title="OpenRouter"
               description={
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-                  <span>Used for OpenRouter models (Llama, Gemini, etc.).</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto p-0 text-muted-foreground hover:underline"
-                    onClick={() =>
-                      window.open("https://openrouter.ai/keys", "_blank")
-                    }
+                <span>
+                  Used for OpenRouter models (Llama, Gemini, etc.).{" "}
+                  <a
+                    href="https://openrouter.ai/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-muted-foreground hover:underline"
                   >
                     Get API Key
                     <ExternalLink className="ml-1 h-3 w-3" />
-                  </Button>
-                </div>
+                  </a>
+                </span>
               }
             >
               <FormField
