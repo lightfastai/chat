@@ -52,7 +52,7 @@ export function ChatLayout({ children }: ChatLayoutProps) {
     <SidebarProvider>
       <div className="flex h-screen w-full">
         <ServerSidebar />
-        <SidebarInset className="flex flex-col border-l border-r-0 border-t border-b h-full">
+        <SidebarInset className="flex flex-col border-l border-r-0 border-t border-b">
           <ChatHeader />
           <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
         </SidebarInset>
