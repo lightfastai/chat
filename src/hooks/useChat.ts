@@ -25,6 +25,11 @@ export function useChat(options: UseChatOptions = {}) {
   // Store the temporary thread ID to maintain consistency across URL changes
   const tempThreadIdRef = useRef<Id<"threads"> | null>(null)
 
+  // DEBUG: Log pathname changes
+  useEffect(() => {
+    console.log("🛣️ useChat pathname changed:", pathname)
+  }, [pathname])
+
   // Extract current thread info from pathname with clientId support
   const pathInfo = useMemo(() => {
     if (pathname === "/chat") {
@@ -76,6 +81,17 @@ export function useChat(options: UseChatOptions = {}) {
       : "skip",
   )
 
+  // DEBUG: Log client ID query
+  useEffect(() => {
+    if (currentClientId && !isSettingsPage && !preloadedThread) {
+      console.log("🔎 Querying thread by clientId:", {
+        clientId: currentClientId,
+        found: !!threadByClientId,
+        threadId: threadByClientId?._id,
+      })
+    }
+  }, [currentClientId, isSettingsPage, preloadedThread, threadByClientId])
+
   // Get thread by ID for regular threads (skip for settings and if preloaded)
   const threadById = useQuery(
     api.threads.get,
@@ -86,7 +102,7 @@ export function useChat(options: UseChatOptions = {}) {
 
   // Determine the actual thread to use - prefer preloaded, then fallback to queries
   const currentThread = preloadedThread || threadByClientId || threadById
-  
+
   // DEBUG: Log thread resolution for branching
   useEffect(() => {
     if (currentClientId && currentThread) {
@@ -100,8 +116,14 @@ export function useChat(options: UseChatOptions = {}) {
   }, [currentClientId, currentThread])
 
   // Clear temp thread ID when we get a real thread from server
+  // But NOT for optimistic threads (they have userId === "temp")
   useEffect(() => {
-    if (currentThread && tempThreadIdRef.current) {
+    if (
+      currentThread &&
+      tempThreadIdRef.current &&
+      currentThread.userId !== "temp"
+    ) {
+      console.log("🧹 Clearing tempThreadIdRef (real thread received)")
       tempThreadIdRef.current = null
     }
   }, [currentThread])
@@ -110,11 +132,29 @@ export function useChat(options: UseChatOptions = {}) {
   // IMPORTANT: For optimistic updates to work when transitioning from /chat to /chat/{clientId},
   // we need to use the temporary thread ID when we have a clientId but no server thread yet
   // For branching scenarios, the optimistic thread will have an _id that we should use
-  const messageThreadId =
-    currentThread?._id ||
-    (currentClientId && tempThreadIdRef.current) ||
-    (isNewChat && tempThreadIdRef.current) || // Also check for new chat with temp thread
-    null
+  // BUT: We need to check if the current thread matches the current clientId to avoid using stale threads
+  const messageThreadId = useMemo(() => {
+    // If we have a thread and it matches our current context, use it
+    if (currentThread?._id) {
+      // For clientId routes, verify the thread's clientId matches the URL
+      if (currentClientId && currentThread.clientId !== currentClientId) {
+        console.log("⚠️ Thread clientId mismatch, not using stale thread:", {
+          urlClientId: currentClientId,
+          threadClientId: currentThread.clientId,
+          threadId: currentThread._id,
+        })
+        return null
+      }
+      return currentThread._id
+    }
+
+    // Fallback to tempThreadIdRef for new chats
+    if ((currentClientId || isNewChat) && tempThreadIdRef.current) {
+      return tempThreadIdRef.current
+    }
+
+    return null
+  }, [currentThread, currentClientId, isNewChat])
 
   // Use preloaded messages if available
   const preloadedMessages = options.preloadedMessages
