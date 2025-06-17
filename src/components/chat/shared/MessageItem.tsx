@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils"
 import { Key } from "lucide-react"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
+import { MessageUsageChip } from "../MessageUsageChip"
 import { MessageAvatar } from "./MessageAvatar"
 import { MessageLayout } from "./MessageLayout"
 import { ThinkingContent, formatDuration } from "./ThinkingContent"
-import { MessageUsageChip } from "../MessageUsageChip"
 
 type Message = Doc<"messages"> & { _streamId?: string | null }
 

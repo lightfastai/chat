@@ -47,8 +47,8 @@ export function MessageUsageChip({ usage }: MessageUsageChipProps) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge 
-            variant="outline" 
+          <Badge
+            variant="outline"
             className="h-5 px-1.5 py-0 font-mono text-[10px] cursor-default"
           >
             <Cpu className="w-3 h-3 mr-0.5" />

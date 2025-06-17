@@ -474,7 +474,7 @@ export const branchFromMessage = mutation({
 
     // Copy messages to new thread and accumulate usage
     let lastUserMessage = ""
-    let accumulatedUsage = {
+    const accumulatedUsage = {
       totalInputTokens: 0,
       totalOutputTokens: 0,
       totalTokens: 0,
