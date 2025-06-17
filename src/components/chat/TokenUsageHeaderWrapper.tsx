@@ -73,6 +73,11 @@ export function TokenUsageHeaderWrapper() {
     if (pathInfo.type === "clientId") {
       const thread = preloadedThreadByClientIdData || threadByClientId
       if (thread) {
+        // Skip optimistic threads (which have userId === "temp" or invalid thread IDs)
+        // UUIDs are 36 chars, Convex IDs are different format
+        if (thread.userId === "temp" || thread._id.includes("-")) {
+          return "new"
+        }
         return thread._id
       }
     }

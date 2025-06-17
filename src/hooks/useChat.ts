@@ -88,13 +88,8 @@ export function useChat(options: UseChatOptions = {}) {
   const currentThread = preloadedThread || threadByClientId || threadById
 
   // Clear temp thread ID when we get a real thread from server
-  // But not for optimistic threads (which have userId === "temp")
   useEffect(() => {
-    if (
-      currentThread &&
-      tempThreadIdRef.current &&
-      currentThread.userId !== "temp"
-    ) {
+    if (currentThread && tempThreadIdRef.current) {
       tempThreadIdRef.current = null
     }
   }, [currentThread])

@@ -40,14 +40,15 @@ function getModelDisplayName(model: string): string {
 }
 
 export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
-  // Skip query for new chats
+  // Skip query for new chats or invalid thread IDs (like UUIDs)
+  const shouldSkip = threadId === "new" || threadId.includes("-")
   const usage = useQuery(
     api.messages.getThreadUsage,
-    threadId === "new" ? "skip" : { threadId },
+    shouldSkip ? "skip" : { threadId },
   )
 
-  // For new chats, show nothing
-  if (threadId === "new") {
+  // For new chats or invalid thread IDs, show nothing
+  if (shouldSkip) {
     return null
   }
 
