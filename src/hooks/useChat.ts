@@ -138,10 +138,9 @@ export function useChat(options: UseChatOptions = {}) {
     const { title, clientId, body, modelId } = args
     const now = Date.now()
 
-    // Use stored temp thread ID if available (for consistency across URL changes)
-    // Otherwise generate a new one
-    const tempThreadId =
-      tempThreadIdRef.current || (crypto.randomUUID() as Id<"threads">)
+    // For optimistic updates, we'll use the clientId to track the temporary thread
+    // This avoids the issue with invalid Convex IDs
+    const tempThreadId = `temp_${clientId}` as Id<"threads">
     tempThreadIdRef.current = tempThreadId
 
     // 1. Create optimistic thread for immediate sidebar display
@@ -175,7 +174,7 @@ export function useChat(options: UseChatOptions = {}) {
 
     // 3. Create optimistic user message
     const optimisticUserMessage: Doc<"messages"> = {
-      _id: crypto.randomUUID() as Id<"messages">,
+      _id: `temp_msg_user_${now}` as Id<"messages">,
       _creationTime: now,
       threadId: tempThreadId,
       body,
@@ -188,7 +187,7 @@ export function useChat(options: UseChatOptions = {}) {
 
     // 4. Create optimistic assistant message placeholder
     const optimisticAssistantMessage: Doc<"messages"> = {
-      _id: crypto.randomUUID() as Id<"messages">,
+      _id: `temp_msg_assistant_${now}` as Id<"messages">,
       _creationTime: now + 1,
       threadId: tempThreadId,
       body: "", // Empty body for streaming
@@ -252,10 +251,6 @@ export function useChat(options: UseChatOptions = {}) {
       if (isNewChat) {
         // 🚀 Generate client ID for new chat
         const clientId = nanoid()
-
-        // Pre-generate the temporary thread ID to ensure consistency
-        const tempThreadId = crypto.randomUUID() as Id<"threads">
-        tempThreadIdRef.current = tempThreadId
 
         // Update URL immediately without navigation events
         // Using window.history.replaceState like Vercel's AI chatbot for smoothest UX

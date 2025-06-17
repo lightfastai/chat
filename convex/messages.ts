@@ -478,10 +478,12 @@ export const generateAIResponseWithMessage = internalAction({
   returns: v.null(),
   handler: async (ctx, args) => {
     try {
-      // Get thread to verify user
-      const thread = await ctx.runQuery(api.threads.get, {
-        threadId: args.threadId,
-      })
+      // Since this is called from createThreadAndSend, we know the thread exists
+      // We just need to get the userId for API key retrieval
+      const thread = await ctx.runQuery(
+        internal.messages.getThreadById,
+        { threadId: args.threadId }
+      )
       if (!thread) {
         throw new Error("Thread not found")
       }
