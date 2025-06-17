@@ -8,6 +8,7 @@ const modelIdValidator = v.union(
   v.literal("gpt-4o-mini"),
   v.literal("gpt-4o"),
   v.literal("gpt-4.1"),
+  v.literal("o3"),
   v.literal("gpt-4.1-mini"),
   v.literal("gpt-4.1-nano"),
   v.literal("o3-mini"),

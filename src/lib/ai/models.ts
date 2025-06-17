@@ -36,7 +36,7 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
     description: "Most capable GPT-4 model with vision capabilities",
     maxTokens: 128000,
     costPer1KTokens: {
-      input: 0.0025,
+      input: 0.003,
       output: 0.01,
     },
     features: {
@@ -50,11 +50,28 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
     provider: "openai",
     name: "gpt-4.1",
     displayName: "GPT-4.1",
-    description: "Next generation GPT-4 with enhanced capabilities",
-    maxTokens: 128000,
+    description: "Enhanced GPT-4 with 1M token context for developers",
+    maxTokens: 1000000,
     costPer1KTokens: {
-      input: 0.0025,
-      output: 0.01,
+      input: 0.01,
+      output: 0.04,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  o3: {
+    id: "o3",
+    provider: "openai",
+    name: "o3",
+    displayName: "o3",
+    description: "Most powerful reasoning model for complex problem-solving",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.002,
+      output: 0.008,
     },
     features: {
       streaming: true,
@@ -84,8 +101,8 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
     provider: "openai",
     name: "gpt-4.1-nano",
     displayName: "GPT-4.1 Nano",
-    description: "Ultra-efficient model for simple tasks",
-    maxTokens: 128000,
+    description: "Ultra-efficient model for simple tasks with 1M context",
+    maxTokens: 1000000,
     costPer1KTokens: {
       input: 0.0001,
       output: 0.0004,
@@ -101,11 +118,11 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
     provider: "openai",
     name: "o3-mini",
     displayName: "o3-mini",
-    description: "OpenAI's o3-mini reasoning model",
+    description: "Fast reasoning model for STEM tasks (deprecated)",
     maxTokens: 128000,
     costPer1KTokens: {
-      input: 0.0015,
-      output: 0.006,
+      input: 0.0011,
+      output: 0.0044,
     },
     features: {
       streaming: true,
@@ -116,13 +133,13 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
   "o4-mini": {
     id: "o4-mini",
     provider: "openai",
-    name: "o4-mini",
+    name: "o4-mini-2025-04-16",
     displayName: "o4-mini",
-    description: "Next generation o-series mini model",
+    description: "Latest fast reasoning model excelling at math & STEM",
     maxTokens: 128000,
     costPer1KTokens: {
-      input: 0.0015,
-      output: 0.006,
+      input: 0.0011,
+      output: 0.0044,
     },
     features: {
       streaming: true,
@@ -138,8 +155,8 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
     description: "Fast, reliable model for simple tasks",
     maxTokens: 16385,
     costPer1KTokens: {
-      input: 0.0005,
-      output: 0.0015,
+      input: 0.001,
+      output: 0.002,
     },
     features: {
       streaming: true,

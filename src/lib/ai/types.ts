@@ -8,6 +8,7 @@ export type OpenAIModel =
   | "gpt-4o-mini"
   | "gpt-4o"
   | "gpt-4.1"
+  | "o3"
   | "gpt-4.1-mini"
   | "gpt-4.1-nano"
   | "o3-mini"
@@ -79,6 +80,7 @@ export const OPENAI_MODEL_IDS = [
   "gpt-4o-mini",
   "gpt-4o",
   "gpt-4.1",
+  "o3",
   "gpt-4.1-mini",
   "gpt-4.1-nano",
   "o3-mini",
