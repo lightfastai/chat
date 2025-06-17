@@ -90,7 +90,8 @@ export function useChat(options: UseChatOptions = {}) {
   const messageThreadId = currentThread?._id || null
 
   // Check if the thread ID is an optimistic one (not a real Convex ID)
-  const isOptimisticThreadId = messageThreadId && !messageThreadId.startsWith("k")
+  const isOptimisticThreadId =
+    messageThreadId && !messageThreadId.startsWith("k")
 
   // Use preloaded messages if available
   const preloadedMessages = options.preloadedMessages
@@ -110,16 +111,25 @@ export function useChat(options: UseChatOptions = {}) {
 
   // DEBUG: Log message query details for debugging
   useEffect(() => {
-    if (currentClientId) {
-      console.log("🔍 useChat debug - branching scenario:", {
-        currentClientId,
-        currentThread: currentThread?._id,
-        messageThreadId,
-        messageCount: messages.length,
-        firstMessage: messages[0]?.body?.slice(0, 50),
-      })
-    }
-  }, [currentClientId, currentThread?._id, messageThreadId, messages.length])
+    console.log("🔍 useChat debug:", {
+      pathname,
+      currentClientId,
+      currentThread: currentThread?._id,
+      isOptimisticThreadId,
+      messageThreadId,
+      messageCount: messages.length,
+      firstMessage: messages[0]?.body?.slice(0, 50),
+      pathInfo,
+    })
+  }, [
+    pathname,
+    currentClientId,
+    currentThread?._id,
+    isOptimisticThreadId,
+    messageThreadId,
+    messages.length,
+    pathInfo,
+  ])
 
   // Mutations with proper Convex optimistic updates
   const createThreadAndSend = useMutation(

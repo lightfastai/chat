@@ -88,6 +88,14 @@ function LandingHeader() {
           >
             Docs
           </Link>
+          <Link
+            href="https://github.com/lightfastai/chat"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            GitHub
+          </Link>
           <Link href="/signin">
             <Button variant="outline">Sign In</Button>
           </Link>

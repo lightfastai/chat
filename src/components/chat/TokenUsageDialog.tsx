@@ -75,7 +75,9 @@ export function TokenUsageDialog({
     preloadedUsage ??
     useQuery(
       api.messages.getThreadUsage,
-      threadId === "new" || isOptimisticThreadId || preloadedUsage ? "skip" : { threadId },
+      threadId === "new" || isOptimisticThreadId || preloadedUsage
+        ? "skip"
+        : { threadId },
     )
 
   // For new chats, show nothing

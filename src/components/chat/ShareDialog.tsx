@@ -41,7 +41,7 @@ export function ShareDialog({
 
   const shareInfo = useQuery(
     api.share.getThreadShareInfo,
-    isOptimisticThreadId ? "skip" : { threadId }
+    isOptimisticThreadId ? "skip" : { threadId },
   )
 
   const shareThread = useMutation(api.share.shareThread)

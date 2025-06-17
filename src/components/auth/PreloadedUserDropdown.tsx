@@ -13,7 +13,7 @@ import {
 import { useAuthActions } from "@convex-dev/auth/react"
 import type { Preloaded } from "convex/react"
 import { usePreloadedQuery } from "convex/react"
-import { ChevronDown, LogOut, Settings, User } from "lucide-react"
+import { ChevronDown, ExternalLink, LogOut, Settings, User } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { api } from "../../../convex/_generated/api"
@@ -108,6 +108,24 @@ export function PreloadedUserDropdown({
             <DropdownMenuSeparator />
           </>
         )}
+        <DropdownMenuItem asChild>
+          <Link href="/docs" className="cursor-pointer" prefetch={true}>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            <span>Docs</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link
+            href="https://github.com/lightfastai/chat"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cursor-pointer"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            <span>GitHub</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sign out</span>
