@@ -2,7 +2,9 @@
 
 import { useChat } from "@/hooks/useChat"
 import { useResumableChat } from "@/hooks/useResumableStream"
+import type { Preloaded } from "convex/react"
 import { useEffect, useMemo, useRef } from "react"
+import type { api } from "../../../convex/_generated/api"
 import type { Doc } from "../../../convex/_generated/dataModel"
 import { CenteredChatStart } from "./CenteredChatStart"
 import { ChatInput } from "./ChatInput"
@@ -10,7 +12,11 @@ import { ChatMessages } from "./ChatMessages"
 
 type Message = Doc<"messages">
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  preloadedUser?: Preloaded<typeof api.users.current>
+}
+
+export function ChatInterface({ preloadedUser }: ChatInterfaceProps) {
   // Use custom chat hook with optimistic updates
   const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
     useChat()
@@ -78,6 +84,7 @@ export function ChatInterface() {
         onSendMessage={handleSendMessage}
         disabled={isDisabled}
         isLoading={isAIGenerating}
+        preloadedUser={preloadedUser}
       />
     )
   }

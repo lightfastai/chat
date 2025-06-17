@@ -2,7 +2,10 @@
 
 import { useAuth } from "@/hooks/useAuth"
 import { useTimeGreeting } from "@/hooks/useTimeGreeting"
+import type { Preloaded } from "convex/react"
+import { usePreloadedQuery } from "convex/react"
 import { ZapIcon } from "lucide-react"
+import type { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 import { ChatInput } from "./ChatInput"
 
@@ -15,17 +18,31 @@ interface CenteredChatStartProps {
   ) => Promise<void> | void
   disabled?: boolean
   isLoading?: boolean
+  preloadedUser?: Preloaded<typeof api.users.current>
 }
 
 export function CenteredChatStart({
   onSendMessage,
   disabled = false,
   isLoading = false,
+  preloadedUser,
 }: CenteredChatStartProps) {
   const { displayName, email } = useAuth()
   const greeting = useTimeGreeting()
 
-  const userName = email || displayName
+  // Use preloaded user data if available, otherwise fall back to regular auth hook
+  const preloadedUserData = preloadedUser
+    ? (() => {
+        try {
+          return usePreloadedQuery(preloadedUser)
+        } catch {
+          return null // Fallback to regular auth hook if preloaded data fails
+        }
+      })()
+    : null
+
+  const userName =
+    preloadedUserData?.email || preloadedUserData?.name || email || displayName
 
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-0 px-4">
