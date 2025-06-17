@@ -837,17 +837,15 @@ export const generateAIResponse = internalAction({
       // Get final usage data
       const finalUsage = await usage
       console.log("Final usage data:", finalUsage)
-      console.log("Final usage type:", typeof finalUsage)
-      console.log("Final usage keys:", finalUsage ? Object.keys(finalUsage) : "null")
       
-      // Convert AI SDK usage format to our expected format
-      // AI SDK v5 uses promptTokens/completionTokens instead of inputTokens/outputTokens
+      // AI SDK v5 returns LanguageModelV2Usage format
+      // Note: values can be undefined, so we need to handle that
       const formattedUsage = finalUsage ? {
-        inputTokens: finalUsage.promptTokens ?? finalUsage.inputTokens ?? 0,
-        outputTokens: finalUsage.completionTokens ?? finalUsage.outputTokens ?? 0,
+        inputTokens: finalUsage.inputTokens ?? 0,
+        outputTokens: finalUsage.outputTokens ?? 0,
         totalTokens: finalUsage.totalTokens ?? 0,
         reasoningTokens: finalUsage.reasoningTokens ?? 0,
-        cachedInputTokens: finalUsage.cachedPromptTokens ?? finalUsage.cachedInputTokens ?? 0,
+        cachedInputTokens: finalUsage.cachedInputTokens ?? 0,
       } : undefined
       
       console.log("Formatted usage:", formattedUsage)

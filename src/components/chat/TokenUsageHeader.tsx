@@ -61,8 +61,18 @@ export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
     threadId === "new" ? "skip" : { threadId },
   )
 
-  // For new chats or no usage data, show nothing
-  if (threadId === "new" || !usage || usage.totalTokens === 0) {
+  // For new chats, show nothing
+  if (threadId === "new") {
+    return null
+  }
+  
+  // If no usage data yet, show nothing (loading state handled by Suspense)
+  if (!usage) {
+    return null
+  }
+  
+  // Only hide if truly no tokens (not even 0)
+  if (usage.totalTokens === 0 && usage.messageCount === 0) {
     return null
   }
 
