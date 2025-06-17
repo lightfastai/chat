@@ -56,7 +56,8 @@ export function MessageActions({ message, className }: MessageActionsProps) {
 
     // CRITICAL: Use a deterministic temp thread ID that can be referenced later
     // This matches the pattern used in useChat.ts for createThreadAndSend
-    const tempThreadId = crypto.randomUUID() as Id<"threads">
+    // Format: "threads:" + unique ID to simulate Convex ID structure
+    const tempThreadId = `threads:${crypto.randomUUID()}` as Id<"threads">
 
     // Create optimistic branched thread for immediate sidebar display
     const optimisticThread: Doc<"threads"> = {
@@ -126,9 +127,10 @@ export function MessageActions({ message, className }: MessageActionsProps) {
         // Copy messages to match backend behavior
         // Backend copies from oldest to user message (inclusive)
         // Frontend has newest first, so we copy from user message to oldest (end of array)
-        const messagesToCopy = lastUserMessageIndex !== -1
-          ? originalMessages.slice(lastUserMessageIndex) // Copy from user message to end (includes all older messages)
-          : originalMessages.slice(branchPointIndex)     // Fallback: copy from branch point to end
+        const messagesToCopy =
+          lastUserMessageIndex !== -1
+            ? originalMessages.slice(lastUserMessageIndex) // Copy from user message to end (includes all older messages)
+            : originalMessages.slice(branchPointIndex) // Fallback: copy from branch point to end
 
         // Create optimistic copies with the SAME tempThreadId
         const optimisticMessages = messagesToCopy.map((msg) => ({
@@ -152,10 +154,15 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           originalMessageCount: originalMessages.length,
           branchPointIndex,
           lastUserMessageIndex,
-          sliceStart: lastUserMessageIndex !== -1 ? lastUserMessageIndex : branchPointIndex,
+          sliceStart:
+            lastUserMessageIndex !== -1
+              ? lastUserMessageIndex
+              : branchPointIndex,
           copiedMessageCount: optimisticMessages.length,
           firstMessage: optimisticMessages[0]?.body?.slice(0, 50),
-          lastMessage: optimisticMessages[optimisticMessages.length - 1]?.body?.slice(0, 50)
+          lastMessage: optimisticMessages[
+            optimisticMessages.length - 1
+          ]?.body?.slice(0, 50),
         })
       }
     }

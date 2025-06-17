@@ -43,7 +43,9 @@ export function useChat() {
   // Pre-generate thread ID for new chats to ensure query is active
   useEffect(() => {
     if (isNewChat && !tempThreadIdRef.current) {
-      tempThreadIdRef.current = nanoid(32) as Id<"threads">
+      // Generate a fake Convex ID for optimistic updates
+      // Format: "threads:" + nanoid to simulate Convex ID structure
+      tempThreadIdRef.current = `threads:${nanoid()}` as Id<"threads">
     }
     // Clear temp thread ID when we're no longer on a new chat
     if (!isNewChat && tempThreadIdRef.current) {
@@ -82,7 +84,6 @@ export function useChat() {
 
   const convexMessages = useQuery(api.messages.list, queryArgs) ?? []
 
-
   const messages = convexMessages
 
   // DEBUG: Log message query details for debugging
@@ -93,7 +94,7 @@ export function useChat() {
         currentThread: currentThread?._id,
         messageThreadId,
         messageCount: messages.length,
-        firstMessage: messages[0]?.body?.slice(0, 50)
+        firstMessage: messages[0]?.body?.slice(0, 50),
       })
     }
   }, [currentClientId, currentThread?._id, messageThreadId, messages.length])
@@ -106,9 +107,9 @@ export function useChat() {
     const now = Date.now()
 
     // Use stored temp thread ID if available (for consistency across URL changes)
-    // Otherwise generate a new one using nanoid with the same format as Convex IDs
+    // Otherwise generate a new one with fake Convex ID format
     const tempThreadId =
-      tempThreadIdRef.current || (nanoid(32) as Id<"threads">)
+      tempThreadIdRef.current || (`threads:${nanoid()}` as Id<"threads">)
     // Only update the ref if we generated a new ID
     if (!tempThreadIdRef.current) {
       tempThreadIdRef.current = tempThreadId
@@ -145,7 +146,7 @@ export function useChat() {
 
     // 3. Create optimistic message
     const optimisticMessage: Doc<"messages"> = {
-      _id: nanoid(32) as Id<"messages">,
+      _id: `messages:${nanoid()}` as Id<"messages">,
       _creationTime: now,
       threadId: tempThreadId,
       body,
@@ -173,7 +174,7 @@ export function useChat() {
       if (existingMessages !== undefined) {
         const now = Date.now()
         const optimisticMessage: Doc<"messages"> = {
-          _id: nanoid(32) as Id<"messages">,
+          _id: `messages:${nanoid()}` as Id<"messages">,
           _creationTime: now,
           threadId,
           body,
