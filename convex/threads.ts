@@ -1,10 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
-import {
-  ALL_MODEL_IDS,
-  type ModelId,
-  getProviderFromModelId,
-} from "../src/lib/ai/types.js"
+import { ALL_MODEL_IDS } from "../src/lib/ai/types.js"
 import { mutation, query } from "./_generated/server.js"
 
 // Create a new thread
@@ -424,13 +420,26 @@ export const branchFromMessage = mutation({
       throw new Error("Branch point message not found")
     }
 
-    // Get messages to copy (up to and including branch point)
-    const messagesToCopy = allMessages.slice(0, branchPointIndex + 1)
+    // Find the last user message before or at the branch point
+    let lastUserMessageIndex = -1
+    for (let i = branchPointIndex; i >= 0; i--) {
+      if (allMessages[i].messageType === "user") {
+        lastUserMessageIndex = i
+        break
+      }
+    }
+
+    // If no user message found before branch point, include all messages up to branch point
+    const copyUpToIndex =
+      lastUserMessageIndex !== -1 ? lastUserMessageIndex : branchPointIndex
+
+    // Get messages to copy (up to and including the last user message before branch point)
+    const messagesToCopy = allMessages.slice(0, copyUpToIndex + 1)
 
     // Create new thread with branch info
     const now = Date.now()
     const newThreadId = await ctx.db.insert("threads", {
-      title: `${originalThread.title} (Branch)`,
+      title: originalThread.title,
       userId: userId,
       createdAt: now,
       lastMessageAt: now,
@@ -456,23 +465,6 @@ export const branchFromMessage = mutation({
         usage: message.usage,
         thinkingContent: message.thinkingContent,
         hasThinkingContent: message.hasThinkingContent,
-      })
-    }
-
-    // If the branch point was an assistant message, add a system note
-    const branchMessage = allMessages[branchPointIndex]
-    if (branchMessage.messageType === "assistant") {
-      // Get the provider from the modelId
-      const provider = getProviderFromModelId(args.modelId as ModelId)
-
-      await ctx.db.insert("messages", {
-        threadId: newThreadId,
-        body: `*[Branched from previous conversation. Continuing with ${args.modelId}]*`,
-        timestamp: now,
-        messageType: "assistant",
-        model: provider,
-        modelId: args.modelId,
-        isComplete: true,
       })
     }
 
