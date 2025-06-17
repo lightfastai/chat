@@ -23,7 +23,6 @@ export function useChat(options: UseChatOptions = {}) {
   const pathname = usePathname()
 
   // Store the temporary thread ID to maintain consistency across URL changes
-  const tempThreadIdRef = useRef<Id<"threads"> | null>(null)
 
   // Extract current thread info from pathname with clientId support
   const pathInfo = useMemo(() => {
@@ -87,22 +86,9 @@ export function useChat(options: UseChatOptions = {}) {
   // Determine the actual thread to use - prefer preloaded, then fallback to queries
   const currentThread = preloadedThread || threadByClientId || threadById
 
-  // Clear temp thread ID when we get a real thread from server
-  useEffect(() => {
-    if (currentThread && tempThreadIdRef.current) {
-      tempThreadIdRef.current = null
-    }
-  }, [currentThread])
-
   // Get messages for current thread
-  // IMPORTANT: For optimistic updates to work when transitioning from /chat to /chat/{clientId},
-  // we need to use the temporary thread ID when we have a clientId but no server thread yet
-  const messageThreadId =
-    currentThread?._id ||
-    (currentClientId && tempThreadIdRef.current) ||
-    (isNewChat && tempThreadIdRef.current) || // Also check for new chat with temp thread
-    null
-
+  const messageThreadId = currentThread?._id || null
+  
   // Use preloaded messages if available
   const preloadedMessages = options.preloadedMessages
     ? usePreloadedQuery(options.preloadedMessages)
@@ -135,21 +121,20 @@ export function useChat(options: UseChatOptions = {}) {
   const createThreadAndSend = useMutation(
     api.messages.createThreadAndSend,
   ).withOptimisticUpdate((localStore, args) => {
-    const { title, clientId, body, modelId } = args
+    const { title, clientId } = args
     const now = Date.now()
 
-    // For optimistic updates, we'll use the clientId to track the temporary thread
-    // This avoids the issue with invalid Convex IDs
-    const tempThreadId = `temp_${clientId}` as Id<"threads">
-    tempThreadIdRef.current = tempThreadId
-
-    // 1. Create optimistic thread for immediate sidebar display
-    const optimisticThread: Doc<"threads"> = {
-      _id: tempThreadId,
+    // For optimistic updates, we'll only update the thread list
+    // We won't create fake messages since that causes validation errors
+    // The real thread and messages will be created quickly by the server
+    
+    // Create a minimal optimistic thread for sidebar display
+    const optimisticThread: Partial<Doc<"threads">> & { _id: Id<"threads">, clientId: string } = {
+      _id: `optimistic_${clientId}` as Id<"threads">,
       _creationTime: now,
       clientId,
       title,
-      userId: "temp" as Id<"users">, // Temporary user ID
+      userId: "optimistic" as Id<"users">,
       createdAt: now,
       lastMessageAt: now,
       isTitleGenerating: true,
@@ -161,50 +146,16 @@ export function useChat(options: UseChatOptions = {}) {
 
     // Add the new thread at the beginning
     localStore.setQuery(api.threads.list, {}, [
-      optimisticThread,
+      optimisticThread as Doc<"threads">,
       ...existingThreads,
     ])
 
-    // 2. Also update thread by clientId query
+    // Also update thread by clientId query so navigation works
     localStore.setQuery(
       api.threads.getByClientId,
       { clientId },
-      optimisticThread,
+      optimisticThread as Doc<"threads">,
     )
-
-    // 3. Create optimistic user message
-    const optimisticUserMessage: Doc<"messages"> = {
-      _id: `temp_msg_user_${now}` as Id<"messages">,
-      _creationTime: now,
-      threadId: tempThreadId,
-      body,
-      messageType: "user",
-      modelId,
-      timestamp: now,
-      isStreaming: false,
-      isComplete: true,
-    }
-
-    // 4. Create optimistic assistant message placeholder
-    const optimisticAssistantMessage: Doc<"messages"> = {
-      _id: `temp_msg_assistant_${now}` as Id<"messages">,
-      _creationTime: now + 1,
-      threadId: tempThreadId,
-      body: "", // Empty body for streaming
-      messageType: "assistant",
-      modelId,
-      timestamp: now + 1,
-      isStreaming: true,
-      isComplete: false,
-      streamId: `stream_${now}_optimistic`,
-      thinkingStartedAt: now,
-    }
-
-    // Set both optimistic messages for this thread
-    localStore.setQuery(api.messages.list, { threadId: tempThreadId }, [
-      optimisticUserMessage,
-      optimisticAssistantMessage,
-    ])
   })
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
