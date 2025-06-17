@@ -9,8 +9,6 @@ import { TokenUsageHeader } from "./TokenUsageHeader"
 export function TokenUsageHeaderWrapper() {
   const pathname = usePathname()
 
-  console.log("TokenUsageHeaderWrapper - pathname:", pathname)
-
   // Extract current thread info from pathname with clientId support
   const pathInfo = useMemo(() => {
     if (pathname === "/chat") {
@@ -41,12 +39,8 @@ export function TokenUsageHeaderWrapper() {
   const currentThreadId: Id<"threads"> | "new" =
     pathInfo.type === "threadId" ? (pathInfo.id as Id<"threads">) : "new"
 
-  console.log("TokenUsageHeaderWrapper - pathInfo:", pathInfo)
-  console.log("TokenUsageHeaderWrapper - currentThreadId:", currentThreadId)
-
   // Don't show token usage on settings page
   if (pathInfo.type === "settings") {
-    console.log("TokenUsageHeaderWrapper - returning null for settings")
     return null
   }
 

@@ -837,6 +837,20 @@ export const generateAIResponse = internalAction({
       // Get final usage data
       const finalUsage = await usage
       console.log("Final usage data:", finalUsage)
+      console.log("Final usage type:", typeof finalUsage)
+      console.log("Final usage keys:", finalUsage ? Object.keys(finalUsage) : "null")
+      
+      // Convert AI SDK usage format to our expected format
+      // AI SDK v5 uses promptTokens/completionTokens instead of inputTokens/outputTokens
+      const formattedUsage = finalUsage ? {
+        inputTokens: finalUsage.promptTokens ?? finalUsage.inputTokens ?? 0,
+        outputTokens: finalUsage.completionTokens ?? finalUsage.outputTokens ?? 0,
+        totalTokens: finalUsage.totalTokens ?? 0,
+        reasoningTokens: finalUsage.reasoningTokens ?? 0,
+        cachedInputTokens: finalUsage.cachedPromptTokens ?? finalUsage.cachedInputTokens ?? 0,
+      } : undefined
+      
+      console.log("Formatted usage:", formattedUsage)
 
       // Ensure we always have some content to complete with, even if just tool results
       if (fullContent.trim() === "" && toolCallsProcessed === 0) {
@@ -847,7 +861,7 @@ export const generateAIResponse = internalAction({
       // Mark message as complete with usage data
       await ctx.runMutation(internal.messages.completeStreamingMessage, {
         messageId,
-        usage: finalUsage,
+        usage: formattedUsage,
       })
 
       console.log(

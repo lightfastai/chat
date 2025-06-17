@@ -61,13 +61,8 @@ export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
     threadId === "new" ? "skip" : { threadId },
   )
 
-  // Debug logging
-  console.log("TokenUsageHeader - threadId:", threadId)
-  console.log("TokenUsageHeader - usage:", usage)
-
   // For new chats or no usage data, show nothing
   if (threadId === "new" || !usage || usage.totalTokens === 0) {
-    console.log("TokenUsageHeader - returning null", { threadId, usage })
     return null
   }
 
