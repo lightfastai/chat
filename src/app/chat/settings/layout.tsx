@@ -5,10 +5,5 @@ interface SettingsLayoutProps {
 export default async function SettingsLayout({
   children,
 }: SettingsLayoutProps) {
-  return (
-    <div className="flex h-full flex-col">
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-auto p-6">{children}</div>
-    </div>
-  )
+  return <>{children}</>
 }

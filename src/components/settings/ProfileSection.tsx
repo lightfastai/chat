@@ -61,7 +61,7 @@ export function ProfileSection({ user }: ProfileSectionProps) {
           <Input
             value={user.email || ""}
             placeholder="god@lightfast.ai"
-            className="w-64"
+            className="w-full sm:w-64"
             disabled
           />
         </SettingsRow>

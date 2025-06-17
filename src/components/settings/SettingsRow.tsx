@@ -12,7 +12,7 @@ export function SettingsRow({
   children,
 }: SettingsRowProps) {
   return (
-    <div className="flex items-center justify-between py-4">
+    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div className="flex-1 space-y-1">
         <h3 className="text-sm font-medium">{title}</h3>
         <div className="text-sm text-muted-foreground">{description}</div>

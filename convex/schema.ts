@@ -79,6 +79,14 @@ export default defineSchema({
     isTitleGenerating: v.optional(v.boolean()),
     isGenerating: v.optional(v.boolean()),
     pinned: v.optional(v.boolean()),
+    // Branch information
+    branchedFrom: v.optional(
+      v.object({
+        threadId: v.id("threads"),
+        messageId: v.id("messages"),
+        timestamp: v.number(),
+      }),
+    ),
     // Share functionality
     isPublic: v.optional(v.boolean()), // Whether the thread is publicly accessible
     shareId: v.optional(v.string()), // Unique ID for share links
