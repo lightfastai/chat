@@ -88,7 +88,7 @@ export function useChat(options: UseChatOptions = {}) {
 
   // Get messages for current thread
   const messageThreadId = currentThread?._id || null
-  
+
   // Use preloaded messages if available
   const preloadedMessages = options.preloadedMessages
     ? usePreloadedQuery(options.preloadedMessages)
@@ -124,12 +124,15 @@ export function useChat(options: UseChatOptions = {}) {
     const { title, clientId } = args
     const now = Date.now()
 
-    // For optimistic updates, we'll only update the thread list
-    // We won't create fake messages since that causes validation errors
-    // The real thread and messages will be created quickly by the server
-    
-    // Create a minimal optimistic thread for sidebar display
-    const optimisticThread: Partial<Doc<"threads">> & { _id: Id<"threads">, clientId: string } = {
+    // For optimistic updates, we'll only update the thread list for sidebar display
+    // We won't set the thread by clientId to avoid passing fake IDs to queries
+    // The real thread will be created quickly by the server
+
+    // Create a minimal optimistic thread for sidebar display only
+    const optimisticThread: Partial<Doc<"threads">> & {
+      _id: Id<"threads">
+      clientId: string
+    } = {
       _id: `optimistic_${clientId}` as Id<"threads">,
       _creationTime: now,
       clientId,
@@ -144,18 +147,13 @@ export function useChat(options: UseChatOptions = {}) {
     // Get existing threads from the store
     const existingThreads = localStore.getQuery(api.threads.list, {}) || []
 
-    // Add the new thread at the beginning
+    // Add the new thread at the beginning of the list for sidebar display
     localStore.setQuery(api.threads.list, {}, [
       optimisticThread as Doc<"threads">,
       ...existingThreads,
     ])
 
-    // Also update thread by clientId query so navigation works
-    localStore.setQuery(
-      api.threads.getByClientId,
-      { clientId },
-      optimisticThread as Doc<"threads">,
-    )
+    // Don't set thread by clientId - this prevents fake IDs from being used in queries
   })
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
