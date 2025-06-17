@@ -74,9 +74,6 @@ export function MessageItem({
   const displayText =
     isStreaming && streamingText ? streamingText : message.body
 
-  // Show thinking indicator if streaming but no text yet
-  const isThinking = isStreaming && !displayText && !isComplete
-
   // Content component
   const content = (
     <div className={cn("space-y-1", className)}>
@@ -89,6 +86,12 @@ export function MessageItem({
           message.usage) && (
           <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
             {modelName && <span>{modelName}</span>}
+            {isStreaming && !isComplete && (
+              <>
+                {modelName && <span>•</span>}
+                <span>Thinking</span>
+              </>
+            )}
             {message.usedUserApiKey && (
               <Badge
                 variant="secondary"
@@ -104,12 +107,6 @@ export function MessageItem({
                 <span className="font-mono">
                   Thought for {formatDuration(thinkingDuration)}
                 </span>
-              </>
-            )}
-            {isStreaming && !isComplete && !thinkingDuration && (
-              <>
-                {modelName && <span>•</span>}
-                <span>{isThinking ? "Thinking" : ""}</span>
               </>
             )}
             {/* Show usage chip for completed messages */}

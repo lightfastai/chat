@@ -45,8 +45,7 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
         <span
           className={cn(
             "font-medium truncate text-ellipsis overflow-hidden min-w-0 flex-1",
-            thread.isTitleGenerating &&
-              "animate-pulse blur-[0.5px] opacity-70",
+            thread.isTitleGenerating && "animate-pulse blur-[0.5px] opacity-70",
           )}
         >
           {thread.title}
