@@ -847,17 +847,19 @@ export const generateAIResponse = internalAction({
       // Get final usage data
       const finalUsage = await usage
       console.log("Final usage data:", finalUsage)
-      
+
       // AI SDK v5 returns LanguageModelV2Usage format
       // Note: values can be undefined, so we need to handle that
-      const formattedUsage = finalUsage ? {
-        inputTokens: finalUsage.inputTokens ?? 0,
-        outputTokens: finalUsage.outputTokens ?? 0,
-        totalTokens: finalUsage.totalTokens ?? 0,
-        reasoningTokens: finalUsage.reasoningTokens ?? 0,
-        cachedInputTokens: finalUsage.cachedInputTokens ?? 0,
-      } : undefined
-      
+      const formattedUsage = finalUsage
+        ? {
+            inputTokens: finalUsage.inputTokens ?? 0,
+            outputTokens: finalUsage.outputTokens ?? 0,
+            totalTokens: finalUsage.totalTokens ?? 0,
+            reasoningTokens: finalUsage.reasoningTokens ?? 0,
+            cachedInputTokens: finalUsage.cachedInputTokens ?? 0,
+          }
+        : undefined
+
       console.log("Formatted usage:", formattedUsage)
 
       // Ensure we always have some content to complete with, even if just tool results

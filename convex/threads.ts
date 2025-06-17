@@ -401,6 +401,7 @@ export const branchFromMessage = mutation({
     originalThreadId: v.id("threads"),
     branchFromMessageId: v.id("messages"),
     modelId: v.union(...ALL_MODEL_IDS.map((id) => v.literal(id))),
+    clientId: v.optional(v.string()), // Support clientId for instant navigation
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
@@ -447,9 +448,22 @@ export const branchFromMessage = mutation({
     // Get messages to copy (up to and including the last user message before branch point)
     const messagesToCopy = allMessages.slice(0, copyUpToIndex + 1)
 
+    // Check for clientId collision if provided (extremely rare with nanoid)
+    if (args.clientId) {
+      const existing = await ctx.db
+        .query("threads")
+        .withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
+        .first()
+
+      if (existing) {
+        throw new Error(`Thread with clientId ${args.clientId} already exists`)
+      }
+    }
+
     // Create new thread with branch info
     const now = Date.now()
     const newThreadId = await ctx.db.insert("threads", {
+      clientId: args.clientId, // Support instant navigation
       title: originalThread.title,
       userId: userId,
       createdAt: now,
@@ -474,14 +488,24 @@ export const branchFromMessage = mutation({
 
     // Copy messages to new thread and accumulate usage
     let lastUserMessage = ""
-    let accumulatedUsage = {
+    const accumulatedUsage = {
       totalInputTokens: 0,
       totalOutputTokens: 0,
       totalTokens: 0,
       totalReasoningTokens: 0,
       totalCachedInputTokens: 0,
       messageCount: 0,
-      modelStats: {} as Record<string, any>,
+      modelStats: {} as Record<
+        string,
+        {
+          messageCount: number
+          inputTokens: number
+          outputTokens: number
+          totalTokens: number
+          reasoningTokens: number
+          cachedInputTokens: number
+        }
+      >,
     }
 
     for (const message of messagesToCopy) {

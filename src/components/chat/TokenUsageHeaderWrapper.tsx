@@ -1,9 +1,9 @@
 "use client"
 
 import { isClientId } from "@/lib/nanoid"
+import { useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { useMemo } from "react"
-import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 import { TokenUsageHeader } from "./TokenUsageHeader"
@@ -54,7 +54,6 @@ export function TokenUsageHeaderWrapper() {
     }
     return "new"
   }, [pathInfo, threadByClientId])
-
 
   // Don't show token usage on settings page
   if (pathInfo.type === "settings") {
