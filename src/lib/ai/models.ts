@@ -45,6 +45,91 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
       vision: true,
     },
   },
+  "gpt-4.1": {
+    id: "gpt-4.1",
+    provider: "openai",
+    name: "gpt-4.1",
+    displayName: "GPT-4.1",
+    description: "Next generation GPT-4 with enhanced capabilities",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.0025,
+      output: 0.01,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "gpt-4.1-mini": {
+    id: "gpt-4.1-mini",
+    provider: "openai",
+    name: "gpt-4.1-mini",
+    displayName: "GPT-4.1 Mini",
+    description: "Efficient GPT-4.1 model for everyday tasks",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.00015,
+      output: 0.0006,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "gpt-4.1-nano": {
+    id: "gpt-4.1-nano",
+    provider: "openai",
+    name: "gpt-4.1-nano",
+    displayName: "GPT-4.1 Nano",
+    description: "Ultra-efficient model for simple tasks",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.0001,
+      output: 0.0004,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,
+    },
+  },
+  "o3-mini": {
+    id: "o3-mini",
+    provider: "openai",
+    name: "o3-mini",
+    displayName: "o3-mini",
+    description: "OpenAI's o3-mini reasoning model",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.0015,
+      output: 0.006,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "o4-mini": {
+    id: "o4-mini",
+    provider: "openai",
+    name: "o4-mini",
+    displayName: "o4-mini",
+    description: "Next generation o-series mini model",
+    maxTokens: 128000,
+    costPer1KTokens: {
+      input: 0.0015,
+      output: 0.006,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
   "gpt-3.5-turbo": {
     id: "gpt-3.5-turbo",
     provider: "openai",
@@ -68,12 +153,12 @@ export const OPENAI_MODELS: Record<OpenAIModel, ModelConfig> = {
  * Anthropic Model Configurations
  */
 export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
-  "claude-sonnet-4-20250514": {
-    id: "claude-sonnet-4-20250514",
+  "claude-3-5-sonnet-20241022": {
+    id: "claude-3-5-sonnet-20241022",
     provider: "anthropic",
-    name: "claude-sonnet-4-20250514",
-    displayName: "Claude Sonnet 4.0",
-    description: "Claude Sonnet 4.0 - Superior coding and reasoning model",
+    name: "claude-3-5-sonnet-20241022",
+    displayName: "Claude 3.5 Sonnet",
+    description: "Fast and capable model for most tasks",
     maxTokens: 200000,
     costPer1KTokens: {
       input: 0.003,
@@ -83,17 +168,33 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       streaming: true,
       functionCalling: true,
       vision: true,
-      thinking: false, // Standard mode without thinking
       pdfSupport: true,
     },
   },
-  "claude-sonnet-4-20250514-thinking": {
-    id: "claude-sonnet-4-20250514-thinking",
+  "claude-3-7-sonnet-20241022": {
+    id: "claude-3-7-sonnet-20241022",
     provider: "anthropic",
-    name: "claude-sonnet-4-20250514",
-    displayName: "Claude Sonnet 4.0 (Thinking)",
-    description:
-      "Claude Sonnet 4.0 with extended thinking for complex reasoning",
+    name: "claude-3-7-sonnet-20241022",
+    displayName: "Claude 3.7 Sonnet",
+    description: "Enhanced performance model with improved capabilities",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      pdfSupport: true,
+    },
+  },
+  "claude-3-7-sonnet-20241022-reasoning": {
+    id: "claude-3-7-sonnet-20241022-reasoning",
+    provider: "anthropic",
+    name: "claude-3-7-sonnet-20241022",
+    displayName: "Claude 3.7 Sonnet (Reasoning)",
+    description: "Claude 3.7 with extended reasoning capabilities",
     maxTokens: 200000,
     costPer1KTokens: {
       input: 0.003,
@@ -111,12 +212,12 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       defaultBudgetTokens: 12000,
     },
   },
-  "claude-3-5-sonnet-20241022": {
-    id: "claude-3-5-sonnet-20241022",
+  "claude-4-sonnet-20250514": {
+    id: "claude-4-sonnet-20250514",
     provider: "anthropic",
-    name: "claude-3-5-sonnet-20241022",
-    displayName: "Claude 3.5 Sonnet",
-    description: "Previous generation high-performance model",
+    name: "claude-sonnet-4-20250514",
+    displayName: "Claude 4 Sonnet",
+    description: "Latest generation superior coding and reasoning model",
     maxTokens: 200000,
     costPer1KTokens: {
       input: 0.003,
@@ -126,7 +227,31 @@ export const ANTHROPIC_MODELS: Record<AnthropicModel, ModelConfig> = {
       streaming: true,
       functionCalling: true,
       vision: true,
+      thinking: false,
       pdfSupport: true,
+    },
+  },
+  "claude-4-sonnet-20250514-reasoning": {
+    id: "claude-4-sonnet-20250514-reasoning",
+    provider: "anthropic",
+    name: "claude-sonnet-4-20250514",
+    displayName: "Claude 4 Sonnet (Reasoning)",
+    description: "Claude 4 with extended reasoning for complex tasks",
+    maxTokens: 200000,
+    costPer1KTokens: {
+      input: 0.003,
+      output: 0.015,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+      thinking: true,
+      pdfSupport: true,
+    },
+    thinkingConfig: {
+      enabled: true,
+      defaultBudgetTokens: 12000,
     },
   },
   "claude-3-haiku-20240307": {

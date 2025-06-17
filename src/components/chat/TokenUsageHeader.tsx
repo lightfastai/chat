@@ -7,6 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { getModelDisplayName as getModelName } from "@/lib/ai/models"
 import { useQuery } from "convex/react"
 import { Activity, Brain } from "lucide-react"
 import { api } from "../../../convex/_generated/api"
@@ -30,28 +31,12 @@ function formatTokenCount(count: number): string {
 
 // Helper function to get model display name
 function getModelDisplayName(model: string): string {
-  switch (model) {
-    case "anthropic":
-      return "Claude Sonnet 4"
-    case "openai":
-      return "GPT-4o Mini"
-    case "claude-sonnet-4-20250514":
-      return "Claude Sonnet 4"
-    case "claude-sonnet-4-20250514-thinking":
-      return "Claude Sonnet 4 (Thinking)"
-    case "claude-3-5-sonnet-20241022":
-      return "Claude 3.5 Sonnet"
-    case "claude-3-haiku-20240307":
-      return "Claude 3 Haiku"
-    case "gpt-4o":
-      return "GPT-4o"
-    case "gpt-4o-mini":
-      return "GPT-4o Mini"
-    case "gpt-3.5-turbo":
-      return "GPT-3.5 Turbo"
-    default:
-      return model
-  }
+  // Handle legacy provider names
+  if (model === "anthropic") return "Claude 3.5 Sonnet"
+  if (model === "openai") return "GPT-4o Mini"
+
+  // Use the centralized model name lookup
+  return getModelName(model)
 }
 
 export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {

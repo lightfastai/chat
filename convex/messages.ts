@@ -1237,7 +1237,7 @@ function getFullModelId(model: string): string {
   // Otherwise, convert provider names to default model IDs
   switch (model) {
     case "anthropic":
-      return "claude-sonnet-4-20250514"
+      return "claude-3-5-sonnet-20241022"
     case "openai":
       return "gpt-4o-mini"
     default:

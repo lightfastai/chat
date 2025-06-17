@@ -4,11 +4,21 @@
 
 export type ModelProvider = "openai" | "anthropic" | "openrouter"
 
-export type OpenAIModel = "gpt-4o-mini" | "gpt-4o" | "gpt-3.5-turbo"
+export type OpenAIModel =
+  | "gpt-4o-mini"
+  | "gpt-4o"
+  | "gpt-4.1"
+  | "gpt-4.1-mini"
+  | "gpt-4.1-nano"
+  | "o3-mini"
+  | "o4-mini"
+  | "gpt-3.5-turbo"
 export type AnthropicModel =
-  | "claude-sonnet-4-20250514"
-  | "claude-sonnet-4-20250514-thinking"
   | "claude-3-5-sonnet-20241022"
+  | "claude-3-7-sonnet-20241022"
+  | "claude-3-7-sonnet-20241022-reasoning"
+  | "claude-4-sonnet-20250514"
+  | "claude-4-sonnet-20250514-reasoning"
   | "claude-3-haiku-20240307"
 
 export type OpenRouterModel =
@@ -68,12 +78,19 @@ export const MODEL_PROVIDERS = ["openai", "anthropic", "openrouter"] as const
 export const OPENAI_MODEL_IDS = [
   "gpt-4o-mini",
   "gpt-4o",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "o3-mini",
+  "o4-mini",
   "gpt-3.5-turbo",
 ] as const
 export const ANTHROPIC_MODEL_IDS = [
-  "claude-sonnet-4-20250514",
-  "claude-sonnet-4-20250514-thinking",
   "claude-3-5-sonnet-20241022",
+  "claude-3-7-sonnet-20241022",
+  "claude-3-7-sonnet-20241022-reasoning",
+  "claude-4-sonnet-20250514",
+  "claude-4-sonnet-20250514-reasoning",
   "claude-3-haiku-20240307",
 ] as const
 export const OPENROUTER_MODEL_IDS = [
@@ -108,12 +125,12 @@ export function getProviderFromModelId(modelId: ModelId): ModelProvider {
   throw new Error(`Unknown model ID: ${modelId}`)
 }
 
-// Get actual model name for API calls (removes -thinking suffix)
+// Get actual model name for API calls (removes -thinking or -reasoning suffix)
 export function getActualModelName(modelId: ModelId): string {
-  return modelId.replace("-thinking", "")
+  return modelId.replace("-thinking", "").replace("-reasoning", "")
 }
 
-// Check if model is in thinking mode
+// Check if model is in thinking/reasoning mode
 export function isThinkingMode(modelId: ModelId): boolean {
-  return modelId.includes("-thinking")
+  return modelId.includes("-thinking") || modelId.includes("-reasoning")
 }
