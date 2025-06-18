@@ -38,6 +38,20 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
         : "AI Assistant"
     : undefined
 
+  // Debug logging for model display issues
+  if (isAI && process.env.NODE_ENV === "development") {
+    console.log("MessageDisplay debug:", {
+      messageId: message._id,
+      modelId: message.modelId,
+      model: message.model,
+      modelName,
+      isStreaming: message.isStreaming,
+      usedUserApiKey: message.usedUserApiKey,
+      hasThinkingContent: message.hasThinkingContent,
+      isComplete: message.isComplete,
+    })
+  }
+
   // Actions component
   const actions = <MessageActions message={message} />
 
