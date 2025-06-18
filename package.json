@@ -19,7 +19,6 @@
     "dev:bg": "nohup turbo run dev convex:dev --parallel > dev.log 2>&1 &",
     "logs": "bunx convex logs",
     "with-env": "dotenv -e ./.env.local --",
-    "postinstall": "fumadocs-mdx",
     "turbo:build": "turbo run build",
     "turbo:lint": "turbo run lint",
     "turbo:format": "turbo run format"
@@ -68,9 +67,6 @@
     "convex-helpers": "^0.1.93",
     "date-fns": "^4.1.0",
     "exa-js": "^1.8.11",
-    "fumadocs-core": "^15.5.2",
-    "fumadocs-mdx": "^11.6.8",
-    "fumadocs-ui": "^15.5.2",
     "geist": "^1.4.2",
     "lucide-react": "^0.515.0",
     "nanoid": "^5.1.5",

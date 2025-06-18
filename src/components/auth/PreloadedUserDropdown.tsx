@@ -109,12 +109,6 @@ export function PreloadedUserDropdown({
           </>
         )}
         <DropdownMenuItem asChild>
-          <Link href="/docs" className="cursor-pointer" prefetch={true}>
-            <ExternalLink className="mr-2 h-4 w-4" />
-            <span>Docs</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
           <Link
             href="https://github.com/lightfastai/chat"
             target="_blank"
