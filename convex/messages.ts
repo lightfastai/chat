@@ -55,16 +55,20 @@ function createWebSearchTool() {
         const searchOptions: RegularSearchOptions & ContentsOptions = {
           numResults,
           text: {
-            maxCharacters: 1500, // Increased for better context
+            maxCharacters: 2000, // Increased for more comprehensive content
             includeHtmlTags: false,
           },
           highlights: {
-            numSentences: 4, // More highlights for better understanding
-            highlightsPerUrl: 3,
+            numSentences: 5, // More highlights for better understanding
+            highlightsPerUrl: 4,
+          },
+          contents: {
+            text: true, // Explicitly request text contents
+            highlights: true, // Explicitly request highlights
           },
         }
 
-        const response = await exa.search(query, searchOptions)
+        const response = await exa.searchAndContents(query, searchOptions)
 
         const results = response.results.map((result) => ({
           id: result.id,
@@ -87,17 +91,24 @@ function createWebSearchTool() {
           query,
           searchIntent: `Web search for: "${query}"`,
           resultCount: results.length,
-          results: results.slice(0, 3).map((r, idx) => ({
+          results: results.map((r, idx) => ({
             ...r,
             relevanceRank: idx + 1,
+            // Provide full text content, not just summary
+            fullText: r.text || "No content available",
             summary: r.text
-              ? `${r.text.slice(0, 200)}...`
+              ? r.text.length > 300
+                ? `${r.text.slice(0, 300)}...`
+                : r.text
               : "No preview available",
+            // Include all highlights for comprehensive understanding
+            keyPoints: r.highlights || [],
           })),
           searchMetadata: {
             timestamp: new Date().toISOString(),
             autoprompt: response.autopromptString,
           },
+          instructions: "Analyze these search results thoroughly and provide a comprehensive explanation of the findings.",
         }
       } catch (error) {
         console.error("Web search error:", error)
@@ -1004,25 +1015,33 @@ export const generateAIResponse = internalAction({
         // Enhanced agentic system prompt for web search
         systemPrompt += `\n\nYou have web search capabilities. You should proactively search for information when needed to provide accurate, current answers.
 
-When you perform a web search, you MUST automatically continue with a thorough analysis following this exact pattern:
+CRITICAL INSTRUCTIONS FOR WEB SEARCH:
+
+When you perform a web search, you MUST ALWAYS automatically continue with a thorough analysis. Never stop after just showing search results. Follow this exact pattern:
 
 1. **Search Intent** (before searching): Briefly state what specific information you're seeking and why it's relevant to the user's question.
 
 2. **Search Execution**: Perform the web search using the web_search tool.
 
-3. **Immediate Analysis** (after search results appear): Without waiting for further prompting, automatically provide:
-   - **Key Findings Summary**: Extract the most important information from each source
-   - **Cross-Source Analysis**: Identify patterns, consensus, or contradictions between sources
-   - **Information Quality**: Note the recency, credibility, and relevance of sources
-   - **Knowledge Gaps**: Identify what questions remain unanswered
+3. **MANDATORY Immediate Analysis** (after search results appear): You MUST automatically provide ALL of the following without waiting:
+   - **Key Findings Summary**: Extract and explain the most important information from each source
+   - **Detailed Explanation**: Thoroughly explain what you found, making complex information easy to understand
+   - **Cross-Source Analysis**: Compare information across sources, noting agreements and disagreements
+   - **Information Quality**: Assess source credibility, publication dates, and relevance
+   - **Knowledge Synthesis**: Combine findings with your existing knowledge for a complete picture
 
-4. **Synthesis and Answer**: Conclude with a comprehensive response that:
-   - Directly addresses the user's original question
-   - Integrates search findings with your existing knowledge
-   - Uses [Source N] citations for specific claims
-   - Suggests follow-up searches if needed for completeness
+4. **Comprehensive Answer**: Always conclude with:
+   - A clear, detailed answer to the user's original question
+   - Specific examples and data points from the search results
+   - [Source N] citations for all factual claims
+   - Suggestions for follow-up searches if any aspects remain unclear
 
-Remember: After search results appear, immediately continue analyzing and explaining them. Do not wait for the user to ask for analysis - be proactive and thorough in your response.`
+REMEMBER: 
+- NEVER just list search results without explanation
+- ALWAYS provide detailed analysis and explanation automatically
+- The user should receive a complete, well-explained answer after each search
+- If you need more information, perform additional searches proactively
+- Your goal is to fully answer the question, not just find information`
 
         console.log("Web search tool created successfully")
       }
