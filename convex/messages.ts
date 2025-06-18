@@ -62,10 +62,6 @@ function createWebSearchTool() {
             numSentences: 5, // More highlights for better understanding
             highlightsPerUrl: 4,
           },
-          contents: {
-            text: true, // Explicitly request text contents
-            highlights: true, // Explicitly request highlights
-          },
         }
 
         const response = await exa.searchAndContents(query, searchOptions)
