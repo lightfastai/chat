@@ -186,6 +186,13 @@ export const send = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // Development timing: Add 100-500ms delay to simulate production latency
+    if (process.env.NODE_ENV === "development") {
+      const delay = Math.floor(Math.random() * 400) + 100
+      console.log(`[DEV TIMING] messages.send - Adding ${delay}ms delay`)
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+
     const userId = await getAuthUserId(ctx)
     if (!userId) {
       throw new Error("User must be authenticated")
@@ -271,6 +278,15 @@ export const createThreadAndSend = mutation({
     assistantMessageId: v.id("messages"),
   }),
   handler: async (ctx, args) => {
+    // Development timing: Add 100-500ms delay to simulate production latency
+    if (process.env.NODE_ENV === "development") {
+      const delay = Math.floor(Math.random() * 400) + 100
+      console.log(
+        `[DEV TIMING] messages.createThreadAndSend - Adding ${delay}ms delay`,
+      )
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+
     const userId = await getAuthUserId(ctx)
     if (!userId) {
       throw new Error("User must be authenticated")
