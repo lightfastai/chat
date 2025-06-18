@@ -260,6 +260,7 @@ export function useChat(options: UseChatOptions = {}) {
     }
 
     // Create optimistic assistant message placeholder
+    // Important: Don't set thinkingStartedAt to avoid "Thinking" → "Thought for X.Xs" jump
     const optimisticAssistantMessage: Doc<"messages"> = {
       _id: crypto.randomUUID() as Id<"messages">,
       _creationTime: now + 1,
@@ -272,7 +273,7 @@ export function useChat(options: UseChatOptions = {}) {
       isStreaming: true,
       isComplete: false,
       streamId: `stream_${clientId}_${now}`,
-      thinkingStartedAt: now,
+      // Don't set thinkingStartedAt to prevent premature "Thinking" display
       usedUserApiKey: willUseUserApiKey,
     }
 
