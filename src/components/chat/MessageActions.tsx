@@ -50,7 +50,7 @@ export function MessageActions({ message, className }: MessageActionsProps) {
       _id: tempThreadId,
       _creationTime: now,
       clientId,
-      title: originalThread?.title || "Branched conversation",
+      title: originalThread?.title || "",
       userId: "temp" as Id<"users">, // Temporary user ID
       createdAt: now,
       lastMessageAt: now,
