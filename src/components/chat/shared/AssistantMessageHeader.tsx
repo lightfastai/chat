@@ -56,7 +56,7 @@ export function AssistantMessageHeader({
   })()
 
   return (
-    <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+    <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2 min-h-5">
       {/* Model name - always first */}
       {modelName && <span>{modelName}</span>}
 
