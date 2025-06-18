@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { LucideIcon } from "lucide-react"
+import { env } from "../../env"
 
 export interface ErrorBoundaryAction {
   label: string
@@ -38,7 +39,7 @@ export function ErrorBoundaryUI({
   details,
   actions = [],
   error,
-  showErrorDetails = process.env.NODE_ENV === "development",
+  showErrorDetails = env.NODE_ENV === "development",
   className,
 }: ErrorBoundaryUIProps) {
   return (
