@@ -128,6 +128,7 @@ async function ChatThreadPageWithPreloadedData({
       <ChatPreloadProvider
         preloadedThreadById={preloadedThreadById}
         preloadedThreadUsage={preloadedThreadUsage}
+        preloadedMessages={preloadedMessages}
       >
         <ChatInterface
           preloadedThreadById={preloadedThreadById}
