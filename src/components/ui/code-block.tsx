@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { basicSetup } from "@codemirror/basic-setup"
 import { css } from "@codemirror/lang-css"
 import { html } from "@codemirror/lang-html"
 import { javascript } from "@codemirror/lang-javascript"
@@ -61,7 +62,7 @@ export function CodeBlock({
       : undefined
 
     // Create extensions array
-    const extensions = []
+    const extensions = [basicSetup]
 
     if (langExtension) {
       extensions.push(langExtension)
