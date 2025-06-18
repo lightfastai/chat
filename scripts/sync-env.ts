@@ -1,8 +1,7 @@
 #!/usr/bin/env bun
 
 import { execSync, spawnSync } from "node:child_process"
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs"
-import os from "node:os"
+import { readFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -23,6 +22,7 @@ const OPTIONAL_VARS = [
   "SITE_URL",
   "JWT_PRIVATE_KEY",
   "JWKS",
+  "NODE_ENV",
 ] as const
 
 type RequiredVar = (typeof REQUIRED_VARS)[number]

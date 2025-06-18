@@ -186,16 +186,18 @@ export const send = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Development timing: Add 100-500ms delay to simulate production latency
-    if (process.env.NODE_ENV === "development") {
-      const delay = Math.floor(Math.random() * 400) + 100
-      console.log(`[DEV TIMING] messages.send - Adding ${delay}ms delay`)
-      await new Promise((resolve) => setTimeout(resolve, delay))
-    }
-
     const userId = await getAuthUserId(ctx)
     if (!userId) {
       throw new Error("User must be authenticated")
+    }
+
+    // Apply development delay via action if in development mode
+    if (process.env.NODE_ENV === "development") {
+      await ctx.scheduler.runAfter(0, internal.delays.developmentDelay, {
+        minMs: 100,
+        maxMs: 500,
+        operation: "messages.send",
+      })
     }
 
     // Verify the user owns this thread
@@ -278,18 +280,19 @@ export const createThreadAndSend = mutation({
     assistantMessageId: v.id("messages"),
   }),
   handler: async (ctx, args) => {
-    // Development timing: Add 100-500ms delay to simulate production latency
-    if (process.env.NODE_ENV === "development") {
-      const delay = Math.floor(Math.random() * 400) + 100
-      console.log(
-        `[DEV TIMING] messages.createThreadAndSend - Adding ${delay}ms delay`,
-      )
-      await new Promise((resolve) => setTimeout(resolve, delay))
-    }
-
     const userId = await getAuthUserId(ctx)
     if (!userId) {
       throw new Error("User must be authenticated")
+    }
+
+    // Apply development delay via action if in development mode
+    if (process.env.NODE_ENV === "development") {
+      console.log("Applying development delay for messages.createThreadAndSend")
+      await ctx.scheduler.runAfter(0, internal.delays.developmentDelay, {
+        minMs: 100,
+        maxMs: 500,
+        operation: "messages.createThreadAndSend",
+      })
     }
 
     // Check for collision if clientId is provided (extremely rare with nanoid)
@@ -1559,8 +1562,8 @@ async function updateThreadUsage(
         throw error
       }
 
-      // Brief delay before retry
-      await new Promise((resolve) => setTimeout(resolve, 10 * retryCount))
+      // Note: In mutations, we can't use setTimeout for delays
+      // The retry will happen immediately, relying on Convex's internal conflict resolution
     }
   }
 }
