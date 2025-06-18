@@ -266,6 +266,7 @@ export function useChat(options: UseChatOptions = {}) {
       threadId: optimisticThreadId,
       body: "", // Empty body for streaming
       messageType: "assistant",
+      model: provider, // Add model field to match server structure
       modelId,
       timestamp: now + 1,
       isStreaming: true,
