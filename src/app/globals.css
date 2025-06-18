@@ -166,3 +166,17 @@
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
+
+/* Shimmer animation for loading states */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
