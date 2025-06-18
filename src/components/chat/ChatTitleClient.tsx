@@ -79,7 +79,7 @@ export function ChatTitleClient() {
 
   const getTitle = () => {
     if (pathInfo.type === "new") {
-      return "New Chat"
+      return ""
     }
     if (pathInfo.type === "settings") {
       return "Settings"
@@ -88,7 +88,7 @@ export function ChatTitleClient() {
     if (!currentThread && (currentClientId || currentThreadId !== "new")) {
       return ""
     }
-    return currentThread?.title || "Chat"
+    return currentThread?.title || ""
   }
 
   return (
