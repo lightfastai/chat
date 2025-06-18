@@ -51,12 +51,12 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
           <span
             className={cn(
               "font-medium truncate text-ellipsis overflow-hidden min-w-0 flex-1",
-              thread.title &&
-                thread.isTitleGenerating &&
+              thread.isTitleGenerating &&
                 "animate-pulse blur-[0.5px] opacity-70",
             )}
           >
-            {thread.title}
+            {thread.title ||
+              (thread.isTitleGenerating ? "Generating title..." : "")}
           </span>
         )}
       </ActiveMenuItem>

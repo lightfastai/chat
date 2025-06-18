@@ -1,6 +1,7 @@
 "use client"
 
 import { isClientId } from "@/lib/nanoid"
+import { cn } from "@/lib/utils"
 import { usePreloadedQuery, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { useMemo } from "react"
@@ -107,6 +108,13 @@ export function ChatTitleClient() {
   }
 
   return (
-    <h1 className="text-base sm:text-lg font-semibold truncate">{title}</h1>
+    <h1
+      className={cn(
+        "text-base sm:text-lg font-semibold truncate",
+        isGenerating && "animate-pulse blur-[0.5px] opacity-70",
+      )}
+    >
+      {title || (isGenerating ? "Generating title..." : "")}
+    </h1>
   )
 }
