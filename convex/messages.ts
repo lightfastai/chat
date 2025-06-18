@@ -109,6 +109,79 @@ const modelProviderValidator = v.union(
   v.literal("openrouter"),
 )
 
+export const listByClientId = query({
+  args: {
+    clientId: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("messages"),
+      _creationTime: v.number(),
+      threadId: v.id("threads"),
+      body: v.string(),
+      timestamp: v.number(),
+      messageType: v.union(v.literal("user"), v.literal("assistant")),
+      model: v.optional(modelProviderValidator),
+      modelId: v.optional(v.string()),
+      isStreaming: v.optional(v.boolean()),
+      streamId: v.optional(v.string()),
+      isComplete: v.optional(v.boolean()),
+      thinkingStartedAt: v.optional(v.number()),
+      thinkingCompletedAt: v.optional(v.number()),
+      attachments: v.optional(v.array(v.id("files"))),
+      thinkingContent: v.optional(v.string()),
+      isThinking: v.optional(v.boolean()),
+      hasThinkingContent: v.optional(v.boolean()),
+      usedUserApiKey: v.optional(v.boolean()),
+      usage: v.optional(
+        v.object({
+          inputTokens: v.optional(v.number()),
+          outputTokens: v.optional(v.number()),
+          totalTokens: v.optional(v.number()),
+          reasoningTokens: v.optional(v.number()),
+          cachedInputTokens: v.optional(v.number()),
+        }),
+      ),
+      lastChunkId: v.optional(v.string()),
+      streamChunks: v.optional(
+        v.array(
+          v.object({
+            id: v.string(),
+            content: v.string(),
+            timestamp: v.number(),
+            sequence: v.optional(v.number()),
+          }),
+        ),
+      ),
+      streamVersion: v.optional(v.number()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      return []
+    }
+
+    // First get the thread by clientId
+    const thread = await ctx.db
+      .query("threads")
+      .withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first()
+
+    if (!thread) {
+      return []
+    }
+
+    // Then get messages for this thread
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
+      .order("desc")
+      .take(50)
+  },
+})
+
 export const list = query({
   args: {
     threadId: v.id("threads"),

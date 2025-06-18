@@ -98,16 +98,33 @@ export function useChat(options: UseChatOptions = {}) {
     ? usePreloadedQuery(options.preloadedMessages)
     : null
 
+  // Query messages by clientId if we have one (for optimistic updates)
+  const messagesByClientId = useQuery(
+    api.messages.listByClientId,
+    currentClientId && !preloadedMessages
+      ? { clientId: currentClientId }
+      : "skip",
+  )
+
+  // Query messages by threadId for regular threads
+  const messagesByThreadId = useQuery(
+    api.messages.list,
+    // Skip query if we have an optimistic thread ID to avoid validation errors
+    messageThreadId &&
+      !preloadedMessages &&
+      !isOptimisticThreadId &&
+      !currentClientId
+      ? { threadId: messageThreadId }
+      : "skip",
+  )
+
+  // Use messages in this priority order:
+  // 1. Preloaded messages (SSR)
+  // 2. Messages by clientId (for optimistic updates)
+  // 3. Messages by threadId (regular case)
+  // 4. Empty array fallback
   const messages =
-    preloadedMessages ??
-    useQuery(
-      api.messages.list,
-      // Skip query if we have an optimistic thread ID to avoid validation errors
-      messageThreadId && !preloadedMessages && !isOptimisticThreadId
-        ? { threadId: messageThreadId }
-        : "skip",
-    ) ??
-    []
+    preloadedMessages ?? messagesByClientId ?? messagesByThreadId ?? []
 
   // DEBUG: Log message query details for debugging
   useEffect(() => {
@@ -118,6 +135,8 @@ export function useChat(options: UseChatOptions = {}) {
       isOptimisticThreadId,
       messageThreadId,
       messageCount: messages.length,
+      messagesByClientIdCount: messagesByClientId?.length,
+      messagesByThreadIdCount: messagesByThreadId?.length,
       firstMessage: messages[0]?.body?.slice(0, 50),
       pathInfo,
     })
@@ -128,6 +147,8 @@ export function useChat(options: UseChatOptions = {}) {
     isOptimisticThreadId,
     messageThreadId,
     messages.length,
+    messagesByClientId?.length,
+    messagesByThreadId?.length,
     pathInfo,
   ])
 
@@ -210,6 +231,12 @@ export function useChat(options: UseChatOptions = {}) {
       optimisticAssistantMessage, // Assistant message has timestamp now + 1
       optimisticUserMessage, // User message has timestamp now
     ])
+
+    // IMPORTANT: Also set messages by clientId so they can be queried immediately
+    localStore.setQuery(api.messages.listByClientId, { clientId }, [
+      optimisticAssistantMessage, // Assistant message has timestamp now + 1
+      optimisticUserMessage, // User message has timestamp now
+    ])
   })
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
@@ -240,6 +267,22 @@ export function useChat(options: UseChatOptions = {}) {
           optimisticMessage,
           ...existingMessages,
         ])
+
+        // Also update messages by clientId if we have one
+        // This ensures optimistic updates work for threads accessed by clientId
+        if (currentClientId) {
+          const existingMessagesByClientId = localStore.getQuery(
+            api.messages.listByClientId,
+            { clientId: currentClientId },
+          )
+          if (existingMessagesByClientId !== undefined) {
+            localStore.setQuery(
+              api.messages.listByClientId,
+              { clientId: currentClientId },
+              [optimisticMessage, ...existingMessagesByClientId],
+            )
+          }
+        }
       }
     },
   )

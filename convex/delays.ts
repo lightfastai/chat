@@ -8,7 +8,7 @@ export const developmentDelay = internalAction({
     maxMs: v.number(),
     operation: v.string(),
   },
-returns: v.null(),
+  returns: v.null(),
   handler: async (_ctx, args) => {
     if (process.env.NODE_ENV === "development") {
       const delay =
