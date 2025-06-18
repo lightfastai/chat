@@ -33,7 +33,8 @@ import {
 
 // Create web search tool using proper AI SDK v5 pattern
 function createWebSearchTool() {
-  return tool({
+  console.log("[WebSearch] createWebSearchTool() called")
+  const webSearchTool = tool({
     description:
       "Search the web for current information, news, and real-time data. Use this proactively when you need up-to-date information beyond your knowledge cutoff. After receiving search results, you must immediately analyze and explain the findings without waiting for additional prompting.",
     parameters: z.object({
@@ -42,14 +43,22 @@ function createWebSearchTool() {
         .describe("The search query to find relevant web results"),
     }),
     execute: async ({ query }) => {
-      console.log(`Executing web search for: "${query}"`)
+      console.log(`[WebSearch] Tool invoked with query: "${query}"`)
+      console.log(`[WebSearch] Timestamp: ${new Date().toISOString()}`)
 
       const exaApiKey = process.env.EXA_API_KEY
+      console.log(`[WebSearch] EXA_API_KEY exists: ${!!exaApiKey}`)
+      console.log(
+        `[WebSearch] EXA_API_KEY length: ${exaApiKey ? exaApiKey.length : 0}`,
+      )
+
       if (!exaApiKey) {
+        console.error("[WebSearch] ERROR: EXA_API_KEY not configured")
         throw new Error("EXA_API_KEY not configured")
       }
 
       try {
+        console.log("[WebSearch] Creating Exa client...")
         const exa = new Exa(exaApiKey)
         const numResults = 5
         const searchOptions: RegularSearchOptions & ContentsOptions = {
@@ -64,7 +73,16 @@ function createWebSearchTool() {
           },
         }
 
-        const response = await exa.search(query, searchOptions)
+        console.log(
+          "[WebSearch] Calling Exa API with options:",
+          JSON.stringify(searchOptions),
+        )
+
+        // Use searchAndContents method to get both search results and content
+        const response = await exa.searchAndContents(query, searchOptions)
+        console.log(
+          `[WebSearch] Exa API response received, results count: ${response.results?.length || 0}`,
+        )
 
         const results = response.results.map((result) => ({
           id: result.id,
@@ -79,7 +97,11 @@ function createWebSearchTool() {
           score: result.score,
         }))
 
-        console.log(`Web search found ${results.length} results`)
+        console.log(`[WebSearch] Processed ${results.length} results`)
+        console.log(
+          `[WebSearch] First result text length: ${results[0]?.text?.length || 0}`,
+        )
+        console.log(`[WebSearch] Returning structured search data...`)
 
         // Return structured data that helps the AI understand and explain
         return {
@@ -100,7 +122,7 @@ function createWebSearchTool() {
           },
         }
       } catch (error) {
-        console.error("Web search error:", error)
+        console.error("[WebSearch] ERROR in tool execution:", error)
         return {
           success: false,
           query,
@@ -111,6 +133,9 @@ function createWebSearchTool() {
       }
     },
   })
+
+  console.log("[WebSearch] Tool created successfully")
+  return webSearchTool
 }
 
 // Create validators from the shared types
@@ -723,14 +748,44 @@ export const generateAIResponseWithMessage = internalAction({
         },
       }
 
-      // Add web search tool if enabled
+      // Add web search tool and AI SDK v5 alpha configuration if enabled
       if (args.webSearchEnabled) {
+        console.log("[WebSearch] Web search enabled, creating tool...")
         generationOptions.tools = {
           web_search: createWebSearchTool(),
         }
+
+        // AI SDK v5 alpha multi-step configuration
+        ;(generationOptions as any).maxSteps = 5
+        ;(generationOptions as any).toolCallStreaming = true
+
+        // Enhanced system prompt for web search
+        if (
+          generationOptions.messages &&
+          generationOptions.messages.length > 0
+        ) {
+          const systemMessage = generationOptions.messages.find(
+            (m) => m.role === "system",
+          )
+          if (systemMessage) {
+            systemMessage.content +=
+              "\n\nWhen using web search, always analyze and explain the search results immediately after receiving them. Provide insights and context based on the findings."
+          }
+        }
+
+        console.log("[WebSearch] AI SDK v5 configuration applied:", {
+          maxSteps: (generationOptions as any).maxSteps,
+          toolCallStreaming: (generationOptions as any).toolCallStreaming,
+          hasTools: !!generationOptions.tools,
+        })
       }
 
       // Use the AI SDK v5 streamText
+      console.log("[WebSearch] Starting streamText with configuration:", {
+        modelName: actualModelName,
+        webSearchEnabled: args.webSearchEnabled,
+        hasTools: !!generationOptions.tools,
+      })
       const result = streamText(generationOptions)
 
       let fullText = ""
@@ -754,16 +809,41 @@ export const generateAIResponseWithMessage = internalAction({
 
       // Process tool calls if web search is enabled
       if (args.webSearchEnabled) {
+        console.log("[WebSearch] Processing tool calls and results...")
         for await (const streamPart of result.fullStream) {
           if (streamPart.type === "tool-call") {
             toolCallsInProgress++
+            console.log(
+              `[WebSearch] Tool call detected: ${streamPart.toolName}`,
+            )
+            console.log(`[WebSearch] Tool args:`, streamPart.args)
           }
 
           if (streamPart.type === "tool-result") {
+            console.log(
+              `[WebSearch] Tool result received for: ${streamPart.toolName}`,
+            )
+            console.log(`[WebSearch] Result type: ${typeof streamPart.result}`)
             // Tool results are handled by the AI SDK and included in the response
-            // We don't need to store them separately
+          }
+
+          if (streamPart.type === "text") {
+            console.log(
+              `[WebSearch] Text chunk: ${streamPart.text.length} chars`,
+            )
+          }
+
+          if (streamPart.type === "finish") {
+            console.log(
+              `[WebSearch] Stream finished, reason: ${streamPart.finishReason}`,
+            )
+            console.log(`[WebSearch] Final usage:`, streamPart.totalUsage)
           }
         }
+
+        console.log(
+          `[WebSearch] Total tool calls processed: ${toolCallsInProgress}`,
+        )
       }
 
       // Get final usage with optional chaining
