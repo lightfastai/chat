@@ -774,10 +774,22 @@ export const generateAIResponseWithMessage = internalAction({
 
       // If we have streamed content, mark the message as complete
       if (hasContent) {
+        // Format usage data for the message
+        const formattedUsage = finalUsage
+          ? {
+              inputTokens: finalUsage.inputTokens ?? 0,
+              outputTokens: finalUsage.outputTokens ?? 0,
+              totalTokens: finalUsage.totalTokens ?? 0,
+              reasoningTokens: finalUsage.reasoningTokens ?? 0,
+              cachedInputTokens: finalUsage.cachedInputTokens ?? 0,
+            }
+          : undefined
+
         await ctx.runMutation(internal.messages.completeStreamingMessage, {
           messageId: args.messageId,
           streamId: args.streamId,
           fullText,
+          usage: formattedUsage,
         })
       }
 
