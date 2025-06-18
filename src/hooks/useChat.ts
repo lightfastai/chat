@@ -127,6 +127,9 @@ export function useChat(options: UseChatOptions = {}) {
   const messages =
     preloadedMessages ?? messagesByClientId ?? messagesByThreadId ?? []
 
+  // Query user settings to ensure they're available for optimistic updates
+  const userSettings = useQuery(api.userSettings.getUserSettings, {})
+
   // Remove debug logging for production
   // Uncomment the following for debugging message queries
   // useEffect(() => {
@@ -218,6 +221,13 @@ export function useChat(options: UseChatOptions = {}) {
       {},
     )
     let willUseUserApiKey = false
+
+    // Debug logging
+    console.log("Optimistic update debug:", {
+      provider,
+      userSettingsData,
+      modelId,
+    })
 
     if (userSettingsData) {
       if (provider === "anthropic" && userSettingsData.hasAnthropicKey) {
@@ -397,5 +407,6 @@ export function useChat(options: UseChatOptions = {}) {
       description: getEmptyStateDescription(),
     },
     isDisabled: currentThread === null && !isNewChat && !currentClientId,
+    userSettings,
   }
 }
