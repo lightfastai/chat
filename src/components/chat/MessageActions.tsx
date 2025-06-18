@@ -133,23 +133,13 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           optimisticMessages,
         )
 
-        // DEBUG: Also log what we're setting for debugging
-        console.log("🚀 Optimistic branch - setting messages:", {
-          tempThreadId,
-          clientId,
-          originalMessageCount: originalMessages.length,
-          branchPointIndex,
-          lastUserMessageIndex,
-          sliceStart:
-            lastUserMessageIndex !== -1
-              ? lastUserMessageIndex
-              : branchPointIndex,
-          copiedMessageCount: optimisticMessages.length,
-          firstMessage: optimisticMessages[0]?.body?.slice(0, 50),
-          lastMessage: optimisticMessages[
-            optimisticMessages.length - 1
-          ]?.body?.slice(0, 50),
-        })
+        // CRITICAL: Also set messages by clientId for instant navigation
+        // This allows useChat to find messages before the thread is created
+        localStore.setQuery(
+          api.messages.listByClientId,
+          { clientId },
+          optimisticMessages,
+        )
       }
     }
   })
