@@ -57,8 +57,8 @@ export function ShareButtonWrapper() {
       : "skip",
   )
 
-  // Don't show share button on settings page or new chat
-  if (isSettingsPage || isNewChat) {
+  // Don't show share button on settings page
+  if (isSettingsPage) {
     return null
   }
 
@@ -74,18 +74,20 @@ export function ShareButtonWrapper() {
     ? usePreloadedQuery(preloadedMessages)
     : null
 
-  // Query messages by clientId if we have one
+  // Query messages by clientId if we have one (skip for new chat)
   const messagesByClientId = useQuery(
     api.messages.listByClientId,
-    isClient && urlThreadId && !preloadedMessagesData
+    isClient && urlThreadId && !preloadedMessagesData && !isNewChat
       ? { clientId: urlThreadId }
       : "skip",
   )
 
-  // Query messages by threadId for regular threads
+  // Query messages by threadId for regular threads (skip for new chat)
   const messagesByThreadId = useQuery(
     api.messages.list,
-    threadId && !preloadedMessagesData && !isClient ? { threadId } : "skip",
+    threadId && !preloadedMessagesData && !isClient && !isNewChat
+      ? { threadId }
+      : "skip",
   )
 
   // Get actual messages
