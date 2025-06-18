@@ -250,14 +250,14 @@ export function useChat(options: UseChatOptions = {}) {
       }
     }
 
-    // Debug logging
-    console.log("Optimistic update debug:", {
-      provider,
-      userSettingsData,
-      userSettingsDataIsLoaded: userSettingsData !== undefined,
-      willUseUserApiKey,
-      modelId,
-    })
+    // Log for debugging (can be removed in production)
+    if (process.env.NODE_ENV === "development") {
+      console.log("Optimistic update API key inference:", {
+        provider,
+        hasUserSettings: userSettingsData !== undefined,
+        willUseUserApiKey,
+      })
+    }
 
     // Create optimistic assistant message placeholder
     const optimisticAssistantMessage: Doc<"messages"> = {
