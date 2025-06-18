@@ -2,11 +2,22 @@
 
 **YOU MUST** follow this complete development workflow when working with this chat application project.
 
+## 🚨 MANDATORY WORKTREE RULE
+
+**YOU MUST ALWAYS** use git worktrees for ANY development work including:
+- Feature requests (e.g., "integrate react-scan", "add dark mode")
+- Bug fixes (e.g., "fix login issue", "resolve memory leak")
+- Chores (e.g., "update dependencies", "refactor components")
+- Integrations (e.g., "add Sentry", "integrate analytics")
+- ANY code changes whatsoever
+
+**NO EXCEPTIONS**: If you're modifying code, you MUST be in a worktree.
+
 ## Overview
 
 This development workflow integrates:
 - **GitHub MCP Server**: Issue tracking and PR management
-- **Git Worktrees**: Feature development with `jeevanpillay/<feature_name>` branches
+- **Git Worktrees**: Feature development with `jeevanpillay/<feature_name>` branches (MANDATORY for all work)
 - **Vercel-First Testing**: All application testing on Vercel preview deployments (NO local dev servers)
 - **Context Preservation**: GitHub comments + local context files to survive session interruptions
 - **Turborepo + Bun**: Lightning-fast builds with intelligent caching
@@ -122,7 +133,7 @@ echo "Created issue #$ISSUE_NUM and added to project"
 
 ### Step 3: Worktree Setup
 
-**IMPORTANT**: Use the automated setup script:
+**MANDATORY**: You MUST create a worktree for ANY code changes. Use the automated setup script:
 ```bash
 # Automated setup (RECOMMENDED)
 ./scripts/setup-worktree.sh jeevanpillay/<feature_name>
@@ -414,14 +425,13 @@ gh pr view <pr_number> --json statusCheckRollup
 
 ## Key Reminders
 
-1. **DEVELOPMENT MODE MATTERS**:
-   - **Vercel Build Mode**: NO local dev servers - Test only on Vercel previews
-   - **Local Dev Mode**: User runs `bun dev:all` - Claude acts as code generator only
-2. **CONTEXT IS CRITICAL** - Always use context files and GitHub comments
-3. **QUALITY GATES FIRST** - Build/lint must pass before commit (Vercel Build Mode)
-4. **WORKTREE CLEANUP** - Remove before merging to prevent errors
-5. **USE TEMPLATES** - Always use issue templates with file references
-6. **BIOME NOT ESLINT** - Use `bun run lint`, not ESLint commands
+1. **WORKTREES ARE MANDATORY** - ANY code change requires a worktree, no exceptions
+2. **NO LOCAL DEV SERVERS** - Test only on Vercel previews
+3. **CONTEXT IS CRITICAL** - Always use context files and GitHub comments
+4. **QUALITY GATES FIRST** - Build/lint must pass before commit
+5. **WORKTREE CLEANUP** - Remove before merging to prevent errors
+6. **USE TEMPLATES** - Always use issue templates with file references
+7. **BIOME NOT ESLINT** - Use `bun run lint`, not ESLint commands
 
 ## Convex Guidelines
 
