@@ -1,7 +1,7 @@
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
-import { type CoreMessage, streamText, tool } from "ai"
+import { type CoreMessage, streamText, tool, stepCountIs } from "ai"
 import { v } from "convex/values"
 import Exa, {
   type RegularSearchOptions,
@@ -728,6 +728,8 @@ export const generateAIResponseWithMessage = internalAction({
         generationOptions.tools = {
           web_search: createWebSearchTool(),
         }
+        // Enable iterative tool calling with stopWhen
+        generationOptions.stopWhen = stepCountIs(5) // Allow up to 5 iterations
       }
 
       // Use the AI SDK v5 streamText
@@ -994,6 +996,10 @@ export const generateAIResponse = internalAction({
         streamOptions.tools = {
           web_search: createWebSearchTool(),
         }
+
+        // Enable iterative tool calling with stopWhen
+        // This replaces the old maxSteps/maxToolRoundtrips parameter
+        streamOptions.stopWhen = stepCountIs(5) // Allow up to 5 iterations
 
         // Enhanced agentic system prompt for web search
         systemPrompt += `\n\nYou have web search capabilities. You should proactively search for information when needed to provide accurate, current answers.
