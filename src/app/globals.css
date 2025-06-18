@@ -167,6 +167,33 @@
   background: #a1a1a1;
 }
 
+/* Scrollbar for chat input */
+.chat-input-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-input-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-input-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+.chat-input-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border) / 0.8);
+}
+
+/* Dark mode scrollbar for chat input */
+.dark .chat-input-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+}
+
+.dark .chat-input-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border) / 0.8);
+}
+
 /* Shimmer animation for loading states */
 @keyframes shimmer {
   0% {

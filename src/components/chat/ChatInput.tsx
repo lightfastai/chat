@@ -11,7 +11,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
@@ -364,7 +363,7 @@ const ChatInputComponent = ({
               } ${isLoading ? "opacity-75" : ""}`}
             >
               {/* Textarea area - grows with content up to max height */}
-              <ScrollArea className="flex-1 max-h-[180px]">
+              <div className="flex-1 max-h-[180px] overflow-y-auto chat-input-scroll">
                 <Textarea
                   ref={textareaRef}
                   value={message}
@@ -379,7 +378,7 @@ const ChatInputComponent = ({
                     minHeight: "48px",
                   }}
                 />
-              </ScrollArea>
+              </div>
 
               {/* Controls area - always at bottom */}
               <div className="flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow]">
