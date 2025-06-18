@@ -2,15 +2,23 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { basicSetup } from "@codemirror/basic-setup"
 import { css } from "@codemirror/lang-css"
 import { html } from "@codemirror/lang-html"
 import { javascript } from "@codemirror/lang-javascript"
 import { json } from "@codemirror/lang-json"
 import { python } from "@codemirror/lang-python"
+import {
+  bracketMatching,
+  defaultHighlightStyle,
+  syntaxHighlighting,
+} from "@codemirror/language"
 import { EditorState } from "@codemirror/state"
 import { oneDark } from "@codemirror/theme-one-dark"
-import { EditorView } from "@codemirror/view"
+import {
+  EditorView,
+  drawSelection,
+  highlightSpecialChars,
+} from "@codemirror/view"
 import { Check, Copy } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useEffect, useRef, useState } from "react"
@@ -61,8 +69,13 @@ export function CodeBlock({
       ? languageMap[language.toLowerCase() as keyof typeof languageMap]
       : undefined
 
-    // Create extensions array
-    const extensions = [basicSetup]
+    // Create base extensions for syntax highlighting and basic features
+    const extensions = [
+      highlightSpecialChars(),
+      drawSelection(),
+      syntaxHighlighting(defaultHighlightStyle),
+      bracketMatching(),
+    ]
 
     if (langExtension) {
       extensions.push(langExtension)
