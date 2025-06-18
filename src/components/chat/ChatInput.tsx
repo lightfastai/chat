@@ -241,6 +241,12 @@ const ChatInputComponent = ({
   const handleSendMessage = useCallback(async () => {
     if (!message.trim()) return
 
+    // Check if files are still uploading
+    if (isUploading) {
+      toast.info("Please wait for file uploads to complete before sending")
+      return
+    }
+
     // Show visual indicator if submit is disabled
     if (isSubmitDisabled) {
       toast.info("Please wait for the current response to complete")
@@ -283,6 +289,7 @@ const ChatInputComponent = ({
     }
   }, [
     message,
+    isUploading,
     isSubmitDisabled,
     onSendMessage,
     selectedModelId,
