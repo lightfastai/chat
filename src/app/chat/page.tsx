@@ -47,11 +47,19 @@ async function ChatPageWithPreloadedData() {
       return <ChatInterface />
     }
 
-    // Preload user data for PPR - this will be cached and streamed instantly
-    const preloadedUser = await preloadQuery(api.users.current, {}, { token })
+    // Preload user data and settings for PPR - this will be cached and streamed instantly
+    const [preloadedUser, preloadedUserSettings] = await Promise.all([
+      preloadQuery(api.users.current, {}, { token }),
+      preloadQuery(api.userSettings.getUserSettings, {}, { token }),
+    ])
 
-    // Pass preloaded user data to chat interface
-    return <ChatInterface preloadedUser={preloadedUser} />
+    // Pass preloaded user data and settings to chat interface
+    return (
+      <ChatInterface
+        preloadedUser={preloadedUser}
+        preloadedUserSettings={preloadedUserSettings}
+      />
+    )
   } catch (error) {
     // Log error but still render - don't break the UI
     console.warn("Server-side user preload failed:", error)

@@ -17,6 +17,7 @@ interface ChatInterfaceProps {
   preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
   preloadedMessages?: Preloaded<typeof api.messages.list>
   preloadedUser?: Preloaded<typeof api.users.current>
+  preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>
 }
 
 export function ChatInterface({
@@ -24,6 +25,7 @@ export function ChatInterface({
   preloadedThreadByClientId,
   preloadedMessages,
   preloadedUser,
+  preloadedUserSettings,
 }: ChatInterfaceProps = {}) {
   // Use custom chat hook with optimistic updates and preloaded data
   const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
@@ -31,6 +33,7 @@ export function ChatInterface({
       preloadedThreadById,
       preloadedThreadByClientId,
       preloadedMessages,
+      preloadedUserSettings,
     })
 
   // Track if user has ever sent a message to prevent flicker

@@ -73,6 +73,13 @@ async function ChatThreadPageWithPreloadedData({
     // Determine if this is a client ID or thread ID
     const isClientIdThread = isClientId(threadIdString)
 
+    // Preload user settings for all cases
+    const preloadedUserSettings = await preloadQuery(
+      api.userSettings.getUserSettings,
+      {},
+      { token },
+    )
+
     if (isClientIdThread) {
       // Preload thread by client ID
       const preloadedThreadByClientId = await preloadQuery(
@@ -89,6 +96,7 @@ async function ChatThreadPageWithPreloadedData({
         >
           <ChatInterface
             preloadedThreadByClientId={preloadedThreadByClientId}
+            preloadedUserSettings={preloadedUserSettings}
           />
         </ChatPreloadProvider>
       )
@@ -124,6 +132,7 @@ async function ChatThreadPageWithPreloadedData({
         <ChatInterface
           preloadedThreadById={preloadedThreadById}
           preloadedMessages={preloadedMessages}
+          preloadedUserSettings={preloadedUserSettings}
         />
       </ChatPreloadProvider>
     )

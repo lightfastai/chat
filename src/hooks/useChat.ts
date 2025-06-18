@@ -18,6 +18,7 @@ interface UseChatOptions {
   preloadedThreadById?: Preloaded<typeof api.threads.get>
   preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>
   preloadedMessages?: Preloaded<typeof api.messages.list>
+  preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>
 }
 
 export function useChat(options: UseChatOptions = {}) {
@@ -127,8 +128,18 @@ export function useChat(options: UseChatOptions = {}) {
   const messages =
     preloadedMessages ?? messagesByClientId ?? messagesByThreadId ?? []
 
-  // Query user settings to ensure they're available for optimistic updates
-  const userSettings = useQuery(api.userSettings.getUserSettings, {})
+  // Use preloaded user settings if available, otherwise query
+  const preloadedUserSettings = options.preloadedUserSettings
+    ? usePreloadedQuery(options.preloadedUserSettings)
+    : null
+
+  const userSettings = useQuery(
+    api.userSettings.getUserSettings,
+    preloadedUserSettings ? "skip" : {},
+  )
+
+  // Use whichever is available
+  const finalUserSettings = preloadedUserSettings ?? userSettings
 
   // Remove debug logging for production
   // Uncomment the following for debugging message queries
@@ -220,27 +231,33 @@ export function useChat(options: UseChatOptions = {}) {
       api.userSettings.getUserSettings,
       {},
     )
+
+    // Default to false if settings not loaded yet
+    // The actual determination will happen server-side
     let willUseUserApiKey = false
+
+    // Only determine API key usage if settings are loaded
+    if (userSettingsData !== undefined) {
+      if (provider === "anthropic" && userSettingsData?.hasAnthropicKey) {
+        willUseUserApiKey = true
+      } else if (provider === "openai" && userSettingsData?.hasOpenAIKey) {
+        willUseUserApiKey = true
+      } else if (
+        provider === "openrouter" &&
+        userSettingsData?.hasOpenRouterKey
+      ) {
+        willUseUserApiKey = true
+      }
+    }
 
     // Debug logging
     console.log("Optimistic update debug:", {
       provider,
       userSettingsData,
+      userSettingsDataIsLoaded: userSettingsData !== undefined,
+      willUseUserApiKey,
       modelId,
     })
-
-    if (userSettingsData) {
-      if (provider === "anthropic" && userSettingsData.hasAnthropicKey) {
-        willUseUserApiKey = true
-      } else if (provider === "openai" && userSettingsData.hasOpenAIKey) {
-        willUseUserApiKey = true
-      } else if (
-        provider === "openrouter" &&
-        userSettingsData.hasOpenRouterKey
-      ) {
-        willUseUserApiKey = true
-      }
-    }
 
     // Create optimistic assistant message placeholder
     const optimisticAssistantMessage: Doc<"messages"> = {
@@ -329,6 +346,15 @@ export function useChat(options: UseChatOptions = {}) {
   ) => {
     if (!message.trim()) return
 
+    // Ensure user settings are loaded before sending
+    // This helps ensure the optimistic update has the data it needs
+    if (finalUserSettings === undefined) {
+      console.warn("User settings not loaded yet, waiting...")
+      // In practice, this should rarely happen because we preload settings
+      // But this ensures we don't create incorrect optimistic updates
+      return
+    }
+
     try {
       if (isNewChat) {
         // 🚀 Generate client ID for new chat
@@ -407,6 +433,6 @@ export function useChat(options: UseChatOptions = {}) {
       description: getEmptyStateDescription(),
     },
     isDisabled: currentThread === null && !isNewChat && !currentClientId,
-    userSettings,
+    userSettings: finalUserSettings,
   }
 }
