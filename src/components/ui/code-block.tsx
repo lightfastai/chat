@@ -7,18 +7,10 @@ import { html } from "@codemirror/lang-html"
 import { javascript } from "@codemirror/lang-javascript"
 import { json } from "@codemirror/lang-json"
 import { python } from "@codemirror/lang-python"
-import {
-  bracketMatching,
-  defaultHighlightStyle,
-  syntaxHighlighting,
-} from "@codemirror/language"
 import { EditorState } from "@codemirror/state"
 import { oneDark } from "@codemirror/theme-one-dark"
-import {
-  EditorView,
-  drawSelection,
-  highlightSpecialChars,
-} from "@codemirror/view"
+import { EditorView } from "@codemirror/view"
+import { basicSetup } from "codemirror"
 import { Check, Copy } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useEffect, useRef, useState } from "react"
@@ -69,13 +61,8 @@ export function CodeBlock({
       ? languageMap[language.toLowerCase() as keyof typeof languageMap]
       : undefined
 
-    // Create base extensions for syntax highlighting and basic features
-    const extensions = [
-      highlightSpecialChars(),
-      drawSelection(),
-      syntaxHighlighting(defaultHighlightStyle),
-      bracketMatching(),
-    ]
+    // Create extensions array like Vercel does
+    const extensions = [basicSetup]
 
     if (langExtension) {
       extensions.push(langExtension)
@@ -85,34 +72,36 @@ export function CodeBlock({
       extensions.push(oneDark)
     }
 
+    // Add custom theme and settings
+    extensions.push(
+      EditorView.theme({
+        "&": {
+          fontSize: "13px",
+          fontFamily:
+            "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+        },
+        ".cm-content": {
+          padding: "12px",
+          minHeight: "auto",
+        },
+        ".cm-focused": {
+          outline: "none",
+        },
+        ".cm-editor": {
+          borderRadius: "6px",
+        },
+        ".cm-scroller": {
+          overflow: "auto",
+        },
+      }),
+      EditorView.lineWrapping,
+      EditorState.readOnly.of(readonly),
+    )
+
     // Create editor state
     const state = EditorState.create({
       doc: code,
-      extensions: [
-        ...extensions,
-        EditorView.theme({
-          "&": {
-            fontSize: "13px",
-            fontFamily:
-              "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-          },
-          ".cm-content": {
-            padding: "12px",
-            minHeight: "auto",
-          },
-          ".cm-focused": {
-            outline: "none",
-          },
-          ".cm-editor": {
-            borderRadius: "6px",
-          },
-          ".cm-scroller": {
-            overflow: "auto",
-          },
-        }),
-        EditorView.lineWrapping,
-        EditorState.readOnly.of(readonly),
-      ],
+      extensions,
     })
 
     // Create editor view
