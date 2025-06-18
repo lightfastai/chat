@@ -141,7 +141,7 @@ export function useChat(options: UseChatOptions = {}) {
     // Create optimistic thread with a temporary ID that looks like a Convex ID
     // This will be replaced by the real thread ID when the mutation completes
     // Use a format that starts with 'k' to pass our optimistic ID checks
-    const optimisticThreadId = `k${crypto.randomUUID().replace(/-/g, "")}` as Id<"threads">
+    const optimisticThreadId = crypto.randomUUID() as Id<"threads">
 
     // Create optimistic thread for sidebar display and message association
     const optimisticThread: Partial<Doc<"threads">> & {
@@ -175,13 +175,9 @@ export function useChat(options: UseChatOptions = {}) {
       optimisticThread as Doc<"threads">,
     )
 
-    // Create optimistic messages with IDs that look like Convex IDs
-    const userMessageId = `k${crypto.randomUUID().replace(/-/g, "")}` as Id<"messages">
-    const assistantMessageId = `k${crypto.randomUUID().replace(/-/g, "")}` as Id<"messages">
-
     // Create optimistic user message
     const optimisticUserMessage: Doc<"messages"> = {
-      _id: userMessageId,
+      _id: crypto.randomUUID() as Id<"messages">,
       _creationTime: now,
       threadId: optimisticThreadId,
       body,
@@ -194,7 +190,7 @@ export function useChat(options: UseChatOptions = {}) {
 
     // Create optimistic assistant message placeholder
     const optimisticAssistantMessage: Doc<"messages"> = {
-      _id: assistantMessageId,
+      _id: crypto.randomUUID() as Id<"messages">,
       _creationTime: now + 1,
       threadId: optimisticThreadId,
       body: "", // Empty body for streaming
@@ -212,7 +208,7 @@ export function useChat(options: UseChatOptions = {}) {
     // Messages are returned in descending order (newest first) by the backend
     localStore.setQuery(api.messages.list, { threadId: optimisticThreadId }, [
       optimisticAssistantMessage, // Assistant message has timestamp now + 1
-      optimisticUserMessage,      // User message has timestamp now
+      optimisticUserMessage, // User message has timestamp now
     ])
   })
 
@@ -227,7 +223,7 @@ export function useChat(options: UseChatOptions = {}) {
       if (existingMessages !== undefined) {
         const now = Date.now()
         const optimisticMessage: Doc<"messages"> = {
-          _id: `k${crypto.randomUUID().replace(/-/g, "")}` as Id<"messages">,
+          _id: crypto.randomUUID() as Id<"messages">,
           _creationTime: now,
           threadId,
           body,

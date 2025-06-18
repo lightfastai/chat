@@ -11,6 +11,41 @@ This development workflow integrates:
 - **Context Preservation**: GitHub comments + local context files to survive session interruptions
 - **Turborepo + Bun**: Lightning-fast builds with intelligent caching
 
+## 📋 Development Modes
+
+Claude Code operates in two distinct modes based on your development setup:
+
+### 🚀 Vercel Build Mode (Default)
+Use this mode when you want Claude to handle the full development lifecycle:
+- **Claude Responsibilities**:
+  - Makes code changes
+  - Runs `bun run build` iteratively to fix errors
+  - Runs `bun run lint` and `bun run format`
+  - Commits and pushes changes automatically
+  - Provides Vercel preview URL for testing
+- **User Responsibilities**:
+  - Tests on Vercel preview deployments
+  - Reports bugs or issues back to Claude
+- **When to Use**: Production-ready development, team collaboration, CI/CD workflows
+
+### 🔧 Local Dev Mode
+Use this mode when you're already running `bun dev:all` locally:
+- **Claude Responsibilities**:
+  - Acts as code generator only
+  - Makes code changes
+  - Asks user to test locally after changes
+  - Does NOT commit or push automatically
+- **User Responsibilities**:
+  - Runs `bun dev:all` before starting
+  - Tests changes locally in real-time
+  - Decides when to commit and push
+- **When to Use**: Rapid prototyping, debugging, exploratory development
+
+### Setting Development Mode
+At the start of your session, tell Claude which mode to use:
+- "Use Vercel Build Mode" (default if not specified)
+- "Use Local Dev Mode - I'm running bun dev:all"
+
 ## 🚨 CRITICAL: Context Preservation
 
 **YOU MUST** preserve context to survive terminal crashes and session interruptions:
@@ -105,7 +140,9 @@ bun run env:sync
 
 ### Step 4: Development Cycle
 
-**YOU MUST** follow this exact pattern:
+**Choose your development mode based on your setup:**
+
+#### 🚀 Vercel Build Mode (Default)
 ```bash
 # 1. Set up context tracking
 CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
@@ -115,6 +152,7 @@ Last Updated: $(date)
 PR Number: #<pr_number>
 Issue: #<issue_number>
 Branch: jeevanpillay/<feature_name>
+Development Mode: Vercel Build Mode
 
 ## Todo State
 - [ ] Task 1
@@ -127,19 +165,19 @@ Working on: <current_task>
 <notes>
 EOF
 
-# 2. Make code changes
+# 2. Claude makes code changes
 # ... implement features ...
 
-# 3. CRITICAL: Local validation BEFORE commit
+# 3. Claude runs validation (iteratively fixing errors)
 SKIP_ENV_VALIDATION=true bun run build  # MUST pass
 bun run lint                             # MUST pass
 bun run format                          # MUST pass
 
-# 4. Update context and post comments
+# 4. Claude updates context and posts comments
 gh pr comment <pr_number> --body "🔧 Progress: <what_was_done>"
 echo "Progress: <update>" >> "$CONTEXT_FILE"
 
-# 5. Commit and push for Vercel testing
+# 5. Claude commits and pushes for Vercel testing
 git add .
 git commit -m "feat: <description>
 
@@ -147,6 +185,49 @@ git commit -m "feat: <description>
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 git push -u origin jeevanpillay/<feature_name>
+
+# 6. Claude provides Vercel preview URL
+echo "🔗 Test on Vercel: https://<project>-<pr-number>-<org>.vercel.app"
+```
+
+#### 🔧 Local Dev Mode
+```bash
+# 1. User ensures dev server is running
+# Terminal 1: bun dev:all
+
+# 2. Set up context tracking
+CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
+cat > "$CONTEXT_FILE" << EOF
+# Claude Code Context - $(basename $(pwd))
+Last Updated: $(date)
+Branch: jeevanpillay/<feature_name>
+Development Mode: Local Dev Mode
+
+## Todo State
+- [ ] Task 1
+- [ ] Task 2
+
+## Current Focus
+Working on: <current_task>
+
+## Session Notes
+User is running bun dev:all locally
+<notes>
+EOF
+
+# 3. Claude makes code changes
+# ... implement features ...
+
+# 4. Claude asks user to test
+echo "✅ Changes complete. Please test locally at http://localhost:3000"
+echo "📝 What to test:"
+echo "   - <specific feature 1>"
+echo "   - <specific feature 2>"
+
+# 5. User tests and reports results
+# Claude waits for feedback before proceeding
+
+# 6. When ready, user handles commit/push manually
 ```
 
 ### Step 5: PR Creation & Testing
@@ -333,14 +414,227 @@ gh pr view <pr_number> --json statusCheckRollup
 
 ## Key Reminders
 
-1. **NO LOCAL DEV SERVERS** - Test only on Vercel previews
+1. **DEVELOPMENT MODE MATTERS**:
+   - **Vercel Build Mode**: NO local dev servers - Test only on Vercel previews
+   - **Local Dev Mode**: User runs `bun dev:all` - Claude acts as code generator only
 2. **CONTEXT IS CRITICAL** - Always use context files and GitHub comments
-3. **QUALITY GATES FIRST** - Build/lint must pass before commit
+3. **QUALITY GATES FIRST** - Build/lint must pass before commit (Vercel Build Mode)
 4. **WORKTREE CLEANUP** - Remove before merging to prevent errors
 5. **USE TEMPLATES** - Always use issue templates with file references
 6. **BIOME NOT ESLINT** - Use `bun run lint`, not ESLint commands
 
 ## Convex Guidelines
+
+### Next.js Server Rendering Patterns
+
+#### Preloading Data for Client Components
+**YOU MUST** use `preloadQuery` from `convex/nextjs` for optimal server rendering:
+
+```tsx
+// ❌ NEVER do this (client component waits for data)
+"use client"
+export function Tasks() {
+  const tasks = useQuery(api.tasks.list) // Loads after hydration
+  return <TaskList tasks={tasks} />
+}
+
+// ✅ ALWAYS do this (data preloaded on server)
+// In Server Component:
+import { preloadQuery } from "convex/nextjs"
+import { api } from "@/convex/_generated/api"
+import { Tasks } from "./Tasks"
+
+export async function TasksWrapper() {
+  const preloadedTasks = await preloadQuery(api.tasks.list, {
+    list: "default"
+  })
+  return <Tasks preloadedTasks={preloadedTasks} />
+}
+
+// In Client Component:
+"use client"
+import { Preloaded, usePreloadedQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+
+export function Tasks(props: {
+  preloadedTasks: Preloaded<typeof api.tasks.list>
+}) {
+  const tasks = usePreloadedQuery(props.preloadedTasks)
+  return <TaskList tasks={tasks} />
+}
+```
+
+#### Chat Application Example
+```tsx
+// app/chat/[threadId]/page.tsx
+import { preloadQuery } from "convex/nextjs"
+import { api } from "@/convex/_generated/api"
+import { ChatInterface } from "@/components/chat/ChatInterface"
+
+export default async function ChatPage({ 
+  params 
+}: { 
+  params: { threadId: string } 
+}) {
+  const token = await getAuthToken()
+  
+  // Preload both thread and messages
+  const [preloadedThread, preloadedMessages] = await Promise.all([
+    preloadQuery(
+      api.threads.get, 
+      { threadId: params.threadId as Id<"threads"> },
+      { token }
+    ),
+    preloadQuery(
+      api.messages.list,
+      { threadId: params.threadId as Id<"threads"> },
+      { token }
+    )
+  ])
+  
+  return (
+    <ChatInterface 
+      preloadedThread={preloadedThread}
+      preloadedMessages={preloadedMessages}
+    />
+  )
+}
+```
+
+#### Server Components with Non-Reactive Data
+Use `fetchQuery` for server-only data that doesn't need reactivity:
+
+```tsx
+// app/settings/page.tsx
+import { fetchQuery } from "convex/nextjs"
+import { api } from "@/convex/_generated/api"
+
+export default async function SettingsPage() {
+  const token = await getAuthToken()
+  const user = await fetchQuery(api.users.current, {}, { token })
+  
+  // Server-rendered, non-reactive
+  return <SettingsForm defaultValues={user} />
+}
+```
+
+#### Server Actions with Convex
+```tsx
+// app/chat/actions.ts
+"use server"
+import { fetchMutation } from "convex/nextjs"
+import { api } from "@/convex/_generated/api"
+import { revalidatePath } from "next/cache"
+
+export async function sendMessage(threadId: Id<"threads">, content: string) {
+  const token = await getAuthToken()
+  
+  await fetchMutation(
+    api.messages.send,
+    { threadId, content },
+    { token }
+  )
+  
+  revalidatePath(`/chat/${threadId}`)
+}
+```
+
+#### Authentication with Convex SSR
+```tsx
+// app/auth.ts
+import { auth } from "@clerk/nextjs/server"
+
+export async function getAuthToken() {
+  return (await (await auth()).getToken({ template: "convex" })) ?? undefined
+}
+```
+
+### Optimistic Updates
+
+#### Basic Pattern
+```tsx
+// src/hooks/useOptimisticMutation.ts
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+
+export function useOptimisticSendMessage() {
+  return useMutation(api.messages.send).withOptimisticUpdate(
+    (localStore, args) => {
+      const { threadId, content } = args
+      
+      // Get current messages
+      const existingMessages = localStore.getQuery(api.messages.list, { threadId })
+      if (existingMessages === undefined) return
+      
+      // Create optimistic message
+      const optimisticMessage = {
+        _id: `temp_${crypto.randomUUID()}` as Id<"messages">,
+        _creationTime: Date.now(),
+        threadId,
+        content,
+        userId: "pending" as Id<"users">,
+        model: null,
+        role: "user" as const,
+      }
+      
+      // Update local store (NEVER mutate, always create new array)
+      localStore.setQuery(
+        api.messages.list, 
+        { threadId }, 
+        [...existingMessages, optimisticMessage]
+      )
+    }
+  )
+}
+```
+
+#### Chat Application Optimistic Updates
+```tsx
+// src/components/chat/useChat.ts
+export function useChat(threadId: Id<"threads">) {
+  const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
+    (localStore, args) => {
+      const { threadId, content } = args
+      
+      // Update messages list
+      const messages = localStore.getQuery(api.messages.list, { threadId })
+      if (messages) {
+        localStore.setQuery(api.messages.list, { threadId }, [
+          ...messages,
+          {
+            _id: `optimistic_${Date.now()}` as Id<"messages">,
+            _creationTime: Date.now(),
+            threadId,
+            content,
+            userId: "pending" as Id<"users">,
+            model: null,
+            role: "user" as const,
+          }
+        ])
+      }
+      
+      // Update thread's last message
+      const thread = localStore.getQuery(api.threads.get, { threadId })
+      if (thread) {
+        localStore.setQuery(api.threads.get, { threadId }, {
+          ...thread,
+          lastMessageTime: Date.now(),
+          updatedAt: Date.now()
+        })
+      }
+    }
+  )
+  
+  return { sendMessage }
+}
+```
+
+#### Important Rules for Optimistic Updates
+1. **NEVER mutate objects** - Always create new objects/arrays
+2. **Check for undefined** - Query might not be loaded
+3. **Match server structure** - Optimistic data should match server response
+4. **Use temporary IDs** - Will be replaced by real IDs after mutation
+5. **Handle rollbacks gracefully** - UI will revert if mutation fails
 
 ### Function Guidelines
 

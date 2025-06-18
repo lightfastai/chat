@@ -71,12 +71,22 @@ export function ChatInterface({
 
   // Check if AI is currently generating (any message is streaming or thread is generating)
   const isAIGenerating = useMemo(() => {
+    // For new chats, only check if there are active messages streaming
+    // Don't check currentThread?.isGenerating to avoid carrying over state from previous threads
+    if (isNewChat) {
+      return (
+        messages.some((msg) => msg.isStreaming && !msg.isComplete) ||
+        activeStreams.size > 0
+      )
+    }
+
+    // For existing chats, check all conditions
     return (
       currentThread?.isGenerating ||
       messages.some((msg) => msg.isStreaming && !msg.isComplete) ||
       activeStreams.size > 0
     )
-  }, [currentThread, messages, activeStreams])
+  }, [currentThread, messages, activeStreams, isNewChat])
 
   // Enhance messages with streaming text
   const enhancedMessages = useMemo(() => {
