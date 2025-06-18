@@ -9,7 +9,7 @@ import {
   useQuery,
 } from "convex/react"
 import { usePathname } from "next/navigation"
-import { useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import { api } from "../../convex/_generated/api"
 import type { Doc, Id } from "../../convex/_generated/dataModel"
 
@@ -307,7 +307,7 @@ export function useChat(options: UseChatOptions = {}) {
 
         // Create thread + send message atomically with optimistic updates
         await createThreadAndSend({
-          title: "Generating title...",
+          title: "",
           clientId: clientId,
           body: message,
           modelId: modelId as ModelId,
@@ -321,7 +321,7 @@ export function useChat(options: UseChatOptions = {}) {
       if (currentClientId && !currentThread) {
         // We have a clientId but thread doesn't exist yet, create it + send message
         await createThreadAndSend({
-          title: "Generating title...",
+          title: "",
           clientId: currentClientId,
           body: message,
           modelId: modelId as ModelId,
