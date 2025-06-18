@@ -95,8 +95,7 @@ export function ChatTitleClient() {
   const isGenerating = currentThread?.isTitleGenerating
 
   // Show shadowy blob when title is empty and generating
-  // Debug: Also show if title is exactly empty string
-  if (title === "" || (!title && isGenerating)) {
+  if (!title && isGenerating) {
     return (
       <div className="flex items-center gap-2">
         <div className="relative h-6 w-32 sm:w-40 overflow-hidden rounded">
