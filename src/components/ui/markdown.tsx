@@ -1,9 +1,10 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { memo } from "react"
+import React, { memo } from "react"
 import ReactMarkdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { CodeBlock } from "./code-block"
 
 // Properly typed component props based on react-markdown's actual types
 type MarkdownComponentProps = React.HTMLAttributes<HTMLElement> & {
@@ -45,8 +46,37 @@ const components: Partial<Components> = {
     )
   },
 
-  // Pre component for code blocks
+  // Pre component for code blocks - handles code blocks with syntax highlighting
   pre({ children, className, ...props }: MarkdownComponentProps) {
+    // Check if this pre contains a code element
+    let codeContent = ""
+    let language = ""
+
+    // Extract code content and language from children
+    if (React.isValidElement(children) && children.props) {
+      const codeProps = children.props as {
+        children?: string
+        className?: string
+      }
+      codeContent =
+        typeof codeProps.children === "string" ? codeProps.children : ""
+      language = codeProps.className?.replace("language-", "") || ""
+    } else if (typeof children === "string") {
+      codeContent = children
+    }
+
+    // If we have code content, use CodeBlock component
+    if (codeContent.trim()) {
+      return (
+        <CodeBlock
+          code={codeContent}
+          language={language}
+          className={className}
+        />
+      )
+    }
+
+    // Fallback to original pre element
     return (
       <div className="flex flex-col my-4">
         <pre
