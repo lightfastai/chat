@@ -99,7 +99,7 @@ export function PreloadedThreadsList({
         try {
           await togglePinned.withOptimisticUpdate((localStore, args) => {
             // Get the current threads list
-            const currentThreads = localStore.getQuery(api.threads.list)
+            const currentThreads = localStore.getQuery(api.threads.list, {})
             if (!currentThreads) return
 
             // Find the thread being toggled

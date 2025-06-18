@@ -3,6 +3,7 @@ import { v } from "convex/values"
 import { ALL_MODEL_IDS } from "../src/lib/ai/types.js"
 import { internal } from "./_generated/api.js"
 import { mutation, query } from "./_generated/server.js"
+import { wrapMutation, wrapQuery } from "./lib/hooks.js"
 
 // Create a new thread
 export const create = mutation({
@@ -11,7 +12,7 @@ export const create = mutation({
     clientId: v.optional(v.string()), // Allow client-generated ID for instant navigation
   },
   returns: v.id("threads"),
-  handler: async (ctx, args) => {
+  handler: wrapMutation("threads.create", async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
       throw new Error("User must be authenticated")
@@ -48,7 +49,7 @@ export const create = mutation({
         modelStats: {},
       },
     })
-  },
+  }),
 })
 
 // List threads for a user
@@ -108,7 +109,7 @@ export const list = query({
       ),
     }),
   ),
-  handler: async (ctx, _args) => {
+  handler: wrapQuery("threads.list", async (ctx, _args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
       return []
@@ -119,7 +120,7 @@ export const list = query({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
       .collect()
-  },
+  }),
 })
 
 // Get a specific thread
