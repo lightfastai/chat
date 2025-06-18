@@ -53,30 +53,37 @@ export function LandingChatInput() {
 
   return (
     <>
-      <div className="relative border rounded-md">
-        <ScrollArea className="max-h-[180px]">
-          <div className="p-4 pr-16">
+      {/* Main input container - matches ChatInput structure */}
+      <div className="w-full border flex flex-col transition-all bg-transparent dark:bg-input/10 rounded-md">
+        {/* Textarea area - grows with content up to max height */}
+        <ScrollArea className="flex-1 max-h-[180px]">
+          <div className="p-4">
             <Textarea
               ref={textareaRef}
               placeholder="Ask anything..."
-              className="min-h-[120px] resize-none border-0 focus-visible:ring-0 text-lg bg-transparent p-0 whitespace-pre-wrap break-words"
+              className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words bg-transparent p-0 text-lg"
               value={message}
               onChange={handleMessageChange}
               onKeyDown={handleKeyDown}
               style={{
                 lineHeight: "28px",
+                minHeight: "120px",
               }}
             />
           </div>
         </ScrollArea>
-        <Button
-          size="icon"
-          onClick={handleSendClick}
-          className="absolute right-3 bottom-3"
-          disabled={!message.trim()}
-        >
-          <ArrowUp className="w-5 h-5" />
-        </Button>
+
+        {/* Controls area - always at bottom */}
+        <div className="flex items-center justify-end p-3 bg-transparent dark:bg-input/10 transition-[color,box-shadow]">
+          <Button
+            size="icon"
+            onClick={handleSendClick}
+            disabled={!message.trim()}
+            className="h-8 w-8 p-0"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       <SignInDialog
