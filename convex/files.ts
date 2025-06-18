@@ -2,6 +2,12 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { asyncMap } from "convex-helpers"
 import { v } from "convex/values"
 import { internalQuery, mutation, query } from "./_generated/server"
+import {
+  fileMetadataValidator,
+  fileNameValidator,
+  mimeTypeValidator,
+  storageIdValidator,
+} from "./validators"
 
 // Maximum file size (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -38,18 +44,11 @@ export const generateUploadUrl = mutation({
 
 export const createFile = mutation({
   args: {
-    storageId: v.string(),
-    fileName: v.string(),
-    fileType: v.string(),
+    storageId: storageIdValidator,
+    fileName: fileNameValidator,
+    fileType: mimeTypeValidator,
     fileSize: v.number(),
-    metadata: v.optional(
-      v.object({
-        width: v.optional(v.number()),
-        height: v.optional(v.number()),
-        pages: v.optional(v.number()),
-        extractedText: v.optional(v.string()),
-      }),
-    ),
+    metadata: fileMetadataValidator,
   },
   returns: v.id("files"),
   handler: async (ctx, args) => {
@@ -103,20 +102,13 @@ export const getFile = query({
     v.object({
       _id: v.id("files"),
       _creationTime: v.number(),
-      storageId: v.string(),
-      fileName: v.string(),
-      fileType: v.string(),
+      storageId: storageIdValidator,
+      fileName: fileNameValidator,
+      fileType: mimeTypeValidator,
       fileSize: v.number(),
       uploadedBy: v.id("users"),
       uploadedAt: v.number(),
-      metadata: v.optional(
-        v.object({
-          width: v.optional(v.number()),
-          height: v.optional(v.number()),
-          pages: v.optional(v.number()),
-          extractedText: v.optional(v.string()),
-        }),
-      ),
+      metadata: fileMetadataValidator,
       url: v.union(v.string(), v.null()),
     }),
   ),
@@ -142,20 +134,13 @@ export const getFiles = query({
     v.object({
       _id: v.id("files"),
       _creationTime: v.number(),
-      storageId: v.string(),
-      fileName: v.string(),
-      fileType: v.string(),
+      storageId: storageIdValidator,
+      fileName: fileNameValidator,
+      fileType: mimeTypeValidator,
       fileSize: v.number(),
       uploadedBy: v.id("users"),
       uploadedAt: v.number(),
-      metadata: v.optional(
-        v.object({
-          width: v.optional(v.number()),
-          height: v.optional(v.number()),
-          pages: v.optional(v.number()),
-          extractedText: v.optional(v.string()),
-        }),
-      ),
+      metadata: fileMetadataValidator,
       url: v.union(v.string(), v.null()),
     }),
   ),
@@ -182,20 +167,13 @@ export const getFilesInternal = internalQuery({
     v.object({
       _id: v.id("files"),
       _creationTime: v.number(),
-      storageId: v.string(),
-      fileName: v.string(),
-      fileType: v.string(),
+      storageId: storageIdValidator,
+      fileName: fileNameValidator,
+      fileType: mimeTypeValidator,
       fileSize: v.number(),
       uploadedBy: v.id("users"),
       uploadedAt: v.number(),
-      metadata: v.optional(
-        v.object({
-          width: v.optional(v.number()),
-          height: v.optional(v.number()),
-          pages: v.optional(v.number()),
-          extractedText: v.optional(v.string()),
-        }),
-      ),
+      metadata: fileMetadataValidator,
     }),
   ),
   handler: async (ctx, args) => {
@@ -214,20 +192,13 @@ export const getFileWithUrl = internalQuery({
     v.object({
       _id: v.id("files"),
       _creationTime: v.number(),
-      storageId: v.string(),
-      fileName: v.string(),
-      fileType: v.string(),
+      storageId: storageIdValidator,
+      fileName: fileNameValidator,
+      fileType: mimeTypeValidator,
       fileSize: v.number(),
       uploadedBy: v.id("users"),
       uploadedAt: v.number(),
-      metadata: v.optional(
-        v.object({
-          width: v.optional(v.number()),
-          height: v.optional(v.number()),
-          pages: v.optional(v.number()),
-          extractedText: v.optional(v.string()),
-        }),
-      ),
+      metadata: fileMetadataValidator,
       url: v.union(v.string(), v.null()),
     }),
   ),

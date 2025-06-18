@@ -5,6 +5,15 @@ import { internalMutation, mutation, query } from "./_generated/server"
 // Import proper encryption utilities
 import { decrypt, encrypt } from "./lib/encryption.js"
 
+// Import validators
+import {
+  anthropicApiKeyValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  openaiApiKeyValidator,
+  openrouterApiKeyValidator,
+} from "./validators"
+
 // Get user settings
 export const getUserSettings = query({
   args: {},
@@ -15,8 +24,8 @@ export const getUserSettings = query({
       userId: v.id("users"),
       preferences: v.optional(
         v.object({
-          defaultModel: v.optional(v.string()),
-          preferredProvider: v.optional(v.string()),
+          defaultModel: v.optional(modelIdValidator),
+          preferredProvider: v.optional(modelProviderValidator),
         }),
       ),
       createdAt: v.number(),
@@ -58,9 +67,9 @@ export const getUserSettings = query({
 // Update user API keys
 export const updateApiKeys = mutation({
   args: {
-    openaiKey: v.optional(v.string()),
-    anthropicKey: v.optional(v.string()),
-    openrouterKey: v.optional(v.string()),
+    openaiKey: v.optional(openaiApiKeyValidator),
+    anthropicKey: v.optional(anthropicApiKeyValidator),
+    openrouterKey: v.optional(openrouterApiKeyValidator),
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { openaiKey, anthropicKey, openrouterKey }) => {
@@ -127,39 +136,8 @@ export const updateApiKeys = mutation({
 // Update user preferences
 export const updatePreferences = mutation({
   args: {
-    defaultModel: v.optional(
-      v.union(
-        // OpenAI models
-        v.literal("gpt-4o-mini"),
-        v.literal("gpt-4o"),
-        v.literal("gpt-4.1"),
-        v.literal("gpt-4.1-mini"),
-        v.literal("gpt-4.1-nano"),
-        v.literal("o3-mini"),
-        v.literal("o4-mini"),
-        v.literal("gpt-3.5-turbo"),
-        // Anthropic models
-        v.literal("claude-4-opus-20250514"),
-        v.literal("claude-4-sonnet-20250514"),
-        v.literal("claude-3-7-sonnet-20250219"),
-        v.literal("claude-3-5-sonnet-20241022"),
-        v.literal("claude-3-5-sonnet-20240620"),
-        v.literal("claude-3-5-haiku-20241022"),
-        // OpenRouter models
-        v.literal("meta-llama/llama-3.3-70b-instruct"),
-        v.literal("anthropic/claude-3.5-sonnet"),
-        v.literal("openai/gpt-4o"),
-        v.literal("google/gemini-pro-1.5"),
-        v.literal("mistralai/mistral-large"),
-      ),
-    ),
-    preferredProvider: v.optional(
-      v.union(
-        v.literal("openai"),
-        v.literal("anthropic"),
-        v.literal("openrouter"),
-      ),
-    ),
+    defaultModel: v.optional(modelIdValidator),
+    preferredProvider: v.optional(modelProviderValidator),
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { defaultModel, preferredProvider }) => {
@@ -202,11 +180,7 @@ export const updatePreferences = mutation({
 // Remove specific API key
 export const removeApiKey = mutation({
   args: {
-    provider: v.union(
-      v.literal("openai"),
-      v.literal("anthropic"),
-      v.literal("openrouter"),
-    ),
+    provider: modelProviderValidator,
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { provider }) => {
@@ -242,9 +216,9 @@ export const getDecryptedApiKeys = internalMutation({
   returns: v.union(
     v.null(),
     v.object({
-      openai: v.optional(v.string()),
-      anthropic: v.optional(v.string()),
-      openrouter: v.optional(v.string()),
+      openai: v.optional(openaiApiKeyValidator),
+      anthropic: v.optional(anthropicApiKeyValidator),
+      openrouter: v.optional(openrouterApiKeyValidator),
     }),
   ),
   handler: async (ctx, { userId }) => {

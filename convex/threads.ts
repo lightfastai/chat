@@ -1,14 +1,45 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
-import { ALL_MODEL_IDS } from "../src/lib/ai/types.js"
 import { internal } from "./_generated/api.js"
 import { mutation, query } from "./_generated/server.js"
+import {
+  branchInfoValidator,
+  clientIdValidator,
+  modelIdValidator,
+  shareIdValidator,
+  shareSettingsValidator,
+  threadUsageValidator,
+  titleValidator,
+} from "./validators.js"
+
+// Thread object validator used in returns
+const threadObjectValidator = v.object({
+  _id: v.id("threads"),
+  _creationTime: v.number(),
+  clientId: v.optional(clientIdValidator),
+  title: titleValidator,
+  userId: v.id("users"),
+  createdAt: v.number(),
+  lastMessageAt: v.number(),
+  isTitleGenerating: v.optional(v.boolean()),
+  isGenerating: v.optional(v.boolean()),
+  pinned: v.optional(v.boolean()),
+  // Branch information
+  branchedFrom: branchInfoValidator,
+  // Share functionality
+  isPublic: v.optional(v.boolean()),
+  shareId: v.optional(shareIdValidator),
+  sharedAt: v.optional(v.number()),
+  shareSettings: shareSettingsValidator,
+  // Thread-level usage tracking (denormalized for performance)
+  usage: threadUsageValidator,
+})
 
 // Create a new thread
 export const create = mutation({
   args: {
-    title: v.string(),
-    clientId: v.optional(v.string()), // Allow client-generated ID for instant navigation
+    title: titleValidator,
+    clientId: v.optional(clientIdValidator), // Allow client-generated ID for instant navigation
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
@@ -54,60 +85,7 @@ export const create = mutation({
 // List threads for a user
 export const list = query({
   args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("threads"),
-      _creationTime: v.number(),
-      clientId: v.optional(v.string()),
-      title: v.string(),
-      userId: v.id("users"),
-      createdAt: v.number(),
-      lastMessageAt: v.number(),
-      isTitleGenerating: v.optional(v.boolean()),
-      isGenerating: v.optional(v.boolean()),
-      pinned: v.optional(v.boolean()),
-      // Branch information
-      branchedFrom: v.optional(
-        v.object({
-          threadId: v.id("threads"),
-          messageId: v.id("messages"),
-          timestamp: v.number(),
-        }),
-      ),
-      // Share functionality
-      isPublic: v.optional(v.boolean()),
-      shareId: v.optional(v.string()),
-      sharedAt: v.optional(v.number()),
-      shareSettings: v.optional(
-        v.object({
-          showThinking: v.optional(v.boolean()),
-        }),
-      ),
-      // Thread-level usage tracking (denormalized for performance)
-      usage: v.optional(
-        v.object({
-          totalInputTokens: v.number(),
-          totalOutputTokens: v.number(),
-          totalTokens: v.number(),
-          totalReasoningTokens: v.number(),
-          totalCachedInputTokens: v.number(),
-          messageCount: v.number(),
-          // Dynamic model tracking - scales to any number of models/providers
-          modelStats: v.record(
-            v.string(),
-            v.object({
-              messageCount: v.number(),
-              inputTokens: v.number(),
-              outputTokens: v.number(),
-              totalTokens: v.number(),
-              reasoningTokens: v.number(),
-              cachedInputTokens: v.number(),
-            }),
-          ),
-        }),
-      ),
-    }),
-  ),
+  returns: v.array(threadObjectValidator),
   handler: async (ctx, _args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -127,61 +105,7 @@ export const get = query({
   args: {
     threadId: v.id("threads"),
   },
-  returns: v.union(
-    v.object({
-      _id: v.id("threads"),
-      _creationTime: v.number(),
-      clientId: v.optional(v.string()),
-      title: v.string(),
-      userId: v.id("users"),
-      createdAt: v.number(),
-      lastMessageAt: v.number(),
-      isTitleGenerating: v.optional(v.boolean()),
-      isGenerating: v.optional(v.boolean()),
-      pinned: v.optional(v.boolean()),
-      // Branch information
-      branchedFrom: v.optional(
-        v.object({
-          threadId: v.id("threads"),
-          messageId: v.id("messages"),
-          timestamp: v.number(),
-        }),
-      ),
-      // Share functionality
-      isPublic: v.optional(v.boolean()),
-      shareId: v.optional(v.string()),
-      sharedAt: v.optional(v.number()),
-      shareSettings: v.optional(
-        v.object({
-          showThinking: v.optional(v.boolean()),
-        }),
-      ),
-      // Thread-level usage tracking (denormalized for performance)
-      usage: v.optional(
-        v.object({
-          totalInputTokens: v.number(),
-          totalOutputTokens: v.number(),
-          totalTokens: v.number(),
-          totalReasoningTokens: v.number(),
-          totalCachedInputTokens: v.number(),
-          messageCount: v.number(),
-          // Dynamic model tracking - scales to any number of models/providers
-          modelStats: v.record(
-            v.string(),
-            v.object({
-              messageCount: v.number(),
-              inputTokens: v.number(),
-              outputTokens: v.number(),
-              totalTokens: v.number(),
-              reasoningTokens: v.number(),
-              cachedInputTokens: v.number(),
-            }),
-          ),
-        }),
-      ),
-    }),
-    v.null(),
-  ),
+  returns: v.union(threadObjectValidator, v.null()),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -202,63 +126,9 @@ export const get = query({
 // Get a thread by clientId (for instant navigation)
 export const getByClientId = query({
   args: {
-    clientId: v.string(),
+    clientId: clientIdValidator,
   },
-  returns: v.union(
-    v.object({
-      _id: v.id("threads"),
-      _creationTime: v.number(),
-      clientId: v.optional(v.string()),
-      title: v.string(),
-      userId: v.id("users"),
-      createdAt: v.number(),
-      lastMessageAt: v.number(),
-      isTitleGenerating: v.optional(v.boolean()),
-      isGenerating: v.optional(v.boolean()),
-      pinned: v.optional(v.boolean()),
-      // Branch information
-      branchedFrom: v.optional(
-        v.object({
-          threadId: v.id("threads"),
-          messageId: v.id("messages"),
-          timestamp: v.number(),
-        }),
-      ),
-      // Share functionality
-      isPublic: v.optional(v.boolean()),
-      shareId: v.optional(v.string()),
-      sharedAt: v.optional(v.number()),
-      shareSettings: v.optional(
-        v.object({
-          showThinking: v.optional(v.boolean()),
-        }),
-      ),
-      // Thread-level usage tracking (denormalized for performance)
-      usage: v.optional(
-        v.object({
-          totalInputTokens: v.number(),
-          totalOutputTokens: v.number(),
-          totalTokens: v.number(),
-          totalReasoningTokens: v.number(),
-          totalCachedInputTokens: v.number(),
-          messageCount: v.number(),
-          // Dynamic model tracking - scales to any number of models/providers
-          modelStats: v.record(
-            v.string(),
-            v.object({
-              messageCount: v.number(),
-              inputTokens: v.number(),
-              outputTokens: v.number(),
-              totalTokens: v.number(),
-              reasoningTokens: v.number(),
-              cachedInputTokens: v.number(),
-            }),
-          ),
-        }),
-      ),
-    }),
-    v.null(),
-  ),
+  returns: v.union(threadObjectValidator, v.null()),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -304,7 +174,7 @@ export const updateLastMessage = mutation({
 export const updateTitle = mutation({
   args: {
     threadId: v.id("threads"),
-    title: v.string(),
+    title: titleValidator,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -401,8 +271,8 @@ export const branchFromMessage = mutation({
   args: {
     originalThreadId: v.id("threads"),
     branchFromMessageId: v.id("messages"),
-    modelId: v.union(...ALL_MODEL_IDS.map((id) => v.literal(id))),
-    clientId: v.optional(v.string()), // Support clientId for instant navigation
+    modelId: modelIdValidator,
+    clientId: v.optional(clientIdValidator), // Support clientId for instant navigation
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {

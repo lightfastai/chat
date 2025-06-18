@@ -3,6 +3,7 @@ import { type CoreMessage, generateText } from "ai"
 import { v } from "convex/values"
 import { internal } from "./_generated/api.js"
 import { internalAction, internalMutation } from "./_generated/server.js"
+import { titleValidator, validateTitle } from "./validators.js"
 
 // Internal action to generate title using fast AI model
 export const generateTitle = internalAction({
@@ -46,9 +47,14 @@ export const generateTitle = internalAction({
         temperature: 0.3, // Lower temperature for more consistent titles
       })
 
-      const generatedTitle = text.trim()
+      let generatedTitle = text.trim()
 
       if (generatedTitle) {
+        // Ensure generated title doesn't exceed 80 characters
+        if (generatedTitle.length > 80) {
+          generatedTitle = `${generatedTitle.substring(0, 77)}...`
+        }
+
         console.log("Generated title:", generatedTitle)
 
         // Update the thread title
@@ -60,8 +66,8 @@ export const generateTitle = internalAction({
         console.warn("Empty title generated, using fallback")
         // Fallback to truncated message if AI fails
         const fallbackTitle =
-          args.userMessage.length > 50
-            ? `${args.userMessage.substring(0, 50)}...`
+          args.userMessage.length > 77
+            ? `${args.userMessage.substring(0, 77)}...`
             : args.userMessage
 
         await ctx.runMutation(internal.titles.updateThreadTitle, {
@@ -74,8 +80,8 @@ export const generateTitle = internalAction({
 
       // Fallback to truncated message on error
       const fallbackTitle =
-        args.userMessage.length > 50
-          ? `${args.userMessage.substring(0, 50)}...`
+        args.userMessage.length > 77
+          ? `${args.userMessage.substring(0, 77)}...`
           : args.userMessage
 
       await ctx.runMutation(internal.titles.updateThreadTitle, {
@@ -92,10 +98,15 @@ export const generateTitle = internalAction({
 export const updateThreadTitle = internalMutation({
   args: {
     threadId: v.id("threads"),
-    title: v.string(),
+    title: titleValidator,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // Validate title length
+    if (!validateTitle(args.title)) {
+      throw new Error("Title must be between 1 and 80 characters")
+    }
+
     await ctx.db.patch(args.threadId, {
       title: args.title,
       isTitleGenerating: false,

@@ -1,6 +1,12 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { query } from "./_generated/server.js"
+import {
+  emailValidator,
+  phoneValidator,
+  urlValidator,
+  userNameValidator,
+} from "./validators.js"
 
 /**
  * Get the current authenticated user's information
@@ -11,11 +17,11 @@ export const current = query({
     v.object({
       _id: v.id("users"),
       _creationTime: v.number(),
-      name: v.optional(v.string()),
-      email: v.optional(v.string()),
-      image: v.optional(v.string()),
+      name: v.optional(userNameValidator),
+      email: v.optional(emailValidator),
+      image: v.optional(urlValidator),
       emailVerificationTime: v.optional(v.number()),
-      phone: v.optional(v.string()),
+      phone: phoneValidator,
       phoneVerificationTime: v.optional(v.number()),
       isAnonymous: v.optional(v.boolean()),
     }),
@@ -42,11 +48,11 @@ export const getById = query({
     v.object({
       _id: v.id("users"),
       _creationTime: v.number(),
-      name: v.optional(v.string()),
-      email: v.optional(v.string()),
-      image: v.optional(v.string()),
+      name: v.optional(userNameValidator),
+      email: v.optional(emailValidator),
+      image: v.optional(urlValidator),
       emailVerificationTime: v.optional(v.number()),
-      phone: v.optional(v.string()),
+      phone: phoneValidator,
       phoneVerificationTime: v.optional(v.number()),
       isAnonymous: v.optional(v.boolean()),
     }),

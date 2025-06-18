@@ -1,11 +1,13 @@
+import { env } from "./env.js"
+
 export default {
   providers: [
     {
-      domain: process.env.CONVEX_SITE_URL,
+      domain: env.CONVEX_SITE_URL,
       applicationID: "convex",
     },
   ],
-  // site: process.env.VERCEL_URL
-  //   ? `https://${process.env.VERCEL_URL}`
-  //   : process.env.SITE_URL || "http://localhost:3000",
+  // site: env.VERCEL_URL
+  //   ? `https://${env.VERCEL_URL}`
+  //   : env.SITE_URL || "http://localhost:3000",
 }

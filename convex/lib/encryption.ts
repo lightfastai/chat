@@ -3,9 +3,11 @@
  * Uses Web Crypto API for proper encryption/decryption
  */
 
+import { env } from "../env.js"
+
 // Get encryption key from environment
 const getEncryptionKey = async (): Promise<CryptoKey> => {
-  const keyString = process.env.ENCRYPTION_KEY || process.env.JWT_PRIVATE_KEY
+  const keyString = env.ENCRYPTION_KEY || env.JWT_PRIVATE_KEY
 
   if (!keyString) {
     throw new Error(

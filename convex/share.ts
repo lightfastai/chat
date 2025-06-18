@@ -2,6 +2,22 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { nanoid } from "nanoid"
 import { mutation, query } from "./_generated/server"
+import {
+  chunkIdValidator,
+  ipHashValidator,
+  messageTypeValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  shareIdValidator,
+  shareSettingsValidator,
+  streamChunkValidator,
+  streamIdValidator,
+  titleValidator,
+  tokenUsageValidator,
+  urlValidator,
+  userAgentValidator,
+  userNameValidator,
+} from "./validators"
 
 export const shareThread = mutation({
   args: {
@@ -12,7 +28,7 @@ export const shareThread = mutation({
       }),
     ),
   },
-  returns: v.object({ shareId: v.string() }),
+  returns: v.object({ shareId: shareIdValidator }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -130,11 +146,11 @@ export const updateShareSettings = mutation({
 // Mutation to log share access attempts and perform rate limiting
 export const logShareAccess = mutation({
   args: {
-    shareId: v.string(),
+    shareId: shareIdValidator,
     clientInfo: v.optional(
       v.object({
-        ipHash: v.optional(v.string()),
-        userAgent: v.optional(v.string()),
+        ipHash: ipHashValidator,
+        userAgent: userAgentValidator,
       }),
     ),
   },
@@ -189,21 +205,17 @@ export const logShareAccess = mutation({
 
 export const getSharedThread = query({
   args: {
-    shareId: v.string(),
+    shareId: shareIdValidator,
   },
   returns: v.union(
     v.null(),
     v.object({
       thread: v.object({
         _id: v.id("threads"),
-        title: v.string(),
+        title: titleValidator,
         createdAt: v.number(),
         lastMessageAt: v.number(),
-        shareSettings: v.optional(
-          v.object({
-            showThinking: v.optional(v.boolean()),
-          }),
-        ),
+        shareSettings: shareSettingsValidator,
       }),
       messages: v.array(
         v.object({
@@ -212,17 +224,11 @@ export const getSharedThread = query({
           threadId: v.id("threads"),
           body: v.string(),
           timestamp: v.number(),
-          messageType: v.union(v.literal("user"), v.literal("assistant")),
-          model: v.optional(
-            v.union(
-              v.literal("openai"),
-              v.literal("anthropic"),
-              v.literal("openrouter"),
-            ),
-          ),
-          modelId: v.optional(v.string()),
+          messageType: messageTypeValidator,
+          model: v.optional(modelProviderValidator),
+          modelId: v.optional(modelIdValidator),
           isStreaming: v.optional(v.boolean()),
-          streamId: v.optional(v.string()),
+          streamId: v.optional(streamIdValidator),
           isComplete: v.optional(v.boolean()),
           thinkingStartedAt: v.optional(v.number()),
           thinkingCompletedAt: v.optional(v.number()),
@@ -231,34 +237,17 @@ export const getSharedThread = query({
           isThinking: v.optional(v.boolean()),
           hasThinkingContent: v.optional(v.boolean()),
           usedUserApiKey: v.optional(v.boolean()),
-          usage: v.optional(
-            v.object({
-              inputTokens: v.optional(v.number()),
-              outputTokens: v.optional(v.number()),
-              totalTokens: v.optional(v.number()),
-              reasoningTokens: v.optional(v.number()),
-              cachedInputTokens: v.optional(v.number()),
-            }),
-          ),
-          lastChunkId: v.optional(v.string()),
-          streamChunks: v.optional(
-            v.array(
-              v.object({
-                id: v.string(),
-                content: v.string(),
-                timestamp: v.number(),
-                sequence: v.optional(v.number()),
-              }),
-            ),
-          ),
+          usage: tokenUsageValidator,
+          lastChunkId: v.optional(chunkIdValidator),
+          streamChunks: v.optional(v.array(streamChunkValidator)),
           streamVersion: v.optional(v.number()),
         }),
       ),
       owner: v.union(
         v.null(),
         v.object({
-          name: v.union(v.string(), v.null()),
-          image: v.union(v.string(), v.null()),
+          name: v.union(userNameValidator, v.null()),
+          image: v.union(urlValidator, v.null()),
         }),
       ),
     }),
@@ -326,13 +315,9 @@ export const getThreadShareInfo = query({
     v.null(),
     v.object({
       isPublic: v.boolean(),
-      shareId: v.optional(v.string()),
+      shareId: v.optional(shareIdValidator),
       sharedAt: v.optional(v.number()),
-      shareSettings: v.optional(
-        v.object({
-          showThinking: v.optional(v.boolean()),
-        }),
-      ),
+      shareSettings: shareSettingsValidator,
     }),
   ),
   handler: async (ctx, args) => {

@@ -10,24 +10,36 @@ const __dirname = path.dirname(__filename)
 
 // Configuration
 const ENV_FILE = ".env.local"
-const REQUIRED_VARS = [
-  "OPENAI_API_KEY",
-  "ANTHROPIC_API_KEY",
+
+// Define environment variables that need to be synced to Convex
+// These are variables that Convex functions actually use
+const CONVEX_REQUIRED_VARS = [
   "EXA_API_KEY",
-] as const
-const OPTIONAL_VARS = [
-  "GOOGLE_API_KEY",
-  "AUTH_GITHUB_ID",
-  "AUTH_GITHUB_SECRET",
-  "SITE_URL",
+  "OPENROUTER_API_KEY",
   "JWT_PRIVATE_KEY",
-  "JWKS",
+] as const
+
+const CONVEX_OPTIONAL_VARS = [
+  "ENCRYPTION_KEY",
+  "CONVEX_SITE_URL",
+  "SITE_URL",
   "NODE_ENV",
 ] as const
 
-type RequiredVar = (typeof REQUIRED_VARS)[number]
-type OptionalVar = (typeof OPTIONAL_VARS)[number]
-type EnvVar = RequiredVar | OptionalVar
+// Next.js requires these but they don't need to be synced to Convex
+const NEXTJS_ONLY_VARS = [
+  "OPENAI_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "AUTH_GITHUB_ID",
+  "AUTH_GITHUB_SECRET",
+  "JWKS",
+  "NEXT_PUBLIC_CONVEX_URL",
+] as const
+
+type ConvexRequiredVar = (typeof CONVEX_REQUIRED_VARS)[number]
+type ConvexOptionalVar = (typeof CONVEX_OPTIONAL_VARS)[number]
+type NextJsOnlyVar = (typeof NEXTJS_ONLY_VARS)[number]
+type EnvVar = ConvexRequiredVar | ConvexOptionalVar | NextJsOnlyVar
 
 interface Colors {
   red: string
@@ -240,6 +252,61 @@ function checkConvexDeployment(): boolean {
 }
 
 /**
+ * Validate environment variables against schemas
+ */
+function validateEnvironmentVariables(envVars: Record<string, string>): {
+  isValid: boolean
+  errors: string[]
+} {
+  const errors: string[] = []
+
+  // Validate Next.js required vars
+  const nextJsRequiredVars = [
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "OPENROUTER_API_KEY",
+    "EXA_API_KEY",
+    "JWT_PRIVATE_KEY",
+    "JWKS",
+    "NEXT_PUBLIC_CONVEX_URL",
+  ]
+
+  for (const varName of nextJsRequiredVars) {
+    if (!envVars[varName] || envVars[varName].trim() === "") {
+      errors.push(`Missing required Next.js environment variable: ${varName}`)
+    }
+  }
+
+  // Validate Convex required vars
+  for (const varName of CONVEX_REQUIRED_VARS) {
+    if (!envVars[varName] || envVars[varName].trim() === "") {
+      errors.push(`Missing required Convex environment variable: ${varName}`)
+    }
+  }
+
+  // Validate specific formats
+  if (
+    envVars.NEXT_PUBLIC_CONVEX_URL &&
+    !envVars.NEXT_PUBLIC_CONVEX_URL.startsWith("http")
+  ) {
+    errors.push("NEXT_PUBLIC_CONVEX_URL must be a valid URL")
+  }
+
+  if (envVars.SITE_URL && !envVars.SITE_URL.startsWith("http")) {
+    errors.push("SITE_URL must be a valid URL")
+  }
+
+  if (envVars.CONVEX_SITE_URL && !envVars.CONVEX_SITE_URL.startsWith("http")) {
+    errors.push("CONVEX_SITE_URL must be a valid URL")
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  }
+}
+
+/**
  * Main sync function
  */
 async function syncEnvironment(): Promise<void> {
@@ -255,6 +322,9 @@ async function syncEnvironment(): Promise<void> {
       console.log("Example:")
       console.log("NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210")
       console.log("OPENAI_API_KEY=your_openai_key_here")
+      console.log("ANTHROPIC_API_KEY=your_anthropic_key_here")
+      console.log("OPENROUTER_API_KEY=your_openrouter_key_here")
+      console.log("EXA_API_KEY=your_exa_api_key_here")
       console.log("AUTH_GITHUB_ID=your_github_oauth_client_id")
       console.log("AUTH_GITHUB_SECRET=your_github_oauth_client_secret")
       console.log("SITE_URL=http://localhost:3000")
@@ -268,21 +338,43 @@ async function syncEnvironment(): Promise<void> {
     // Parse environment variables
     const envVars = parseEnvFile(envPath)
 
+    // Validate environment variables
+    log.info("Validating environment variables...")
+    const validation = validateEnvironmentVariables(envVars)
+    if (!validation.isValid) {
+      for (const error of validation.errors) {
+        log.error(error)
+      }
+      log.error("Please fix the above errors before syncing")
+      process.exit(1)
+    }
+    log.success("Environment variables validated successfully")
+
     // Check Convex deployment connectivity
     if (!checkConvexDeployment()) {
       process.exit(1)
     }
 
-    // Sync required variables
-    log.info("Syncing required environment variables...")
-    for (const varName of REQUIRED_VARS) {
+    // Sync only Convex-specific required variables
+    log.info("Syncing required Convex environment variables...")
+    for (const varName of CONVEX_REQUIRED_VARS) {
       await syncVar(varName, envVars[varName], true)
     }
 
-    // Sync optional variables
-    log.info("Syncing optional environment variables...")
-    for (const varName of OPTIONAL_VARS) {
+    // Sync only Convex-specific optional variables
+    log.info("Syncing optional Convex environment variables...")
+    for (const varName of CONVEX_OPTIONAL_VARS) {
       await syncVar(varName, envVars[varName], false)
+    }
+
+    // Show info about Next.js-only variables
+    log.info("The following variables are used by Next.js only and not synced:")
+    for (const varName of NEXTJS_ONLY_VARS) {
+      if (envVars[varName]) {
+        log.info(`  - ${varName} ✓`)
+      } else {
+        log.warning(`  - ${varName} (not set)`)
+      }
     }
 
     log.success("Environment sync complete!")

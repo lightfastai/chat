@@ -1,14 +1,19 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import {
+  commentValidator,
+  feedbackRatingValidator,
+  feedbackReasonsValidator,
+} from "./validators"
 
 // Submit or update feedback for a message
 export const submitFeedback = mutation({
   args: {
     messageId: v.id("messages"),
-    rating: v.union(v.literal("positive"), v.literal("negative")),
-    comment: v.optional(v.string()),
-    reasons: v.optional(v.array(v.string())),
+    rating: feedbackRatingValidator,
+    comment: commentValidator,
+    reasons: feedbackReasonsValidator,
   },
   returns: v.id("feedback"),
   handler: async (ctx, args) => {
@@ -96,9 +101,9 @@ export const getUserFeedbackForMessage = query({
       messageId: v.id("messages"),
       userId: v.id("users"),
       threadId: v.id("threads"),
-      rating: v.union(v.literal("positive"), v.literal("negative")),
-      comment: v.optional(v.string()),
-      reasons: v.optional(v.array(v.string())),
+      rating: feedbackRatingValidator,
+      comment: commentValidator,
+      reasons: feedbackReasonsValidator,
       createdAt: v.number(),
       updatedAt: v.number(),
     }),
@@ -128,9 +133,9 @@ export const getThreadFeedback = query({
       messageId: v.id("messages"),
       userId: v.id("users"),
       threadId: v.id("threads"),
-      rating: v.union(v.literal("positive"), v.literal("negative")),
-      comment: v.optional(v.string()),
-      reasons: v.optional(v.array(v.string())),
+      rating: feedbackRatingValidator,
+      comment: commentValidator,
+      reasons: feedbackReasonsValidator,
       createdAt: v.number(),
       updatedAt: v.number(),
     }),
