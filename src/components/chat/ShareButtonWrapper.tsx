@@ -19,6 +19,9 @@ export function ShareButtonWrapper() {
     ? pathname.slice(6) // Remove "/chat/" prefix
     : undefined
 
+  // Check if this is a new chat (no thread ID in URL)
+  const isNewChat = pathname === "/chat"
+
   // Handle special routes
   const isSettingsPage =
     urlThreadId === "settings" || urlThreadId?.startsWith("settings/")
@@ -54,8 +57,8 @@ export function ShareButtonWrapper() {
       : "skip",
   )
 
-  // Don't show share button on settings page
-  if (isSettingsPage) {
+  // Don't show share button on settings page or new chat
+  if (isSettingsPage || isNewChat) {
     return null
   }
 
@@ -91,6 +94,11 @@ export function ShareButtonWrapper() {
 
   // Check if there are any messages to share
   const hasShareableContent = messages.length > 0
+
+  // Don't show share button if there's no content to share
+  if (!hasShareableContent) {
+    return null
+  }
 
   return <ShareButton threadId={threadId} hasContent={hasShareableContent} />
 }
