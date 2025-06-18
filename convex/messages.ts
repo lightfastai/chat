@@ -191,15 +191,6 @@ export const send = mutation({
       throw new Error("User must be authenticated")
     }
 
-    // Apply development delay via action if in development mode
-    if (process.env.NODE_ENV === "development") {
-      await ctx.scheduler.runAfter(0, internal.delays.developmentDelay, {
-        minMs: 100,
-        maxMs: 500,
-        operation: "messages.send",
-      })
-    }
-
     // Verify the user owns this thread
     const thread = await ctx.db.get(args.threadId)
     if (!thread || thread.userId !== userId) {
@@ -283,16 +274,6 @@ export const createThreadAndSend = mutation({
     const userId = await getAuthUserId(ctx)
     if (!userId) {
       throw new Error("User must be authenticated")
-    }
-
-    // Apply development delay via action if in development mode
-    if (process.env.NODE_ENV === "development") {
-      console.log("Applying development delay for messages.createThreadAndSend")
-      await ctx.scheduler.runAfter(0, internal.delays.developmentDelay, {
-        minMs: 100,
-        maxMs: 500,
-        operation: "messages.createThreadAndSend",
-      })
     }
 
     // Check for collision if clientId is provided (extremely rare with nanoid)
