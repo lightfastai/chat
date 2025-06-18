@@ -1,15 +1,13 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
 import { Markdown } from "@/components/ui/markdown"
 import { cn } from "@/lib/utils"
-import { Key } from "lucide-react"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
-import { MessageUsageChip } from "../MessageUsageChip"
+import { AssistantMessageHeader } from "./AssistantMessageHeader"
 import { MessageAvatar } from "./MessageAvatar"
 import { MessageLayout } from "./MessageLayout"
-import { ThinkingContent, formatDuration } from "./ThinkingContent"
+import { ThinkingContent } from "./ThinkingContent"
 
 type Message = Doc<"messages"> & { _streamId?: string | null }
 
@@ -77,49 +75,18 @@ export function MessageItem({
   // Content component
   const content = (
     <div className={cn("space-y-1", className)}>
-      {/* Model name and metadata for assistant messages */}
-      {isAssistant &&
-        (modelName ||
-          message.usedUserApiKey ||
-          thinkingDuration ||
-          isStreaming ||
-          message.usage) && (
-          <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
-            {modelName && <span>{modelName}</span>}
-            {isStreaming && !isComplete && (
-              <>
-                {modelName && <span>•</span>}
-                <span>Thinking</span>
-              </>
-            )}
-            {message.usedUserApiKey && (
-              <Badge
-                variant="secondary"
-                className="text-xs px-1.5 py-0.5 h-auto"
-              >
-                <Key className="w-3 h-3 mr-1" />
-                Your API Key
-              </Badge>
-            )}
-            {thinkingDuration && (
-              <>
-                <span>•</span>
-                <span className="font-mono">
-                  Thought for {formatDuration(thinkingDuration)}
-                </span>
-              </>
-            )}
-            {/* Show usage chip for completed messages */}
-            {!isStreaming && message.usage && (
-              <>
-                {(modelName || message.usedUserApiKey || thinkingDuration) && (
-                  <span>•</span>
-                )}
-                <MessageUsageChip usage={message.usage} />
-              </>
-            )}
-          </div>
-        )}
+      {/* Assistant message header with consistent layout */}
+      {isAssistant && (
+        <AssistantMessageHeader
+          modelName={modelName}
+          usedUserApiKey={message.usedUserApiKey}
+          isStreaming={isStreaming}
+          isComplete={isComplete}
+          thinkingStartedAt={message.thinkingStartedAt}
+          thinkingCompletedAt={message.thinkingCompletedAt}
+          usage={message.usage}
+        />
+      )}
 
       {/* Thinking content */}
       {showThinking &&
