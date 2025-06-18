@@ -25,7 +25,7 @@ export const env = createEnv({
     // GitHub OAuth for Convex Auth
     AUTH_GITHUB_ID: z.string().optional(),
     AUTH_GITHUB_SECRET: z.string().optional(),
-    // Site URL for authentication redirects
+    // DEPRECATED: SITE_URL is no longer used - was previously for OpenRouter HTTP headers
     SITE_URL: z.string().url().optional(),
     // JWT private key for authentication tokens
     JWT_PRIVATE_KEY: z.string(),

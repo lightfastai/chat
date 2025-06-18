@@ -19,7 +19,6 @@ const OPTIONAL_VARS = [
   "GOOGLE_API_KEY",
   "AUTH_GITHUB_ID",
   "AUTH_GITHUB_SECRET",
-  "SITE_URL",
   "JWT_PRIVATE_KEY",
   "JWKS",
   "NODE_ENV",
@@ -257,7 +256,6 @@ async function syncEnvironment(): Promise<void> {
       console.log("OPENAI_API_KEY=your_openai_key_here")
       console.log("AUTH_GITHUB_ID=your_github_oauth_client_id")
       console.log("AUTH_GITHUB_SECRET=your_github_oauth_client_secret")
-      console.log("SITE_URL=http://localhost:3000")
       console.log('JWT_PRIVATE_KEY="your_jwt_private_key_here"')
       console.log("JWKS='{\"keys\":[...]}'")
       process.exit(1)

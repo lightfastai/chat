@@ -676,8 +676,6 @@ export const generateAIResponseWithMessage = internalAction({
                     apiKey: userApiKeys.openrouter,
                     baseURL: "https://openrouter.ai/api/v1",
                     headers: {
-                      "HTTP-Referer":
-                        process.env.SITE_URL || "http://localhost:3000",
                       "X-Title": "Lightfast Chat",
                     },
                   })
@@ -685,8 +683,6 @@ export const generateAIResponseWithMessage = internalAction({
                     apiKey: process.env.OPENROUTER_API_KEY!,
                     baseURL: "https://openrouter.ai/api/v1",
                     headers: {
-                      "HTTP-Referer":
-                        process.env.SITE_URL || "http://localhost:3000",
                       "X-Title": "Lightfast Chat",
                     },
                   })
@@ -963,8 +959,6 @@ export const generateAIResponse = internalAction({
                     apiKey: userApiKeys.openrouter,
                     baseURL: "https://openrouter.ai/api/v1",
                     headers: {
-                      "HTTP-Referer":
-                        process.env.SITE_URL || "http://localhost:3000",
                       "X-Title": "Lightfast Chat",
                     },
                   })(actualModelName)
@@ -972,8 +966,6 @@ export const generateAIResponse = internalAction({
                     apiKey: process.env.OPENROUTER_API_KEY!,
                     baseURL: "https://openrouter.ai/api/v1",
                     headers: {
-                      "HTTP-Referer":
-                        process.env.SITE_URL || "http://localhost:3000",
                       "X-Title": "Lightfast Chat",
                     },
                   })(actualModelName)
