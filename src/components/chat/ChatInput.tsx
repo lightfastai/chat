@@ -11,6 +11,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
@@ -363,22 +364,24 @@ const ChatInputComponent = ({
               } ${isLoading ? "opacity-75" : ""}`}
             >
               {/* Textarea area - grows with content up to max height */}
-              <div className="flex-1 max-h-[180px] overflow-y-auto chat-input-scroll">
-                <Textarea
-                  ref={textareaRef}
-                  value={message}
-                  onChange={handleMessageChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder={placeholder}
-                  className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3"
-                  maxLength={maxLength}
-                  disabled={disabled}
-                  style={{
-                    lineHeight: "24px",
-                    minHeight: "48px",
-                  }}
-                />
-              </div>
+              <ScrollArea className="flex-1 max-h-[180px]">
+                <div className="p-3">
+                  <Textarea
+                    ref={textareaRef}
+                    value={message}
+                    onChange={handleMessageChange}
+                    onKeyPress={handleKeyPress}
+                    placeholder={placeholder}
+                    className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words bg-transparent p-0"
+                    maxLength={maxLength}
+                    disabled={disabled}
+                    style={{
+                      lineHeight: "24px",
+                      minHeight: "48px",
+                    }}
+                  />
+                </div>
+              </ScrollArea>
 
               {/* Controls area - always at bottom */}
               <div className="flex items-center justify-between p-2 bg-transparent dark:bg-input/10 transition-[color,box-shadow]">
