@@ -42,6 +42,8 @@ const modelIdValidator = v.union(
   v.literal("x-ai/grok-3-mini-beta"),
   v.literal("google/gemini-2.5-pro-preview"),
   v.literal("google/gemini-2.5-flash-preview"),
+  v.literal("google/gemini-2.5-pro-preview:thinking"),
+  v.literal("google/gemini-2.5-flash-preview:thinking"),
 )
 
 const modelProviderValidator = v.union(
