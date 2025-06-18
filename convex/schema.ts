@@ -40,7 +40,7 @@ const modelIdValidator = v.union(
   v.literal("mistralai/mistral-large"),
   v.literal("x-ai/grok-3-beta"),
   v.literal("x-ai/grok-3-mini-beta"),
-  v.literal("google/gemini-2.5-pro-exp-03-25"),
+  v.literal("google/gemini-2.5-pro-preview"),
   v.literal("google/gemini-2.5-flash-preview"),
 )
 

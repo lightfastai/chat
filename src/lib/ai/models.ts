@@ -628,21 +628,22 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       vision: true,
     },
   },
-  "google/gemini-2.5-pro-exp-03-25": {
-    id: "google/gemini-2.5-pro-exp-03-25",
+  "google/gemini-2.5-pro-preview": {
+    id: "google/gemini-2.5-pro-preview",
     provider: "openrouter",
-    name: "google/gemini-2.5-pro-exp-03-25",
-    displayName: "Gemini 2.5 Pro (Free)",
-    description: "Google's experimental Pro model with advanced capabilities",
+    name: "google/gemini-2.5-pro-preview",
+    displayName: "Gemini 2.5 Pro",
+    description: "Google's most advanced model for complex reasoning and coding",
     maxTokens: 1048576,
     costPer1KTokens: {
-      input: 0.0,
-      output: 0.0,
+      input: 1.25,
+      output: 10.0,
     },
     features: {
       streaming: true,
       functionCalling: true,
       vision: true,
+      thinking: true,
     },
   },
   "google/gemini-2.5-flash-preview": {
