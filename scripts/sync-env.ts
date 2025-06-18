@@ -14,6 +14,7 @@ const REQUIRED_VARS = [
   "OPENAI_API_KEY",
   "ANTHROPIC_API_KEY",
   "EXA_API_KEY",
+  "OPENROUTER_API_KEY",
 ] as const
 const OPTIONAL_VARS = [
   "GOOGLE_API_KEY",

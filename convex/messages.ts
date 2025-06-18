@@ -33,7 +33,8 @@ import {
 
 // Create web search tool using proper AI SDK v5 pattern
 function createWebSearchTool() {
-  return tool({
+  console.log("[WebSearch] createWebSearchTool() called")
+  const webSearchTool = tool({
     description:
       "Search the web for current information, news, and real-time data. Use this proactively when you need up-to-date information beyond your knowledge cutoff. After receiving search results, you must immediately analyze and explain the findings without waiting for additional prompting.",
     parameters: z.object({
@@ -42,14 +43,22 @@ function createWebSearchTool() {
         .describe("The search query to find relevant web results"),
     }),
     execute: async ({ query }) => {
-      console.log(`Executing web search for: "${query}"`)
+      console.log(`[WebSearch] Tool invoked with query: "${query}"`)
+      console.log(`[WebSearch] Timestamp: ${new Date().toISOString()}`)
 
       const exaApiKey = process.env.EXA_API_KEY
+      console.log(`[WebSearch] EXA_API_KEY exists: ${!!exaApiKey}`)
+      console.log(
+        `[WebSearch] EXA_API_KEY length: ${exaApiKey ? exaApiKey.length : 0}`,
+      )
+
       if (!exaApiKey) {
+        console.error("[WebSearch] ERROR: EXA_API_KEY not configured")
         throw new Error("EXA_API_KEY not configured")
       }
 
       try {
+        console.log("[WebSearch] Creating Exa client...")
         const exa = new Exa(exaApiKey)
         const numResults = 5
         const searchOptions: RegularSearchOptions & ContentsOptions = {
@@ -64,7 +73,14 @@ function createWebSearchTool() {
           },
         }
 
+        console.log(
+          "[WebSearch] Calling Exa API with options:",
+          JSON.stringify(searchOptions),
+        )
         const response = await exa.search(query, searchOptions)
+        console.log(
+          `[WebSearch] Exa API response received, results count: ${response.results?.length || 0}`,
+        )
 
         const results = response.results.map((result) => ({
           id: result.id,
@@ -79,7 +95,18 @@ function createWebSearchTool() {
           score: result.score,
         }))
 
-        console.log(`Web search found ${results.length} results`)
+        console.log(`[WebSearch] Processed ${results.length} results`)
+        console.log(
+          "[WebSearch] First result preview:",
+          results[0]
+            ? {
+                title: results[0].title,
+                url: results[0].url,
+                hasText: !!results[0].text,
+                textLength: results[0].text?.length || 0,
+              }
+            : "No results",
+        )
 
         // Return structured data that helps the AI understand and explain
         return {
@@ -100,7 +127,18 @@ function createWebSearchTool() {
           },
         }
       } catch (error) {
-        console.error("Web search error:", error)
+        console.error("[WebSearch] ERROR:", error)
+        console.error("[WebSearch] Error type:", error?.constructor?.name)
+        console.error(
+          "[WebSearch] Error message:",
+          error instanceof Error ? error.message : String(error),
+        )
+        console.error(
+          "[WebSearch] Error stack:",
+          error instanceof Error
+            ? error.stack?.substring(0, 500)
+            : "No stack trace",
+        )
         return {
           success: false,
           query,
@@ -111,6 +149,12 @@ function createWebSearchTool() {
       }
     },
   })
+
+  console.log(
+    "[WebSearch] Tool created successfully, tool type:",
+    typeof webSearchTool,
+  )
+  return webSearchTool
 }
 
 // Create validators from the shared types
@@ -725,9 +769,27 @@ export const generateAIResponseWithMessage = internalAction({
 
       // Add web search tool if enabled
       if (args.webSearchEnabled) {
+        console.log(
+          "[WebSearch] Adding web search tool in generateAIResponseWithMessage",
+        )
+        console.log(
+          `[WebSearch] Model: ${actualModelName}, Provider: ${provider}`,
+        )
+
+        // Check EXA_API_KEY availability
+        const exaApiKey = process.env.EXA_API_KEY
+        console.log(
+          `[WebSearch] EXA_API_KEY check in generateAIResponseWithMessage: exists=${!!exaApiKey}`,
+        )
+
         generationOptions.tools = {
           web_search: createWebSearchTool(),
         }
+        console.log("[WebSearch] Tools added to generation options")
+      } else {
+        console.log(
+          "[WebSearch] Web search NOT enabled in generateAIResponseWithMessage",
+        )
       }
 
       // Use the AI SDK v5 streamText
@@ -754,16 +816,28 @@ export const generateAIResponseWithMessage = internalAction({
 
       // Process tool calls if web search is enabled
       if (args.webSearchEnabled) {
+        console.log("[WebSearch] Monitoring fullStream for tool calls...")
         for await (const streamPart of result.fullStream) {
           if (streamPart.type === "tool-call") {
             toolCallsInProgress++
+            console.log(
+              `[WebSearch] Tool call detected in generateAIResponseWithMessage: ${streamPart.toolName}`,
+            )
+            console.log("[WebSearch] Tool call args:", streamPart.args)
           }
 
           if (streamPart.type === "tool-result") {
             // Tool results are handled by the AI SDK and included in the response
             // We don't need to store them separately
+            console.log(
+              "[WebSearch] Tool result received in generateAIResponseWithMessage",
+            )
+            console.log("[WebSearch] Result:", streamPart.result)
           }
         }
+        console.log(
+          `[WebSearch] Total tool calls processed: ${toolCallsInProgress}`,
+        )
       }
 
       // Get final usage with optional chaining
@@ -982,18 +1056,27 @@ export const generateAIResponse = internalAction({
 
       // Only enable web search tools if explicitly requested
       if (args.webSearchEnabled) {
-        console.log(`Enabling web search tools for ${provider}`)
+        console.log(`[WebSearch] Enabling web search for provider: ${provider}`)
+        console.log(`[WebSearch] Model: ${actualModelName}`)
 
         // Check if EXA_API_KEY is available
         const exaApiKey = process.env.EXA_API_KEY
+        console.log(
+          `[WebSearch] EXA_API_KEY check: exists=${!!exaApiKey}, length=${exaApiKey ? exaApiKey.length : 0}`,
+        )
+
         if (!exaApiKey) {
-          console.error("EXA_API_KEY not found - web search will fail")
+          console.error(
+            "[WebSearch] CRITICAL: EXA_API_KEY not found - web search will fail",
+          )
         }
 
-        console.log("Creating web_search tool...")
+        console.log("[WebSearch] Creating web_search tool...")
+        const webSearchTool = createWebSearchTool()
         streamOptions.tools = {
-          web_search: createWebSearchTool(),
+          web_search: webSearchTool,
         }
+        console.log("[WebSearch] Tool added to streamOptions successfully")
 
         // Enhanced agentic system prompt for web search
         systemPrompt += `\n\nYou have web search capabilities. You should proactively search for information when needed to provide accurate, current answers.
@@ -1018,7 +1101,9 @@ When you perform a web search, you MUST automatically continue with a thorough a
 
 Remember: After search results appear, immediately continue analyzing and explaining them. Do not wait for the user to ask for analysis - be proactive and thorough in your response.`
 
-        console.log("Web search tool created successfully")
+        console.log("[WebSearch] Enhanced system prompt added")
+      } else {
+        console.log("[WebSearch] Web search NOT enabled for this message")
       }
 
       // For Claude 4.0 thinking mode, enable thinking/reasoning
@@ -1094,12 +1179,24 @@ Remember: After search results appear, immediately continue analyzing and explai
           // We just track that a tool call occurred for logging
           toolCallsProcessed++
           console.log(
-            `Tool call #${toolCallsProcessed} - ${chunk.toolName} with args:`,
+            `[WebSearch] Tool call #${toolCallsProcessed} - ${chunk.toolName} with args:`,
             chunk.args,
+          )
+          console.log(
+            `[WebSearch] Tool call timestamp: ${new Date().toISOString()}`,
           )
         } else if (chunk.type === "tool-result") {
           // Handle tool results from automatic execution
-          console.log(`Tool result for ${chunk.toolName}:`, chunk.result)
+          console.log(
+            `[WebSearch] Tool result for ${chunk.toolName}:`,
+            chunk.result,
+          )
+          console.log(
+            `[WebSearch] Tool result success: ${chunk.result?.success}`,
+          )
+          console.log(
+            `[WebSearch] Tool result count: ${chunk.result?.resultCount}`,
+          )
           // Let the AI naturally analyze and format the results through the conversation
         } else if (chunk.type === "reasoning" && chunk.text) {
           // Claude 4.0 native reasoning tokens
