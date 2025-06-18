@@ -43,8 +43,6 @@ export type OpenRouterModel =
   | "x-ai/grok-3-mini-beta"
   | "google/gemini-2.5-pro-preview"
   | "google/gemini-2.5-flash-preview"
-  | "google/gemini-2.5-pro-preview:thinking"
-  | "google/gemini-2.5-flash-preview:thinking"
 
 export type ModelId = OpenAIModel | AnthropicModel | OpenRouterModel
 
@@ -136,8 +134,6 @@ export const OPENROUTER_MODEL_IDS = [
   "x-ai/grok-3-mini-beta",
   "google/gemini-2.5-pro-preview",
   "google/gemini-2.5-flash-preview",
-  "google/gemini-2.5-pro-preview:thinking",
-  "google/gemini-2.5-flash-preview:thinking",
 ] as const
 export const ALL_MODEL_IDS = [
   ...OPENAI_MODEL_IDS,

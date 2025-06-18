@@ -663,44 +663,6 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       vision: true,
     },
   },
-  "google/gemini-2.5-pro-preview:thinking": {
-    id: "google/gemini-2.5-pro-preview:thinking",
-    provider: "openrouter",
-    name: "google/gemini-2.5-pro-preview:thinking",
-    displayName: "Gemini 2.5 Pro (Thinking)",
-    description:
-      "Google's most advanced model with visible reasoning process",
-    maxTokens: 1048576,
-    costPer1KTokens: {
-      input: 1.25,
-      output: 10.0,
-    },
-    features: {
-      streaming: true,
-      functionCalling: true,
-      vision: true,
-      thinking: true,
-    },
-  },
-  "google/gemini-2.5-flash-preview:thinking": {
-    id: "google/gemini-2.5-flash-preview:thinking",
-    provider: "openrouter",
-    name: "google/gemini-2.5-flash-preview:thinking",
-    displayName: "Gemini 2.5 Flash (Thinking)",
-    description:
-      "Google's workhorse model with visible reasoning process",
-    maxTokens: 1048576,
-    costPer1KTokens: {
-      input: 0.15,
-      output: 0.6,
-    },
-    features: {
-      streaming: true,
-      functionCalling: true,
-      vision: true,
-      thinking: true,
-    },
-  },
 }
 
 /**
