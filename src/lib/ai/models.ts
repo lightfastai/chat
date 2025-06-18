@@ -523,6 +523,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: false,
     },
+    hidden: true,
+    deprecated: true,
   },
   "anthropic/claude-3.5-sonnet": {
     id: "anthropic/claude-3.5-sonnet",
@@ -540,6 +542,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: true,
     },
+    hidden: true,
+    deprecated: true,
   },
   "openai/gpt-4o": {
     id: "openai/gpt-4o",
@@ -557,6 +561,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: true,
     },
+    hidden: true,
+    deprecated: true,
   },
   "google/gemini-pro-1.5": {
     id: "google/gemini-pro-1.5",
@@ -574,6 +580,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: true,
     },
+    hidden: true,
+    deprecated: true,
   },
   "mistralai/mistral-large": {
     id: "mistralai/mistral-large",
@@ -592,6 +600,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: false,
     },
+    hidden: true,
+    deprecated: true,
   },
   "x-ai/grok-3-beta": {
     id: "x-ai/grok-3-beta",
@@ -633,7 +643,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
     provider: "openrouter",
     name: "google/gemini-2.5-pro-preview",
     displayName: "Gemini 2.5 Pro",
-    description: "Google's most advanced model for complex reasoning and coding",
+    description:
+      "Google's most advanced model for complex reasoning and coding",
     maxTokens: 1048576,
     costPer1KTokens: {
       input: 1.25,
