@@ -267,8 +267,9 @@ export const getByClientId = query({
 
     const thread = await ctx.db
       .query("threads")
-      .withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .withIndex("by_user_client", (q) =>
+        q.eq("userId", userId).eq("clientId", args.clientId),
+      )
       .first()
 
     return thread

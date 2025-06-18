@@ -10,6 +10,7 @@ export const submitFeedback = mutation({
     comment: v.optional(v.string()),
     reasons: v.optional(v.array(v.string())),
   },
+  returns: v.id("feedback"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -62,6 +63,7 @@ export const removeFeedback = mutation({
   args: {
     messageId: v.id("messages"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -86,6 +88,21 @@ export const getUserFeedbackForMessage = query({
   args: {
     messageId: v.id("messages"),
   },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("feedback"),
+      _creationTime: v.number(),
+      messageId: v.id("messages"),
+      userId: v.id("users"),
+      threadId: v.id("threads"),
+      rating: v.union(v.literal("positive"), v.literal("negative")),
+      comment: v.optional(v.string()),
+      reasons: v.optional(v.array(v.string())),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    }),
+  ),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return null
@@ -104,6 +121,20 @@ export const getThreadFeedback = query({
   args: {
     threadId: v.id("threads"),
   },
+  returns: v.array(
+    v.object({
+      _id: v.id("feedback"),
+      _creationTime: v.number(),
+      messageId: v.id("messages"),
+      userId: v.id("users"),
+      threadId: v.id("threads"),
+      rating: v.union(v.literal("positive"), v.literal("negative")),
+      comment: v.optional(v.string()),
+      reasons: v.optional(v.array(v.string())),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    }),
+  ),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []

@@ -24,6 +24,7 @@ const ALLOWED_FILE_TYPES = [
 
 export const generateUploadUrl = mutation({
   args: {},
+  returns: v.string(),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -50,6 +51,7 @@ export const createFile = mutation({
       }),
     ),
   },
+  returns: v.id("files"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -96,6 +98,28 @@ export const createFile = mutation({
 
 export const getFile = query({
   args: { fileId: v.id("files") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("files"),
+      _creationTime: v.number(),
+      storageId: v.string(),
+      fileName: v.string(),
+      fileType: v.string(),
+      fileSize: v.number(),
+      uploadedBy: v.id("users"),
+      uploadedAt: v.number(),
+      metadata: v.optional(
+        v.object({
+          width: v.optional(v.number()),
+          height: v.optional(v.number()),
+          pages: v.optional(v.number()),
+          extractedText: v.optional(v.string()),
+        }),
+      ),
+      url: v.union(v.string(), v.null()),
+    }),
+  ),
   handler: async (ctx, args) => {
     const file = await ctx.db.get(args.fileId)
     if (!file) {
@@ -114,6 +138,27 @@ export const getFile = query({
 
 export const getFiles = query({
   args: { fileIds: v.array(v.id("files")) },
+  returns: v.array(
+    v.object({
+      _id: v.id("files"),
+      _creationTime: v.number(),
+      storageId: v.string(),
+      fileName: v.string(),
+      fileType: v.string(),
+      fileSize: v.number(),
+      uploadedBy: v.id("users"),
+      uploadedAt: v.number(),
+      metadata: v.optional(
+        v.object({
+          width: v.optional(v.number()),
+          height: v.optional(v.number()),
+          pages: v.optional(v.number()),
+          extractedText: v.optional(v.string()),
+        }),
+      ),
+      url: v.union(v.string(), v.null()),
+    }),
+  ),
   handler: async (ctx, args) => {
     const files = await asyncMap(args.fileIds, async (fileId) => {
       const file = await ctx.db.get(fileId)
@@ -126,24 +171,66 @@ export const getFiles = query({
       }
     })
 
-    return files.filter(Boolean)
+    return files.filter((f): f is NonNullable<typeof f> => f !== null)
   },
 })
 
 // Internal query for getting files without URLs (for server-side use)
 export const getFilesInternal = internalQuery({
   args: { fileIds: v.array(v.id("files")) },
+  returns: v.array(
+    v.object({
+      _id: v.id("files"),
+      _creationTime: v.number(),
+      storageId: v.string(),
+      fileName: v.string(),
+      fileType: v.string(),
+      fileSize: v.number(),
+      uploadedBy: v.id("users"),
+      uploadedAt: v.number(),
+      metadata: v.optional(
+        v.object({
+          width: v.optional(v.number()),
+          height: v.optional(v.number()),
+          pages: v.optional(v.number()),
+          extractedText: v.optional(v.string()),
+        }),
+      ),
+    }),
+  ),
   handler: async (ctx, args) => {
     const files = await asyncMap(args.fileIds, async (fileId) => {
       return await ctx.db.get(fileId)
     })
-    return files.filter(Boolean)
+    return files.filter((f): f is NonNullable<typeof f> => f !== null)
   },
 })
 
 // Internal query to get a single file with URL
 export const getFileWithUrl = internalQuery({
   args: { fileId: v.id("files") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("files"),
+      _creationTime: v.number(),
+      storageId: v.string(),
+      fileName: v.string(),
+      fileType: v.string(),
+      fileSize: v.number(),
+      uploadedBy: v.id("users"),
+      uploadedAt: v.number(),
+      metadata: v.optional(
+        v.object({
+          width: v.optional(v.number()),
+          height: v.optional(v.number()),
+          pages: v.optional(v.number()),
+          extractedText: v.optional(v.string()),
+        }),
+      ),
+      url: v.union(v.string(), v.null()),
+    }),
+  ),
   handler: async (ctx, args) => {
     const file = await ctx.db.get(args.fileId)
     if (!file) return null
@@ -158,6 +245,7 @@ export const getFileWithUrl = internalQuery({
 
 export const deleteFile = mutation({
   args: { fileId: v.id("files") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {

@@ -12,6 +12,7 @@ export const shareThread = mutation({
       }),
     ),
   },
+  returns: v.object({ shareId: v.string() }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -64,6 +65,7 @@ export const unshareThread = mutation({
   args: {
     threadId: v.id("threads"),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -94,6 +96,7 @@ export const updateShareSettings = mutation({
       showThinking: v.optional(v.boolean()),
     }),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -135,6 +138,7 @@ export const logShareAccess = mutation({
       }),
     ),
   },
+  returns: v.object({ allowed: v.boolean() }),
   handler: async (ctx, args) => {
     const now = Date.now()
     const hourAgo = now - 60 * 60 * 1000 // 1 hour ago
@@ -187,6 +191,78 @@ export const getSharedThread = query({
   args: {
     shareId: v.string(),
   },
+  returns: v.union(
+    v.null(),
+    v.object({
+      thread: v.object({
+        _id: v.id("threads"),
+        title: v.string(),
+        createdAt: v.number(),
+        lastMessageAt: v.number(),
+        shareSettings: v.optional(
+          v.object({
+            showThinking: v.optional(v.boolean()),
+          }),
+        ),
+      }),
+      messages: v.array(
+        v.object({
+          _id: v.id("messages"),
+          _creationTime: v.number(),
+          threadId: v.id("threads"),
+          body: v.string(),
+          timestamp: v.number(),
+          messageType: v.union(v.literal("user"), v.literal("assistant")),
+          model: v.optional(
+            v.union(
+              v.literal("openai"),
+              v.literal("anthropic"),
+              v.literal("openrouter"),
+            ),
+          ),
+          modelId: v.optional(v.string()),
+          isStreaming: v.optional(v.boolean()),
+          streamId: v.optional(v.string()),
+          isComplete: v.optional(v.boolean()),
+          thinkingStartedAt: v.optional(v.number()),
+          thinkingCompletedAt: v.optional(v.number()),
+          attachments: v.optional(v.array(v.id("files"))),
+          thinkingContent: v.optional(v.string()),
+          isThinking: v.optional(v.boolean()),
+          hasThinkingContent: v.optional(v.boolean()),
+          usedUserApiKey: v.optional(v.boolean()),
+          usage: v.optional(
+            v.object({
+              inputTokens: v.optional(v.number()),
+              outputTokens: v.optional(v.number()),
+              totalTokens: v.optional(v.number()),
+              reasoningTokens: v.optional(v.number()),
+              cachedInputTokens: v.optional(v.number()),
+            }),
+          ),
+          lastChunkId: v.optional(v.string()),
+          streamChunks: v.optional(
+            v.array(
+              v.object({
+                id: v.string(),
+                content: v.string(),
+                timestamp: v.number(),
+                sequence: v.optional(v.number()),
+              }),
+            ),
+          ),
+          streamVersion: v.optional(v.number()),
+        }),
+      ),
+      owner: v.union(
+        v.null(),
+        v.object({
+          name: v.union(v.string(), v.null()),
+          image: v.union(v.string(), v.null()),
+        }),
+      ),
+    }),
+  ),
   handler: async (ctx, args) => {
     // Find thread by shareId
     const thread = await ctx.db
@@ -234,8 +310,8 @@ export const getSharedThread = query({
       messages: filteredMessages,
       owner: owner
         ? {
-            name: owner.name,
-            image: owner.image,
+            name: owner.name ?? null,
+            image: owner.image ?? null,
           }
         : null,
     }
@@ -246,6 +322,19 @@ export const getThreadShareInfo = query({
   args: {
     threadId: v.id("threads"),
   },
+  returns: v.union(
+    v.null(),
+    v.object({
+      isPublic: v.boolean(),
+      shareId: v.optional(v.string()),
+      sharedAt: v.optional(v.number()),
+      shareSettings: v.optional(
+        v.object({
+          showThinking: v.optional(v.boolean()),
+        }),
+      ),
+    }),
+  ),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {

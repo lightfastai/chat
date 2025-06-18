@@ -8,6 +8,24 @@ import { decrypt, encrypt } from "./lib/encryption.js"
 // Get user settings
 export const getUserSettings = query({
   args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("userSettings"),
+      userId: v.id("users"),
+      preferences: v.optional(
+        v.object({
+          defaultModel: v.optional(v.string()),
+          preferredProvider: v.optional(v.string()),
+        }),
+      ),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      hasOpenAIKey: v.boolean(),
+      hasAnthropicKey: v.boolean(),
+      hasOpenRouterKey: v.boolean(),
+    }),
+  ),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -44,6 +62,7 @@ export const updateApiKeys = mutation({
     anthropicKey: v.optional(v.string()),
     openrouterKey: v.optional(v.string()),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { openaiKey, anthropicKey, openrouterKey }) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -142,6 +161,7 @@ export const updatePreferences = mutation({
       ),
     ),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { defaultModel, preferredProvider }) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -188,6 +208,7 @@ export const removeApiKey = mutation({
       v.literal("openrouter"),
     ),
   },
+  returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { provider }) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -218,6 +239,14 @@ export const removeApiKey = mutation({
 // Internal function to get decrypted API keys (for use in other Convex functions)
 export const getDecryptedApiKeys = internalMutation({
   args: { userId: v.id("users") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      openai: v.optional(v.string()),
+      anthropic: v.optional(v.string()),
+      openrouter: v.optional(v.string()),
+    }),
+  ),
   handler: async (ctx, { userId }) => {
     const settings = await ctx.db
       .query("userSettings")
