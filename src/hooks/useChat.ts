@@ -336,6 +336,43 @@ export function useChat(options: UseChatOptions = {}) {
             )
           }
         }
+
+        // Also update thread to show it's generating a response
+        const existingThread = localStore.getQuery(api.threads.get, {
+          threadId,
+        })
+        if (existingThread) {
+          localStore.setQuery(
+            api.threads.get,
+            { threadId },
+            {
+              ...existingThread,
+              isGenerating: true,
+              lastMessageAt: now,
+            },
+          )
+        }
+
+        // Update threads list to move this thread to the top and show generating state
+        const existingThreadsList = localStore.getQuery(api.threads.list, {})
+        if (existingThreadsList) {
+          const threadIndex = existingThreadsList.findIndex(
+            (t) => t._id === threadId,
+          )
+          if (threadIndex >= 0) {
+            const updatedThread = {
+              ...existingThreadsList[threadIndex],
+              isGenerating: true,
+              lastMessageAt: now,
+            }
+            // Move thread to front and update its state
+            const newThreadsList = [
+              updatedThread,
+              ...existingThreadsList.filter((_, i) => i !== threadIndex),
+            ]
+            localStore.setQuery(api.threads.list, {}, newThreadsList)
+          }
+        }
       }
     },
   )
