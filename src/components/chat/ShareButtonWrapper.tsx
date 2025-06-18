@@ -10,7 +10,7 @@ import { ShareButton } from "./ShareButton"
 
 export function ShareButtonWrapper() {
   // Get preloaded data from context
-  const { preloadedThreadById, preloadedThreadByClientId } =
+  const { preloadedThreadById, preloadedThreadByClientId, preloadedMessages } =
     useChatPreloadContext()
   const pathname = usePathname()
 
@@ -19,13 +19,15 @@ export function ShareButtonWrapper() {
     ? pathname.slice(6) // Remove "/chat/" prefix
     : undefined
 
+  // Check if this is a new chat (no thread ID in URL)
+  const isNewChat = pathname === "/chat"
+
   // Handle special routes
   const isSettingsPage =
     urlThreadId === "settings" || urlThreadId?.startsWith("settings/")
 
   // Check if it's a client-generated ID
   const isClient = urlThreadId ? isClientId(urlThreadId) : false
-  const isNewChat = pathname === "/chat"
 
   // Use preloaded thread data if available
   const preloadedThreadByIdData = preloadedThreadById
@@ -67,15 +69,38 @@ export function ShareButtonWrapper() {
     threadId = currentThread._id
   }
 
-  // For content detection:
-  // - If we have a real thread, it definitely has content
-  // - If we're on /chat/{clientId}, assume there's content (user must have sent a message to get here)
-  // - If we're on /chat, there's no content yet
-  // Using pathname to ensure we react to URL changes from window.history.replaceState()
-  const hasShareableContent = Boolean(
-    threadId || // Real thread exists - definitely has content
-      (!isNewChat && isClient && urlThreadId), // Not on /chat AND client ID URL - user sent message
+  // Get messages to check if there's actual content
+  const preloadedMessagesData = preloadedMessages
+    ? usePreloadedQuery(preloadedMessages)
+    : null
+
+  // Query messages by clientId if we have one (skip for new chat)
+  const messagesByClientId = useQuery(
+    api.messages.listByClientId,
+    isClient && urlThreadId && !preloadedMessagesData && !isNewChat
+      ? { clientId: urlThreadId }
+      : "skip",
   )
+
+  // Query messages by threadId for regular threads (skip for new chat)
+  const messagesByThreadId = useQuery(
+    api.messages.list,
+    threadId && !preloadedMessagesData && !isClient && !isNewChat
+      ? { threadId }
+      : "skip",
+  )
+
+  // Get actual messages
+  const messages =
+    preloadedMessagesData ?? messagesByClientId ?? messagesByThreadId ?? []
+
+  // Check if there are any messages to share
+  const hasShareableContent = messages.length > 0
+
+  // Don't show share button if there's no content to share
+  if (!hasShareableContent) {
+    return null
+  }
 
   return <ShareButton threadId={threadId} hasContent={hasShareableContent} />
 }
