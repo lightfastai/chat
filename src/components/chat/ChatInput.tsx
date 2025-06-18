@@ -372,12 +372,15 @@ const ChatInputComponent = ({
                     onChange={handleMessageChange}
                     onKeyPress={handleKeyPress}
                     placeholder={placeholder}
-                    className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words bg-transparent p-0"
+                    className="w-full resize-none border-0 focus-visible:ring-0 bg-transparent p-0 overflow-hidden break-words"
                     maxLength={maxLength}
                     disabled={disabled}
                     style={{
                       lineHeight: "24px",
                       minHeight: "48px",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      overflowWrap: "break-word",
                     }}
                   />
                 </div>

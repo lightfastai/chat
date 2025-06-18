@@ -61,13 +61,16 @@ export function LandingChatInput() {
             <Textarea
               ref={textareaRef}
               placeholder="Ask anything..."
-              className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words bg-transparent p-0 text-lg"
+              className="w-full resize-none border-0 focus-visible:ring-0 bg-transparent p-0 text-lg overflow-hidden break-words"
               value={message}
               onChange={handleMessageChange}
               onKeyDown={handleKeyDown}
               style={{
                 lineHeight: "28px",
                 minHeight: "120px",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
               }}
             />
           </div>
