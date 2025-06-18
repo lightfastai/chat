@@ -73,8 +73,8 @@ export default function GlobalError({
             lineHeight: 1.5,
           }}
         >
-          A critical error occurred that prevented the application from
-          loading properly. Please try refreshing the page.
+          A critical error occurred that prevented the application from loading
+          properly. Please try refreshing the page.
         </p>
 
         <button

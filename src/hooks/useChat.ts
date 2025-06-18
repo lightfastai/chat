@@ -1,6 +1,7 @@
 "use client"
 
 import type { ModelId } from "@/lib/ai/types"
+import { getProviderFromModelId } from "@/lib/ai/types"
 import { isClientId, nanoid } from "@/lib/nanoid"
 import {
   type Preloaded,
@@ -210,6 +211,27 @@ export function useChat(options: UseChatOptions = {}) {
       isComplete: true,
     }
 
+    // Determine if user will use their own API key
+    const provider = getProviderFromModelId(modelId as ModelId)
+    const userSettingsData = localStore.getQuery(
+      api.userSettings.getUserSettings,
+      {},
+    )
+    let willUseUserApiKey = false
+
+    if (userSettingsData) {
+      if (provider === "anthropic" && userSettingsData.hasAnthropicKey) {
+        willUseUserApiKey = true
+      } else if (provider === "openai" && userSettingsData.hasOpenAIKey) {
+        willUseUserApiKey = true
+      } else if (
+        provider === "openrouter" &&
+        userSettingsData.hasOpenRouterKey
+      ) {
+        willUseUserApiKey = true
+      }
+    }
+
     // Create optimistic assistant message placeholder
     const optimisticAssistantMessage: Doc<"messages"> = {
       _id: crypto.randomUUID() as Id<"messages">,
@@ -223,6 +245,7 @@ export function useChat(options: UseChatOptions = {}) {
       isComplete: false,
       streamId: `stream_${clientId}_${now}`,
       thinkingStartedAt: now,
+      usedUserApiKey: willUseUserApiKey,
     }
 
     // Set optimistic messages for this thread
