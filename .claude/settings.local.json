@@ -78,15 +78,13 @@
       "Bash(bun add:*)",
       "Bash(git reset:*)",
       "Bash(bun run:*)",
-      "WebFetch(domain:discuss.codemirror.net)",
       "Bash(bun install:*)",
       "Bash(kill:*)",
       "WebFetch(domain:nextjs.org)",
       "Bash(if [ -f \"$CONTEXT_FILE\" ])",
-      "Bash(then echo \"📋 Resuming from existing context:\")",
-      "Bash(else echo \"🆕 Creating new context file: $CONTEXT_FILE\")",
       "Bash(fi)",
-      "Bash(openssl rand:*)"
+      "Bash(openssl rand:*)",
+      "Bash(bun remove:*)"
     ],
     "deny": []
   }
