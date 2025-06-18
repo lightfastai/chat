@@ -102,10 +102,15 @@ export function useResumableStream({
 }
 
 // Optional: Hook for managing multiple resumable streams in a chat
-export function useResumableChat() {
+export function useResumableChat(chatKey?: string) {
   const [activeStreams, setActiveStreams] = useState<Map<string, string>>(
     new Map(),
   )
+
+  // Reset active streams when chat key changes
+  useEffect(() => {
+    setActiveStreams(new Map())
+  }, [chatKey])
 
   const startStream = useCallback((messageId: string, streamId: string) => {
     setActiveStreams((prev) => new Map(prev).set(messageId, streamId))
@@ -119,9 +124,14 @@ export function useResumableChat() {
     })
   }, [])
 
+  const clearAllStreams = useCallback(() => {
+    setActiveStreams(new Map())
+  }, [])
+
   return {
     activeStreams,
     startStream,
     endStream,
+    clearAllStreams,
   }
 }

@@ -45,8 +45,9 @@ export function ChatInterface({
     }
   }, [isNewChat, messages.length])
 
-  // Manage resumable streams
-  const { activeStreams, startStream, endStream } = useResumableChat()
+  // Manage resumable streams - use thread ID as key to reset when changing chats
+  const chatKey = currentThread?._id || (isNewChat ? "new" : "unknown")
+  const { activeStreams, startStream, endStream } = useResumableChat(chatKey)
 
   // Track streaming messages
   const streamingMessages = useMemo(() => {
