@@ -83,12 +83,6 @@ function LandingHeader() {
         </div>
         <div className="flex items-center gap-4">
           <Link
-            href="/docs"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Docs
-          </Link>
-          <Link
             href="https://github.com/lightfastai/chat"
             target="_blank"
             rel="noopener noreferrer"
