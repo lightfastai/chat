@@ -42,21 +42,9 @@ Use this mode when you're already running `bun dev:all` locally:
 - **When to Use**: Rapid prototyping, debugging, exploratory development
 
 ### Setting Development Mode
-The development mode is stored in your context file. To set or check the mode:
-
-```bash
-# Check current mode
-CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
-grep "Development Mode:" "$CONTEXT_FILE" || echo "No mode set (defaults to Vercel Build Mode)"
-
-# Set Vercel Build Mode (default)
-echo "Development Mode: Vercel Build Mode" >> "$CONTEXT_FILE"
-
-# Set Local Dev Mode
-echo "Development Mode: Local Dev Mode" >> "$CONTEXT_FILE"
-```
-
-Claude will read this setting from the context file and operate accordingly.
+At the start of your session, tell Claude which mode to use:
+- "Use Vercel Build Mode" (default if not specified)
+- "Use Local Dev Mode - I'm running bun dev:all"
 
 ## 🚨 CRITICAL: Context Preservation
 
@@ -71,13 +59,8 @@ CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
 if [ -f "$CONTEXT_FILE" ]; then
   echo "📋 Resuming from existing context:"
   cat "$CONTEXT_FILE"
-  
-  # Check development mode
-  MODE=$(grep "Development Mode:" "$CONTEXT_FILE" | tail -1 | cut -d: -f2- | xargs)
-  echo "🔧 Development Mode: ${MODE:-Vercel Build Mode (default)}"
 else
   echo "🆕 Creating new context file: $CONTEXT_FILE"
-  echo "Development Mode: Vercel Build Mode" > "$CONTEXT_FILE"
 fi
 ```
 
@@ -98,15 +81,6 @@ gh pr comment <pr_number> --body "⚠️ Blocker: <issue_description>"
 ```
 
 ## End-to-End Workflow
-
-### Step 0: Check Development Mode
-
-**ALWAYS** check the development mode from context file first:
-```bash
-CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
-MODE=$(grep "Development Mode:" "$CONTEXT_FILE" 2>/dev/null | tail -1 | cut -d: -f2- | xargs)
-echo "🔧 Operating in: ${MODE:-Vercel Build Mode (default)}"
-```
 
 ### Step 1: Resume or Start Work
 
