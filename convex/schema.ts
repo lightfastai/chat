@@ -38,6 +38,10 @@ const modelIdValidator = v.union(
   v.literal("openai/gpt-4o"),
   v.literal("google/gemini-pro-1.5"),
   v.literal("mistralai/mistral-large"),
+  v.literal("x-ai/grok-3-beta"),
+  v.literal("x-ai/grok-3-mini-beta"),
+  v.literal("google/gemini-2.5-pro-exp-03-25"),
+  v.literal("google/gemini-2.5-flash-preview"),
 )
 
 const modelProviderValidator = v.union(
