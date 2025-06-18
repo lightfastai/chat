@@ -126,31 +126,32 @@ export function useChat(options: UseChatOptions = {}) {
   const messages =
     preloadedMessages ?? messagesByClientId ?? messagesByThreadId ?? []
 
-  // DEBUG: Log message query details for debugging
-  useEffect(() => {
-    console.log("🔍 useChat debug:", {
-      pathname,
-      currentClientId,
-      currentThread: currentThread?._id,
-      isOptimisticThreadId,
-      messageThreadId,
-      messageCount: messages.length,
-      messagesByClientIdCount: messagesByClientId?.length,
-      messagesByThreadIdCount: messagesByThreadId?.length,
-      firstMessage: messages[0]?.body?.slice(0, 50),
-      pathInfo,
-    })
-  }, [
-    pathname,
-    currentClientId,
-    currentThread?._id,
-    isOptimisticThreadId,
-    messageThreadId,
-    messages.length,
-    messagesByClientId?.length,
-    messagesByThreadId?.length,
-    pathInfo,
-  ])
+  // Remove debug logging for production
+  // Uncomment the following for debugging message queries
+  // useEffect(() => {
+  //   console.log("🔍 useChat debug:", {
+  //     pathname,
+  //     currentClientId,
+  //     currentThread: currentThread?._id,
+  //     isOptimisticThreadId,
+  //     messageThreadId,
+  //     messageCount: messages.length,
+  //     messagesByClientIdCount: messagesByClientId?.length,
+  //     messagesByThreadIdCount: messagesByThreadId?.length,
+  //     firstMessage: messages[0]?.body?.slice(0, 50),
+  //     pathInfo,
+  //   })
+  // }, [
+  //   pathname,
+  //   currentClientId,
+  //   currentThread?._id,
+  //   isOptimisticThreadId,
+  //   messageThreadId,
+  //   messages.length,
+  //   messagesByClientId?.length,
+  //   messagesByThreadId?.length,
+  //   pathInfo,
+  // ])
 
   // Mutations with proper Convex optimistic updates
   const createThreadAndSend = useMutation(
