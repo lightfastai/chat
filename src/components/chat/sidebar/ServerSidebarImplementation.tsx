@@ -32,7 +32,12 @@ export function ServerSidebarImplementation({
     <Sidebar variant="inset" className="w-64 max-w-64">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-3">
+          <Link
+            href="https://lightfast.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3"
+          >
             <Icons.logo className="w-6 h-6 text-foreground" />
           </Link>
         </div>
