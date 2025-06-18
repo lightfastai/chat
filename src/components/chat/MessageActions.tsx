@@ -125,12 +125,34 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           threadId: tempThreadId, // Use the same tempThreadId as the thread
         }))
 
+        // Create optimistic assistant message placeholder for the new response
+        const optimisticAssistantMessage: Doc<"messages"> = {
+          _id: crypto.randomUUID() as Id<"messages">,
+          _creationTime: now + 1,
+          threadId: tempThreadId,
+          body: "", // Empty body for streaming
+          messageType: "assistant",
+          modelId: args.modelId,
+          timestamp: now + 1,
+          isStreaming: true,
+          isComplete: false,
+          streamId: `stream_${clientId}_${now}`,
+          thinkingStartedAt: now,
+        }
+
+        // Combine all messages: existing ones + new assistant placeholder
+        // Messages are in descending order (newest first)
+        const allOptimisticMessages = [
+          optimisticAssistantMessage, // New assistant message at the top
+          ...optimisticMessages, // All copied messages below
+        ]
+
         // CRITICAL: Set optimistic messages using the tempThreadId
         // This ensures useChat hook can find them immediately
         localStore.setQuery(
           api.messages.list,
           { threadId: tempThreadId },
-          optimisticMessages,
+          allOptimisticMessages,
         )
 
         // CRITICAL: Also set messages by clientId for instant navigation
@@ -138,7 +160,7 @@ export function MessageActions({ message, className }: MessageActionsProps) {
         localStore.setQuery(
           api.messages.listByClientId,
           { clientId },
-          optimisticMessages,
+          allOptimisticMessages,
         )
       }
     }
