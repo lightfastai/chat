@@ -31,7 +31,7 @@ export function MessageAvatar({
         }`}
       >
         {isAssistant ? (
-          <Icons.logoShort className="w-4 h-4" />
+          <Icons.logoShort className="w-4" />
         ) : userName ? (
           userName[0]?.toUpperCase()
         ) : (

@@ -1,6 +1,9 @@
 import { type CoreMessage, stepCountIs, streamText } from "ai"
 import { v } from "convex/values"
-import { type ModelId, getProviderFromModelId } from "../../src/lib/ai/schemas.js"
+import {
+  type ModelId,
+  getProviderFromModelId,
+} from "../../src/lib/ai/schemas.js"
 import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import { internalAction } from "../_generated/server.js"
