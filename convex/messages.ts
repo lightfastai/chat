@@ -290,6 +290,13 @@ export const send = mutation({
       model: provider,
       modelId: modelId,
       attachments: args.attachments,
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        reasoningTokens: 0,
+        cachedInputTokens: 0,
+      },
     })
 
     // Schedule AI response using the modelId
@@ -386,6 +393,13 @@ export const createThreadAndSend = mutation({
       model: provider,
       modelId: modelId,
       attachments: args.attachments,
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        reasoningTokens: 0,
+        cachedInputTokens: 0,
+      },
     })
 
     // Generate unique stream ID for assistant message
@@ -406,6 +420,13 @@ export const createThreadAndSend = mutation({
       streamChunks: [], // Initialize empty chunks array
       streamVersion: 0, // Initialize version counter
       lastChunkId: undefined, // Initialize last chunk ID
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        reasoningTokens: 0,
+        cachedInputTokens: 0,
+      },
     })
 
     // Schedule AI response with the pre-created message ID
@@ -1354,6 +1375,13 @@ export const createStreamingMessage = internalMutation({
       lastChunkId: undefined, // Initialize last chunk ID
       modelId: args.modelId,
       usedUserApiKey: args.usedUserApiKey,
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        reasoningTokens: 0,
+        cachedInputTokens: 0,
+      },
     })
   },
 })
