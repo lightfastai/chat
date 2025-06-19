@@ -21,13 +21,13 @@ import {
   query,
 } from "./_generated/server.js"
 
-import { getModelById } from "../src/lib/ai/models.js"
 // Import shared types and utilities
 import {
   type ModelId,
   getActualModelName,
   getProviderFromModelId,
   isThinkingMode,
+  getModelConfig,
 } from "../src/lib/ai/types.js"
 import { env } from "./env.js"
 import {
@@ -469,7 +469,7 @@ async function buildMessageContent(
   }
 
   // Get model configuration to check capabilities
-  const modelConfig = modelId ? getModelById(modelId) : null
+  const modelConfig = modelId ? getModelConfig(modelId as ModelId) : null
   const hasVisionSupport = modelConfig?.features.vision ?? false
   const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
 
@@ -585,7 +585,7 @@ export const generateAIResponseWithMessage = internalAction({
         "You are a helpful AI assistant in a chat conversation. Be concise and friendly."
 
       // Check model capabilities
-      const modelConfig = getModelById(args.modelId)
+      const modelConfig = getModelConfig(args.modelId)
       const hasVisionSupport = modelConfig?.features.vision ?? false
       const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
 
@@ -879,7 +879,7 @@ export const generateAIResponse = internalAction({
         "You are a helpful AI assistant in a chat conversation. Be concise and friendly."
 
       // Check model capabilities
-      const modelConfig = getModelById(args.modelId)
+      const modelConfig = getModelConfig(args.modelId)
       const hasVisionSupport = modelConfig?.features.vision ?? false
       const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
 
@@ -1371,17 +1371,15 @@ export const appendStreamChunk = internalMutation({
     if (!message) return null
 
     const currentChunks = message.streamChunks || []
-    const sequence = currentChunks.length // Use array length as sequence number
 
     const newChunk = {
-      id: args.chunkId,
+      chunkId: args.chunkId,
       content: args.chunk,
       timestamp: Date.now(),
-      sequence: sequence, // Add sequence for ordering
     }
 
     // Check for duplicate chunks (race condition protection)
-    if (currentChunks.some((chunk) => chunk.id === args.chunkId)) {
+    if (currentChunks.some((chunk) => chunk.chunkId === args.chunkId)) {
       console.log(`Duplicate chunk detected: ${args.chunkId}`)
       return null // Skip duplicate
     }
@@ -1600,21 +1598,21 @@ async function updateThreadUsage(
           ...currentUsage.modelStats,
           [modelId]: {
             messageCount:
-              (currentUsage.modelStats[modelId]?.messageCount || 0) + 1,
+              (currentUsage.modelStats?.[modelId]?.messageCount || 0) + 1,
             inputTokens:
-              (currentUsage.modelStats[modelId]?.inputTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.inputTokens || 0) +
               inputTokens,
             outputTokens:
-              (currentUsage.modelStats[modelId]?.outputTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.outputTokens || 0) +
               outputTokens,
             totalTokens:
-              (currentUsage.modelStats[modelId]?.totalTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.totalTokens || 0) +
               totalTokens,
             reasoningTokens:
-              (currentUsage.modelStats[modelId]?.reasoningTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.reasoningTokens || 0) +
               reasoningTokens,
             cachedInputTokens:
-              (currentUsage.modelStats[modelId]?.cachedInputTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.cachedInputTokens || 0) +
               cachedInputTokens,
           },
         },
@@ -1789,14 +1787,14 @@ export const getThreadUsage = query({
     }
 
     // Convert modelStats record to array format
-    const modelStats = Object.entries(usage.modelStats).map(
+    const modelStats = Object.entries(usage.modelStats || {}).map(
       ([model, stats]) => ({
         model,
         inputTokens: stats.inputTokens,
         outputTokens: stats.outputTokens,
         totalTokens: stats.totalTokens,
-        reasoningTokens: stats.reasoningTokens,
-        cachedInputTokens: stats.cachedInputTokens,
+        reasoningTokens: stats.reasoningTokens || 0,
+        cachedInputTokens: stats.cachedInputTokens || 0,
         messageCount: stats.messageCount,
       }),
     )
@@ -1868,7 +1866,7 @@ export const getStreamChunks = query({
     let newChunks = streamChunks
     if (args.sinceChunkId) {
       const sinceIndex = streamChunks.findIndex(
-        (chunk) => chunk.id === args.sinceChunkId,
+        (chunk) => chunk.chunkId === args.sinceChunkId,
       )
       if (sinceIndex >= 0) {
         // Return chunks after the sinceChunkId

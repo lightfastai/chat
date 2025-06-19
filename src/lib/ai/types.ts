@@ -1,78 +1,41 @@
 /**
  * AI Model Types and Configurations
+ * 
+ * This file re-exports types from the central schema definition
+ * to maintain backward compatibility with existing imports.
  */
 
-export type ModelProvider = "openai" | "anthropic" | "openrouter"
+// Re-export all types from schemas
+export type {
+  ModelProvider,
+  ModelConfig,
+  ModelFeatures,
+  ThinkingConfig,
+  ModelId,
+  OpenAIModelId,
+  AnthropicModelId,
+  OpenRouterModelId,
+} from "./schemas"
 
-export type OpenAIModel =
-  | "gpt-4o-mini"
-  | "gpt-4o"
-  | "gpt-4.1"
-  | "o3"
-  | "gpt-4.1-mini"
-  | "gpt-4.1-nano"
-  | "o3-mini"
-  | "o4-mini"
-  | "gpt-3.5-turbo"
-export type AnthropicModel =
-  | "claude-4-opus-20250514"
-  | "claude-4-sonnet-20250514"
-  | "claude-3-7-sonnet-20250219"
-  | "claude-3-5-sonnet-20241022"
-  | "claude-3-5-sonnet-20240620"
-  | "claude-3-5-haiku-20241022"
-  // Thinking mode variants
-  | "claude-4-opus-20250514-thinking"
-  | "claude-4-sonnet-20250514-thinking"
-  | "claude-3-7-sonnet-20250219-thinking"
-  | "claude-3-5-sonnet-20241022-thinking"
-  | "claude-3-5-sonnet-20240620-thinking"
-  | "claude-3-5-haiku-20241022-thinking"
-  // Legacy model IDs for backward compatibility
-  | "claude-sonnet-4-20250514"
-  | "claude-sonnet-4-20250514-thinking"
-  | "claude-3-haiku-20240307"
+// Re-export type guards and utilities
+export {
+  getModelConfig,
+  getModelsForProvider,
+  getVisibleModels,
+  getDeprecatedModels,
+  getLegacyModelMapping,
+  validateApiKey,
+} from "./schemas"
 
-export type OpenRouterModel =
-  | "meta-llama/llama-3.3-70b-instruct"
-  | "anthropic/claude-3.5-sonnet"
-  | "openai/gpt-4o"
-  | "google/gemini-pro-1.5"
-  | "mistralai/mistral-large"
-  | "x-ai/grok-3-beta"
-  | "x-ai/grok-3-mini-beta"
-  | "google/gemini-2.5-pro-preview"
-  | "google/gemini-2.5-flash-preview"
+// Re-export constants for backward compatibility
+export {
+  ALL_MODEL_IDS,
+  OPENAI_MODEL_IDS,
+  ANTHROPIC_MODEL_IDS,
+  OPENROUTER_MODEL_IDS,
+} from "./schemas"
 
-export type ModelId = OpenAIModel | AnthropicModel | OpenRouterModel
-
-export interface ModelConfig {
-  id: string
-  provider: ModelProvider
-  name: string
-  displayName: string
-  description: string
-  maxTokens: number
-  costPer1KTokens: {
-    input: number
-    output: number
-  }
-  features: {
-    streaming: boolean
-    functionCalling: boolean
-    vision: boolean
-    thinking?: boolean
-    pdfSupport?: boolean
-  }
-  thinkingConfig?: {
-    enabled: boolean
-    defaultBudgetTokens: number
-  }
-  deprecated?: boolean
-  replacedBy?: string
-  hidden?: boolean
-}
-
+// Additional types not in schemas (keep these separate)
 export interface ChatMessage {
   role: "system" | "user" | "assistant"
   content: string
@@ -92,54 +55,13 @@ export interface AIGenerationOptions {
   stream?: boolean
 }
 
-// Shared validation helpers for Convex
+// Legacy type aliases for smoother migration
+export type OpenAIModel = OpenAIModelId
+export type AnthropicModel = AnthropicModelId  
+export type OpenRouterModel = OpenRouterModelId
+
+// Re-export MODEL_PROVIDERS for backward compatibility
 export const MODEL_PROVIDERS = ["openai", "anthropic", "openrouter"] as const
-export const OPENAI_MODEL_IDS = [
-  "gpt-4o-mini",
-  "gpt-4o",
-  "gpt-4.1",
-  "o3",
-  "gpt-4.1-mini",
-  "gpt-4.1-nano",
-  "o3-mini",
-  "o4-mini",
-  "gpt-3.5-turbo",
-] as const
-export const ANTHROPIC_MODEL_IDS = [
-  "claude-4-opus-20250514",
-  "claude-4-sonnet-20250514",
-  "claude-3-7-sonnet-20250219",
-  "claude-3-5-sonnet-20241022",
-  "claude-3-5-sonnet-20240620",
-  "claude-3-5-haiku-20241022",
-  // Thinking mode variants
-  "claude-4-opus-20250514-thinking",
-  "claude-4-sonnet-20250514-thinking",
-  "claude-3-7-sonnet-20250219-thinking",
-  "claude-3-5-sonnet-20241022-thinking",
-  "claude-3-5-sonnet-20240620-thinking",
-  "claude-3-5-haiku-20241022-thinking",
-  // Legacy model IDs for backward compatibility
-  "claude-sonnet-4-20250514",
-  "claude-sonnet-4-20250514-thinking",
-  "claude-3-haiku-20240307",
-] as const
-export const OPENROUTER_MODEL_IDS = [
-  "meta-llama/llama-3.3-70b-instruct",
-  "anthropic/claude-3.5-sonnet",
-  "openai/gpt-4o",
-  "google/gemini-pro-1.5",
-  "mistralai/mistral-large",
-  "x-ai/grok-3-beta",
-  "x-ai/grok-3-mini-beta",
-  "google/gemini-2.5-pro-preview",
-  "google/gemini-2.5-flash-preview",
-] as const
-export const ALL_MODEL_IDS = [
-  ...OPENAI_MODEL_IDS,
-  ...ANTHROPIC_MODEL_IDS,
-  ...OPENROUTER_MODEL_IDS,
-] as const
 
 // Type-safe model ID validation
 export function isValidModelId(modelId: string): modelId is ModelId {
@@ -148,24 +70,18 @@ export function isValidModelId(modelId: string): modelId is ModelId {
 
 // Extract provider from modelId (type-safe)
 export function getProviderFromModelId(modelId: ModelId): ModelProvider {
-  if ((OPENAI_MODEL_IDS as readonly string[]).includes(modelId)) {
-    return "openai"
-  }
-  if ((ANTHROPIC_MODEL_IDS as readonly string[]).includes(modelId)) {
-    return "anthropic"
-  }
-  if ((OPENROUTER_MODEL_IDS as readonly string[]).includes(modelId)) {
-    return "openrouter"
-  }
-  throw new Error(`Unknown model ID: ${modelId}`)
+  const model = getModelConfig(modelId)
+  return model.provider
 }
 
-// Get actual model name for API calls (removes -thinking or -reasoning suffix)
+// Get actual model name for API calls (removes -thinking suffix)
 export function getActualModelName(modelId: ModelId): string {
-  return modelId.replace("-thinking", "").replace("-reasoning", "")
+  const model = getModelConfig(modelId)
+  return model.name
 }
 
-// Check if model is in thinking/reasoning mode
+// Check if model is in thinking mode
 export function isThinkingMode(modelId: ModelId): boolean {
-  return modelId.includes("-thinking") || modelId.includes("-reasoning")
+  const model = getModelConfig(modelId)
+  return model.features.thinking === true && model.thinkingConfig?.enabled === true
 }

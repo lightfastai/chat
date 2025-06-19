@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useFileDrop } from "@/hooks/useFileDrop"
-import { DEFAULT_MODEL_ID, getAllModels, getModelById } from "@/lib/ai"
+import { DEFAULT_MODEL_ID, getAllModels, getModelConfig } from "@/lib/ai"
 import { useMutation } from "convex/react"
 import {
   ChevronDown,
@@ -88,7 +88,7 @@ const ChatInputComponent = ({
   // Memoize expensive computations
   const allModels = useMemo(() => getAllModels(), [])
   const selectedModel = useMemo(
-    () => getModelById(selectedModelId),
+    () => getModelConfig(selectedModelId),
     [selectedModelId],
   )
 

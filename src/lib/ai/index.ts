@@ -5,23 +5,45 @@
  * and generation options across the application.
  */
 
-// Types and utilities
+// Types and utilities from schemas (primary source)
 export type {
   ModelProvider,
   ModelId,
-  OpenAIModel,
-  AnthropicModel,
   ModelConfig,
+  ModelFeatures,
+  ThinkingConfig,
+  OpenAIModelId,
+  AnthropicModelId,
+  OpenRouterModelId,
+} from "./schemas"
+
+export {
+  ALL_MODEL_IDS,
+  OPENAI_MODEL_IDS,
+  ANTHROPIC_MODEL_IDS,
+  OPENROUTER_MODEL_IDS,
+  getModelConfig,
+  getModelsForProvider,
+  getVisibleModels,
+  getDeprecatedModels,
+  getLegacyModelMapping,
+  validateApiKey,
+  DEFAULT_MODEL_ID,
+} from "./schemas"
+
+// Additional types from types.ts
+export type {
   ChatMessage,
   ModelSelectionProps,
   AIGenerationOptions,
+  // Legacy type aliases
+  OpenAIModel,
+  AnthropicModel,
+  OpenRouterModel,
 } from "./types"
 
 export {
   MODEL_PROVIDERS,
-  OPENAI_MODEL_IDS,
-  ANTHROPIC_MODEL_IDS,
-  ALL_MODEL_IDS,
   isValidModelId,
   getProviderFromModelId,
   getActualModelName,
@@ -32,10 +54,11 @@ export {
 export {
   OPENAI_MODELS,
   ANTHROPIC_MODELS,
+  OPENROUTER_MODELS,
   ALL_MODELS,
-  DEFAULT_MODEL_ID,
   getModelsByProvider,
   getAllModels,
+  getAllModelsIncludingHidden,
   getModelById,
   getModelDisplayName,
   modelSupportsFeature,
@@ -54,5 +77,8 @@ export {
   createGenerationOptions,
 } from "./providers"
 
+// API key validation
+export { validateApiKeyFormat } from "./apiKeyValidation"
+
 // Constants for easy access
-export const AI_PROVIDERS = ["openai", "anthropic"] as const
+export const AI_PROVIDERS = ["openai", "anthropic", "openrouter"] as const
