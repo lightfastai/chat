@@ -56,7 +56,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
   const normalizedLanguage = normalizeLanguage(language)
 
   return (
-    <div className={cn("relative group my-4", className)}>
+    <div className={cn("relative group my-4 w-full max-w-full", className)}>
       {/* Header with language and controls */}
       <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border border-border rounded-t-md">
         <span className="text-xs text-muted-foreground font-mono">
@@ -93,8 +93,13 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
       </div>
 
       {/* Syntax Highlighter */}
-      <div className="border border-t-0 border-border rounded-b-md overflow-hidden">
-        <div className={cn("max-w-full", !isWrapped && "overflow-x-auto")}>
+      <div className="border border-t-0 border-border rounded-b-md overflow-hidden w-full">
+        <div
+          className={cn(
+            "w-full min-w-0", // min-w-0 allows flex items to shrink below content size
+            isWrapped ? "overflow-hidden" : "overflow-x-auto",
+          )}
+        >
           <SyntaxHighlighter
             language={normalizedLanguage}
             style={theme === "dark" ? oneDark : oneLight}
@@ -111,6 +116,8 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
               whiteSpace: isWrapped ? "pre-wrap" : "pre",
               wordBreak: isWrapped ? "break-word" : "normal",
               overflowWrap: isWrapped ? "break-word" : "normal",
+              width: isWrapped ? "100%" : "max-content",
+              minWidth: isWrapped ? "0" : "max-content",
             }}
             codeTagProps={{
               style: {
@@ -119,6 +126,8 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
                 whiteSpace: isWrapped ? "pre-wrap" : "pre",
                 wordBreak: isWrapped ? "break-word" : "normal",
                 overflowWrap: isWrapped ? "break-word" : "normal",
+                display: "block",
+                width: isWrapped ? "100%" : "max-content",
               },
             }}
           >
