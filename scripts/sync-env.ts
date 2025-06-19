@@ -13,9 +13,7 @@ const ENV_FILE = ".env.local"
 
 // Define environment variables that need to be synced to Convex
 // These are variables that Convex functions actually use
-const CONVEX_REQUIRED_VARS = [
-  "EXA_API_KEY",
-] as const
+const CONVEX_REQUIRED_VARS = ["EXA_API_KEY"] as const
 const OPTIONAL_VARS = [
   "GOOGLE_API_KEY",
   "AUTH_GITHUB_ID",

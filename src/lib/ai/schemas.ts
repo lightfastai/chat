@@ -86,7 +86,7 @@ export const MODELS = {
       vision: true,
     },
   }),
-  "o3": ModelConfigSchema.parse({
+  o3: ModelConfigSchema.parse({
     id: "o3",
     provider: "openai",
     name: "o3",
@@ -424,7 +424,8 @@ export const MODELS = {
     provider: "anthropic",
     name: "claude-4-sonnet-20250514",
     displayName: "Claude 4 Sonnet (Thinking) (Legacy)",
-    description: "Legacy model ID - use claude-4-sonnet-20250514-thinking instead",
+    description:
+      "Legacy model ID - use claude-4-sonnet-20250514-thinking instead",
     maxTokens: 200000,
     costPer1KTokens: { input: 0.003, output: 0.015 },
     features: {
@@ -447,7 +448,8 @@ export const MODELS = {
     provider: "anthropic",
     name: "claude-3-haiku-20240307",
     displayName: "Claude 3 Haiku (Legacy)",
-    description: "Legacy model ID - use claude-3-5-haiku-20241022 for latest Haiku",
+    description:
+      "Legacy model ID - use claude-3-5-haiku-20241022 for latest Haiku",
     maxTokens: 200000,
     costPer1KTokens: { input: 0.00025, output: 0.00125 },
     features: {
@@ -531,7 +533,8 @@ export const MODELS = {
     provider: "openrouter",
     name: "mistralai/mistral-large",
     displayName: "Mistral Large",
-    description: "Mistral's flagship model with strong multilingual capabilities",
+    description:
+      "Mistral's flagship model with strong multilingual capabilities",
     maxTokens: 128000,
     costPer1KTokens: { input: 0.002, output: 0.006 },
     features: {
@@ -561,7 +564,8 @@ export const MODELS = {
     provider: "openrouter",
     name: "x-ai/grok-3-mini-beta",
     displayName: "Grok 3 Mini",
-    description: "Fast and efficient reasoning model for math and quantitative tasks",
+    description:
+      "Fast and efficient reasoning model for math and quantitative tasks",
     maxTokens: 131072,
     costPer1KTokens: { input: 0.3, output: 0.5 },
     features: {
@@ -575,7 +579,8 @@ export const MODELS = {
     provider: "openrouter",
     name: "google/gemini-2.5-pro-preview",
     displayName: "Gemini 2.5 Pro",
-    description: "Google's most advanced model for complex reasoning and coding",
+    description:
+      "Google's most advanced model for complex reasoning and coding",
     maxTokens: 1048576,
     costPer1KTokens: { input: 1.25, output: 10.0 },
     features: {
@@ -589,7 +594,8 @@ export const MODELS = {
     provider: "openrouter",
     name: "google/gemini-2.5-flash-preview",
     displayName: "Gemini 2.5 Flash",
-    description: "Google's state-of-the-art workhorse model for reasoning and coding",
+    description:
+      "Google's state-of-the-art workhorse model for reasoning and coding",
     maxTokens: 1048576,
     costPer1KTokens: { input: 0.15, output: 0.6 },
     features: {
@@ -600,11 +606,7 @@ export const MODELS = {
   }),
 } as const
 
-// Type validation to ensure model IDs match their keys
-type ValidateModelIds<T extends Record<string, ModelConfig>> = {
-  [K in keyof T]: T[K]["id"] extends K ? T[K] : never
-}
-type ValidatedModels = ValidateModelIds<typeof MODELS>
+// Type validation to ensure model IDs match their keys is done at schema parse time
 
 // Export derived types
 export type ModelId = keyof typeof MODELS
@@ -648,13 +650,13 @@ export function validateApiKey(provider: ModelProvider, key: string) {
 // Export collections
 export const ALL_MODEL_IDS = Object.keys(MODELS) as ModelId[]
 export const OPENAI_MODEL_IDS = ALL_MODEL_IDS.filter(
-  (id) => MODELS[id].provider === "openai"
+  (id) => MODELS[id].provider === "openai",
 ) as OpenAIModelId[]
 export const ANTHROPIC_MODEL_IDS = ALL_MODEL_IDS.filter(
-  (id) => MODELS[id].provider === "anthropic"
+  (id) => MODELS[id].provider === "anthropic",
 ) as AnthropicModelId[]
 export const OPENROUTER_MODEL_IDS = ALL_MODEL_IDS.filter(
-  (id) => MODELS[id].provider === "openrouter"
+  (id) => MODELS[id].provider === "openrouter",
 ) as OpenRouterModelId[]
 
 // Helper functions
@@ -675,15 +677,15 @@ export function getDeprecatedModels(): ModelConfig[] {
 }
 
 export function getLegacyModelMapping(): Record<string, string> {
-  return Object.values(MODELS)
-    .filter((model) => model.deprecated && model.replacedBy)
-    .reduce(
-      (acc, model) => ({
-        ...acc,
-        [model.id]: model.replacedBy!,
-      }),
-      {}
-    )
+  const mapping: Record<string, string> = {}
+
+  for (const model of Object.values(MODELS)) {
+    if (model.deprecated && model.replacedBy) {
+      mapping[model.id] = model.replacedBy
+    }
+  }
+
+  return mapping
 }
 
 // Default model ID

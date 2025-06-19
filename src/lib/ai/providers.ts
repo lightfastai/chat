@@ -89,7 +89,7 @@ export function getLanguageModel(provider: ModelProvider) {
  * Get language model by specific model ID
  */
 export function getLanguageModelById(modelId: string) {
-  const model = getModelById(modelId)
+  const model = getModelById(modelId as ModelId)
   if (!model) {
     throw new Error(`Model not found: ${modelId}`)
   }

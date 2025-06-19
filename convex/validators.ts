@@ -1,58 +1,22 @@
 import { v } from "convex/values"
+import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js"
 
 /**
  * Shared validators for type safety across Convex functions
  *
  * These validators ensure consistent data validation and provide
  * better type inference throughout the backend.
- * 
- * AUTO-GENERATED from src/lib/ai/schemas.ts
- * Do not edit manually - run: bun run scripts/generate-convex-validators.ts
  */
 
 // ===== Model Validators =====
-// Model ID validator for all supported AI models
+// Model ID validator for all supported AI models (auto-synced from schemas)
 export const modelIdValidator = v.union(
-  v.literal("gpt-4o-mini"),
-  v.literal("gpt-4o"),
-  v.literal("gpt-4.1"),
-  v.literal("o3"),
-  v.literal("gpt-4.1-mini"),
-  v.literal("gpt-4.1-nano"),
-  v.literal("o3-mini"),
-  v.literal("o4-mini"),
-  v.literal("gpt-3.5-turbo"),
-  v.literal("claude-4-opus-20250514"),
-  v.literal("claude-4-sonnet-20250514"),
-  v.literal("claude-3-7-sonnet-20250219"),
-  v.literal("claude-3-5-sonnet-20241022"),
-  v.literal("claude-3-5-sonnet-20240620"),
-  v.literal("claude-3-5-haiku-20241022"),
-  v.literal("claude-4-opus-20250514-thinking"),
-  v.literal("claude-4-sonnet-20250514-thinking"),
-  v.literal("claude-3-7-sonnet-20250219-thinking"),
-  v.literal("claude-3-5-sonnet-20241022-thinking"),
-  v.literal("claude-3-5-sonnet-20240620-thinking"),
-  v.literal("claude-3-5-haiku-20241022-thinking"),
-  v.literal("claude-sonnet-4-20250514"),
-  v.literal("claude-sonnet-4-20250514-thinking"),
-  v.literal("claude-3-haiku-20240307"),
-  v.literal("meta-llama/llama-3.3-70b-instruct"),
-  v.literal("anthropic/claude-3.5-sonnet"),
-  v.literal("openai/gpt-4o"),
-  v.literal("google/gemini-pro-1.5"),
-  v.literal("mistralai/mistral-large"),
-  v.literal("x-ai/grok-3-beta"),
-  v.literal("x-ai/grok-3-mini-beta"),
-  v.literal("google/gemini-2.5-pro-preview"),
-  v.literal("google/gemini-2.5-flash-preview"),
+  ...ALL_MODEL_IDS.map((id) => v.literal(id)),
 )
 
-// Model provider validator
+// Model provider validator (auto-synced from schemas)
 export const modelProviderValidator = v.union(
-  v.literal("openai"),
-  v.literal("anthropic"),
-  v.literal("openrouter"),
+  ...ModelProviderSchema.options.map((provider) => v.literal(provider)),
 )
 
 // ===== ID Validators =====
@@ -107,7 +71,7 @@ export const userAgentValidator = v.optional(v.string())
 export const shareSettingsValidator = v.optional(
   v.object({
     showThinking: v.optional(v.boolean()),
-  })
+  }),
 )
 
 // ===== Message & Stream Validators =====
@@ -115,7 +79,7 @@ export const shareSettingsValidator = v.optional(
 export const messageTypeValidator = v.union(
   v.literal("user"),
   v.literal("assistant"),
-  v.literal("system")
+  v.literal("system"),
 )
 
 // Token usage validator
@@ -131,7 +95,7 @@ export const tokenUsageValidator = v.optional(
     completionTokens: v.optional(v.number()),
     cacheHitTokens: v.optional(v.number()),
     cacheWriteTokens: v.optional(v.number()),
-  })
+  }),
 )
 
 // Stream chunk validator
@@ -159,16 +123,16 @@ export const fileMetadataValidator = v.optional(
       v.object({
         width: v.number(),
         height: v.number(),
-      })
+      }),
     ),
-  })
+  }),
 )
 
 // ===== Feedback Validators =====
 // Feedback rating validator
 export const feedbackRatingValidator = v.union(
   v.literal("thumbs_up"),
-  v.literal("thumbs_down")
+  v.literal("thumbs_down"),
 )
 
 // Feedback reasons validator
@@ -184,9 +148,9 @@ export const feedbackReasonsValidator = v.optional(
       v.literal("unclear"),
       v.literal("repetitive"),
       v.literal("incomplete"),
-      v.literal("off_topic")
-    )
-  )
+      v.literal("off_topic"),
+    ),
+  ),
 )
 
 // ===== Thread Validators =====
@@ -196,7 +160,7 @@ export const branchInfoValidator = v.optional(
     threadId: v.id("threads"),
     messageId: v.id("messages"),
     timestamp: v.number(),
-  })
+  }),
 )
 
 // Thread usage validator
@@ -208,15 +172,20 @@ export const threadUsageValidator = v.optional(
     totalReasoningTokens: v.number(),
     totalCachedInputTokens: v.number(),
     messageCount: v.number(),
-    modelStats: v.optional(v.record(v.string(), v.object({
-      inputTokens: v.number(),
-      outputTokens: v.number(),
-      totalTokens: v.number(),
-      reasoningTokens: v.optional(v.number()),
-      cachedInputTokens: v.optional(v.number()),
-      messageCount: v.number(),
-    }))),
-  })
+    modelStats: v.optional(
+      v.record(
+        v.string(),
+        v.object({
+          inputTokens: v.number(),
+          outputTokens: v.number(),
+          totalTokens: v.number(),
+          reasoningTokens: v.optional(v.number()),
+          cachedInputTokens: v.optional(v.number()),
+          messageCount: v.number(),
+        }),
+      ),
+    ),
+  }),
 )
 
 // ===== User Settings Validators =====
@@ -226,7 +195,7 @@ export const userApiKeysValidator = v.optional(
     openai: v.optional(v.string()),
     anthropic: v.optional(v.string()),
     openrouter: v.optional(v.string()),
-  })
+  }),
 )
 
 // User preferences validator
@@ -234,7 +203,7 @@ export const userPreferencesValidator = v.optional(
   v.object({
     defaultModel: v.optional(modelIdValidator),
     preferredProvider: v.optional(modelProviderValidator),
-  })
+  }),
 )
 
 // ===== Validation Functions =====
@@ -242,4 +211,3 @@ export const userPreferencesValidator = v.optional(
 export function validateTitle(title: string): boolean {
   return title.length >= 1 && title.length <= 80
 }
-

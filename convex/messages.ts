@@ -25,9 +25,9 @@ import {
 import {
   type ModelId,
   getActualModelName,
+  getModelConfig,
   getProviderFromModelId,
   isThinkingMode,
-  getModelConfig,
 } from "../src/lib/ai/types.js"
 import { env } from "./env.js"
 import {

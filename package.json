@@ -21,8 +21,7 @@
     "with-env": "dotenv -e ./.env.local --",
     "turbo:build": "turbo run build",
     "turbo:lint": "turbo run lint",
-    "turbo:format": "turbo run format",
-    "generate:validators": "bun run scripts/generate-convex-validators.ts > convex/validators.ts"
+    "turbo:format": "turbo run format"
   },
   "repository": {
     "type": "git",

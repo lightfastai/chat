@@ -4,7 +4,7 @@ import { User } from "lucide-react"
 import type React from "react"
 
 export interface MessageAvatarProps {
-  messageType: "user" | "assistant"
+  messageType: "user" | "assistant" | "system"
   userImage?: string
   userName?: string
 }

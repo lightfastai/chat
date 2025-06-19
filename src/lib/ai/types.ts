@@ -1,6 +1,6 @@
 /**
  * AI Model Types and Configurations
- * 
+ *
  * This file re-exports types from the central schema definition
  * to maintain backward compatibility with existing imports.
  */
@@ -56,32 +56,44 @@ export interface AIGenerationOptions {
 }
 
 // Legacy type aliases for smoother migration
-export type OpenAIModel = OpenAIModelId
-export type AnthropicModel = AnthropicModelId  
-export type OpenRouterModel = OpenRouterModelId
+export type OpenAIModel = import("./schemas").OpenAIModelId
+export type AnthropicModel = import("./schemas").AnthropicModelId
+export type OpenRouterModel = import("./schemas").OpenRouterModelId
 
 // Re-export MODEL_PROVIDERS for backward compatibility
 export const MODEL_PROVIDERS = ["openai", "anthropic", "openrouter"] as const
 
 // Type-safe model ID validation
-export function isValidModelId(modelId: string): modelId is ModelId {
+export function isValidModelId(
+  modelId: string,
+): modelId is import("./schemas").ModelId {
+  const { ALL_MODEL_IDS } = require("./schemas")
   return (ALL_MODEL_IDS as readonly string[]).includes(modelId)
 }
 
 // Extract provider from modelId (type-safe)
-export function getProviderFromModelId(modelId: ModelId): ModelProvider {
+export function getProviderFromModelId(
+  modelId: import("./schemas").ModelId,
+): import("./schemas").ModelProvider {
+  const { getModelConfig } = require("./schemas")
   const model = getModelConfig(modelId)
   return model.provider
 }
 
 // Get actual model name for API calls (removes -thinking suffix)
-export function getActualModelName(modelId: ModelId): string {
+export function getActualModelName(
+  modelId: import("./schemas").ModelId,
+): string {
+  const { getModelConfig } = require("./schemas")
   const model = getModelConfig(modelId)
   return model.name
 }
 
 // Check if model is in thinking mode
-export function isThinkingMode(modelId: ModelId): boolean {
+export function isThinkingMode(modelId: import("./schemas").ModelId): boolean {
+  const { getModelConfig } = require("./schemas")
   const model = getModelConfig(modelId)
-  return model.features.thinking === true && model.thinkingConfig?.enabled === true
+  return (
+    model.features.thinking === true && model.thinkingConfig?.enabled === true
+  )
 }

@@ -6,7 +6,7 @@ export interface MessageLayoutProps {
   content: React.ReactNode
   timestamp?: React.ReactNode
   actions?: React.ReactNode
-  messageType: "user" | "assistant"
+  messageType: "user" | "assistant" | "system"
   className?: string
 }
 
@@ -19,12 +19,13 @@ export function MessageLayout({
   className,
 }: MessageLayoutProps) {
   const isAssistant = messageType === "assistant"
+  const isSystem = messageType === "system"
 
   return (
     <div
       className={cn(
         "flex gap-3 group/message",
-        isAssistant ? "mt-6" : "mt-4",
+        isAssistant ? "mt-6" : isSystem ? "mt-2" : "mt-4",
         className,
       )}
     >
