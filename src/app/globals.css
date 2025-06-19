@@ -207,3 +207,30 @@
 .animate-shimmer {
   animation: shimmer 2s infinite;
 }
+
+/* CodeMirror editor styling */
+.cm-editor,
+.cm-gutters {
+  @apply bg-background text-foreground outline-none !important;
+}
+
+.dark .cm-editor,
+.dark .cm-gutters {
+  @apply bg-zinc-800 !important;
+}
+
+.cm-editor.cm-focused {
+  @apply outline-none !important;
+}
+
+/* Selection styling */
+.cm-editor .cm-selectionBackground,
+.cm-content ::selection {
+  @apply bg-zinc-200 dark:bg-zinc-900 !important;
+}
+
+/* Active line styling */
+.cm-activeLine,
+.cm-activeLineGutter {
+  @apply bg-transparent !important;
+}

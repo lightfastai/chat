@@ -2,6 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Check, Copy } from "lucide-react"
+import { useTheme } from "next-themes"
+import { useEffect, useRef, useState } from "react"
+
 import { css } from "@codemirror/lang-css"
 import { html } from "@codemirror/lang-html"
 import { javascript } from "@codemirror/lang-javascript"
@@ -9,25 +13,22 @@ import { json } from "@codemirror/lang-json"
 import { python } from "@codemirror/lang-python"
 import { EditorState } from "@codemirror/state"
 import { oneDark } from "@codemirror/theme-one-dark"
-import { EditorView } from "@codemirror/view"
-import { basicSetup } from "codemirror"
-import { Check, Copy } from "lucide-react"
-import { useTheme } from "next-themes"
-import { useEffect, useRef, useState } from "react"
+// Import everything from single entry points to avoid duplicate module issues
+import { EditorView, minimalSetup } from "codemirror"
 
-// Language mapping for syntax highlighting
+// Language mapping
 const languageMap = {
-  javascript: javascript(),
-  js: javascript(),
-  jsx: javascript({ jsx: true }),
-  typescript: javascript({ typescript: true }),
-  ts: javascript({ typescript: true }),
-  tsx: javascript({ typescript: true, jsx: true }),
-  python: python(),
-  py: python(),
-  css: css(),
-  html: html(),
-  json: json(),
+  javascript: () => javascript(),
+  js: () => javascript(),
+  jsx: () => javascript({ jsx: true }),
+  typescript: () => javascript({ typescript: true }),
+  ts: () => javascript({ typescript: true }),
+  tsx: () => javascript({ typescript: true, jsx: true }),
+  python: () => python(),
+  py: () => python(),
+  css: () => css(),
+  html: () => html(),
+  json: () => json(),
 }
 
 interface CodeBlockProps {
@@ -57,23 +58,14 @@ export function CodeBlock({
     }
 
     // Get language extension
-    const langExtension = language
+    const langFn = language
       ? languageMap[language.toLowerCase() as keyof typeof languageMap]
-      : undefined
+      : null
+    const langExtension = langFn ? langFn() : null
 
-    // Create extensions array like Vercel does
-    const extensions = [basicSetup]
-
-    if (langExtension) {
-      extensions.push(langExtension)
-    }
-
-    if (theme === "dark") {
-      extensions.push(oneDark)
-    }
-
-    // Add custom theme and settings
-    extensions.push(
+    // Build extensions array
+    const extensions = [
+      minimalSetup,
       EditorView.theme({
         "&": {
           fontSize: "13px",
@@ -84,9 +76,6 @@ export function CodeBlock({
           padding: "12px",
           minHeight: "auto",
         },
-        ".cm-focused": {
-          outline: "none",
-        },
         ".cm-editor": {
           borderRadius: "6px",
         },
@@ -95,8 +84,18 @@ export function CodeBlock({
         },
       }),
       EditorView.lineWrapping,
-      EditorState.readOnly.of(readonly),
-    )
+      EditorView.editable.of(!readonly),
+    ]
+
+    // Add language if available
+    if (langExtension) {
+      extensions.push(langExtension)
+    }
+
+    // Add theme
+    if (theme === "dark") {
+      extensions.push(oneDark)
+    }
 
     // Create editor state
     const state = EditorState.create({
