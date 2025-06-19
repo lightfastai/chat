@@ -65,7 +65,7 @@ export async function updateWithOwnership<T extends keyof DataModel>(
     userId,
   )
   // TypeScript requires the cast due to partial type variance
-  await db.patch(id, updates as Parameters<typeof db.patch>[1])
+  await db.patch(id, updates as any)
 }
 
 /**
