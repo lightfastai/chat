@@ -89,8 +89,8 @@ export const getThreadUsage = query({
         inputTokens: v.number(),
         outputTokens: v.number(),
         totalTokens: v.number(),
-        reasoningTokens: v.number(),
-        cachedInputTokens: v.number(),
+        reasoningTokens: v.optional(v.number()),
+        cachedInputTokens: v.optional(v.number()),
         messageCount: v.number(),
       }),
     ),
@@ -138,14 +138,14 @@ export const getThreadUsage = query({
     }
 
     // Convert modelStats record to array format
-    const modelStats = Object.entries(usage.modelStats).map(
+    const modelStats = Object.entries(usage.modelStats || {}).map(
       ([model, stats]) => ({
         model,
         inputTokens: stats.inputTokens,
         outputTokens: stats.outputTokens,
         totalTokens: stats.totalTokens,
-        reasoningTokens: stats.reasoningTokens,
-        cachedInputTokens: stats.cachedInputTokens,
+        reasoningTokens: stats.reasoningTokens || 0,
+        cachedInputTokens: stats.cachedInputTokens || 0,
         messageCount: stats.messageCount,
       }),
     )

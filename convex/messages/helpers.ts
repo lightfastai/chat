@@ -58,21 +58,21 @@ export async function updateThreadUsage(
           ...currentUsage.modelStats,
           [modelId]: {
             messageCount:
-              (currentUsage.modelStats[modelId]?.messageCount || 0) + 1,
+              (currentUsage.modelStats?.[modelId]?.messageCount || 0) + 1,
             inputTokens:
-              (currentUsage.modelStats[modelId]?.inputTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.inputTokens || 0) +
               inputTokens,
             outputTokens:
-              (currentUsage.modelStats[modelId]?.outputTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.outputTokens || 0) +
               outputTokens,
             totalTokens:
-              (currentUsage.modelStats[modelId]?.totalTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.totalTokens || 0) +
               totalTokens,
             reasoningTokens:
-              (currentUsage.modelStats[modelId]?.reasoningTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.reasoningTokens || 0) +
               reasoningTokens,
             cachedInputTokens:
-              (currentUsage.modelStats[modelId]?.cachedInputTokens || 0) +
+              (currentUsage.modelStats?.[modelId]?.cachedInputTokens || 0) +
               cachedInputTokens,
           },
         },

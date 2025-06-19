@@ -1,10 +1,10 @@
 import type { CoreMessage } from "ai"
 import { stepCountIs, streamText } from "ai"
-import type { ModelId } from "../../src/lib/ai/types.js"
+import type { ModelId } from "../../src/lib/ai/schemas.js"
 import {
   getProviderFromModelId,
   isThinkingMode,
-} from "../../src/lib/ai/types.js"
+} from "../../src/lib/ai/schemas.js"
 import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"

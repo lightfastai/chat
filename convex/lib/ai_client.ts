@@ -5,7 +5,7 @@ import {
   type ModelId,
   getActualModelName,
   getProviderFromModelId,
-} from "../../src/lib/ai/types.js"
+} from "../../src/lib/ai/schemas.js"
 import { env } from "../env.js"
 
 // Type for user API keys (matching getDecryptedApiKeys return type)

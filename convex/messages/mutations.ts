@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { type ModelId, getProviderFromModelId } from "../../src/lib/ai/types.js"
+import { type ModelId, getProviderFromModelId } from "../../src/lib/ai/schemas.js"
 import { internal } from "../_generated/api.js"
 import { internalMutation, mutation } from "../_generated/server.js"
 import { getAuthenticatedUserId } from "../lib/auth.js"

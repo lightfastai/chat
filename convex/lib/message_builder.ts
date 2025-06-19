@@ -1,4 +1,4 @@
-import { getModelById } from "../../src/lib/ai/models.js"
+import { type ModelId, getModelById } from "../../src/lib/ai/schemas.js"
 import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"
@@ -23,7 +23,7 @@ export async function buildMessageContent(
   text: string,
   attachmentIds?: Id<"files">[],
   provider?: "openai" | "anthropic" | "openrouter",
-  modelId?: string,
+  modelId?: ModelId,
 ): Promise<MultimodalContent> {
   // If no attachments, return simple text content
   if (!attachmentIds || attachmentIds.length === 0) {
@@ -96,7 +96,7 @@ export async function buildMessageContent(
  * Single source of truth for system prompt generation
  */
 export function createSystemPrompt(
-  modelId: string,
+  modelId: ModelId,
   webSearchEnabled = false,
 ): string {
   let systemPrompt =
