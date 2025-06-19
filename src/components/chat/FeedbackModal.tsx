@@ -18,15 +18,15 @@ import { api } from "../../../convex/_generated/api"
 import type { Doc, Id } from "../../../convex/_generated/dataModel"
 
 const feedbackOptions = [
-  "Incorrect information",
-  "Instructions ignored",
-  "Being lazy",
-  "Don't like style",
-  "Bad recommendation",
-  "Other",
+  { value: "not_helpful", label: "Not helpful" },
+  { value: "inaccurate", label: "Incorrect information" },
+  { value: "unclear", label: "Instructions ignored" },
+  { value: "repetitive", label: "Being lazy" },
+  { value: "incomplete", label: "Don't like style" },
+  { value: "off_topic", label: "Bad recommendation" },
 ] as const
 
-type FeedbackReason = (typeof feedbackOptions)[number]
+type FeedbackReason = (typeof feedbackOptions)[number]["value"]
 
 interface FeedbackModalProps {
   isOpen: boolean
@@ -71,7 +71,7 @@ export function FeedbackModal({
     try {
       await submitFeedback({
         messageId,
-        rating: "negative",
+        rating: "thumbs_down",
         comment: comment.trim() || undefined,
         reasons: selectedReasons,
       })
@@ -94,18 +94,18 @@ export function FeedbackModal({
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4 py-4">
-          {feedbackOptions.map((reason) => (
-            <div key={reason} className="flex items-center space-x-2">
+          {feedbackOptions.map((option) => (
+            <div key={option.value} className="flex items-center space-x-2">
               <Checkbox
-                id={reason}
-                checked={selectedReasons.includes(reason)}
-                onCheckedChange={() => handleReasonChange(reason)}
+                id={option.value}
+                checked={selectedReasons.includes(option.value)}
+                onCheckedChange={() => handleReasonChange(option.value)}
               />
               <Label
-                htmlFor={reason}
+                htmlFor={option.value}
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                {reason}
+                {option.label}
               </Label>
             </div>
           ))}

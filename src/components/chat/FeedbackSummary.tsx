@@ -23,8 +23,10 @@ export function FeedbackSummary({ threadId }: FeedbackSummaryProps) {
     return null
   }
 
-  const positiveCount = feedback.filter((f) => f.rating === "positive").length
-  const negativeCount = feedback.filter((f) => f.rating === "negative").length
+  const positiveCount = feedback.filter((f) => f.rating === "thumbs_up").length
+  const negativeCount = feedback.filter(
+    (f) => f.rating === "thumbs_down",
+  ).length
   const withComments = feedback.filter((f) => f.comment).length
 
   return (

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
-import { Activity, Brain, ChevronRight } from "lucide-react"
+import { Activity, ChevronRight } from "lucide-react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 
@@ -23,7 +23,7 @@ interface TokenUsageDialogProps {
 // Helper function to format token counts
 function formatTokenCount(count: number): string {
   if (count === 0) return "0"
-  if (count < 1000) return count.toString()
+  if (count < 1000) return count.toLocaleString()
   if (count < 1000000) {
     const k = count / 1000
     return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`
@@ -99,125 +99,68 @@ export function TokenUsageDialog({
           <ChevronRight className="w-3 h-3" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Token Usage</DialogTitle>
           <DialogDescription>
-            Detailed breakdown of token usage for this conversation
+            Token consumption breakdown for this conversation
           </DialogDescription>
         </DialogHeader>
+
         <div className="space-y-6">
-          {/* Overall Usage Section */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Overall Usage
-            </h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Input Tokens:</span>
-                <span className="font-mono font-medium">
-                  {formatTokenCount(usage.totalInputTokens)}
-                </span>
+          {/* Summary */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="p-3 border rounded-lg">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Total Tokens
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Output Tokens:</span>
-                <span className="font-mono font-medium">
-                  {formatTokenCount(usage.totalOutputTokens)}
-                </span>
+              <div className="font-mono text-lg font-semibold">
+                {formatTokenCount(usage.totalTokens)}
               </div>
-              {usage.totalReasoningTokens > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Reasoning Tokens:
-                  </span>
-                  <span className="font-mono font-medium">
-                    {formatTokenCount(usage.totalReasoningTokens)}
-                  </span>
-                </div>
-              )}
-              {usage.totalCachedInputTokens > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Cached Tokens:</span>
-                  <span className="font-mono font-medium">
-                    {formatTokenCount(usage.totalCachedInputTokens)}
-                  </span>
-                </div>
-              )}
-              <div className="col-span-2 pt-2 border-t">
-                <div className="flex justify-between">
-                  <span className="font-medium">Total Tokens:</span>
-                  <span className="font-mono font-semibold">
-                    {formatTokenCount(usage.totalTokens)}
-                  </span>
-                </div>
+            </div>
+            <div className="p-3 border rounded-lg">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                Messages
+              </div>
+              <div className="font-mono text-lg font-semibold">
+                {usage.messageCount}
               </div>
             </div>
           </div>
 
-          {/* Model Breakdown Section */}
+          {/* Token Breakdown */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Brain className="w-4 h-4" />
-              Model Breakdown
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Token Breakdown
             </h3>
-            <ScrollArea className="h-[300px] rounded-md border p-2">
-              <div className="space-y-4 pr-3">
+            <div className="space-y-2">
+              <TokenRow label="Input" value={usage.totalInputTokens} />
+              <TokenRow label="Output" value={usage.totalOutputTokens} />
+              {usage.totalReasoningTokens > 0 && (
+                <TokenRow
+                  label="Reasoning"
+                  value={usage.totalReasoningTokens}
+                />
+              )}
+              {usage.totalCachedInputTokens > 0 && (
+                <TokenRow label="Cached" value={usage.totalCachedInputTokens} />
+              )}
+            </div>
+          </div>
+
+          {/* Model Breakdown */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              By Model
+            </h3>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2 pr-3">
                 {usage.modelStats.map((modelStat) => (
-                  <div
+                  <ModelRow
                     key={modelStat.model}
-                    className="space-y-2 p-3 rounded-lg bg-muted/50"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {getModelDisplayName(modelStat.model)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {modelStat.messageCount} message
-                        {modelStat.messageCount !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Input:</span>
-                        <span className="font-mono">
-                          {formatTokenCount(modelStat.inputTokens)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Output:</span>
-                        <span className="font-mono">
-                          {formatTokenCount(modelStat.outputTokens)}
-                        </span>
-                      </div>
-                      {modelStat.reasoningTokens > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Reasoning:
-                          </span>
-                          <span className="font-mono">
-                            {formatTokenCount(modelStat.reasoningTokens)}
-                          </span>
-                        </div>
-                      )}
-                      {modelStat.cachedInputTokens > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Cached:</span>
-                          <span className="font-mono">
-                            {formatTokenCount(modelStat.cachedInputTokens)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="col-span-2 pt-1 border-t">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total:</span>
-                          <span className="font-mono font-medium">
-                            {formatTokenCount(modelStat.totalTokens)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    model={modelStat.model}
+                    stats={modelStat}
+                  />
                 ))}
               </div>
             </ScrollArea>
@@ -225,5 +168,91 @@ export function TokenUsageDialog({
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// Token Row Component
+interface TokenRowProps {
+  label: string
+  value: number
+}
+
+function TokenRow({ label, value }: TokenRowProps) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-b-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="font-mono text-sm font-medium">
+        {formatTokenCount(value)}
+      </span>
+    </div>
+  )
+}
+
+// Model Row Component
+interface ModelRowProps {
+  model: string
+  stats: {
+    inputTokens: number
+    outputTokens: number
+    totalTokens: number
+    reasoningTokens: number
+    cachedInputTokens: number
+    messageCount: number
+  }
+}
+
+function ModelRow({ model, stats }: ModelRowProps) {
+  const displayName = getModelDisplayName(model)
+  const isThinking = model.includes("thinking")
+
+  return (
+    <div className="p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="font-medium text-sm">{displayName}</div>
+          <div className="text-xs text-muted-foreground">
+            {stats.messageCount} message{stats.messageCount !== 1 ? "s" : ""}
+            {isThinking && " • thinking mode"}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="font-mono text-sm font-semibold">
+            {formatTokenCount(stats.totalTokens)}
+          </div>
+          <div className="text-xs text-muted-foreground">total</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Input</span>
+          <span className="font-mono">
+            {formatTokenCount(stats.inputTokens)}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Output</span>
+          <span className="font-mono">
+            {formatTokenCount(stats.outputTokens)}
+          </span>
+        </div>
+        {stats.reasoningTokens > 0 && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Reasoning</span>
+            <span className="font-mono">
+              {formatTokenCount(stats.reasoningTokens)}
+            </span>
+          </div>
+        )}
+        {stats.cachedInputTokens > 0 && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Cached</span>
+            <span className="font-mono">
+              {formatTokenCount(stats.cachedInputTokens)}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

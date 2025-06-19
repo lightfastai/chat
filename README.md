@@ -1,4 +1,4 @@
-# Lightfast Chat
+# lightfast-chat
 
 [![License: FSL-1.1-Apache-2.0](https://img.shields.io/badge/License-FSL--1.1--Apache--2.0-blue.svg)](LICENSE.md)
 [![GitHub stars](https://img.shields.io/github/stars/lightfastai/chat)](https://github.com/lightfastai/chat/stargazers)

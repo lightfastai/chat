@@ -1,4 +1,5 @@
 import { v } from "convex/values"
+import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js"
 
 /**
  * Shared validators for type safety across Convex functions
@@ -8,53 +9,14 @@ import { v } from "convex/values"
  */
 
 // ===== Model Validators =====
-// Model ID validator for all supported AI models
+// Model ID validator for all supported AI models (auto-synced from schemas)
 export const modelIdValidator = v.union(
-  // OpenAI models
-  v.literal("gpt-4o-mini"),
-  v.literal("gpt-4o"),
-  v.literal("gpt-4.1"),
-  v.literal("o3"),
-  v.literal("gpt-4.1-mini"),
-  v.literal("gpt-4.1-nano"),
-  v.literal("o3-mini"),
-  v.literal("o4-mini"),
-  v.literal("gpt-3.5-turbo"),
-  // Anthropic models
-  v.literal("claude-4-opus-20250514"),
-  v.literal("claude-4-sonnet-20250514"),
-  v.literal("claude-3-7-sonnet-20250219"),
-  v.literal("claude-3-5-sonnet-20241022"),
-  v.literal("claude-3-5-sonnet-20240620"),
-  v.literal("claude-3-5-haiku-20241022"),
-  // Thinking mode variants
-  v.literal("claude-4-opus-20250514-thinking"),
-  v.literal("claude-4-sonnet-20250514-thinking"),
-  v.literal("claude-3-7-sonnet-20250219-thinking"),
-  v.literal("claude-3-5-sonnet-20241022-thinking"),
-  v.literal("claude-3-5-sonnet-20240620-thinking"),
-  v.literal("claude-3-5-haiku-20241022-thinking"),
-  // Legacy model IDs for backward compatibility
-  v.literal("claude-sonnet-4-20250514"),
-  v.literal("claude-sonnet-4-20250514-thinking"),
-  v.literal("claude-3-haiku-20240307"),
-  // OpenRouter models
-  v.literal("meta-llama/llama-3.3-70b-instruct"),
-  v.literal("anthropic/claude-3.5-sonnet"),
-  v.literal("openai/gpt-4o"),
-  v.literal("google/gemini-pro-1.5"),
-  v.literal("mistralai/mistral-large"),
-  v.literal("x-ai/grok-3-beta"),
-  v.literal("x-ai/grok-3-mini-beta"),
-  v.literal("google/gemini-2.5-pro-preview"),
-  v.literal("google/gemini-2.5-flash-preview"),
+  ...ALL_MODEL_IDS.map((id) => v.literal(id)),
 )
 
-// Model provider validator
+// Model provider validator (auto-synced from schemas)
 export const modelProviderValidator = v.union(
-  v.literal("openai"),
-  v.literal("anthropic"),
-  v.literal("openrouter"),
+  ...ModelProviderSchema.options.map((provider) => v.literal(provider)),
 )
 
 // ===== ID Validators =====
@@ -98,34 +60,29 @@ export const userNameValidator = v.string()
 // Comment/feedback validator with reasonable length
 export const commentValidator = v.optional(v.string())
 
-// File name validator
-export const fileNameValidator = v.string()
-
-// MIME type validator
-export const mimeTypeValidator = v.string()
-
-// IP hash validator for security/rate limiting
+// ===== Share & Access Validators =====
+// IP hash validator for rate limiting
 export const ipHashValidator = v.optional(v.string())
 
-// User agent validator
+// User agent validator for logging
 export const userAgentValidator = v.optional(v.string())
 
-// ===== Message Type Validators =====
+// Share settings validator
+export const shareSettingsValidator = v.optional(
+  v.object({
+    showThinking: v.optional(v.boolean()),
+  }),
+)
+
+// ===== Message & Stream Validators =====
+// Message type validator
 export const messageTypeValidator = v.union(
   v.literal("user"),
   v.literal("assistant"),
+  v.literal("system"),
 )
 
-// ===== Feedback Validators =====
-export const feedbackRatingValidator = v.union(
-  v.literal("positive"),
-  v.literal("negative"),
-)
-
-// Feedback reasons validator
-export const feedbackReasonsValidator = v.optional(v.array(v.string()))
-
-// ===== Usage/Token Validators =====
+// Token usage validator
 export const tokenUsageValidator = v.optional(
   v.object({
     inputTokens: v.optional(v.number()),
@@ -133,6 +90,79 @@ export const tokenUsageValidator = v.optional(
     totalTokens: v.optional(v.number()),
     reasoningTokens: v.optional(v.number()),
     cachedInputTokens: v.optional(v.number()),
+    // Legacy fields for compatibility
+    promptTokens: v.optional(v.number()),
+    completionTokens: v.optional(v.number()),
+    cacheHitTokens: v.optional(v.number()),
+    cacheWriteTokens: v.optional(v.number()),
+  }),
+)
+
+// Stream chunk validator - backward compatible with old "id" field
+export const streamChunkValidator = v.object({
+  // Support both old "id" field and new "chunkId" field for backward compatibility
+  chunkId: v.optional(chunkIdValidator),
+  id: v.optional(chunkIdValidator), // Legacy field from before PR #195
+  content: v.string(),
+  timestamp: v.number(),
+  sequence: v.optional(v.number()), // Legacy field from before PR #195
+  isThinking: v.optional(v.boolean()),
+})
+
+// ===== File Validators =====
+// File name validator
+export const fileNameValidator = v.string()
+
+// MIME type validator
+export const mimeTypeValidator = v.string()
+
+// File metadata validator
+export const fileMetadataValidator = v.optional(
+  v.object({
+    extracted: v.optional(v.boolean()),
+    extractedText: v.optional(v.string()),
+    pageCount: v.optional(v.number()),
+    dimensions: v.optional(
+      v.object({
+        width: v.number(),
+        height: v.number(),
+      }),
+    ),
+  }),
+)
+
+// ===== Feedback Validators =====
+// Feedback rating validator
+export const feedbackRatingValidator = v.union(
+  v.literal("thumbs_up"),
+  v.literal("thumbs_down"),
+)
+
+// Feedback reasons validator
+export const feedbackReasonsValidator = v.optional(
+  v.array(
+    v.union(
+      v.literal("helpful"),
+      v.literal("accurate"),
+      v.literal("clear"),
+      v.literal("creative"),
+      v.literal("not_helpful"),
+      v.literal("inaccurate"),
+      v.literal("unclear"),
+      v.literal("repetitive"),
+      v.literal("incomplete"),
+      v.literal("off_topic"),
+    ),
+  ),
+)
+
+// ===== Thread Validators =====
+// Branch info validator
+export const branchInfoValidator = v.optional(
+  v.object({
+    threadId: v.id("threads"),
+    messageId: v.id("messages"),
+    timestamp: v.number(),
   }),
 )
 
@@ -145,64 +175,33 @@ export const threadUsageValidator = v.optional(
     totalReasoningTokens: v.number(),
     totalCachedInputTokens: v.number(),
     messageCount: v.number(),
-    modelStats: v.record(
-      v.string(), // Could be more strict with model ID
-      v.object({
-        messageCount: v.number(),
-        inputTokens: v.number(),
-        outputTokens: v.number(),
-        totalTokens: v.number(),
-        reasoningTokens: v.number(),
-        cachedInputTokens: v.number(),
-      }),
+    modelStats: v.optional(
+      v.record(
+        v.string(),
+        v.object({
+          inputTokens: v.number(),
+          outputTokens: v.number(),
+          totalTokens: v.number(),
+          reasoningTokens: v.optional(v.number()),
+          cachedInputTokens: v.optional(v.number()),
+          messageCount: v.number(),
+        }),
+      ),
     ),
   }),
 )
 
-// ===== Stream Chunk Validators =====
-export const streamChunkValidator = v.object({
-  chunkId: chunkIdValidator,
-  content: v.string(),
-  timestamp: v.number(),
-  sequence: v.optional(v.number()),
-  isThinking: v.optional(v.boolean()),
-})
-
-// ===== Branch Information Validator =====
-export const branchInfoValidator = v.optional(
-  v.object({
-    threadId: v.id("threads"),
-    messageId: v.id("messages"),
-    timestamp: v.number(),
-  }),
-)
-
-// ===== Share Settings Validator =====
-export const shareSettingsValidator = v.optional(
-  v.object({
-    showThinking: v.optional(v.boolean()),
-  }),
-)
-
-// ===== File Metadata Validator =====
-export const fileMetadataValidator = v.optional(
-  v.object({
-    width: v.optional(v.number()), // For images
-    height: v.optional(v.number()), // For images
-    pages: v.optional(v.number()), // For PDFs
-    extractedText: v.optional(v.string()), // For searchable content
-  }),
-)
-
 // ===== User Settings Validators =====
+// User API keys validator
 export const userApiKeysValidator = v.optional(
   v.object({
-    openai: v.optional(v.string()), // Encrypted
-    anthropic: v.optional(v.string()), // Encrypted
-    openrouter: v.optional(v.string()), // Encrypted
+    openai: v.optional(v.string()),
+    anthropic: v.optional(v.string()),
+    openrouter: v.optional(v.string()),
   }),
 )
 
+// User preferences validator
 export const userPreferencesValidator = v.optional(
   v.object({
     defaultModel: v.optional(modelIdValidator),
@@ -210,52 +209,8 @@ export const userPreferencesValidator = v.optional(
   }),
 )
 
-// ===== Helper function to validate with business logic =====
-/**
- * Validates that a string matches the expected format and length
- * Use this in handlers for runtime validation beyond type checking
- */
-export function validateNanoid(value: string, expectedLength = 21): boolean {
-  const nanoidRegex = /^[A-Za-z0-9_-]+$/
-  return value.length === expectedLength && nanoidRegex.test(value)
-}
-
-/**
- * Validates that a title doesn't exceed the maximum length
- */
-export function validateTitle(title: string, maxLength = 80): boolean {
-  return title.length > 0 && title.length <= maxLength
-}
-
-/**
- * Validates stream ID format
- */
-export function validateStreamId(streamId: string): boolean {
-  return streamId.startsWith("stream_") && streamId.split("_").length >= 3
-}
-
-/**
- * Validates chunk ID format
- */
-export function validateChunkId(chunkId: string): boolean {
-  return chunkId.startsWith("chunk_") && chunkId.split("_").length >= 3
-}
-
-/**
- * Validates API key format for different providers
- */
-export function validateApiKey(
-  key: string,
-  provider: "openai" | "anthropic" | "openrouter",
-): boolean {
-  switch (provider) {
-    case "openai":
-      return key.startsWith("sk-")
-    case "anthropic":
-      return key.startsWith("sk-ant-")
-    case "openrouter":
-      return key.length > 0 // OpenRouter doesn't have a specific format
-    default:
-      return false
-  }
+// ===== Validation Functions =====
+// Title validation function
+export function validateTitle(title: string): boolean {
+  return title.length >= 1 && title.length <= 80
 }

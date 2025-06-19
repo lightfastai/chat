@@ -64,7 +64,8 @@ At the start of your session, tell Claude which mode to use:
 ### 1. Local Context File (First Priority)
 ```bash
 # ALWAYS set this variable at start of each session
-CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
+mkdir -p tmp_context
+CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 
 # Create or check existing context file
 if [ -f "$CONTEXT_FILE" ]; then
@@ -73,6 +74,20 @@ if [ -f "$CONTEXT_FILE" ]; then
 else
   echo "🆕 Creating new context file: $CONTEXT_FILE"
 fi
+```
+
+### Repository Cloning Guidelines
+**IMPORTANT**: When cloning external repositories for investigation:
+- **ALWAYS** clone to a subdirectory within the current repository (e.g., `tmp_repo/`)
+- **NEVER** attempt to `cd /tmp` or clone to `/tmp` - this is blocked for security
+- **DO NOT** add cloned repositories to git tracking (they should be in .gitignore)
+
+```bash
+# ✅ CORRECT - Clone to local subdirectory
+git clone https://github.com/example/repo.git tmp_repo/repo-name
+
+# ❌ WRONG - Never do this
+cd /tmp && git clone https://github.com/example/repo.git
 ```
 
 ### 2. GitHub Comments (Second Priority)
@@ -91,6 +106,80 @@ gh pr comment <pr_number> --body "✅ Completed: <task_description>"
 gh pr comment <pr_number> --body "⚠️ Blocker: <issue_description>"
 ```
 
+## Research to Implementation Workflow
+
+**For Research Issues Only**: This workflow shows how to transition from research to implementation.
+
+### Example: Starting Implementation from Research
+
+```bash
+# 1. When ready to implement, create worktree
+RESEARCH_ISSUE=204  # Your research issue number
+./scripts/setup-worktree.sh jeevanpillay/smooth-text-streaming
+cd worktrees/smooth-text-streaming
+
+# 2. Set up context with research issue reference
+mkdir -p tmp_context
+CONTEXT_FILE="./tmp_context/claude-context-smooth-text-streaming.md"
+cat > "$CONTEXT_FILE" << EOF
+# Claude Code Context - smooth-text-streaming
+Last Updated: $(date)
+Research Issue: #$RESEARCH_ISSUE
+Branch: jeevanpillay/smooth-text-streaming
+Development Mode: Vercel Build Mode
+
+## Implementing Phase 1 from Research Issue #$RESEARCH_ISSUE
+Focus: Client-side text smoothing for immediate UX improvement
+EOF
+
+# 3. Start implementation...
+# ... make changes ...
+
+# 4. Create PR that links back to research issue
+gh pr create --repo lightfastai/chat \
+  --title "feat: add smooth text streaming for better UX" \
+  --body "Implements Phase 1 findings from #$RESEARCH_ISSUE
+
+## Summary
+Adds client-side text smoothing to improve streaming UX without backend changes.
+
+## Implementation
+Based on research in #$RESEARCH_ISSUE, this PR:
+- Adds useSmoothText hook with configurable typing speed
+- Integrates smooth rendering into MessageItem component
+- Improves cursor animation from pulse to typewriter style
+
+## Testing
+- Tested at 30, 60, and 256 chars/sec
+- Verified no impact on existing streaming logic
+- Maintains backward compatibility
+
+Part of #$RESEARCH_ISSUE"
+
+# 5. After PR is merged, update research issue
+gh pr merge <pr_number> --squash --delete-branch
+gh issue comment $RESEARCH_ISSUE --repo lightfastai/chat --body "## ✅ Phase 1 Implementation Complete
+
+PR #<pr_number> has been merged, implementing client-side text smoothing.
+
+### What was implemented:
+- useSmoothText hook with configurable speed (default: 50 chars/sec)
+- Typewriter cursor animation
+- Smooth text rendering in MessageItem component
+
+### Next phases to consider:
+- Phase 2: Streaming throttling (backend optimization)
+- Phase 3: Delta-based storage (if performance issues arise)
+
+Research remains open for future enhancements."
+```
+
+### Key Points for Research → Implementation:
+1. **Reference research issue** in PR description with "Part of #<issue>"
+2. **Update research issue AFTER merge** with implementation summary
+3. **Keep research issues open** for multi-phase implementations
+4. **Document what was built** vs what remains for future phases
+
 ## End-to-End Workflow
 
 ### Step 1: Resume or Start Work
@@ -101,13 +190,14 @@ gh pr comment <pr_number> --body "⚠️ Blocker: <issue_description>"
 git worktree list
 
 # Check for existing context files
-ls -la /tmp/claude-context-*.md
+ls -la ./tmp_context/claude-context-*.md 2>/dev/null || echo "No context files found"
 
 # If worktree exists, navigate to it
 cd worktrees/<feature_name>
 
 # Load existing context
-CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
+mkdir -p tmp_context
+CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 cat "$CONTEXT_FILE" 2>/dev/null || echo "No existing context found"
 ```
 
@@ -118,6 +208,28 @@ cat "$CONTEXT_FILE" 2>/dev/null || echo "No existing context found"
 1. **Feature Request** - For new features
 2. **Bug Report** - For fixing issues
 3. **Quick Task** - For simple tasks
+4. **Research & Exploration** - For ongoing research and system design investigations
+
+#### Research & Exploration Issues
+Research issues are **living documents** that transition from exploration to implementation:
+
+**Phase 1: Research** (Issue created)
+- Document findings, comparisons, trade-offs
+- Update issue description continuously
+- Use comments for major discoveries
+
+**Phase 2: Implementation** (When ready to build)
+- Create worktree referencing research issue
+- Create PR with "Part of #<research_issue>"
+- Keep implementation focused on research findings
+
+**Phase 3: Completion** (After PR merge)
+- Update research issue with what was implemented
+- Document remaining phases for future work
+- Keep issue open if multi-phase
+
+**Simple Workflow:**
+1. Research in issue → 2. Build in PR → 3. Update issue after merge
 
 **File References**: Use `@src/path/to/file.tsx` to help Claude navigate directly to relevant files.
 
@@ -156,7 +268,8 @@ bun run env:sync
 #### 🚀 Vercel Build Mode (Default)
 ```bash
 # 1. Set up context tracking
-CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
+mkdir -p tmp_context
+CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 cat > "$CONTEXT_FILE" << EOF
 # Claude Code Context - $(basename $(pwd))
 Last Updated: $(date)
@@ -207,7 +320,8 @@ echo "🔗 Test on Vercel: https://<project>-<pr-number>-<org>.vercel.app"
 # Terminal 1: bun dev:all
 
 # 2. Set up context tracking
-CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
+mkdir -p tmp_context
+CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 cat > "$CONTEXT_FILE" << EOF
 # Claude Code Context - $(basename $(pwd))
 Last Updated: $(date)
@@ -369,7 +483,8 @@ bun run env:sync
 ### Context Management
 ```bash
 # Set context file
-CONTEXT_FILE="/tmp/claude-context-$(basename $(pwd)).md"
+mkdir -p tmp_context
+CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 
 # View context
 cat "$CONTEXT_FILE"
@@ -397,7 +512,7 @@ gh pr view <pr_number> --json statusCheckRollup
 ### Common Issues
 1. **Build failures**: Use `SKIP_ENV_VALIDATION=true bun run build`
 2. **Merge conflicts**: Remove worktree first: `git worktree remove worktrees/<feature_name>`
-3. **Context loss**: Check `/tmp/claude-context-*.md` files
+3. **Context loss**: Check `./tmp_context/claude-context-*.md` files
 4. **Deployment issues**: Monitor with `gh pr view <pr_number>`
 
 ### Quality Gate Failures
@@ -481,17 +596,17 @@ import { preloadQuery } from "convex/nextjs"
 import { api } from "@/convex/_generated/api"
 import { ChatInterface } from "@/components/chat/ChatInterface"
 
-export default async function ChatPage({ 
-  params 
-}: { 
-  params: { threadId: string } 
+export default async function ChatPage({
+  params
+}: {
+  params: { threadId: string }
 }) {
   const token = await getAuthToken()
-  
+
   // Preload both thread and messages
   const [preloadedThread, preloadedMessages] = await Promise.all([
     preloadQuery(
-      api.threads.get, 
+      api.threads.get,
       { threadId: params.threadId as Id<"threads"> },
       { token }
     ),
@@ -501,9 +616,9 @@ export default async function ChatPage({
       { token }
     )
   ])
-  
+
   return (
-    <ChatInterface 
+    <ChatInterface
       preloadedThread={preloadedThread}
       preloadedMessages={preloadedMessages}
     />
@@ -522,7 +637,7 @@ import { api } from "@/convex/_generated/api"
 export default async function SettingsPage() {
   const token = await getAuthToken()
   const user = await fetchQuery(api.users.current, {}, { token })
-  
+
   // Server-rendered, non-reactive
   return <SettingsForm defaultValues={user} />
 }
@@ -538,13 +653,13 @@ import { revalidatePath } from "next/cache"
 
 export async function sendMessage(threadId: Id<"threads">, content: string) {
   const token = await getAuthToken()
-  
+
   await fetchMutation(
     api.messages.send,
     { threadId, content },
     { token }
   )
-  
+
   revalidatePath(`/chat/${threadId}`)
 }
 ```
@@ -571,11 +686,11 @@ export function useOptimisticSendMessage() {
   return useMutation(api.messages.send).withOptimisticUpdate(
     (localStore, args) => {
       const { threadId, content } = args
-      
+
       // Get current messages
       const existingMessages = localStore.getQuery(api.messages.list, { threadId })
       if (existingMessages === undefined) return
-      
+
       // Create optimistic message
       const optimisticMessage = {
         _id: `temp_${crypto.randomUUID()}` as Id<"messages">,
@@ -586,11 +701,11 @@ export function useOptimisticSendMessage() {
         model: null,
         role: "user" as const,
       }
-      
+
       // Update local store (NEVER mutate, always create new array)
       localStore.setQuery(
-        api.messages.list, 
-        { threadId }, 
+        api.messages.list,
+        { threadId },
         [...existingMessages, optimisticMessage]
       )
     }
@@ -605,7 +720,7 @@ export function useChat(threadId: Id<"threads">) {
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
     (localStore, args) => {
       const { threadId, content } = args
-      
+
       // Update messages list
       const messages = localStore.getQuery(api.messages.list, { threadId })
       if (messages) {
@@ -622,7 +737,7 @@ export function useChat(threadId: Id<"threads">) {
           }
         ])
       }
-      
+
       // Update thread's last message
       const thread = localStore.getQuery(api.threads.get, { threadId })
       if (thread) {
@@ -634,7 +749,7 @@ export function useChat(threadId: Id<"threads">) {
       }
     }
   )
-  
+
   return { sendMessage }
 }
 ```

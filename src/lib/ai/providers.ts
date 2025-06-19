@@ -1,55 +1,49 @@
 import { anthropic } from "@ai-sdk/anthropic"
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import type { CoreMessage } from "ai"
-import { getModelById } from "./models"
-import { getProviderFromModelId } from "./types"
-import type {
-  AIGenerationOptions,
-  ChatMessage,
-  ModelId,
-  ModelProvider,
-} from "./types"
+import {
+  type AIGenerationOptions,
+  type ChatMessage,
+  type ModelId,
+  type ModelProvider,
+  getModelConfig,
+  getModelsForProvider,
+  getProviderFromModelId,
+} from "./schemas"
 
 /**
- * Provider configurations and settings
+ * Get dynamic provider configuration from model data
+ */
+export function getProviderConfig(provider: ModelProvider) {
+  const models = getModelsForProvider(provider)
+
+  // Provider display names
+  const providerNames = {
+    openai: "OpenAI",
+    anthropic: "Anthropic",
+    openrouter: "OpenRouter",
+  } as const
+
+  return {
+    name: providerNames[provider],
+    apiKeyEnvVar: `${provider.toUpperCase()}_API_KEY` as const,
+    models: models.map((m) => m.id),
+  }
+}
+
+/**
+ * Legacy provider configuration object for backward compatibility
+ * @deprecated Use getProviderConfig() for dynamic configuration
  */
 export const PROVIDER_CONFIG = {
-  openai: {
-    name: "OpenAI",
-    apiKeyEnvVar: "OPENAI_API_KEY",
-    models: [
-      "gpt-4o-mini",
-      "gpt-4o",
-      "gpt-4.1",
-      "gpt-4.1-mini",
-      "gpt-4.1-nano",
-      "o3-mini",
-      "o4-mini",
-      "gpt-3.5-turbo",
-    ],
+  get openai() {
+    return getProviderConfig("openai")
   },
-  anthropic: {
-    name: "Anthropic",
-    apiKeyEnvVar: "ANTHROPIC_API_KEY",
-    models: [
-      "claude-4-opus-20250514",
-      "claude-4-sonnet-20250514",
-      "claude-3-7-sonnet-20250219",
-      "claude-3-5-sonnet-20241022",
-      "claude-3-5-sonnet-20240620",
-      "claude-3-5-haiku-20241022",
-    ],
+  get anthropic() {
+    return getProviderConfig("anthropic")
   },
-  openrouter: {
-    name: "OpenRouter",
-    apiKeyEnvVar: "OPENROUTER_API_KEY",
-    models: [
-      "meta-llama/llama-3.3-70b-instruct",
-      "anthropic/claude-3.5-sonnet",
-      "openai/gpt-4o",
-      "google/gemini-pro-1.5",
-      "mistralai/mistral-large",
-    ],
+  get openrouter() {
+    return getProviderConfig("openrouter")
   },
 } as const
 
@@ -59,9 +53,11 @@ export const PROVIDER_CONFIG = {
  */
 export function getLanguageModel(provider: ModelProvider) {
   // Get first model for the provider as default
-  const models = PROVIDER_CONFIG[provider].models
-  const defaultModelId = models[0]
-  const model = getModelById(defaultModelId)
+  const models = getModelsForProvider(provider)
+  if (models.length === 0) {
+    throw new Error(`No models found for provider: ${provider}`)
+  }
+  const model = models[0]
 
   if (!model) {
     throw new Error(`Default model not found for provider: ${provider}`)
@@ -89,7 +85,7 @@ export function getLanguageModel(provider: ModelProvider) {
  * Get language model by specific model ID
  */
 export function getLanguageModelById(modelId: string) {
-  const model = getModelById(modelId)
+  const model = getModelConfig(modelId as ModelId)
   if (!model) {
     throw new Error(`Model not found: ${modelId}`)
   }
@@ -129,12 +125,9 @@ export function getDefaultGenerationOptions(
   provider: ModelProvider,
 ): Partial<AIGenerationOptions> {
   // Get first model for the provider as default
-  const models = PROVIDER_CONFIG[provider].models
-  const defaultModelId = models[0]
-  const model = getModelById(defaultModelId)
-
-  if (!model) {
-    // Fallback values if model not found
+  const models = getModelsForProvider(provider)
+  if (models.length === 0) {
+    // Fallback values if no models found
     return {
       maxTokens: 500,
       temperature: 0.7,
@@ -142,6 +135,7 @@ export function getDefaultGenerationOptions(
     }
   }
 
+  const model = models[0]
   return {
     maxTokens: Math.min(500, model.maxTokens), // Conservative default
     temperature: 0.7,
@@ -155,21 +149,21 @@ export function getDefaultGenerationOptions(
 export function isProviderSupported(
   provider: string,
 ): provider is ModelProvider {
-  return provider in PROVIDER_CONFIG
+  return ["openai", "anthropic", "openrouter"].includes(provider)
 }
 
 /**
  * Get provider display name
  */
 export function getProviderDisplayName(provider: ModelProvider): string {
-  return PROVIDER_CONFIG[provider].name
+  return getProviderConfig(provider).name
 }
 
 /**
  * Get all supported providers
  */
 export function getSupportedProviders(): ModelProvider[] {
-  return Object.keys(PROVIDER_CONFIG) as ModelProvider[]
+  return ["openai", "anthropic", "openrouter"]
 }
 
 /**

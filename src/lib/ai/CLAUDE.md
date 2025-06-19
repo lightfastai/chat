@@ -2,111 +2,210 @@
 
 This directory contains AI model configurations for the chat application. When working in this directory, follow these guidelines:
 
-## Model Capabilities Must Be Verified
+## 🏗️ Architecture Overview
 
-**IMPORTANT**: When adding or updating models in `models.ts`, you MUST:
+**Single Source of Truth**: All AI model definitions are centralized in `schemas.ts` using Zod for runtime validation and TypeScript for compile-time safety.
 
-1. **Research the model's actual capabilities** through official documentation
-2. **Never assume capabilities** based on model names or versions
-3. **Test thoroughly** after configuration changes
+### Key Files
+- **`schemas.ts`** - Central source of truth with all 33 model definitions
+- **`types.ts`** - Re-exports types for backward compatibility
+- **`models.ts`** - Re-exports model collections for backward compatibility  
+- **`providers.ts`** - Provider-specific utilities and configurations
+- **`index.ts`** - Public API exports
 
-## Current Model Capabilities
+### Architecture Benefits
+- ✅ **No Duplication**: Model IDs defined once, used everywhere
+- ✅ **Runtime Validation**: Zod schemas catch invalid configurations
+- ✅ **Type Safety**: TypeScript magic for provider-specific model types
+- ✅ **Direct Imports**: Convex validators import directly from schemas
+- ✅ **Backward Compatible**: All existing imports continue to work
+
+## 🔧 Model Configuration
+
+### Adding New Models
+
+All models are defined in the `MODELS` object in `schemas.ts`:
+
+```typescript
+// In schemas.ts
+export const MODELS = {
+  "new-model-id": ModelConfigSchema.parse({
+    id: "new-model-id",
+    provider: "openai" | "anthropic" | "openrouter",
+    name: "actual-api-model-name",
+    displayName: "User-friendly name",
+    description: "Brief description",
+    maxTokens: 128000,
+    costPer1KTokens: { input: 0.001, output: 0.002 },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: false,      // ⚠️ VERIFY THIS!
+      pdfSupport: false,  // ⚠️ VERIFY THIS!
+      thinking: false,    // Only for Claude 4.0+
+    },
+    thinkingConfig: {     // Optional, only if thinking: true
+      enabled: true,
+      defaultBudgetTokens: 12000,
+    },
+    deprecated: false,    // Optional
+    replacedBy: undefined, // Optional, for deprecated models
+    hidden: false,        // Optional, hide from UI
+  }),
+} as const
+```
+
+### Validation & Type Safety
+
+The architecture automatically provides:
+
+```typescript
+// Type-safe model IDs
+type ModelId = keyof typeof MODELS  // All 33 model IDs
+
+// Provider-specific types  
+type OpenAIModelId = "gpt-4o" | "gpt-4o-mini" | ...
+type AnthropicModelId = "claude-4-sonnet-20250514" | ...
+
+// Runtime validation
+const config = ModelConfigSchema.parse(modelData)  // Throws if invalid
+
+// Convex validators (auto-generated from schemas)
+export const modelIdValidator = v.union(
+  ...ALL_MODEL_IDS.map(id => v.literal(id))
+)
+```
+
+## 📋 Model Capabilities Reference
 
 ### Vision Support
-- ✅ **Has Vision**: GPT-4o, GPT-4o-mini, All Claude models
-- ❌ **NO Vision**: GPT-3.5-turbo (text-only model!)
+- ✅ **Has Vision**: GPT-4o, GPT-4o-mini, All Claude models, Grok 3, Gemini models
+- ❌ **NO Vision**: GPT-3.5-turbo, Claude 3.5 Haiku
 
 ### PDF Support  
 - ✅ **Has PDF Support**: All Claude models (3, 3.5, 4)
-- ❌ **NO PDF Support**: All OpenAI models
+- ❌ **NO PDF Support**: All OpenAI models, OpenRouter models
+
+### Thinking Mode
+- ✅ **Thinking Capable**: Claude 4 Opus, Claude 4 Sonnet, Claude 3.7 Sonnet
+- 📝 **Thinking Variants**: Models with `-thinking` suffix show reasoning process
 
 ### Special Features
-- **Thinking Mode**: Only Claude 4.0 models
 - **Streaming**: All models support streaming
 - **Function Calling**: All models support function calling
+- **High Context**: GPT-4.1 (1M tokens), Gemini models (1M+ tokens)
 
-## Common Mistakes to Avoid
+## ⚠️ Critical Guidelines
 
-1. **Assuming GPT-3.5 has vision** - It doesn't! It's text-only despite being a popular model
-2. **Assuming OpenAI models can read PDFs** - They can't! Only Claude supports native PDF analysis
-3. **Hardcoding model checks** - Always use the model configuration in `models.ts`
+### Model Capabilities Must Be Verified
 
-## Adding New Models
+**IMPORTANT**: When adding or updating models, you MUST:
 
-When adding a new model:
+1. **Research actual capabilities** through official documentation
+2. **Never assume capabilities** based on model names or versions
+3. **Test thoroughly** after configuration changes
+4. **Verify cost information** from provider pricing pages
 
+### Common Mistakes to Avoid
+
+1. **Assuming GPT-3.5 has vision** - It's text-only!
+2. **Assuming OpenAI models read PDFs** - Only Claude supports native PDF analysis
+3. **Hardcoding model checks** - Always use the configuration system
+4. **Adding models without Zod validation** - All configs must use `ModelConfigSchema.parse()`
+
+### Model Deletion and Migration Process
+
+**CRITICAL**: Never remove model IDs directly - production data may reference them.
+
+#### Safe Migration Process
+
+1. **Mark as deprecated** instead of removing:
 ```typescript
-// In models.ts
-"new-model-id": {
-  id: "new-model-id",
-  provider: "openai" | "anthropic",
-  name: "actual-api-model-name",
-  displayName: "User-friendly name",
-  description: "Brief description",
-  maxTokens: 128000,
-  costPer1KTokens: { input: 0.001, output: 0.002 },
-  features: {
-    streaming: true,
-    functionCalling: true,
-    vision: false,      // ⚠️ VERIFY THIS!
-    pdfSupport: false,  // ⚠️ VERIFY THIS!
-    thinking?: false    // Only for Claude 4.0
-  }
-}
+"old-model-id": ModelConfigSchema.parse({
+  id: "old-model-id",
+  deprecated: true,
+  replacedBy: "new-model-id",
+  hidden: true,  // Hide from UI
+  // ... rest of config
+}),
 ```
 
-## Testing Model Capabilities
+2. **Update Convex validators** - The direct import will automatically include deprecated models
+3. **Test build** to ensure no validation errors: `SKIP_ENV_VALIDATION=true bun run build`
+4. **Check production logs** before removing deprecated models entirely
+
+## 🔄 Development Workflow
+
+### Making Changes
+
+1. **Edit `schemas.ts`** - Add/modify model configurations
+2. **Automatic propagation** - Changes flow to Convex validators via direct import
+3. **Test build** - Ensure TypeScript compilation succeeds
+4. **Run quality gates** - `bun run lint && bun run format`
+5. **Test capabilities** - Verify model features work as expected
+
+### Quality Gates
+
+Always run these commands after model changes:
+
+```bash
+# Build validation
+SKIP_ENV_VALIDATION=true bun run build
+
+# Code quality
+bun run lint
+bun run format
+```
+
+### Testing Model Capabilities
 
 After adding/updating a model:
 
-1. Test with an image attachment
-2. Test with a PDF attachment (if applicable)
-3. Verify error messages are helpful
-4. Check that the system prompt reflects capabilities
+1. **Image attachment test** (if vision enabled)
+2. **PDF attachment test** (if pdfSupport enabled)  
+3. **Function calling test** (all models should support)
+4. **Thinking mode test** (if thinking enabled)
+5. **Error message verification** - Ensure helpful feedback
 
-## Model Deletion and Migration Process
+## 🏛️ Architecture Decisions
 
-**CRITICAL**: When removing or renaming model IDs, you MUST maintain backward compatibility with existing production data.
+### Why Direct Imports vs Generation?
 
-### Process for Model Changes
+**Previous**: Code generation script created Convex validators at build time
+**Current**: Direct imports from `schemas.ts` to `convex/validators.ts`
 
-1. **Never remove model IDs directly** - Production database may contain messages with those model IDs
-2. **Add legacy model IDs** to both `types.ts` and `convex/schema.ts` for backward compatibility
-3. **Mark as deprecated** in model configurations rather than removing entirely
-4. **Gradual migration** - Only remove after confirming no production data uses the old IDs
+**Benefits of Direct Imports**:
+- ✅ Simpler architecture - no build-time generation step
+- ✅ Real-time updates - changes immediately available
+- ✅ Better developer experience - no intermediate files
+- ✅ Leverages Convex's ability to import from `src/`
 
-### Example: Adding Legacy Support
+### Why Zod Schemas?
 
-```typescript
-// In types.ts - Add legacy models to AnthropicModel type
-export type AnthropicModel =
-  | "claude-4-sonnet-20250514"           // Current format
-  | "claude-sonnet-4-20250514"           // Legacy format - keep for compatibility!
+- **Runtime Validation**: Catch invalid model configurations at parse time
+- **Type Inference**: Automatic TypeScript types from schema definitions
+- **Documentation**: Schema serves as living documentation
+- **API Key Validation**: Consistent validation patterns for provider keys
 
-// In convex/schema.ts - Add legacy models to validator
-const modelIdValidator = v.union(
-  v.literal("claude-4-sonnet-20250514"),    // Current format
-  v.literal("claude-sonnet-4-20250514"),    // Legacy format - keep for compatibility!
-)
+### Backward Compatibility Strategy
 
-// In models.ts - Add deprecated flag to legacy models
-"claude-sonnet-4-20250514": {
-  id: "claude-sonnet-4-20250514", 
-  deprecated: true,                        // Mark as deprecated
-  replacedBy: "claude-4-sonnet-20250514",  // Point to new model
-  // ... rest of config
-}
-```
+- **Re-export pattern**: `types.ts` and `models.ts` re-export from `schemas.ts`
+- **Legacy type aliases**: Maintain existing type names for smooth migration
+- **Deprecated model support**: Keep old model IDs for production data compatibility
+- **Gradual migration**: Phase out old patterns without breaking changes
 
-### Build Failure Prevention
+## 🚀 Future Enhancements
 
-- **Schema validation errors** occur when production database contains model IDs not in the schema
-- **Always test builds** after model changes: `SKIP_ENV_VALIDATION=true bun run build`
-- **Check production logs** for usage of model IDs before removing them
+### Planned Improvements
 
-## File Organization
+1. **Model capability detection** - Automatic feature detection from provider APIs
+2. **Cost tracking** - Real-time cost calculation and budgeting
+3. **Performance metrics** - Response time and quality tracking per model
+4. **A/B testing framework** - Compare model performance systematically
 
-- `types.ts` - Defines ModelConfig interface with feature flags
-- `models.ts` - Contains all model configurations
-- `providers.ts` - Provider-specific utilities
-- `index.ts` - Public API exports
+### Extensibility Points
+
+- **New providers** - Add to `ModelProvider` enum and provider configs
+- **New features** - Extend `ModelFeatures` interface as capabilities evolve
+- **Custom configurations** - Provider-specific settings in model configs
+- **Rate limiting** - Per-model and per-provider rate limit configurations

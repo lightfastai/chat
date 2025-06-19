@@ -10,7 +10,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { validateApiKeyFormat } from "@/lib/ai/apiKeyValidation"
+import { validateApiKey } from "@/lib/ai/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "convex/react"
 import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react"
@@ -30,7 +30,7 @@ const OpenAIApiKeyFormSchema = z.object({
     .refine(
       (key) => {
         if (!key || key === "********") return true
-        return validateApiKeyFormat(key, "openai")
+        return validateApiKey("openai", key).success
       },
       {
         message: "Invalid OpenAI API key format.",
@@ -46,7 +46,7 @@ const AnthropicApiKeyFormSchema = z.object({
     .refine(
       (key) => {
         if (!key || key === "********") return true
-        return validateApiKeyFormat(key, "anthropic")
+        return validateApiKey("anthropic", key).success
       },
       {
         message: "Invalid Anthropic API key format.",
@@ -62,7 +62,7 @@ const OpenRouterApiKeyFormSchema = z.object({
     .refine(
       (key) => {
         if (!key || key === "********") return true
-        return validateApiKeyFormat(key, "openrouter")
+        return validateApiKey("openrouter", key).success
       },
       {
         message: "Invalid OpenRouter API key format.",

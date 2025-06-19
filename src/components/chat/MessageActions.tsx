@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import type { ModelId } from "@/lib/ai/types"
+import type { ModelId } from "@/lib/ai"
 import { nanoid } from "@/lib/nanoid"
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard"
 import { cn } from "@/lib/utils"
@@ -166,8 +166,8 @@ export function MessageActions({ message, className }: MessageActionsProps) {
     }
   })
 
-  const handleFeedback = async (rating: "positive" | "negative") => {
-    if (rating === "negative") {
+  const handleFeedback = async (rating: "thumbs_up" | "thumbs_down") => {
+    if (rating === "thumbs_down") {
       setShowFeedbackModal(true)
       return
     }
@@ -177,7 +177,7 @@ export function MessageActions({ message, className }: MessageActionsProps) {
     } else {
       await submitFeedback({
         messageId: message._id,
-        rating: "positive",
+        rating: "thumbs_up",
         comment: feedback?.comment,
         reasons: feedback?.reasons,
       })
@@ -220,10 +220,10 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           size="icon"
           className={cn(
             "h-7 w-7 transition-colors",
-            feedback?.rating === "positive" &&
+            feedback?.rating === "thumbs_up" &&
               "text-green-600 hover:text-green-700",
           )}
-          onClick={() => handleFeedback("positive")}
+          onClick={() => handleFeedback("thumbs_up")}
           aria-label="Like message"
         >
           <ThumbsUp className="h-3.5 w-3.5" />
@@ -233,10 +233,10 @@ export function MessageActions({ message, className }: MessageActionsProps) {
           size="icon"
           className={cn(
             "h-7 w-7 transition-colors",
-            feedback?.rating === "negative" &&
+            feedback?.rating === "thumbs_down" &&
               "text-red-600 hover:text-red-700",
           )}
-          onClick={() => handleFeedback("negative")}
+          onClick={() => handleFeedback("thumbs_down")}
           aria-label="Dislike message"
         >
           <ThumbsDown className="h-3.5 w-3.5" />

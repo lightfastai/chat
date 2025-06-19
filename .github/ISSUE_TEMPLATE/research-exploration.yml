@@ -1,0 +1,93 @@
+name: Research & Exploration
+description: Document ongoing research, exploration, and system design investigations
+title: "research: "
+labels: ["research", "exploration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Research & Exploration Issue
+        
+        This issue type is for documenting ongoing research, exploration, and system design investigations. Unlike traditional issues, these are living documents that evolve as we learn more. Claude Code and contributors should continuously update, refine, and expand the findings.
+        
+        ### Guidelines:
+        - Focus on research and discovery, not implementation
+        - Document findings, comparisons, and trade-offs
+        - Update continuously as new information emerges
+        - Use comments for major updates or direction changes
+        - Keep theoretical until ready to implement
+  
+  - type: textarea
+    id: research-question
+    attributes:
+      label: Research Question
+      description: What are we trying to understand or explore?
+      placeholder: |
+        Example: How can we optimize our streaming architecture for better performance and UX?
+    validations:
+      required: true
+  
+  - type: textarea
+    id: background
+    attributes:
+      label: Background & Context
+      description: Why is this research important? What prompted this investigation?
+      placeholder: |
+        Provide context about the current state and why this research matters
+    validations:
+      required: true
+  
+  - type: textarea
+    id: scope
+    attributes:
+      label: Research Scope
+      description: What areas will this research cover? What's out of scope?
+      placeholder: |
+        - In scope: Architecture patterns, performance analysis, UX considerations
+        - Out of scope: Specific implementation details, code changes
+    validations:
+      required: true
+  
+  - type: textarea
+    id: initial-findings
+    attributes:
+      label: Initial Findings
+      description: Document your initial research, discoveries, or hypotheses
+      placeholder: |
+        Share any initial findings, comparisons, or insights
+    validations:
+      required: false
+  
+  - type: textarea
+    id: open-questions
+    attributes:
+      label: Open Questions
+      description: What questions need to be answered through this research?
+      placeholder: |
+        - Question 1?
+        - Question 2?
+    validations:
+      required: false
+  
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ### How to Use This Issue:
+        
+        **Phase 1: Research & Discovery**
+        1. Fill out initial structure with research question and findings
+        2. Continuously edit description to add discoveries
+        3. Use comments for major updates or pivots
+        
+        **Phase 2: Implementation**
+        1. Create worktree and start building based on research
+        2. Create PR with "Part of #<this_issue_number>" in description
+        3. Keep implementation aligned with research findings
+        
+        **Phase 3: Post-Merge Updates**
+        1. Update this issue after PR merges
+        2. Document what was implemented
+        3. Note remaining phases for future work
+        
+        This issue serves as both research document AND implementation tracker!
