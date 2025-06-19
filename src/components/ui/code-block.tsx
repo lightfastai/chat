@@ -132,7 +132,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
         ) : (
           // Horizontal scrolling mode with proper overflow constraints
           <div className="w-full max-h-[500px] overflow-auto">
-            <div className="w-max min-w-full">
+            <div className="inline-block min-w-full">
               <SyntaxHighlighter
                 language={normalizedLanguage}
                 style={theme === "dark" ? oneDark : oneLight}
@@ -149,6 +149,8 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
                   whiteSpace: "pre",
                   wordBreak: "normal",
                   overflowWrap: "normal",
+                  width: "max-content",
+                  minWidth: "100%",
                 }}
                 codeTagProps={{
                   style: {
@@ -158,6 +160,8 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
                     wordBreak: "normal",
                     overflowWrap: "normal",
                     display: "block",
+                    width: "max-content",
+                    minWidth: "100%",
                   },
                 }}
               >
