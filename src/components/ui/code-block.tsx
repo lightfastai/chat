@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Check, Copy, Maximize2, WrapText } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -55,9 +56,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
   const normalizedLanguage = normalizeLanguage(language)
 
   return (
-    <div className={cn("relative group my-4", className)}>
-      {/* Break out of parent width constraints for better code display */}
-      <div className="w-[calc(100vw-2rem)] max-w-5xl -mx-[calc((100vw-100%)/2)] sm:w-full sm:max-w-none sm:mx-0">
+    <div className={cn("relative group my-4 w-full", className)}>
       {/* Header with language and controls */}
       <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border border-border rounded-t-md">
         <span className="text-xs text-muted-foreground font-mono">
@@ -93,7 +92,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
         </div>
       </div>
 
-      {/* Syntax Highlighter */}
+      {/* Syntax Highlighter with ScrollArea */}
       <div className="border border-t-0 border-border rounded-b-md overflow-hidden">
         {isWrapped ? (
           // Text wrapping mode - no scrolling needed
@@ -132,8 +131,8 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
             </SyntaxHighlighter>
           </div>
         ) : (
-          // Horizontal scrolling mode using custom overflow
-          <div className="w-full overflow-x-auto">
+          // Horizontal scrolling mode using shadcn ScrollArea
+          <ScrollArea className="w-full max-h-[500px]">
             <div className="w-max min-w-full">
               <SyntaxHighlighter
                 language={normalizedLanguage}
@@ -166,9 +165,8 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
                 {code}
               </SyntaxHighlighter>
             </div>
-          </div>
+          </ScrollArea>
         )}
-      </div>
       </div>
     </div>
   )
