@@ -15,7 +15,6 @@ interface CodeBlockProps {
   code: string
   language?: string
   className?: string
-  readonly?: boolean
 }
 
 export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
