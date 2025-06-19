@@ -1222,6 +1222,26 @@ REMEMBER:
 
       console.log("Formatted usage:", formattedUsage)
 
+      // Update thread usage if we have usage data
+      if (finalUsage) {
+        const promptTokens = finalUsage.inputTokens || 0
+        const completionTokens = finalUsage.outputTokens || 0
+        const totalTokens =
+          finalUsage.totalTokens || promptTokens + completionTokens
+
+        await ctx.runMutation(internal.messages.updateThreadUsageMutation, {
+          threadId: args.threadId,
+          usage: {
+            promptTokens,
+            completionTokens,
+            totalTokens,
+            reasoningTokens: finalUsage.reasoningTokens || 0,
+            cachedTokens: finalUsage.cachedInputTokens || 0,
+            modelId: args.modelId,
+          },
+        })
+      }
+
       // Ensure we always have some content to complete with, even if just tool results
       if (fullContent.trim() === "" && toolCallsProcessed === 0) {
         fullContent =
