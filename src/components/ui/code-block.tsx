@@ -55,7 +55,9 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
   const normalizedLanguage = normalizeLanguage(language)
 
   return (
-    <div className={cn("relative group my-4 w-full", className)}>
+    <div className={cn("relative group my-4", className)}>
+      {/* Break out of parent width constraints for better code display */}
+      <div className="w-[calc(100vw-2rem)] max-w-5xl -mx-[calc((100vw-100%)/2)] sm:w-full sm:max-w-none sm:mx-0">
       {/* Header with language and controls */}
       <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border border-border rounded-t-md">
         <span className="text-xs text-muted-foreground font-mono">
@@ -166,6 +168,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   )
