@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Check, Copy } from "lucide-react"
+import { Check, Copy, Maximize2, WrapText } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useState } from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
@@ -21,6 +21,7 @@ interface CodeBlockProps {
 export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
   const { theme } = useTheme()
   const [copied, setCopied] = useState(false)
+  const [isWrapped, setIsWrapped] = useState(false)
 
   const copyToClipboard = async () => {
     try {
@@ -56,48 +57,74 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 
   return (
     <div className={cn("relative group my-4", className)}>
-      {/* Header with language and copy button */}
+      {/* Header with language and controls */}
       <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border border-border rounded-t-md">
         <span className="text-xs text-muted-foreground font-mono">
           {language || "text"}
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={copyToClipboard}
-          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          {copied ? (
-            <Check className="h-3 w-3" />
-          ) : (
-            <Copy className="h-3 w-3" />
-          )}
-        </Button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsWrapped(!isWrapped)}
+            className="h-6 w-6 p-0"
+            title={isWrapped ? "Disable text wrapping" : "Enable text wrapping"}
+          >
+            {isWrapped ? (
+              <Maximize2 className="h-3 w-3" />
+            ) : (
+              <WrapText className="h-3 w-3" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={copyToClipboard}
+            className="h-6 w-6 p-0"
+            title="Copy to clipboard"
+          >
+            {copied ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Syntax Highlighter */}
       <div className="border border-t-0 border-border rounded-b-md overflow-hidden">
-        <SyntaxHighlighter
-          language={normalizedLanguage}
-          style={theme === "dark" ? oneDark : oneLight}
-          customStyle={{
-            margin: 0,
-            padding: "12px",
-            fontSize: "13px",
-            fontFamily:
-              "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-            background: "transparent",
-            borderRadius: 0,
-          }}
-          codeTagProps={{
-            style: {
+        <div className={cn("max-w-full", !isWrapped && "overflow-x-auto")}>
+          <SyntaxHighlighter
+            language={normalizedLanguage}
+            style={theme === "dark" ? oneDark : oneLight}
+            wrapLines={isWrapped}
+            wrapLongLines={isWrapped}
+            customStyle={{
+              margin: 0,
+              padding: "12px",
+              fontSize: "13px",
               fontFamily:
                 "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-            },
-          }}
-        >
-          {code}
-        </SyntaxHighlighter>
+              background: "transparent",
+              borderRadius: 0,
+              whiteSpace: isWrapped ? "pre-wrap" : "pre",
+              wordBreak: isWrapped ? "break-word" : "normal",
+              overflowWrap: isWrapped ? "break-word" : "normal",
+            }}
+            codeTagProps={{
+              style: {
+                fontFamily:
+                  "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+                whiteSpace: isWrapped ? "pre-wrap" : "pre",
+                wordBreak: isWrapped ? "break-word" : "normal",
+                overflowWrap: isWrapped ? "break-word" : "normal",
+              },
+            }}
+          >
+            {code}
+          </SyntaxHighlighter>
+        </div>
       </div>
     </div>
   )
