@@ -131,7 +131,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
           </div>
         ) : (
           // Horizontal scrolling mode with proper overflow constraints
-          <div className="w-full max-h-[500px] overflow-auto">
+          <div className="w-full max-w-[calc(100vw-4rem)] max-h-[500px] overflow-auto">
             <div className="inline-block min-w-full">
               <SyntaxHighlighter
                 language={normalizedLanguage}
