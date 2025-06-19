@@ -1,6 +1,7 @@
 "use client"
 
 import { Markdown } from "@/components/ui/markdown"
+import { useSmoothText } from "@/hooks/useSmoothText"
 import { cn } from "@/lib/utils"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
@@ -69,8 +70,20 @@ export function MessageItem({
   )
 
   // Determine what text to show
-  const displayText =
+  const textToDisplay =
     isStreaming && streamingText ? streamingText : message.body
+
+  // Use smooth text for assistant messages
+  const [smoothedText, isSmoothAnimating] = useSmoothText(textToDisplay, {
+    enabled: isAssistant && !isReadOnly && textToDisplay !== "", // Only smooth assistant messages in interactive mode
+    charsPerSec: 50, // Comfortable reading speed
+  })
+
+  // Final display text - use smoothed text for assistants, regular for users
+  const displayText = isAssistant && !isReadOnly ? smoothedText : textToDisplay
+
+  // Show cursor if streaming or smooth animating
+  const showCursor = (isStreaming && !isComplete) || isSmoothAnimating
 
   // Content component
   const content = (
@@ -103,8 +116,8 @@ export function MessageItem({
         {displayText ? (
           <>
             <Markdown className="text-sm">{displayText}</Markdown>
-            {isStreaming && !isComplete && (
-              <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
+            {showCursor && (
+              <span className="inline-block w-0.5 h-4 bg-current animate-blink ml-0.5 opacity-70" />
             )}
           </>
         ) : null}
