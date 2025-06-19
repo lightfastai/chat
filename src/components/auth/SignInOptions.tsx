@@ -1,9 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { env } from "@/env"
+import { AUTH_MODES, isAuthModeEnabled } from "@/lib/feature-flags"
 import { cn } from "@/lib/utils"
-import { Github, UserIcon } from "lucide-react"
+import { Github, Mail, UserIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -35,17 +35,24 @@ export function SignInOptions({
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
   ) : null
 
-  const handleSignIn = async (provider: "github" | "anonymous") => {
+  const handleSignIn = async (
+    provider: "github" | "anonymous" | "password",
+  ) => {
     setIsLoading(true)
     try {
-      // For better UX, we'll navigate to the loading page
-      // which handles the actual OAuth flow
-      const params = new URLSearchParams({
-        provider,
-        redirectTo: "/chat",
-      })
-      router.push(`/auth/loading?${params.toString()}`)
-      onSignInComplete?.()
+      if (provider === "password") {
+        // For password auth, redirect to dedicated sign-up/sign-in page
+        router.push("/auth/password")
+        onSignInComplete?.()
+      } else {
+        // For OAuth providers, use the loading page flow
+        const params = new URLSearchParams({
+          provider,
+          redirectTo: "/chat",
+        })
+        router.push(`/auth/loading?${params.toString()}`)
+        onSignInComplete?.()
+      }
     } catch (error) {
       console.error("Error signing in:", error)
       toast.error("Failed to sign in. Please try again.")
@@ -55,8 +62,8 @@ export function SignInOptions({
 
   return (
     <div className={cn("space-y-3", className)}>
-      {/* Hide GitHub login in Vercel previews */}
-      {env.NEXT_PUBLIC_VERCEL_ENV === "production" && (
+      {/* GitHub OAuth - only show if enabled */}
+      {isAuthModeEnabled(AUTH_MODES.GITHUB) && (
         <Button
           onClick={() => handleSignIn("github")}
           className={cn(buttonClassName, animationClass, "cursor-pointer")}
@@ -69,8 +76,22 @@ export function SignInOptions({
         </Button>
       )}
 
-      {/* Show anonymous login in all non-production environments */}
-      {env.NEXT_PUBLIC_VERCEL_ENV !== "production" && (
+      {/* Password Authentication - only show if enabled */}
+      {isAuthModeEnabled(AUTH_MODES.PASSWORD) && (
+        <Button
+          onClick={() => handleSignIn("password")}
+          className={cn(buttonClassName, animationClass, "cursor-pointer")}
+          size={size}
+          disabled={isLoading}
+        >
+          {animationElement}
+          <Mail className="w-5 h-5 mr-2" />
+          Continue with Email
+        </Button>
+      )}
+
+      {/* Anonymous - only show if enabled */}
+      {isAuthModeEnabled(AUTH_MODES.ANONYMOUS) && (
         <Button
           onClick={() => handleSignIn("anonymous")}
           className={cn(buttonClassName, animationClass, "cursor-pointer")}

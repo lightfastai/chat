@@ -1,8 +1,9 @@
 import { signInAction } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
-import { env } from "@/env"
+import { AUTH_MODES, isAuthModeEnabled } from "@/lib/feature-flags"
 import { cn } from "@/lib/utils"
-import { Github, UserIcon } from "lucide-react"
+import { Github, Mail, UserIcon } from "lucide-react"
+import Link from "next/link"
 
 interface SignInButtonsProps {
   className?: string
@@ -31,8 +32,8 @@ export function SignInButtons({
 
   return (
     <div className={cn("space-y-3", className)}>
-      {/* Hide GitHub login in Vercel previews */}
-      {env.NEXT_PUBLIC_VERCEL_ENV === "production" && (
+      {/* GitHub OAuth - only show if enabled */}
+      {isAuthModeEnabled(AUTH_MODES.GITHUB) && (
         <form action={signInAction}>
           <input type="hidden" name="redirectTo" value={redirectTo} />
           <Button
@@ -49,8 +50,24 @@ export function SignInButtons({
         </form>
       )}
 
-      {/* Show anonymous login in all non-production environments */}
-      {env.NEXT_PUBLIC_VERCEL_ENV !== "production" && (
+      {/* Password Authentication - only show if enabled */}
+      {isAuthModeEnabled(AUTH_MODES.PASSWORD) && (
+        <Link
+          href={`/auth/password?redirectTo=${encodeURIComponent(redirectTo)}`}
+        >
+          <Button
+            className={cn(buttonClassName, animationClass, "cursor-pointer")}
+            size={size}
+          >
+            {animationElement}
+            <Mail className="w-5 h-5 mr-2" />
+            Continue with Email
+          </Button>
+        </Link>
+      )}
+
+      {/* Anonymous - only show if enabled */}
+      {isAuthModeEnabled(AUTH_MODES.ANONYMOUS) && (
         <form action={signInAction}>
           <input type="hidden" name="redirectTo" value={redirectTo} />
           <Button
