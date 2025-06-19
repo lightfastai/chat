@@ -31,7 +31,6 @@ export {
   ANTHROPIC_MODEL_IDS,
   OPENROUTER_MODEL_IDS,
   MODEL_PROVIDERS,
-  
   // Model functions
   getModelConfig,
   getModelsForProvider,
@@ -41,22 +40,18 @@ export {
   getModelDisplayName,
   modelSupportsFeature,
   getLegacyModelMapping,
-  
   // Model utilities
   isValidModelId,
   getProviderFromModelId,
   getActualModelName,
   isThinkingMode,
-  
   // API key validation
   validateApiKey,
-  
   // Legacy collections (deprecated)
   OPENAI_MODELS,
   ANTHROPIC_MODELS,
   OPENROUTER_MODELS,
   ALL_MODELS,
-  
   // Legacy function aliases (deprecated)
   getModelsByProvider,
   getAllModels,
