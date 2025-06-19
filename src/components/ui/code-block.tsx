@@ -22,7 +22,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
   // TODO: Re-enable scroll mode once overflow container issues are resolved
   // For now, we only support text wrapping to prevent overflow beyond message bounds
-  const [isWrapped, setIsWrapped] = useState(true)
+  // const [isWrapped, setIsWrapped] = useState(true)
 
   const copyToClipboard = async () => {
     try {
