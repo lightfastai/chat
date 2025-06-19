@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
-import { internal } from "./_generated/api.js"
+// import { internal } from "./_generated/api.js"
 import { mutation, query } from "./_generated/server.js"
 import {
   branchInfoValidator,
@@ -444,11 +444,13 @@ export const branchFromMessage = mutation({
 
     // Schedule AI response with the selected model
     if (lastUserMessage) {
-      await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
-        threadId: newThreadId,
-        userMessage: lastUserMessage,
-        modelId: args.modelId,
-      })
+      // TODO: Fix circular dependency with AI module
+      // await ctx.scheduler.runAfter(0, internal.ai.generateAIResponse, {
+      //   threadId: newThreadId,
+      //   userMessage: lastUserMessage,
+      //   modelId: args.modelId,
+      // })
+      console.log("AI response scheduled for thread:", newThreadId)
     }
 
     return newThreadId

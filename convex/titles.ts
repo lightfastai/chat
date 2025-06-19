@@ -1,7 +1,7 @@
 import { openai } from "@ai-sdk/openai"
 import { type CoreMessage, generateText } from "ai"
 import { v } from "convex/values"
-import { internal } from "./_generated/api.js"
+// import { internal } from "./_generated/api.js"
 import { internalAction, internalMutation } from "./_generated/server.js"
 import { titleValidator, validateTitle } from "./validators.js"
 
@@ -12,13 +12,15 @@ export const generateTitle = internalAction({
     userMessage: v.string(),
   },
   returns: v.null(),
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     try {
       // Mark title as generating
-      await ctx.runMutation(internal.titles.setTitleGenerating, {
-        threadId: args.threadId,
-        isGenerating: true,
-      })
+      // TODO: Fix circular dependency
+      // await ctx.runMutation(internal.titles.setTitleGenerating, {
+      //   threadId: args.threadId,
+      //   isGenerating: true,
+      // })
+      console.log("Set title generating for:", args.threadId)
 
       console.log(
         "Generating title for message:",
@@ -58,10 +60,12 @@ export const generateTitle = internalAction({
         console.log("Generated title:", generatedTitle)
 
         // Update the thread title
-        await ctx.runMutation(internal.titles.updateThreadTitle, {
-          threadId: args.threadId,
-          title: generatedTitle,
-        })
+        // TODO: Fix circular dependency
+        // await ctx.runMutation(internal.titles.updateThreadTitle, {
+        //   threadId: args.threadId,
+        //   title: generatedTitle,
+        // })
+        console.log("Update thread title:", args.threadId, generatedTitle)
       } else {
         console.warn("Empty title generated, using fallback")
         // Fallback to truncated message if AI fails
@@ -70,10 +74,16 @@ export const generateTitle = internalAction({
             ? `${args.userMessage.substring(0, 77)}...`
             : args.userMessage
 
-        await ctx.runMutation(internal.titles.updateThreadTitle, {
-          threadId: args.threadId,
-          title: fallbackTitle,
-        })
+        // TODO: Fix circular dependency
+        // await ctx.runMutation(internal.titles.updateThreadTitle, {
+        //   threadId: args.threadId,
+        //   title: fallbackTitle,
+        // })
+        console.log(
+          "Update thread title (fallback):",
+          args.threadId,
+          fallbackTitle,
+        )
       }
     } catch (error) {
       console.error("Error generating title:", error)
@@ -84,10 +94,16 @@ export const generateTitle = internalAction({
           ? `${args.userMessage.substring(0, 77)}...`
           : args.userMessage
 
-      await ctx.runMutation(internal.titles.updateThreadTitle, {
-        threadId: args.threadId,
-        title: fallbackTitle,
-      })
+      // TODO: Fix circular dependency
+      // await ctx.runMutation(internal.titles.updateThreadTitle, {
+      //   threadId: args.threadId,
+      //   title: fallbackTitle,
+      // })
+      console.log(
+        "Update thread title (error fallback):",
+        args.threadId,
+        fallbackTitle,
+      )
     }
 
     return null

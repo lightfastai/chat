@@ -128,4 +128,59 @@ export default defineSchema({
     .index("by_share_id", ["shareId"])
     .index("by_share_time", ["shareId", "accessedAt"])
     .index("by_ip_time", ["ipHash", "accessedAt"]),
+
+  // Streaming infrastructure tables
+  streamingMessages: defineTable({
+    threadId: v.id("threads"),
+    streamId: streamIdValidator,
+    userId: v.optional(v.id("users")),
+    model: v.optional(modelProviderValidator),
+    modelId: v.optional(modelIdValidator),
+    order: v.number(), // Message order in thread
+    stepOrder: v.number(), // Step order within message (for tool calls)
+    state: v.union(
+      v.object({ kind: v.literal("streaming"), lastHeartbeat: v.number() }),
+      v.object({ kind: v.literal("finished"), endedAt: v.number() }),
+      v.object({ kind: v.literal("error"), error: v.string() }),
+    ),
+    // Cleanup timestamp - set when stream finishes
+    cleanupAt: v.optional(v.number()),
+  })
+    .index("by_thread", ["threadId"])
+    .index("by_stream_id", ["streamId"])
+    .index("by_cleanup", ["cleanupAt"]),
+
+  streamDeltas: defineTable({
+    streamId: v.id("streamingMessages"),
+    start: v.number(), // Inclusive cursor position
+    end: v.number(), // Exclusive cursor position
+    parts: v.array(
+      v.union(
+        // Text delta
+        v.object({
+          type: v.literal("text-delta"),
+          textDelta: v.string(),
+        }),
+        // Tool call
+        v.object({
+          type: v.literal("tool-call"),
+          toolCallId: v.string(),
+          toolName: v.string(),
+          args: v.any(),
+        }),
+        // Tool result
+        v.object({
+          type: v.literal("tool-result"),
+          toolCallId: v.string(),
+          toolName: v.string(),
+          result: v.any(),
+        }),
+        // Thinking/reasoning content
+        v.object({
+          type: v.literal("thinking"),
+          content: v.string(),
+        }),
+      ),
+    ),
+  }).index("by_stream", ["streamId"]),
 })
