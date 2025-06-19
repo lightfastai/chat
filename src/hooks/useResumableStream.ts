@@ -56,7 +56,7 @@ export function useResumableStream({
       // Update last chunk ID
       const lastChunk = chunks[chunks.length - 1]
       if (lastChunk) {
-        lastChunkIdRef.current = lastChunk.id
+        lastChunkIdRef.current = lastChunk.chunkId
       }
 
       setIsStreaming(true)

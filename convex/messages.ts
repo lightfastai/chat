@@ -1,8 +1,6 @@
-import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
-import { createOpenAI, openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { type CoreMessage, stepCountIs, streamText, tool } from "ai"
-import { v } from "convex/values"
+import { ConvexError, v } from "convex/values"
 import Exa, {
   type RegularSearchOptions,
   type ContentsOptions,
@@ -12,7 +10,6 @@ import { z } from "zod"
 import { internal } from "./_generated/api.js"
 import type { Doc, Id } from "./_generated/dataModel.js"
 import {
-  type ActionCtx,
   type MutationCtx,
   internalAction,
   internalMutation,
@@ -25,7 +22,6 @@ import { getModelById } from "../src/lib/ai/models.js"
 // Import shared types and utilities
 import {
   type ModelId,
-  getActualModelName,
   getProviderFromModelId,
   isThinkingMode,
 } from "../src/lib/ai/types.js"
@@ -44,6 +40,13 @@ import {
   threadUsageValidator,
   tokenUsageValidator,
 } from "./validators.js"
+
+import { createAIClient } from "./lib/ai_client.js"
+// Import shared utilities
+import { getAuthenticatedUserId } from "./lib/auth.js"
+import { getOrThrow, getWithOwnership } from "./lib/database.js"
+import { requireResource, throwConflictError } from "./lib/errors.js"
+import { buildMessageContent } from "./lib/message_builder.js"
 
 // Create web search tool using proper AI SDK v5 pattern
 function createWebSearchTool() {
@@ -251,20 +254,19 @@ export const send = mutation({
     messageId: v.id("messages"),
   }),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
 
-    // Verify the user owns this thread
-    const thread = await ctx.db.get(args.threadId)
-    if (!thread || thread.userId !== userId) {
-      throw new Error("Thread not found or access denied")
-    }
+    // Verify the user owns this thread and check generation status
+    const thread = await getWithOwnership(
+      ctx.db,
+      "threads",
+      args.threadId,
+      userId,
+    )
 
     // Prevent new messages while AI is generating
     if (thread.isGenerating) {
-      throw new Error(
+      throwConflictError(
         "Please wait for the current AI response to complete before sending another message",
       )
     }
@@ -336,10 +338,7 @@ export const createThreadAndSend = mutation({
     assistantMessageId: v.id("messages"),
   }),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
 
     // Check for collision if clientId is provided (extremely rare with nanoid)
     const existing = await ctx.db
@@ -348,7 +347,7 @@ export const createThreadAndSend = mutation({
       .first()
 
     if (existing) {
-      throw new Error(`Thread with clientId ${args.clientId} already exists`)
+      throwConflictError(`Thread with clientId ${args.clientId} already exists`)
     }
 
     // Use default model if none provided
@@ -437,98 +436,6 @@ export const createThreadAndSend = mutation({
   },
 })
 
-// Helper to get file URLs in an internal context
-async function getFileWithUrl(ctx: ActionCtx, fileId: Id<"files">) {
-  // Use internal query to get file with URL
-  const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId })
-  return file
-}
-
-// Type for multimodal content parts based on AI SDK v5
-type TextPart = { type: "text"; text: string }
-type ImagePart = { type: "image"; image: string | URL }
-type FilePart = {
-  type: "file"
-  data: string | URL
-  mediaType: string
-}
-
-type MultimodalContent = string | Array<TextPart | ImagePart | FilePart>
-
-// Helper function to build message content with attachments
-async function buildMessageContent(
-  ctx: ActionCtx,
-  text: string,
-  attachmentIds?: Id<"files">[],
-  provider?: "openai" | "anthropic" | "openrouter",
-  modelId?: string,
-): Promise<MultimodalContent> {
-  // If no attachments, return simple text content
-  if (!attachmentIds || attachmentIds.length === 0) {
-    return text
-  }
-
-  // Get model configuration to check capabilities
-  const modelConfig = modelId ? getModelById(modelId) : null
-  const hasVisionSupport = modelConfig?.features.vision ?? false
-  const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
-
-  // Build content array with text and files
-  const content = [{ type: "text" as const, text }] as Array<
-    TextPart | ImagePart | FilePart
-  >
-
-  // Fetch each file with its URL
-  for (const fileId of attachmentIds) {
-    const file = await getFileWithUrl(ctx, fileId)
-    if (!file || !file.url) continue
-
-    // Handle images
-    if (file.fileType.startsWith("image/")) {
-      if (!hasVisionSupport) {
-        // Model doesn't support vision
-        if (content[0] && "text" in content[0]) {
-          content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || "This model"} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
-        }
-      } else {
-        // Model supports vision - all models use URLs (no base64 needed)
-        content.push({
-          type: "image" as const,
-          image: file.url,
-        })
-      }
-    }
-    // Handle PDFs
-    else if (file.fileType === "application/pdf") {
-      if (hasPdfSupport && provider === "anthropic") {
-        // Claude supports PDFs as file type
-        content.push({
-          type: "file" as const,
-          data: file.url,
-          mediaType: "application/pdf",
-        })
-      } else {
-        // PDF not supported - add as text description
-        const description = `\n[Attached PDF: ${file.fileName} (${(file.fileSize / 1024).toFixed(1)}KB)] - Note: PDF content analysis requires Claude models.`
-        content.push({
-          type: "text" as const,
-          text: description,
-        })
-      }
-    }
-    // For other file types, add as text description
-    else {
-      const description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`
-
-      if (content[0] && "text" in content[0]) {
-        content[0].text += description
-      }
-    }
-  }
-
-  return content
-}
-
 // New action that uses pre-created message ID
 export const generateAIResponseWithMessage = internalAction({
   args: {
@@ -548,13 +455,10 @@ export const generateAIResponseWithMessage = internalAction({
       const thread = await ctx.runQuery(internal.messages.getThreadById, {
         threadId: args.threadId,
       })
-      if (!thread) {
-        throw new Error("Thread not found")
-      }
+      requireResource(thread, "Thread")
 
-      // Derive provider and other settings from modelId
+      // Derive provider from modelId
       const provider = getProviderFromModelId(args.modelId as ModelId)
-      const actualModelName = getActualModelName(args.modelId as ModelId)
 
       // Get user's API keys if available
       const userApiKeys = await ctx.runMutation(
@@ -639,35 +543,8 @@ export const generateAIResponseWithMessage = internalAction({
         } as CoreMessage)
       }
 
-      // Choose the appropriate model using user's API key if available, otherwise fall back to global
-      const ai =
-        provider === "anthropic"
-          ? userApiKeys?.anthropic
-            ? createAnthropic({ apiKey: userApiKeys.anthropic })
-            : anthropic
-          : provider === "openai"
-            ? userApiKeys?.openai
-              ? createOpenAI({ apiKey: userApiKeys.openai })
-              : openai
-            : provider === "openrouter"
-              ? userApiKeys?.openrouter
-                ? createOpenAI({
-                    apiKey: userApiKeys.openrouter,
-                    baseURL: "https://openrouter.ai/api/v1",
-                    headers: {
-                      "X-Title": "Lightfast Chat",
-                    },
-                  })
-                : createOpenAI({
-                    apiKey: env.OPENROUTER_API_KEY,
-                    baseURL: "https://openrouter.ai/api/v1",
-                    headers: {
-                      "X-Title": "Lightfast Chat",
-                    },
-                  })
-              : (() => {
-                  throw new Error(`Unsupported provider: ${provider}`)
-                })()
+      // Create AI client using shared utility
+      const ai = createAIClient(args.modelId as ModelId, userApiKeys)
 
       // Update token usage function
       const updateUsage = async (usage: {
@@ -700,7 +577,7 @@ export const generateAIResponseWithMessage = internalAction({
 
       // Prepare generation options
       const generationOptions: Parameters<typeof streamText>[0] = {
-        model: ai(actualModelName),
+        model: ai,
         messages: messages,
         // Usage will be updated after streaming completes
       }
@@ -832,13 +709,10 @@ export const generateAIResponse = internalAction({
       const thread = await ctx.runQuery(internal.messages.getThreadById, {
         threadId: args.threadId,
       })
-      if (!thread) {
-        throw new Error("Thread not found")
-      }
+      requireResource(thread, "Thread")
 
-      // Derive provider and other settings from modelId
+      // Derive provider from modelId
       const provider = getProviderFromModelId(args.modelId as ModelId)
-      const actualModelName = getActualModelName(args.modelId as ModelId)
       const isThinking = isThinkingMode(args.modelId as ModelId)
 
       // Get user's API keys if available
@@ -939,37 +813,8 @@ export const generateAIResponse = internalAction({
       console.log(`Schema fix timestamp: ${Date.now()}`)
       console.log(`Web search enabled: ${args.webSearchEnabled}`)
 
-      // Choose the appropriate model using user's API key if available, otherwise fall back to global
-      const selectedModel =
-        provider === "anthropic"
-          ? userApiKeys?.anthropic
-            ? createAnthropic({ apiKey: userApiKeys.anthropic })(
-                actualModelName,
-              )
-            : anthropic(actualModelName)
-          : provider === "openai"
-            ? userApiKeys?.openai
-              ? createOpenAI({ apiKey: userApiKeys.openai })(actualModelName)
-              : openai(actualModelName)
-            : provider === "openrouter"
-              ? userApiKeys?.openrouter
-                ? createOpenAI({
-                    apiKey: userApiKeys.openrouter,
-                    baseURL: "https://openrouter.ai/api/v1",
-                    headers: {
-                      "X-Title": "Lightfast Chat",
-                    },
-                  })(actualModelName)
-                : createOpenAI({
-                    apiKey: env.OPENROUTER_API_KEY,
-                    baseURL: "https://openrouter.ai/api/v1",
-                    headers: {
-                      "X-Title": "Lightfast Chat",
-                    },
-                  })(actualModelName)
-              : (() => {
-                  throw new Error(`Unsupported provider: ${provider}`)
-                })()
+      // Create AI client using shared utility
+      const selectedModel = createAIClient(args.modelId as ModelId, userApiKeys)
 
       // Stream response using AI SDK v5 with full stream for reasoning support
       const streamOptions: Parameters<typeof streamText>[0] = {
@@ -1049,7 +894,7 @@ REMEMBER:
       console.log(
         `Final streamOptions for ${provider}:`,
         JSON.stringify({
-          model: actualModelName,
+          model: args.modelId,
           temperature: streamOptions.temperature,
           hasTools: !!streamOptions.tools,
           toolNames: streamOptions.tools
@@ -1150,9 +995,10 @@ REMEMBER:
       // Don't throw error for empty content when tools are enabled (known AI SDK issue #1831)
       // OpenAI returns empty content blocks when tools are invoked, which is expected behavior
       if (fullContent.trim() === "" && !args.webSearchEnabled) {
-        throw new Error(
-          `${provider} returned empty response - check API key and quota`,
-        )
+        throw new ConvexError({
+          code: "INTERNAL_ERROR",
+          message: `${provider} returned empty response - check API key and quota`,
+        })
       }
 
       // Log if we have empty content with tools enabled (expected behavior)
@@ -1374,14 +1220,14 @@ export const appendStreamChunk = internalMutation({
     const sequence = currentChunks.length // Use array length as sequence number
 
     const newChunk = {
-      id: args.chunkId,
+      chunkId: args.chunkId,
       content: args.chunk,
       timestamp: Date.now(),
       sequence: sequence, // Add sequence for ordering
     }
 
     // Check for duplicate chunks (race condition protection)
-    if (currentChunks.some((chunk) => chunk.id === args.chunkId)) {
+    if (currentChunks.some((chunk) => chunk.chunkId === args.chunkId)) {
       console.log(`Duplicate chunk detected: ${args.chunkId}`)
       return null // Skip duplicate
     }
@@ -1491,11 +1337,8 @@ export const completeStreamingMessageLegacy = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Get the message to find thread and model
-    const message = await ctx.db.get(args.messageId)
-    if (!message) {
-      throw new Error("Message not found")
-    }
+    // Verify the message exists
+    await getOrThrow(ctx.db, "messages", args.messageId)
 
     // Update the message with completion status and usage
     await ctx.db.patch(args.messageId, {
@@ -1522,11 +1365,8 @@ export const completeStreamingMessage = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Get the message to find thread and model
-    const message = await ctx.db.get(args.messageId)
-    if (!message) {
-      throw new Error("Message not found")
-    }
+    // Verify the message exists
+    await getOrThrow(ctx.db, "messages", args.messageId)
 
     // Update the message with completion status and full text
     await ctx.db.patch(args.messageId, {
@@ -1868,7 +1708,7 @@ export const getStreamChunks = query({
     let newChunks = streamChunks
     if (args.sinceChunkId) {
       const sinceIndex = streamChunks.findIndex(
-        (chunk) => chunk.id === args.sinceChunkId,
+        (chunk) => chunk.chunkId === args.sinceChunkId,
       )
       if (sinceIndex >= 0) {
         // Return chunks after the sinceChunkId

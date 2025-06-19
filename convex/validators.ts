@@ -161,10 +161,11 @@ export const threadUsageValidator = v.optional(
 
 // ===== Stream Chunk Validators =====
 export const streamChunkValidator = v.object({
-  id: chunkIdValidator,
+  chunkId: chunkIdValidator,
   content: v.string(),
   timestamp: v.number(),
   sequence: v.optional(v.number()),
+  isThinking: v.optional(v.boolean()),
 })
 
 // ===== Branch Information Validator =====
