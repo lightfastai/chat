@@ -29,6 +29,9 @@ export {
   getLegacyModelMapping,
   validateApiKey,
   DEFAULT_MODEL_ID,
+  getAllModelsIncludingHidden,
+  getModelDisplayName,
+  modelSupportsFeature,
 } from "./schemas"
 
 // Additional types from types.ts
@@ -50,18 +53,16 @@ export {
   isThinkingMode,
 } from "./types"
 
-// Models
+// Models (collections and legacy aliases)
 export {
   OPENAI_MODELS,
   ANTHROPIC_MODELS,
   OPENROUTER_MODELS,
   ALL_MODELS,
+  // Legacy aliases (deprecated - use standardized names above)
   getModelsByProvider,
   getAllModels,
-  getAllModelsIncludingHidden,
   getModelById,
-  getModelDisplayName,
-  modelSupportsFeature,
 } from "./models"
 
 // Providers
@@ -77,8 +78,7 @@ export {
   createGenerationOptions,
 } from "./providers"
 
-// API key validation
-export { validateApiKeyFormat } from "./apiKeyValidation"
+// API key validation is now exported from schemas above
 
 // Constants for easy access
 export const AI_PROVIDERS = ["openai", "anthropic", "openrouter"] as const

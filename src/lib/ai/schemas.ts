@@ -690,3 +690,21 @@ export function getLegacyModelMapping(): Record<string, string> {
 
 // Default model ID
 export const DEFAULT_MODEL_ID: ModelId = "gpt-4o-mini"
+
+// Additional utility functions
+export function getAllModelsIncludingHidden(): ModelConfig[] {
+  return Object.values(MODELS)
+}
+
+export function getModelDisplayName(modelId: string): string {
+  const model = MODELS[modelId as ModelId]
+  return model?.displayName ?? "Unknown Model"
+}
+
+export function modelSupportsFeature(
+  modelId: string,
+  feature: keyof ModelFeatures,
+): boolean {
+  const model = MODELS[modelId as ModelId]
+  return model?.features[feature] ?? false
+}

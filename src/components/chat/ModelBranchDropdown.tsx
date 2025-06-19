@@ -14,7 +14,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { getAllModels } from "@/lib/ai/models"
+import { getVisibleModels } from "@/lib/ai/schemas"
 import type { ModelConfig, ModelId } from "@/lib/ai/types"
 
 interface ModelBranchDropdownProps {
@@ -30,7 +30,7 @@ export function ModelBranchDropdown({
 
   // Group models by provider
   const modelsByProvider = useMemo(() => {
-    const allModels = getAllModels()
+    const allModels = getVisibleModels()
     return allModels.reduce(
       (acc, model) => {
         if (!acc[model.provider]) {
