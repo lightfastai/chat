@@ -1,7 +1,6 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Check, Copy, Maximize2, WrapText } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -131,8 +130,8 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
             </SyntaxHighlighter>
           </div>
         ) : (
-          // Horizontal scrolling mode using shadcn ScrollArea
-          <ScrollArea className="w-full max-h-[500px]">
+          // Horizontal scrolling mode with proper scroll container
+          <div className="w-full max-h-[500px] overflow-auto">
             <div className="w-max min-w-full">
               <SyntaxHighlighter
                 language={normalizedLanguage}
@@ -165,7 +164,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
                 {code}
               </SyntaxHighlighter>
             </div>
-          </ScrollArea>
+          </div>
         )}
       </div>
     </div>
