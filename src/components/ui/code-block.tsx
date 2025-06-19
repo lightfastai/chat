@@ -130,44 +130,48 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
             </SyntaxHighlighter>
           </div>
         ) : (
-          // Horizontal scrolling mode with proper overflow constraints
-          <div className="w-full max-w-[calc(100vw-4rem)] max-h-[500px] overflow-auto">
-            <div className="inline-block min-w-full">
-              <SyntaxHighlighter
-                language={normalizedLanguage}
-                style={theme === "dark" ? oneDark : oneLight}
-                wrapLines={false}
-                wrapLongLines={false}
-                customStyle={{
-                  margin: 0,
-                  padding: "12px",
-                  fontSize: "13px",
+          // Horizontal and vertical scrolling mode with strict constraints
+          <div
+            className="w-full max-h-[500px] overflow-auto"
+            style={{
+              maxWidth: "100%",
+              width: "100%",
+              overflowX: "auto",
+              overflowY: "auto",
+            }}
+          >
+            <SyntaxHighlighter
+              language={normalizedLanguage}
+              style={theme === "dark" ? oneDark : oneLight}
+              wrapLines={false}
+              wrapLongLines={false}
+              customStyle={{
+                margin: 0,
+                padding: "12px",
+                fontSize: "13px",
+                fontFamily:
+                  "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+                background: "transparent",
+                borderRadius: 0,
+                whiteSpace: "pre",
+                wordBreak: "normal",
+                overflowWrap: "normal",
+                minWidth: "100%",
+                width: "fit-content",
+              }}
+              codeTagProps={{
+                style: {
                   fontFamily:
                     "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-                  background: "transparent",
-                  borderRadius: 0,
                   whiteSpace: "pre",
                   wordBreak: "normal",
                   overflowWrap: "normal",
-                  width: "max-content",
-                  minWidth: "100%",
-                }}
-                codeTagProps={{
-                  style: {
-                    fontFamily:
-                      "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-                    whiteSpace: "pre",
-                    wordBreak: "normal",
-                    overflowWrap: "normal",
-                    display: "block",
-                    width: "max-content",
-                    minWidth: "100%",
-                  },
-                }}
-              >
-                {code}
-              </SyntaxHighlighter>
-            </div>
+                  display: "block",
+                },
+              }}
+            >
+              {code}
+            </SyntaxHighlighter>
           </div>
         )}
       </div>
