@@ -1,7 +1,7 @@
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import { getAuthUserId } from "@convex-dev/auth/server"
-import { type CoreMessage, streamText, tool, stepCountIs } from "ai"
+import { type CoreMessage, stepCountIs, streamText, tool } from "ai"
 import { v } from "convex/values"
 import Exa, {
   type RegularSearchOptions,
@@ -104,7 +104,8 @@ function createWebSearchTool() {
             timestamp: new Date().toISOString(),
             autoprompt: response.autopromptString,
           },
-          instructions: "Analyze these search results thoroughly and provide a comprehensive explanation of the findings.",
+          instructions:
+            "Analyze these search results thoroughly and provide a comprehensive explanation of the findings.",
         }
       } catch (error) {
         console.error("Web search error:", error)
@@ -706,12 +707,17 @@ export const generateAIResponseWithMessage = internalAction({
         promptTokensDetails?: { cachedTokens?: number }
       }) => {
         if (usage) {
+          const promptTokens = usage.promptTokens || 0
+          const completionTokens = usage.completionTokens || 0
+          const totalTokens =
+            usage.totalTokens || promptTokens + completionTokens
+
           await ctx.runMutation(internal.messages.updateThreadUsageMutation, {
             threadId: args.threadId,
             usage: {
-              promptTokens: usage.promptTokens || 0,
-              completionTokens: usage.completionTokens || 0,
-              totalTokens: usage.totalTokens || 0,
+              promptTokens,
+              completionTokens,
+              totalTokens,
               reasoningTokens:
                 usage.completionTokensDetails?.reasoningTokens || 0,
               cachedTokens: usage.promptTokensDetails?.cachedTokens || 0,
@@ -788,7 +794,9 @@ export const generateAIResponseWithMessage = internalAction({
           ? {
               inputTokens: finalUsage.inputTokens ?? 0,
               outputTokens: finalUsage.outputTokens ?? 0,
-              totalTokens: finalUsage.totalTokens ?? 0,
+              totalTokens:
+                finalUsage.totalTokens ??
+                (finalUsage.inputTokens ?? 0) + (finalUsage.outputTokens ?? 0),
               reasoningTokens: finalUsage.reasoningTokens ?? 0,
               cachedInputTokens: finalUsage.cachedInputTokens ?? 0,
             }
@@ -1206,7 +1214,9 @@ REMEMBER:
         ? {
             inputTokens: finalUsage.inputTokens ?? 0,
             outputTokens: finalUsage.outputTokens ?? 0,
-            totalTokens: finalUsage.totalTokens ?? 0,
+            totalTokens:
+              finalUsage.totalTokens ??
+              (finalUsage.inputTokens ?? 0) + (finalUsage.outputTokens ?? 0),
             reasoningTokens: finalUsage.reasoningTokens ?? 0,
             cachedInputTokens: finalUsage.cachedInputTokens ?? 0,
           }
@@ -1616,7 +1626,7 @@ async function updateThreadUsage(
 
       const inputTokens = messageUsage.inputTokens || 0
       const outputTokens = messageUsage.outputTokens || 0
-      const totalTokens = messageUsage.totalTokens || 0
+      const totalTokens = messageUsage.totalTokens || inputTokens + outputTokens
       const reasoningTokens = messageUsage.reasoningTokens || 0
       const cachedInputTokens = messageUsage.cachedInputTokens || 0
 

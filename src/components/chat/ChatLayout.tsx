@@ -6,6 +6,7 @@ import {
 import { Suspense } from "react"
 import { ChatTitleClient } from "./ChatTitleClient"
 import { ShareButtonWrapper } from "./ShareButtonWrapper"
+import { TokenUsageHeaderWrapper } from "./TokenUsageHeaderWrapper"
 import { ServerSidebar } from "./sidebar/ServerSidebar"
 
 // Server component for chat header - can be static with PPR
@@ -21,7 +22,7 @@ function ChatHeader() {
         </Suspense>
       </div>
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* <Suspense
+        <Suspense
           fallback={
             <div className="flex items-center gap-2">
               <div className="h-6 w-16 bg-muted animate-pulse rounded" />
@@ -30,7 +31,7 @@ function ChatHeader() {
           }
         >
           <TokenUsageHeaderWrapper />
-        </Suspense> */}
+        </Suspense>
         <Suspense
           fallback={<div className="h-8 w-16 bg-muted animate-pulse rounded" />}
         >
