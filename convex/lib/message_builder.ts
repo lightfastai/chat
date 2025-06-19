@@ -102,6 +102,10 @@ export function createSystemPrompt(
   let systemPrompt =
     "You are a helpful AI assistant in a chat conversation. Be concise and friendly."
 
+  // Code formatting instructions
+  systemPrompt +=
+    "\n\nWhen providing code examples, always use proper syntax highlighting in code blocks. For JavaScript, Node.js, React, or TypeScript code, use:\n```javascript\n// Your code here\n```\n\nFor other languages, specify the appropriate language identifier (e.g., ```python, ```css, ```bash, ```sql, etc.) to ensure proper syntax highlighting and readability."
+
   // Check model capabilities
   const modelConfig = getModelById(modelId)
   const hasVisionSupport = modelConfig?.features.vision ?? false
