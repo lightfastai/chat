@@ -15,58 +15,63 @@ export type {
   OpenAIModelId,
   AnthropicModelId,
   OpenRouterModelId,
+  ChatMessage,
+  ModelSelectionProps,
+  AIGenerationOptions,
+  OpenAIModel,
+  AnthropicModel,
+  OpenRouterModel,
 } from "./schemas"
 
 export {
+  // Core model data
+  DEFAULT_MODEL_ID,
   ALL_MODEL_IDS,
   OPENAI_MODEL_IDS,
   ANTHROPIC_MODEL_IDS,
   OPENROUTER_MODEL_IDS,
+  MODEL_PROVIDERS,
+  
+  // Model functions
   getModelConfig,
   getModelsForProvider,
   getVisibleModels,
   getDeprecatedModels,
-  getLegacyModelMapping,
-  validateApiKey,
-  DEFAULT_MODEL_ID,
   getAllModelsIncludingHidden,
   getModelDisplayName,
   modelSupportsFeature,
-} from "./schemas"
-
-// Additional types from types.ts
-export type {
-  ChatMessage,
-  ModelSelectionProps,
-  AIGenerationOptions,
-  // Legacy type aliases
-  OpenAIModel,
-  AnthropicModel,
-  OpenRouterModel,
-} from "./types"
-
-export {
-  MODEL_PROVIDERS,
+  getLegacyModelMapping,
+  
+  // Model utilities
   isValidModelId,
   getProviderFromModelId,
   getActualModelName,
   isThinkingMode,
-} from "./types"
-
-// Models (collections and legacy aliases)
-export {
+  
+  // API key validation
+  validateApiKey,
+  
+  // Legacy collections (deprecated)
   OPENAI_MODELS,
   ANTHROPIC_MODELS,
   OPENROUTER_MODELS,
   ALL_MODELS,
-  // Legacy aliases (deprecated - use standardized names above)
+  
+  // Legacy function aliases (deprecated)
   getModelsByProvider,
   getAllModels,
   getModelById,
-} from "./models"
+} from "./schemas"
+
+// Legacy re-exports for backward compatibility (deprecated)
+// All types and functions are now exported from schemas above
+
+// Legacy model file re-exports (deprecated)
+// All model collections and functions are now exported from schemas above
 
 // Providers
 export {
+  getProviderConfig,
   PROVIDER_CONFIG,
   getLanguageModel,
   getLanguageModelById,
@@ -77,8 +82,3 @@ export {
   getSupportedProviders,
   createGenerationOptions,
 } from "./providers"
-
-// API key validation is now exported from schemas above
-
-// Constants for easy access
-export const AI_PROVIDERS = ["openai", "anthropic", "openrouter"] as const

@@ -708,3 +708,78 @@ export function modelSupportsFeature(
   const model = MODELS[modelId as ModelId]
   return model?.features[feature] ?? false
 }
+
+// Additional types and interfaces
+export interface ChatMessage {
+  role: "system" | "user" | "assistant"
+  content: string
+}
+
+export interface ModelSelectionProps {
+  selectedModel: string
+  onModelChange: (modelId: string) => void
+  disabled?: boolean
+}
+
+export interface AIGenerationOptions {
+  modelId: string
+  messages: ChatMessage[]
+  maxTokens?: number
+  temperature?: number
+  stream?: boolean
+}
+
+// Legacy type aliases for backward compatibility
+export type OpenAIModel = OpenAIModelId
+export type AnthropicModel = AnthropicModelId
+export type OpenRouterModel = OpenRouterModelId
+
+// Provider constants
+export const MODEL_PROVIDERS = ["openai", "anthropic", "openrouter"] as const
+
+// Type-safe model ID validation
+export function isValidModelId(modelId: string): modelId is ModelId {
+  return (ALL_MODEL_IDS as readonly string[]).includes(modelId)
+}
+
+// Extract provider from modelId (type-safe)
+export function getProviderFromModelId(modelId: ModelId): ModelProvider {
+  const model = getModelConfig(modelId)
+  return model.provider
+}
+
+// Get actual model name for API calls (removes -thinking suffix)
+export function getActualModelName(modelId: ModelId): string {
+  const model = getModelConfig(modelId)
+  return model.name
+}
+
+// Check if model is in thinking mode
+export function isThinkingMode(modelId: ModelId): boolean {
+  const model = getModelConfig(modelId)
+  return (
+    model.features.thinking === true && model.thinkingConfig?.enabled === true
+  )
+}
+
+// Legacy model collections for backward compatibility
+export const OPENAI_MODELS: Record<string, ModelConfig> = Object.fromEntries(
+  getModelsForProvider("openai").map((model) => [model.id, model]),
+)
+
+export const ANTHROPIC_MODELS: Record<string, ModelConfig> = Object.fromEntries(
+  getModelsForProvider("anthropic").map((model) => [model.id, model]),
+)
+
+export const OPENROUTER_MODELS: Record<string, ModelConfig> =
+  Object.fromEntries(
+    getModelsForProvider("openrouter").map((model) => [model.id, model]),
+  )
+
+// Re-export the complete models object for backward compatibility
+export const ALL_MODELS = MODELS
+
+// Legacy function aliases for backward compatibility (deprecated)
+export const getModelsByProvider = getModelsForProvider
+export const getAllModels = getVisibleModels
+export const getModelById = getModelConfig

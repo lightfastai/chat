@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import type { ModelId } from "@/lib/ai/types"
+import type { ModelId } from "@/lib/ai"
 import { nanoid } from "@/lib/nanoid"
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard"
 import { cn } from "@/lib/utils"

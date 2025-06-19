@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { getModelDisplayName as getModelName } from "@/lib/ai/models"
+import { getModelDisplayName as getModelName } from "@/lib/ai"
 import { useQuery } from "convex/react"
 import { Activity, Brain } from "lucide-react"
 import { api } from "../../../convex/_generated/api"

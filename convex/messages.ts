@@ -28,7 +28,7 @@ import {
   getModelConfig,
   getProviderFromModelId,
   isThinkingMode,
-} from "../src/lib/ai/types.js"
+} from "../src/lib/ai/schemas.js"
 import { env } from "./env.js"
 import {
   branchInfoValidator,

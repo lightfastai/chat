@@ -1,7 +1,7 @@
 "use client"
 
-import type { ModelId } from "@/lib/ai/types"
-import { getProviderFromModelId } from "@/lib/ai/types"
+import type { ModelId } from "@/lib/ai"
+import { getProviderFromModelId } from "@/lib/ai"
 import { isClientId, nanoid } from "@/lib/nanoid"
 import {
   type Preloaded,

@@ -14,8 +14,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import type { ModelConfig, ModelId } from "@/lib/ai"
 import { getVisibleModels } from "@/lib/ai/schemas"
-import type { ModelConfig, ModelId } from "@/lib/ai/types"
 
 interface ModelBranchDropdownProps {
   onBranch: (modelId: ModelId) => void

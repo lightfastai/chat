@@ -1,14 +1,15 @@
 import { anthropic } from "@ai-sdk/anthropic"
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import type { CoreMessage } from "ai"
-import { getModelConfig, getModelsForProvider } from "./schemas"
-import { getProviderFromModelId } from "./types"
-import type {
-  AIGenerationOptions,
-  ChatMessage,
-  ModelId,
-  ModelProvider,
-} from "./types"
+import {
+  type AIGenerationOptions,
+  type ChatMessage,
+  type ModelId,
+  type ModelProvider,
+  getModelConfig,
+  getModelsForProvider,
+  getProviderFromModelId,
+} from "./schemas"
 
 /**
  * Get dynamic provider configuration from model data
