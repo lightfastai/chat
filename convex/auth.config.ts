@@ -7,7 +7,4 @@ export default {
       applicationID: "convex",
     },
   ],
-  // site: env.VERCEL_URL
-  //   ? `https://${env.VERCEL_URL}`
-  //   : env.SITE_URL || "http://localhost:3000",
 }

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { FileQuestion, Home, Search } from "lucide-react"
+import { FileQuestion, Home } from "lucide-react"
 import Link from "next/link"
 
 export default function NotFound() {
@@ -24,12 +24,6 @@ export default function NotFound() {
             <Link href="/">
               <Home className="mr-2 h-4 w-4" />
               Go home
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/docs">
-              <Search className="mr-2 h-4 w-4" />
-              Search docs
             </Link>
           </Button>
         </div>

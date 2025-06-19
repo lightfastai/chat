@@ -25,13 +25,6 @@ export const env = createEnv({
       .optional()
       .describe("Site URL for authentication configuration"),
 
-    // Site URL for API headers
-    SITE_URL: z
-      .string()
-      .url()
-      .optional()
-      .describe("Site URL for HTTP headers and redirects"),
-
     // Environment
     NODE_ENV: z
       .enum(["development", "test", "production"])

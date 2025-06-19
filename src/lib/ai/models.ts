@@ -523,6 +523,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: false,
     },
+    hidden: true,
+    deprecated: true,
   },
   "anthropic/claude-3.5-sonnet": {
     id: "anthropic/claude-3.5-sonnet",
@@ -540,6 +542,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: true,
     },
+    hidden: true,
+    deprecated: true,
   },
   "openai/gpt-4o": {
     id: "openai/gpt-4o",
@@ -557,6 +561,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: true,
     },
+    hidden: true,
+    deprecated: true,
   },
   "google/gemini-pro-1.5": {
     id: "google/gemini-pro-1.5",
@@ -574,6 +580,8 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       functionCalling: true,
       vision: true,
     },
+    hidden: true,
+    deprecated: true,
   },
   "mistralai/mistral-large": {
     id: "mistralai/mistral-large",
@@ -591,6 +599,79 @@ export const OPENROUTER_MODELS: Record<OpenRouterModel, ModelConfig> = {
       streaming: true,
       functionCalling: true,
       vision: false,
+    },
+    hidden: true,
+    deprecated: true,
+  },
+  "x-ai/grok-3-beta": {
+    id: "x-ai/grok-3-beta",
+    provider: "openrouter",
+    name: "x-ai/grok-3-beta",
+    displayName: "Grok 3",
+    description: "xAI's most powerful reasoning model for complex tasks",
+    maxTokens: 131072,
+    costPer1KTokens: {
+      input: 3.0,
+      output: 15.0,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "x-ai/grok-3-mini-beta": {
+    id: "x-ai/grok-3-mini-beta",
+    provider: "openrouter",
+    name: "x-ai/grok-3-mini-beta",
+    displayName: "Grok 3 Mini",
+    description:
+      "Fast and efficient reasoning model for math and quantitative tasks",
+    maxTokens: 131072,
+    costPer1KTokens: {
+      input: 0.3,
+      output: 0.5,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "google/gemini-2.5-pro-preview": {
+    id: "google/gemini-2.5-pro-preview",
+    provider: "openrouter",
+    name: "google/gemini-2.5-pro-preview",
+    displayName: "Gemini 2.5 Pro",
+    description:
+      "Google's most advanced model for complex reasoning and coding",
+    maxTokens: 1048576,
+    costPer1KTokens: {
+      input: 1.25,
+      output: 10.0,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
+    },
+  },
+  "google/gemini-2.5-flash-preview": {
+    id: "google/gemini-2.5-flash-preview",
+    provider: "openrouter",
+    name: "google/gemini-2.5-flash-preview",
+    displayName: "Gemini 2.5 Flash",
+    description:
+      "Google's state-of-the-art workhorse model for reasoning and coding",
+    maxTokens: 1048576,
+    costPer1KTokens: {
+      input: 0.15,
+      output: 0.6,
+    },
+    features: {
+      streaming: true,
+      functionCalling: true,
+      vision: true,
     },
   },
 }

@@ -25,7 +25,6 @@ export function MessageLayout({
       className={cn(
         "flex gap-3 group/message",
         isAssistant ? "mt-6" : "mt-4",
-        !isAssistant && "items-center",
         className,
       )}
     >
