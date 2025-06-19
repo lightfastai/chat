@@ -1,7 +1,9 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { internal } from "./_generated/api.js"
 import { mutation, query } from "./_generated/server.js"
+import { getAuthenticatedUserId } from "./lib/auth.js"
+import { getWithOwnership } from "./lib/database.js"
+import { requireResource, throwConflictError } from "./lib/errors.js"
 import {
   branchInfoValidator,
   clientIdValidator,
@@ -43,10 +45,7 @@ export const create = mutation({
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
 
     // Check for collision if clientId is provided (extremely rare with nanoid)
     if (args.clientId) {
@@ -56,7 +55,9 @@ export const create = mutation({
         .first()
 
       if (existing) {
-        throw new Error(`Thread with clientId ${args.clientId} already exists`)
+        throwConflictError(
+          `Thread with clientId ${args.clientId} already exists`,
+        )
       }
     }
 
@@ -87,16 +88,17 @@ export const list = query({
   args: {},
   returns: v.array(threadObjectValidator),
   handler: async (ctx, _args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
+    try {
+      const userId = await getAuthenticatedUserId(ctx)
+      return await ctx.db
+        .query("threads")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .order("desc")
+        .collect()
+    } catch {
+      // Return empty array for unauthenticated users
       return []
     }
-
-    return await ctx.db
-      .query("threads")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .order("desc")
-      .collect()
   },
 })
 
@@ -107,19 +109,13 @@ export const get = query({
   },
   returns: v.union(threadObjectValidator, v.null()),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
+    try {
+      const userId = await getAuthenticatedUserId(ctx)
+      return await getWithOwnership(ctx.db, "threads", args.threadId, userId)
+    } catch {
+      // Return null for unauthenticated users or threads they don't own
       return null
     }
-
-    const thread = await ctx.db.get(args.threadId)
-
-    // Only return the thread if it belongs to the current user
-    if (thread && thread.userId === userId) {
-      return thread
-    }
-
-    return null
   },
 })
 
@@ -130,19 +126,19 @@ export const getByClientId = query({
   },
   returns: v.union(threadObjectValidator, v.null()),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
+    try {
+      const userId = await getAuthenticatedUserId(ctx)
+      const thread = await ctx.db
+        .query("threads")
+        .withIndex("by_user_client", (q) =>
+          q.eq("userId", userId).eq("clientId", args.clientId),
+        )
+        .first()
+      return thread
+    } catch {
+      // Return null for unauthenticated users
       return null
     }
-
-    const thread = await ctx.db
-      .query("threads")
-      .withIndex("by_user_client", (q) =>
-        q.eq("userId", userId).eq("clientId", args.clientId),
-      )
-      .first()
-
-    return thread
   },
 })
 
@@ -153,15 +149,8 @@ export const updateLastMessage = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated")
-    }
-
-    const thread = await ctx.db.get(args.threadId)
-    if (!thread || thread.userId !== userId) {
-      throw new Error("Thread not found or access denied")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
+    await getWithOwnership(ctx.db, "threads", args.threadId, userId)
 
     await ctx.db.patch(args.threadId, {
       lastMessageAt: Date.now(),
@@ -180,15 +169,8 @@ export const updateTitle = mutation({
     title: titleValidator,
   }),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated")
-    }
-
-    const thread = await ctx.db.get(args.threadId)
-    if (!thread || thread.userId !== userId) {
-      throw new Error("Thread not found or access denied")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
+    await getWithOwnership(ctx.db, "threads", args.threadId, userId)
 
     await ctx.db.patch(args.threadId, {
       title: args.title,
@@ -204,15 +186,13 @@ export const deleteThread = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated")
-    }
-
-    const thread = await ctx.db.get(args.threadId)
-    if (!thread || thread.userId !== userId) {
-      throw new Error("Thread not found or access denied")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
+    const thread = await getWithOwnership(
+      ctx.db,
+      "threads",
+      args.threadId,
+      userId,
+    )
 
     // First delete all messages in the thread
     const messages = await ctx.db
@@ -253,15 +233,13 @@ export const togglePinned = mutation({
     pinned: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated")
-    }
-
-    const thread = await ctx.db.get(args.threadId)
-    if (!thread || thread.userId !== userId) {
-      throw new Error("Thread not found or access denied")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
+    const thread = await getWithOwnership(
+      ctx.db,
+      "threads",
+      args.threadId,
+      userId,
+    )
 
     const newPinnedState = !thread.pinned
     await ctx.db.patch(args.threadId, {
@@ -281,16 +259,15 @@ export const branchFromMessage = mutation({
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
 
     // Verify access to original thread
-    const originalThread = await ctx.db.get(args.originalThreadId)
-    if (!originalThread || originalThread.userId !== userId) {
-      throw new Error("Original thread not found or access denied")
-    }
+    const originalThread = await getWithOwnership(
+      ctx.db,
+      "threads",
+      args.originalThreadId,
+      userId,
+    )
 
     // Get all messages up to and including the branch point
     const allMessages = await ctx.db
@@ -304,9 +281,7 @@ export const branchFromMessage = mutation({
       (msg) => msg._id === args.branchFromMessageId,
     )
 
-    if (branchPointIndex === -1) {
-      throw new Error("Branch point message not found")
-    }
+    requireResource(branchPointIndex !== -1, "Branch point message")
 
     // Find the last user message before or at the branch point
     let lastUserMessageIndex = -1
@@ -332,7 +307,9 @@ export const branchFromMessage = mutation({
         .first()
 
       if (existing) {
-        throw new Error(`Thread with clientId ${args.clientId} already exists`)
+        throwConflictError(
+          `Thread with clientId ${args.clientId} already exists`,
+        )
       }
     }
 

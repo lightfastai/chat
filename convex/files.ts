@@ -1,7 +1,9 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { asyncMap } from "convex-helpers"
 import { v } from "convex/values"
 import { internalQuery, mutation, query } from "./_generated/server"
+import { getAuthenticatedUserId } from "./lib/auth.js"
+import { getWithOwnership } from "./lib/database.js"
+import { throwConflictError } from "./lib/errors.js"
 import {
   fileMetadataValidator,
   fileNameValidator,
@@ -32,10 +34,8 @@ export const generateUploadUrl = mutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("Please sign in to upload files")
-    }
+    // Ensure user is authenticated
+    await getAuthenticatedUserId(ctx)
 
     // Generate a storage upload URL
     return await ctx.storage.generateUploadUrl()
@@ -52,14 +52,11 @@ export const createFile = mutation({
   },
   returns: v.id("files"),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("Please sign in to continue")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
 
     // Validate file size
     if (args.fileSize > MAX_FILE_SIZE) {
-      throw new Error(
+      throwConflictError(
         `File is too large. Maximum size allowed is ${MAX_FILE_SIZE / 1024 / 1024}MB`,
       )
     }
@@ -75,7 +72,7 @@ export const createFile = mutation({
         "Images (JPEG, PNG, GIF, WebP)",
         "Word documents",
       ]
-      throw new Error(
+      throwConflictError(
         `This file type is not supported. Please upload: ${friendlyTypes.join(", ")}`,
       )
     }
@@ -98,7 +95,6 @@ export const createFile = mutation({
 export const getFile = query({
   args: { fileId: v.id("files") },
   returns: v.union(
-    v.null(),
     v.object({
       _id: v.id("files"),
       _creationTime: v.number(),
@@ -109,21 +105,20 @@ export const getFile = query({
       uploadedBy: v.id("users"),
       uploadedAt: v.number(),
       metadata: fileMetadataValidator,
-      url: v.union(v.string(), v.null()),
+      url: v.string(),
     }),
+    v.null(),
   ),
   handler: async (ctx, args) => {
-    const file = await ctx.db.get(args.fileId)
-    if (!file) {
+    try {
+      const userId = await getAuthenticatedUserId(ctx)
+      const file = await getWithOwnership(ctx.db, "files", args.fileId, userId)
+      const url = await ctx.storage.getUrl(file.storageId)
+      if (!url) return null
+
+      return { ...file, url }
+    } catch {
       return null
-    }
-
-    // Get the download URL for the file
-    const url = await ctx.storage.getUrl(file.storageId)
-
-    return {
-      ...file,
-      url,
     }
   },
 })
@@ -150,19 +145,14 @@ export const getFiles = query({
       if (!file) return null
 
       const url = await ctx.storage.getUrl(file.storageId)
-      return {
-        ...file,
-        url,
-      }
+      return { ...file, url }
     })
-
     return files.filter((f): f is NonNullable<typeof f> => f !== null)
   },
 })
 
-// Internal query for getting files without URLs (for server-side use)
-export const getFilesInternal = internalQuery({
-  args: { fileIds: v.array(v.id("files")) },
+export const listFiles = query({
+  args: {},
   returns: v.array(
     v.object({
       _id: v.id("files"),
@@ -174,21 +164,54 @@ export const getFilesInternal = internalQuery({
       uploadedBy: v.id("users"),
       uploadedAt: v.number(),
       metadata: fileMetadataValidator,
+      url: v.string(),
     }),
   ),
-  handler: async (ctx, args) => {
-    const files = await asyncMap(args.fileIds, async (fileId) => {
-      return await ctx.db.get(fileId)
-    })
-    return files.filter((f): f is NonNullable<typeof f> => f !== null)
+  handler: async (ctx) => {
+    try {
+      const userId = await getAuthenticatedUserId(ctx)
+      const files = await ctx.db
+        .query("files")
+        .withIndex("by_user", (q) => q.eq("uploadedBy", userId))
+        .order("desc")
+        .collect()
+
+      // Get URLs for all files
+      const filesWithUrls = await asyncMap(files, async (file) => {
+        const url = await ctx.storage.getUrl(file.storageId)
+        return url ? { ...file, url } : null
+      })
+
+      return filesWithUrls.filter(
+        (file): file is NonNullable<typeof file> => file !== null,
+      )
+    } catch {
+      return []
+    }
   },
 })
 
-// Internal query to get a single file with URL
+export const deleteFile = mutation({
+  args: { fileId: v.id("files") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthenticatedUserId(ctx)
+    const file = await getWithOwnership(ctx.db, "files", args.fileId, userId)
+
+    // Delete from storage
+    await ctx.storage.delete(file.storageId)
+
+    // Delete from database
+    await ctx.db.delete(args.fileId)
+
+    return null
+  },
+})
+
+// Internal query to get file with URL (for use in actions)
 export const getFileWithUrl = internalQuery({
   args: { fileId: v.id("files") },
   returns: v.union(
-    v.null(),
     v.object({
       _id: v.id("files"),
       _creationTime: v.number(),
@@ -199,45 +222,17 @@ export const getFileWithUrl = internalQuery({
       uploadedBy: v.id("users"),
       uploadedAt: v.number(),
       metadata: fileMetadataValidator,
-      url: v.union(v.string(), v.null()),
+      url: v.string(),
     }),
+    v.null(),
   ),
   handler: async (ctx, args) => {
     const file = await ctx.db.get(args.fileId)
     if (!file) return null
 
     const url = await ctx.storage.getUrl(file.storageId)
-    return {
-      ...file,
-      url,
-    }
-  },
-})
+    if (!url) return null
 
-export const deleteFile = mutation({
-  args: { fileId: v.id("files") },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("Please sign in to continue")
-    }
-
-    const file = await ctx.db.get(args.fileId)
-    if (!file) {
-      throw new Error("File not found or already deleted")
-    }
-
-    if (file.uploadedBy !== userId) {
-      throw new Error("You can only delete files you uploaded")
-    }
-
-    // Delete from storage
-    await ctx.storage.delete(file.storageId)
-
-    // Delete from database
-    await ctx.db.delete(args.fileId)
-
-    return null
+    return { ...file, url }
   },
 })

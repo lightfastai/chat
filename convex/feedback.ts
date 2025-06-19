@@ -1,6 +1,7 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { getAuthenticatedUserId } from "./lib/auth.js"
+import { getOrThrow, getWithOwnership } from "./lib/database.js"
 import {
   commentValidator,
   feedbackRatingValidator,
@@ -17,16 +18,13 @@ export const submitFeedback = mutation({
   },
   returns: v.id("feedback"),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated to submit feedback")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
 
     // Get the message to find the threadId
-    const message = await ctx.db.get(args.messageId)
-    if (!message) {
-      throw new Error("Message not found")
-    }
+    const message = await getOrThrow(ctx.db, "messages", args.messageId)
+
+    // Verify user owns the thread containing this message
+    await getWithOwnership(ctx.db, "threads", message.threadId, userId)
 
     // Check if the user has already submitted feedback for this message
     const existingFeedback = await ctx.db
@@ -70,10 +68,7 @@ export const removeFeedback = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User must be authenticated to remove feedback")
-    }
+    const userId = await getAuthenticatedUserId(ctx)
 
     const feedback = await ctx.db
       .query("feedback")
@@ -85,6 +80,8 @@ export const removeFeedback = mutation({
     if (feedback) {
       await ctx.db.delete(feedback._id)
     }
+
+    return null
   },
 })
 
@@ -109,15 +106,18 @@ export const getUserFeedbackForMessage = query({
     }),
   ),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) return null
+    try {
+      const userId = await getAuthenticatedUserId(ctx)
 
-    return await ctx.db
-      .query("feedback")
-      .withIndex("by_user_message", (q) =>
-        q.eq("userId", userId).eq("messageId", args.messageId),
-      )
-      .first()
+      return await ctx.db
+        .query("feedback")
+        .withIndex("by_user_message", (q) =>
+          q.eq("userId", userId).eq("messageId", args.messageId),
+        )
+        .first()
+    } catch {
+      return null
+    }
   },
 })
 
@@ -141,18 +141,18 @@ export const getThreadFeedback = query({
     }),
   ),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) return []
+    try {
+      const userId = await getAuthenticatedUserId(ctx)
 
-    // Verify the user owns the thread
-    const thread = await ctx.db.get(args.threadId)
-    if (!thread || thread.userId !== userId) {
+      // Verify the user owns the thread
+      await getWithOwnership(ctx.db, "threads", args.threadId, userId)
+
+      return await ctx.db
+        .query("feedback")
+        .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+        .collect()
+    } catch {
       return []
     }
-
-    return await ctx.db
-      .query("feedback")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-      .collect()
   },
 })
