@@ -731,9 +731,7 @@ export const generateAIResponseWithMessage = internalAction({
       const generationOptions: Parameters<typeof streamText>[0] = {
         model: ai(actualModelName),
         messages: messages,
-        onFinish: async (event) => {
-          await updateUsage(event.usage)
-        },
+        // Usage will be updated after streaming completes
       }
 
       // Add web search tool if enabled
@@ -1541,15 +1539,8 @@ export const completeStreamingMessageLegacy = internalMutation({
       usage: args.usage,
     })
 
-    // Update thread usage totals atomically if we have usage data
-    if (args.usage && message.threadId) {
-      await updateThreadUsage(
-        ctx,
-        message.threadId,
-        message.modelId || message.model || "unknown",
-        args.usage,
-      )
-    }
+    // Thread usage has already been updated via updateUsage during streaming
+    // No need to update again here to avoid double counting
 
     return null
   },
@@ -1588,15 +1579,8 @@ export const completeStreamingMessage = internalMutation({
       usage: args.usage,
     })
 
-    // Update thread usage totals atomically if we have usage data
-    if (args.usage && message.threadId) {
-      await updateThreadUsage(
-        ctx,
-        message.threadId,
-        message.modelId || message.model || "unknown",
-        args.usage,
-      )
-    }
+    // Thread usage has already been updated via updateUsage during streaming
+    // No need to update again here to avoid double counting
 
     return null
   },
