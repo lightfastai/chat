@@ -176,7 +176,9 @@ export const updateTitle = mutation({
     threadId: v.id("threads"),
     title: titleValidator,
   },
-  returns: v.null(),
+  returns: v.object({
+    title: titleValidator,
+  }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -191,7 +193,7 @@ export const updateTitle = mutation({
     await ctx.db.patch(args.threadId, {
       title: args.title,
     })
-    return null
+    return { title: args.title }
   },
 })
 
@@ -247,7 +249,9 @@ export const togglePinned = mutation({
   args: {
     threadId: v.id("threads"),
   },
-  returns: v.null(),
+  returns: v.object({
+    pinned: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -259,10 +263,11 @@ export const togglePinned = mutation({
       throw new Error("Thread not found or access denied")
     }
 
+    const newPinnedState = !thread.pinned
     await ctx.db.patch(args.threadId, {
-      pinned: !thread.pinned,
+      pinned: newPinnedState,
     })
-    return null
+    return { pinned: newPinnedState }
   },
 })
 

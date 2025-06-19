@@ -237,5 +237,7 @@ export const deleteFile = mutation({
 
     // Delete from database
     await ctx.db.delete(args.fileId)
+
+    return null
   },
 })

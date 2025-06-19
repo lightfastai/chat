@@ -137,7 +137,7 @@ export const listByClientId = query({
       timestamp: v.number(),
       messageType: messageTypeValidator,
       model: v.optional(modelProviderValidator),
-      modelId: v.optional(v.string()),
+      modelId: v.optional(modelIdValidator),
       isStreaming: v.optional(v.boolean()),
       streamId: v.optional(streamIdValidator),
       isComplete: v.optional(v.boolean()),
@@ -194,7 +194,7 @@ export const list = query({
       timestamp: v.number(),
       messageType: messageTypeValidator,
       model: v.optional(modelProviderValidator),
-      modelId: v.optional(v.string()), // Keep as string for flexibility but validate in handler
+      modelId: v.optional(modelIdValidator),
       isStreaming: v.optional(v.boolean()),
       streamId: v.optional(streamIdValidator),
       isComplete: v.optional(v.boolean()),
@@ -239,7 +239,9 @@ export const send = mutation({
     attachments: v.optional(v.array(v.id("files"))), // Add attachments support
     webSearchEnabled: v.optional(v.boolean()),
   },
-  returns: v.null(),
+  returns: v.object({
+    messageId: v.id("messages"),
+  }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -272,7 +274,7 @@ export const send = mutation({
     const provider = getProviderFromModelId(modelId as ModelId)
 
     // Insert user message after setting generation flag
-    await ctx.db.insert("messages", {
+    const messageId = await ctx.db.insert("messages", {
       threadId: args.threadId,
       body: args.body,
       timestamp: Date.now(),
@@ -306,7 +308,7 @@ export const send = mutation({
       })
     }
 
-    return null
+    return { messageId }
   },
 })
 
@@ -1387,7 +1389,7 @@ export const updateThreadUsageMutation = internalMutation({
       totalTokens: v.number(),
       reasoningTokens: v.number(),
       cachedTokens: v.number(),
-      modelId: v.string(),
+      modelId: modelIdValidator,
     }),
   },
   returns: v.null(),
