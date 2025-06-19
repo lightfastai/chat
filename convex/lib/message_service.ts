@@ -15,8 +15,8 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"
 import { env } from "../env.js"
-import { createAIClient } from "./ai-client.js"
-import { buildMessageContent, createSystemPrompt } from "./message-builder.js"
+import { createAIClient } from "./ai_client.js"
+import { buildMessageContent, createSystemPrompt } from "./message_builder.js"
 
 // Create web search tool using proper AI SDK v5 pattern
 function createWebSearchTool() {
