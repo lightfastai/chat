@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Check, Copy, Maximize2, WrapText } from "lucide-react"
+import { Check, Copy } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useState } from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
@@ -20,7 +20,9 @@ interface CodeBlockProps {
 export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
   const { theme } = useTheme()
   const [copied, setCopied] = useState(false)
-  const [isWrapped, setIsWrapped] = useState(false)
+  // TODO: Re-enable scroll mode once overflow container issues are resolved
+  // For now, we only support text wrapping to prevent overflow beyond message bounds
+  const [isWrapped, setIsWrapped] = useState(true)
 
   const copyToClipboard = async () => {
     try {
@@ -62,7 +64,8 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
           {language || "text"}
         </span>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
+          {/* TODO: Re-enable wrap toggle once scroll mode is properly implemented */}
+          {/* <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsWrapped(!isWrapped)}
@@ -74,7 +77,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
             ) : (
               <WrapText className="h-3 w-3" />
             )}
-          </Button>
+          </Button> */}
           <Button
             variant="ghost"
             size="sm"
@@ -91,89 +94,43 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
         </div>
       </div>
 
-      {/* Syntax Highlighter */}
+      {/* Syntax Highlighter - Text wrapping mode only */}
+      {/* TODO: Re-implement horizontal scroll mode with proper container constraints */}
       <div className="border border-t-0 border-border rounded-b-md overflow-hidden">
-        {isWrapped ? (
-          // Text wrapping mode - no scrolling needed
-          <div className="w-full">
-            <SyntaxHighlighter
-              language={normalizedLanguage}
-              style={theme === "dark" ? oneDark : oneLight}
-              wrapLines={true}
-              wrapLongLines={true}
-              customStyle={{
-                margin: 0,
-                padding: "12px",
-                fontSize: "13px",
+        <div className="w-full">
+          <SyntaxHighlighter
+            language={normalizedLanguage}
+            style={theme === "dark" ? oneDark : oneLight}
+            wrapLines={true}
+            wrapLongLines={true}
+            customStyle={{
+              margin: 0,
+              padding: "12px",
+              fontSize: "13px",
+              fontFamily:
+                "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+              background: "transparent",
+              borderRadius: 0,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              width: "100%",
+            }}
+            codeTagProps={{
+              style: {
                 fontFamily:
                   "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-                background: "transparent",
-                borderRadius: 0,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
                 overflowWrap: "break-word",
+                display: "block",
                 width: "100%",
-              }}
-              codeTagProps={{
-                style: {
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  overflowWrap: "break-word",
-                  display: "block",
-                  width: "100%",
-                },
-              }}
-            >
-              {code}
-            </SyntaxHighlighter>
-          </div>
-        ) : (
-          // Horizontal and vertical scrolling mode with strict constraints
-          <div
-            className="w-full max-h-[500px] overflow-auto"
-            style={{
-              maxWidth: "100%",
-              width: "100%",
-              overflowX: "auto",
-              overflowY: "auto",
+              },
             }}
           >
-            <SyntaxHighlighter
-              language={normalizedLanguage}
-              style={theme === "dark" ? oneDark : oneLight}
-              wrapLines={false}
-              wrapLongLines={false}
-              customStyle={{
-                margin: 0,
-                padding: "12px",
-                fontSize: "13px",
-                fontFamily:
-                  "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-                background: "transparent",
-                borderRadius: 0,
-                whiteSpace: "pre",
-                wordBreak: "normal",
-                overflowWrap: "normal",
-                minWidth: "100%",
-                width: "fit-content",
-              }}
-              codeTagProps={{
-                style: {
-                  fontFamily:
-                    "ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-                  whiteSpace: "pre",
-                  wordBreak: "normal",
-                  overflowWrap: "normal",
-                  display: "block",
-                },
-              }}
-            >
-              {code}
-            </SyntaxHighlighter>
-          </div>
-        )}
+            {code}
+          </SyntaxHighlighter>
+        </div>
       </div>
     </div>
   )
