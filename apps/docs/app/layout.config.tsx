@@ -1,11 +1,12 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared"
 import type { DocsLayoutProps } from "fumadocs-ui/layouts/docs"
 import type { PageTree } from "fumadocs-core/server"
+import { Icons } from "../components/icons"
 
 export const baseOptions: BaseLayoutProps = {
   nav: {
-    // title: <Icons.logo className="text-white w-28" />,
-    url: "https://lightfast.ai",
+    title: <Icons.logo className="text-white w-6 h-max border" />,
+    url: "https://chat.lightfast.ai",
   },
   themeSwitch: {
     enabled: false,
