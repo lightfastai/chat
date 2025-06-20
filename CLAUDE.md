@@ -499,29 +499,70 @@ gh pr view <pr_number> --json statusCheckRollup
 - **Lint errors**: Run `bun run lint` to auto-fix
 - **Build errors**: Check imports and environment variables
 
-## Project Structure
+## Monorepo Structure
+
+### Overview
+This is a Turborepo monorepo with the following structure:
 ```
-├── apps/
-│   ├── www/           # Main chat application
-│   │   ├── src/       # Source code
-│   │   │   ├── app/   # Next.js App Router pages
-│   │   │   ├── components/  # React components (ui/, chat/, auth/)
-│   │   │   └── lib/   # Utilities
-│   │   ├── convex/    # Backend functions
-│   │   └── public/    # Static assets
-│   └── docs/          # Documentation site (future)
-├── packages/          # Shared packages (future)
-├── scripts/           # Development scripts
-├── worktrees/         # Feature development (git worktrees)
-├── turbo.json         # Turborepo configuration
-└── CLAUDE.md         # This file
+├── apps/                    # Applications
+│   ├── www/                # Main chat application
+│   │   ├── src/           # Source code
+│   │   │   ├── app/       # Next.js App Router pages
+│   │   │   ├── components/# React components (chat/, auth/, etc)
+│   │   │   └── lib/       # App-specific utilities
+│   │   ├── convex/        # Backend functions & database
+│   │   └── public/        # Static assets
+│   └── docs/              # Documentation site (Fumadocs)
+│       ├── app/           # Next.js app directory
+│       ├── content/       # MDX documentation files
+│       └── components/    # Docs-specific components
+├── packages/              # Shared packages
+│   └── ui/               # Shared UI component library
+│       ├── src/
+│       │   ├── components/ # All shadcn/ui components
+│       │   ├── lib/       # Shared utilities (cn, etc)
+│       │   └── hooks/     # Shared React hooks
+│       └── globals.css    # Shared Tailwind styles
+├── scripts/              # Development & deployment scripts
+├── worktrees/           # Git worktrees for features
+├── turbo.json          # Turborepo configuration
+├── components.json     # shadcn/ui configuration
+├── tailwind.config.ts  # Root Tailwind configuration
+└── CLAUDE.md          # This file
+```
+
+### Monorepo Commands
+```bash
+# Development
+bun dev              # Run all apps in dev mode
+bun dev:www         # Run only www app
+bun dev:docs        # Run only docs app
+
+# Building
+bun run build       # Build all apps
+bun run build:www   # Build only www app
+bun run build:docs  # Build only docs app
+
+# UI Components
+bun run ui:add <component>  # Add new shadcn component
+bun run ui:diff            # Check for component updates
+
+# Quality
+bun run lint        # Lint all packages
+bun run format      # Format all packages
+bun run typecheck   # Type check all packages
 ```
 
 ## Environment Variables
 - `ANTHROPIC_API_KEY` - Claude Sonnet 4 (required)
 - `OPENAI_API_KEY` - GPT models (required)
+- `OPENROUTER_API_KEY` - OpenRouter API key (required)
+- `EXA_API_KEY` - Exa API key for web search (required)
 - `NEXT_PUBLIC_CONVEX_URL` - Backend URL (required)
-- Optional: GitHub OAuth, JWT keys, SITE_URL
+- `JWT_PRIVATE_KEY` - JWT private key for auth (required)
+- `JWKS` - JWT public keys for verification (required)
+- `DOCS_URL` - Documentation deployment URL (optional)
+- Optional: `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `SITE_URL`
 
 ## Key Reminders
 
@@ -535,7 +576,9 @@ gh pr view <pr_number> --json statusCheckRollup
 
 ## Technology-Specific Documentation
 
-For detailed guidelines on specific technologies used in this project, refer to:
+For detailed guidelines on specific technologies and packages used in this project, refer to:
 
+- **Apps Directory**: See `apps/CLAUDE.md` for app-specific patterns, deployment, and configuration
+- **Packages Directory**: See `packages/CLAUDE.md` for shared package guidelines and UI component usage
 - **Convex**: See `apps/www/convex/CLAUDE.md` for Convex-specific patterns, server rendering, optimistic updates, and API guidelines
-- **Additional technology docs**: May be found in their respective directories
+- **UI Components**: See `packages/ui/README.md` for shadcn/ui component documentation
