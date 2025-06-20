@@ -87,7 +87,8 @@
       "Bash(bun remove:*)",
       "Bash(bun update:*)",
       "Bash(bunx tsc:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

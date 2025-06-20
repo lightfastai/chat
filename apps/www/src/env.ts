@@ -31,6 +31,8 @@ export const env = createEnv({
     JWT_PRIVATE_KEY: z.string(),
     // JWKS for JWT verification
     JWKS: z.string(),
+    // Docs deployment URL for rewrites
+    DOCS_URL: z.string().url().default("https://lightfast-docs.vercel.app"),
   },
   /*
    * Environment variables available on the client (and server).
@@ -69,6 +71,7 @@ export const env = createEnv({
     SITE_URL: process.env.SITE_URL,
     JWT_PRIVATE_KEY: process.env.JWT_PRIVATE_KEY,
     JWKS: process.env.JWKS,
+    DOCS_URL: process.env.DOCS_URL,
     // Client-side
     NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
     NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,

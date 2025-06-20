@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd apps/www && bunx convex deploy --cmd 'cd ../.. && bun run build:www' --preview-run 'setup:setupInitialData'",
-  "installCommand": "bun install",
-  "framework": null,
-  "outputDirectory": "apps/www/.next"
-}

@@ -1,8 +1,8 @@
 import { getPage, getPages } from "@/lib/source"
-import { DocsPage, DocsBody } from "fumadocs-ui/page"
-import { notFound } from "next/navigation"
 import defaultMdxComponents from "fumadocs-ui/mdx"
+import { DocsBody, DocsPage } from "fumadocs-ui/page"
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 
 export default async function Page({
   params,
