@@ -1,6 +1,6 @@
 import { AuthRedirectHandler } from "@/components/auth/auth-redirect-handler"
 import { LandingChatInput } from "@/components/landing/landing-chat-input"
-import { Footer } from "@/components/layout/Footer"
+import { Footer } from "@/components/layout/footer"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/ui/icons"
 import { siteConfig } from "@/lib/site-config"

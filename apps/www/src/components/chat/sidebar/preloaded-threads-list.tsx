@@ -12,7 +12,7 @@ import { useCallback } from "react"
 import { toast } from "sonner"
 import { api } from "../../../../convex/_generated/api"
 import type { Doc, Id } from "../../../../convex/_generated/dataModel"
-import { ThreadItem } from "./ThreadItem"
+import { ThreadItem } from "./thread-item"
 
 type Thread = Doc<"threads">
 

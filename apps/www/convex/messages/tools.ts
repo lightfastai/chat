@@ -15,7 +15,7 @@ export function createWebSearchTool() {
   return tool({
     description:
       "Search the web for current information, news, and real-time data. Use this proactively when you need up-to-date information beyond your knowledge cutoff. After receiving search results, you must immediately analyze and explain the findings without waiting for additional prompting.",
-    parameters: z.object({
+    inputSchema: z.object({
       query: z
         .string()
         .describe("The search query to find relevant web results"),

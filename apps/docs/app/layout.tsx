@@ -1,16 +1,12 @@
 import "./global.css"
 import { RootProvider } from "fumadocs-ui/provider"
-import { Inter } from "next/font/google"
 import type { ReactNode } from "react"
-
-const inter = Inter({
-  subsets: ["latin"],
-})
+import { fonts } from "@/lib/fonts"
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={inter.className} suppressHydrationWarning>
-      <body>
+    <html lang="en" className={fonts} suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased">
         <RootProvider>{children}</RootProvider>
       </body>
     </html>

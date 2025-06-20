@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { GitBranch, Pin } from "lucide-react"
 import { useCallback } from "react"
 import type { Id } from "../../../../convex/_generated/dataModel"
-import { ActiveMenuItem } from "./ActiveMenuItem"
+import { ActiveMenuItem } from "./active-menu-item"
 
 interface ThreadItemProps {
   thread: {

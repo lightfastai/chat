@@ -3,35 +3,8 @@
   "pages": [
     "index",
     "getting-started",
-    "---",
-    {
-      "title": "Architecture",
-      "pages": [
-        "architecture/overview",
-        "architecture/tech-stack",
-        "architecture/convex"
-      ]
-    },
-    {
-      "title": "Features",
-      "pages": [
-        "features/chat",
-        "features/models",
-        "features/authentication",
-        "features/sharing"
-      ]
-    },
-    {
-      "title": "Development",
-      "pages": [
-        "development/setup",
-        "development/workflow",
-        "development/contributing"
-      ]
-    },
-    {
-      "title": "API Reference",
-      "pages": ["api/messages", "api/threads", "api/users"]
-    }
+    "architecture",
+    "features",
+    "development"
   ]
 }
