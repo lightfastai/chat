@@ -1,0 +1,5 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && bun run build:docs",
+  "outputDirectory": ".next"
+}

@@ -1,0 +1,9 @@
+# Ignore docs app by default (can be deployed separately)
+apps/docs
+
+# Ignore worktrees
+worktrees
+
+# Ignore temporary directories
+tmp_context
+tmp_repo

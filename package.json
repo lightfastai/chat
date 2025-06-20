@@ -14,7 +14,8 @@
     "lint": "turbo run lint",
     "format": "turbo run format",
     "clean": "turbo run clean",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "vercel-build": "cd apps/www && bunx convex deploy --cmd 'cd ../.. && bun run build:www'"
   },
   "repository": {
     "type": "git",
