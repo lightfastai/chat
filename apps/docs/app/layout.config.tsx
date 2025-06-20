@@ -1,41 +1,20 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared"
+import type { DocsLayoutProps } from "fumadocs-ui/layouts/docs"
+import type { PageTree } from "fumadocs-core/server"
 
 export const baseOptions: BaseLayoutProps = {
   nav: {
-    title: (
-      <div className="flex items-center gap-2">
-        <svg
-          width="104"
-          height="70"
-          viewBox="0 0 104 70"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-label="Lightfast"
-        >
-          <title>Lightfast</title>
-          <path
-            d="M15.3354 57.3195H47.1597V69.7863H0.543457V0.632019H15.3354V57.3195Z"
-            fill="currentColor"
-          />
-          <path
-            d="M79.6831 69.7863H65.2798L89.0532 0.658386H103.457L79.6831 69.7863Z"
-            fill="currentColor"
-          />
-        </svg>
-        <span className="text-2xl font-bold">Lightfast Chat</span>
-      </div>
-    ),
+    // title: <Icons.logo className="text-white w-28" />,
+    url: "https://lightfast.ai",
   },
-  links: [
-    {
-      text: "Documentation",
-      url: "/",
-      active: "nested-url",
-    },
-    {
-      text: "GitHub",
-      url: "https://github.com/lightfastai/chat",
-      external: true,
-    },
-  ],
+  themeSwitch: {
+    enabled: false,
+    mode: "light-dark-system",
+  },
 }
+
+// We'll add the tree property in the layout file using the source object
+export const createDocsOptions = (tree: PageTree.Root): DocsLayoutProps => ({
+  ...baseOptions,
+  tree, // Add tree from source
+})

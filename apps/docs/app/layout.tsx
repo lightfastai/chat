@@ -1,16 +1,15 @@
-import "./global.css"
+import "./globals.css"
 import { fonts } from "@/lib/fonts"
-import { DocsLayout } from "fumadocs-ui/layouts/docs"
 import { RootProvider } from "fumadocs-ui/provider"
 import type { ReactNode } from "react"
-import { pageTree } from "../lib/source"
+import { DocsLayoutWrapper } from "../components/docs-layout-wrapper"
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={fonts} suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased">
         <RootProvider>
-          <DocsLayout tree={pageTree}>{children}</DocsLayout>
+          <DocsLayoutWrapper>{children}</DocsLayoutWrapper>
         </RootProvider>
       </body>
     </html>

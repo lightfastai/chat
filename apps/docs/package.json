@@ -3,36 +3,36 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3002",
+    "dev": "next dev --port 3002 --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "biome check --write .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .next .turbo dist",
+    "clean": "rm -rf .next .turbo dist .source tsconfig.tsbuildinfo",
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "fumadocs-core": "^14.5.0",
-    "fumadocs-mdx": "^11.2.0",
-    "fumadocs-ui": "^14.5.0",
-    "geist": "^1.3.1",
+    "fumadocs-core": "^15.3.4",
+    "fumadocs-mdx": "^11.6.5",
+    "fumadocs-ui": "^15.3.4",
+    "geist": "^1.4.2",
     "lucide-react": "^0.468.0",
     "next": "^15.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^2.5.2",
-    "tailwindcss": "^4.0.0"
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.10"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.10",
     "@types/mdx": "^2.0.13",
-    "@types/node": "^22.12.0",
-    "@types/react": "^19.0.4",
-    "@types/react-dom": "^19.0.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.7",
+    "@types/react-dom": "^19.1.6",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.1",
+    "postcss": "^8.5.5",
     "typescript": "^5.8.3"
   }
 }
