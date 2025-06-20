@@ -1,5 +1,5 @@
 {
-  "name": "docs",
+  "name": "@lightfast/docs",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "@repo/ui": "workspace:*",
     "fumadocs-core": "^15.3.4",
     "fumadocs-mdx": "^11.6.5",
     "fumadocs-ui": "^15.3.4",
