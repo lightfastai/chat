@@ -13,7 +13,7 @@
 
 **NO EXCEPTIONS**: If you're modifying code, you MUST be in a worktree.
 
-## Overview
+## Overvietw
 
 This development workflow integrates:
 - **GitHub MCP Server**: Issue tracking and PR management
@@ -259,8 +259,8 @@ mkdir -p worktrees
 git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 cd worktrees/<feature_name>
 bun install
-cp ../../.env.local .env.local
-bun run env:sync
+cp ../../.env.local apps/www/.env.local
+cd apps/www && bun run env:sync
 ```
 
 ### Step 4: Development Cycle
@@ -446,15 +446,17 @@ export function TabsComponent() {
 
 ### Quality Gates (MUST pass before commit)
 ```bash
-# Build validation
-SKIP_ENV_VALIDATION=true bun run build
+# Build validation (from root)
+bun run build:www
+# OR from apps/www
+cd apps/www && SKIP_ENV_VALIDATION=true bun run build
 
-# Code quality
+# Code quality (from root)
 bun run lint
 bun run format
 
-# Environment sync
-bun run env:sync
+# Environment sync (from apps/www)
+cd apps/www && bun run env:sync
 ```
 
 ### Context Management
@@ -499,13 +501,19 @@ gh pr view <pr_number> --json statusCheckRollup
 
 ## Project Structure
 ```
-├── src/
-│   ├── app/            # Next.js App Router pages
-│   ├── components/     # React components (ui/, chat/, auth/)
-│   └── lib/           # Utilities
-├── convex/            # Backend functions
+├── apps/
+│   ├── www/           # Main chat application
+│   │   ├── src/       # Source code
+│   │   │   ├── app/   # Next.js App Router pages
+│   │   │   ├── components/  # React components (ui/, chat/, auth/)
+│   │   │   └── lib/   # Utilities
+│   │   ├── convex/    # Backend functions
+│   │   └── public/    # Static assets
+│   └── docs/          # Documentation site (future)
+├── packages/          # Shared packages (future)
 ├── scripts/           # Development scripts
 ├── worktrees/         # Feature development (git worktrees)
+├── turbo.json         # Turborepo configuration
 └── CLAUDE.md         # This file
 ```
 
@@ -529,5 +537,5 @@ gh pr view <pr_number> --json statusCheckRollup
 
 For detailed guidelines on specific technologies used in this project, refer to:
 
-- **Convex**: See `convex/CLAUDE.md` for Convex-specific patterns, server rendering, optimistic updates, and API guidelines
+- **Convex**: See `apps/www/convex/CLAUDE.md` for Convex-specific patterns, server rendering, optimistic updates, and API guidelines
 - **Additional technology docs**: May be found in their respective directories

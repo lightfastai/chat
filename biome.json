@@ -38,13 +38,17 @@
   "files": {
     "include": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx", "**/*.json"],
     "ignore": [
-      ".next/**",
-      "node_modules/**",
-      "convex/_generated/**",
-      "dist/**",
-      "build/**",
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/dist/**",
+      "**/build/**",
+      "apps/www/convex/_generated/**",
+      "apps/docs/.source/**",
+      "apps/docs/.map.ts",
       ".env*",
-      "worktrees/**"
+      "worktrees/**",
+      "tmp_repo/**",
+      "tmp_context/**"
     ]
   }
 }

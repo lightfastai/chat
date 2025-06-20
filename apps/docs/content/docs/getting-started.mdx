@@ -1,0 +1,110 @@
+---
+title: Getting Started
+description: Set up Lightfast Chat in minutes
+---
+
+# Getting Started
+
+Get up and running with Lightfast Chat in just a few minutes.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Node.js 18+** or **Bun 1.0+** installed
+- A **GitHub account** for authentication
+- API keys for AI providers (Claude, OpenAI)
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/lightfastai/chat.git
+cd chat
+```
+
+### 2. Install Dependencies
+
+Using Bun (recommended):
+```bash
+bun install
+```
+
+Using npm:
+```bash
+npm install
+```
+
+### 3. Set Up Environment Variables
+
+Copy the example environment file:
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your configuration:
+
+```env
+# Convex
+NEXT_PUBLIC_CONVEX_URL=your-convex-url
+CONVEX_DEPLOY_KEY=your-convex-deploy-key
+
+# AI Providers
+ANTHROPIC_API_KEY=your-anthropic-key
+OPENAI_API_KEY=your-openai-key
+
+# GitHub OAuth
+AUTH_GITHUB_ID=your-github-client-id
+AUTH_GITHUB_SECRET=your-github-client-secret
+
+# Site URL
+SITE_URL=http://localhost:3000
+```
+
+### 4. Set Up Convex
+
+Initialize Convex:
+```bash
+bun convex dev
+```
+
+This will:
+- Create a new Convex project (if needed)
+- Deploy your Convex functions
+- Set up real-time synchronization
+
+### 5. Run the Development Server
+
+In a new terminal:
+```bash
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see your app!
+
+## Next Steps
+
+- [Configure authentication](/docs/features/authentication)
+- [Add AI models](/docs/features/models)
+- [Customize the UI](/docs/development/setup)
+- [Deploy to production](/docs/deployment)
+
+## Troubleshooting
+
+### Common Issues
+
+**Build fails with TypeScript errors**
+```bash
+SKIP_ENV_VALIDATION=true bun run build
+```
+
+**Convex connection issues**
+- Ensure your `NEXT_PUBLIC_CONVEX_URL` is correct
+- Check that Convex dev server is running
+
+**Authentication not working**
+- Verify GitHub OAuth app settings
+- Ensure callback URL matches your site URL
+
+Need help? Check our [GitHub Issues](https://github.com/lightfastai/chat/issues) or start a discussion.
