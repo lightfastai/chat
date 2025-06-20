@@ -3,7 +3,9 @@
 import { GitBranch } from "lucide-react"
 import { useMemo, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import type { ModelConfig, ModelId } from "@/lib/ai"
+import { getVisibleModels } from "@/lib/ai/schemas"
+import { Button } from "@repo/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +15,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import type { ModelConfig, ModelId } from "@/lib/ai"
-import { getVisibleModels } from "@/lib/ai/schemas"
+} from "@repo/ui/components/dropdown-menu"
 
 interface ModelBranchDropdownProps {
   onBranch: (modelId: ModelId) => void

@@ -1,5 +1,5 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Icons } from "@/components/ui/icons"
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar"
+import { Icons } from "@repo/ui/components/icons"
 import { User } from "lucide-react"
 import type React from "react"
 

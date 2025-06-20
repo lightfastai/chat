@@ -1,12 +1,12 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import type { Id } from "@/convex/_generated/dataModel"
+import { Button } from "@repo/ui/components/button"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import type { Id } from "@/convex/_generated/dataModel"
+} from "@repo/ui/components/tooltip"
 import { Share2 } from "lucide-react"
 import { useState } from "react"
 import { ShareDialog } from "./share-dialog"

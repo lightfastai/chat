@@ -1,8 +1,8 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import { env } from "@/env"
-import { cn } from "@/lib/utils"
+import { Button } from "@repo/ui/components/button"
+import { cn } from "@repo/ui/lib/utils"
 import { Github, UserIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"

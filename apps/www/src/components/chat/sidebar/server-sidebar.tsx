@@ -1,14 +1,14 @@
-import { preloadQuery } from "convex/nextjs"
-import Link from "next/link"
-import { Suspense } from "react"
-import { api } from "../../../../convex/_generated/api"
-import { Icons } from "../../../components/ui/icons"
+import { Icons } from "@repo/ui/components/icons"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-} from "../../../components/ui/sidebar"
+} from "@repo/ui/components/sidebar"
+import { preloadQuery } from "convex/nextjs"
+import Link from "next/link"
+import { Suspense } from "react"
+import { api } from "../../../../convex/_generated/api"
 import { getAuthToken } from "../../../lib/auth"
 import { ServerSidebarImplementation } from "./server-sidebar-implementation"
 import { SidebarSkeleton } from "./sidebar-skeleton"

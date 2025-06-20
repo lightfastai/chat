@@ -1,7 +1,8 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+import { useAuthActions } from "@convex-dev/auth/react"
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar"
+import { Button } from "@repo/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,14 +10,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useAuthActions } from "@convex-dev/auth/react"
+} from "@repo/ui/components/dropdown-menu"
+import { cn } from "@repo/ui/lib/utils"
 import { useQuery } from "convex/react"
 import { ChevronDown, LogOut, Settings, User } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { api } from "../../../convex/_generated/api"
-import { cn } from "../../lib/utils"
 
 interface UserDropdownProps {
   className?: string

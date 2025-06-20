@@ -1,7 +1,7 @@
 "use client"
 
 import { isClientId } from "@/lib/nanoid"
-import { cn } from "@/lib/utils"
+import { cn } from "@repo/ui/lib/utils"
 import { usePreloadedQuery, useQuery } from "convex/react"
 import { usePathname } from "next/navigation"
 import { useMemo } from "react"

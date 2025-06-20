@@ -1,6 +1,13 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { useFileDrop } from "@/hooks/use-file-drop"
+import {
+  DEFAULT_MODEL_ID,
+  type ModelId,
+  getModelConfig,
+  getVisibleModels,
+} from "@/lib/ai"
+import { Button } from "@repo/ui/components/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,20 +17,13 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Textarea } from "@/components/ui/textarea"
+} from "@repo/ui/components/dropdown-menu"
+import { Textarea } from "@repo/ui/components/textarea"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { useFileDrop } from "@/hooks/use-file-drop"
-import {
-  DEFAULT_MODEL_ID,
-  type ModelId,
-  getModelConfig,
-  getVisibleModels,
-} from "@/lib/ai"
+} from "@repo/ui/components/tooltip"
 import { useMutation } from "convex/react"
 import {
   ChevronDown,

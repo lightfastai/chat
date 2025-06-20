@@ -1,8 +1,8 @@
 import { DocsLayout } from "fumadocs-ui/layouts/docs"
 import type { ReactNode } from "react"
-import { SiteHeader } from "./site-header"
-import { source } from "../lib/source"
 import { createDocsOptions } from "../app/layout.config"
+import { source } from "../lib/source"
+import { SiteHeader } from "./site-header"
 
 export function DocsLayoutWrapper({ children }: { children: ReactNode }) {
   // Create the docs options with the page tree from source

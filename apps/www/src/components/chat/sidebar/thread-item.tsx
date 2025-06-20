@@ -1,7 +1,7 @@
 "use client"
 
-import { SidebarMenuAction, SidebarMenuItem } from "@/components/ui/sidebar"
-import { cn } from "@/lib/utils"
+import { SidebarMenuAction, SidebarMenuItem } from "@repo/ui/components/sidebar"
+import { cn } from "@repo/ui/lib/utils"
 import { GitBranch, Pin } from "lucide-react"
 import { useCallback } from "react"
 import type { Id } from "../../../../convex/_generated/dataModel"

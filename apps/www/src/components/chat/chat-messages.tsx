@@ -1,6 +1,6 @@
 "use client"
 
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@repo/ui/components/scroll-area"
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { Doc } from "../../../convex/_generated/dataModel"
 import { MessageDisplay } from "./message-display"

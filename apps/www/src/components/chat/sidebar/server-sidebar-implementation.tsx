@@ -1,4 +1,4 @@
-import { Icons } from "@/components/ui/icons"
+import { Icons } from "@repo/ui/components/icons"
 import {
   Sidebar,
   SidebarContent,
@@ -8,7 +8,7 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@repo/ui/components/sidebar"
 import type { Preloaded } from "convex/react"
 import { Plus } from "lucide-react"
 import Link from "next/link"

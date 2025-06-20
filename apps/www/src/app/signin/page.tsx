@@ -1,6 +1,6 @@
 import { SignInButtons } from "@/components/auth/sign-in-buttons"
-import { Card, CardContent } from "@/components/ui/card"
 import { siteConfig } from "@/lib/site-config"
+import { Card, CardContent } from "@repo/ui/components/card"
 import type { Metadata } from "next"
 import Link from "next/link"
 

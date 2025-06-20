@@ -1,6 +1,6 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@repo/ui/components/badge"
 import { Key } from "lucide-react"
 import { MessageUsageChip } from "../message-usage-chip"
 import { formatDuration } from "./thinking-content"

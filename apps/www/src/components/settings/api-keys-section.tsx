@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 import {
   Form,
   FormControl,
@@ -8,8 +8,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+} from "@repo/ui/components/form"
+import { Input } from "@repo/ui/components/input"
 import { validateApiKey } from "@/lib/ai/schemas"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "convex/react"

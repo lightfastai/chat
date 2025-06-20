@@ -1,8 +1,8 @@
 "use client"
 
 import { SignInDialog } from "@/components/auth/sign-in-dialog"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@repo/ui/components/button"
+import { Textarea } from "@repo/ui/components/textarea"
 import { ArrowUp } from "lucide-react"
 import { useState } from "react"
 

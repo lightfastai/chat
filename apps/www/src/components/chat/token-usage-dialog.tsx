@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui/components/button"
 import {
   Dialog,
   DialogContent,
@@ -8,8 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
+} from "@repo/ui/components/dialog"
+import { ScrollArea } from "@repo/ui/components/scroll-area"
 import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
 import { Activity, ChevronRight } from "lucide-react"
 import { api } from "../../../convex/_generated/api"

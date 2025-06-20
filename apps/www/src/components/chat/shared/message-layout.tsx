@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@repo/ui/lib/utils"
 import type React from "react"
 
 export interface MessageLayoutProps {

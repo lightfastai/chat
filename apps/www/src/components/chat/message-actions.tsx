@@ -1,10 +1,10 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import type { ModelId } from "@/lib/ai"
 import { nanoid } from "@/lib/nanoid"
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard"
-import { cn } from "@/lib/utils"
+import { Button } from "@repo/ui/components/button"
+import { cn } from "@repo/ui/lib/utils"
 import { useMutation, useQuery } from "convex/react"
 import { CheckIcon, ClipboardIcon, ThumbsDown, ThumbsUp } from "lucide-react"
 import React from "react"

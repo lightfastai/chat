@@ -1,5 +1,5 @@
 import { ChatLayout as ChatLayoutImplementation } from "@/components/chat/chat-layout"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { TooltipProvider } from "@repo/ui/components/tooltip"
 import type React from "react"
 
 interface ChatLayoutProps {

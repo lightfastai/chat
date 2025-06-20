@@ -1,13 +1,13 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
+import { getModelDisplayName as getModelName } from "@/lib/ai"
+import { Badge } from "@repo/ui/components/badge"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { getModelDisplayName as getModelName } from "@/lib/ai"
+} from "@repo/ui/components/tooltip"
 import { useQuery } from "convex/react"
 import { Activity, Brain } from "lucide-react"
 import { api } from "../../../convex/_generated/api"

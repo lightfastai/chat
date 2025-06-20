@@ -2,12 +2,12 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
+} from "@repo/ui/components/sidebar"
 import { Suspense } from "react"
 import { ChatTitleClient } from "./chat-title-client"
 import { ShareButtonWrapper } from "./share-button-wrapper"
-import { TokenUsageHeaderWrapper } from "./token-usage-header-wrapper"
 import { ServerSidebar } from "./sidebar/server-sidebar"
+import { TokenUsageHeaderWrapper } from "./token-usage-header-wrapper"
 
 // Server component for chat header - can be static with PPR
 function ChatHeader() {

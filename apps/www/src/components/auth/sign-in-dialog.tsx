@@ -1,12 +1,12 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@repo/ui/components/card"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@repo/ui/components/dialog"
 import Link from "next/link"
 import { SignInOptions } from "./sign-in-options"
 
