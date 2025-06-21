@@ -1,7 +1,7 @@
 import { DocsLayout } from "fumadocs-ui/layouts/docs"
 import type { ReactNode } from "react"
-import { createDocsOptions } from "./docs-layout-config"
 import { source } from "../lib/source"
+import { createDocsOptions } from "./docs-layout-config"
 import { SiteHeader } from "./site-header"
 
 export function DocsLayoutWrapper({ children }: { children: ReactNode }) {

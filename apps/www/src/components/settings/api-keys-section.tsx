@@ -1,5 +1,7 @@
 "use client"
 
+import { validateApiKey } from "@/lib/ai/schemas"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@repo/ui/components/button"
 import {
   Form,
@@ -10,8 +12,6 @@ import {
   FormMessage,
 } from "@repo/ui/components/form"
 import { Input } from "@repo/ui/components/input"
-import { validateApiKey } from "@/lib/ai/schemas"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "convex/react"
 import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"

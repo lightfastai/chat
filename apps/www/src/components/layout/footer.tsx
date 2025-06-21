@@ -1,3 +1,4 @@
+import { siteConfig } from "@/lib/site-config"
 import { cn } from "@repo/ui/lib/utils"
 import { Dot } from "lucide-react"
 import Link from "next/link"
@@ -15,7 +16,7 @@ export function Footer({ className }: FooterProps) {
             <div className="flex items-center gap-4">
               <Link
                 target="_blank"
-                href="https://github.com/lightfastai"
+                href={siteConfig.links.github.href}
                 aria-label="GitHub"
                 className="transition-transform duration-200 hover:scale-110"
               >
@@ -33,7 +34,7 @@ export function Footer({ className }: FooterProps) {
               </Link>
               <Link
                 target="_blank"
-                href="https://discord.gg/YqPDfcar2C"
+                href={siteConfig.links.discord.href}
                 aria-label="Discord"
                 className="transition-transform duration-200 hover:scale-110"
               >
@@ -51,7 +52,7 @@ export function Footer({ className }: FooterProps) {
               </Link>
               <Link
                 target="_blank"
-                href="https://x.com/lightfastai"
+                href={siteConfig.links.twitter.href}
                 aria-label="Twitter"
                 className="transition-transform duration-200 hover:scale-110"
               >
@@ -72,7 +73,7 @@ export function Footer({ className }: FooterProps) {
             <div className="flex flex-col items-center gap-2">
               <nav className="flex items-center gap-2 md:gap-4">
                 <Link
-                  href="https://lightfast.ai"
+                  href={siteConfig.url.replace("chat.", "")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground text-xs transition-all duration-200 hover:underline hover:underline-offset-4"
@@ -81,7 +82,7 @@ export function Footer({ className }: FooterProps) {
                 </Link>
                 <Dot className="size-2" />
                 <Link
-                  href="https://lightfast.ai/legal/privacy"
+                  href={siteConfig.links.privacy.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground text-xs transition-all duration-200 hover:underline hover:underline-offset-4"
@@ -90,7 +91,7 @@ export function Footer({ className }: FooterProps) {
                 </Link>
                 <Dot className="size-2" />
                 <Link
-                  href="https://lightfast.ai/legal/terms"
+                  href={siteConfig.links.terms.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground text-xs transition-all duration-200 hover:underline hover:underline-offset-4"

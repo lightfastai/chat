@@ -1,13 +1,6 @@
 import type { SiteConfig } from "@repo/ui/types/site"
 
-type SiteLinks =
-  | "twitter"
-  | "github"
-  | "discord"
-  | "chat"
-  | "home"
-  | "apiReference"
-  | "blog"
+type SiteLinks = "twitter" | "github" | "discord" | "chat" | "home"
 
 export const siteConfig: SiteConfig<SiteLinks> = {
   name: "Lightfast Docs",
@@ -39,15 +32,6 @@ export const siteConfig: SiteConfig<SiteLinks> = {
     home: {
       title: "Lightfast Home",
       href: "https://lightfast.ai",
-      external: true,
-    },
-    apiReference: {
-      title: "API Reference",
-      href: "/docs/api",
-    },
-    blog: {
-      title: "Blog",
-      href: "https://lightfast.ai/blog",
       external: true,
     },
   },

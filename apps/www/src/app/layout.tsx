@@ -3,11 +3,11 @@ import "@repo/ui/globals.css"
 import { ConvexClientProvider } from "@/lib/convex-provider"
 import { siteConfig, siteMetadata } from "@/lib/site-config"
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server"
+import { fonts } from "@repo/ui/lib/fonts"
 import { cn } from "@repo/ui/lib/utils"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Toaster } from "sonner"
-import { fonts } from "../lib/fonts"
 
 export const metadata: Metadata = {
   title: {
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     images: [siteConfig.ogImage],
-    creator: siteConfig.links.twitter,
+    creator: "@lightfastai",
   },
   icons: {
     icon: "/favicon.ico",

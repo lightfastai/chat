@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     images: [siteConfig.ogImage],
-    creator: siteConfig.links.twitter,
+    creator: "@lightfastai",
   },
   icons: {
     icon: "/favicon.ico",
@@ -83,7 +83,7 @@ function LandingHeader() {
         </div>
         <div className="flex items-center gap-4">
           <Link
-            href="https://github.com/lightfastai/chat"
+            href={siteConfig.links.github.href}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"

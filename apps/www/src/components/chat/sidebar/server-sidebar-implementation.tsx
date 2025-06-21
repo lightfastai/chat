@@ -1,3 +1,4 @@
+import { siteConfig } from "@/lib/site-config"
 import { Icons } from "@repo/ui/components/icons"
 import {
   Sidebar,
@@ -33,7 +34,7 @@ export function ServerSidebarImplementation({
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <Link
-            href="https://lightfast.ai"
+            href={siteConfig.url.replace("chat.", "")}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3"

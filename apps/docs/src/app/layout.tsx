@@ -1,6 +1,8 @@
 import "./globals.css"
-import { fonts } from "@/src/lib/fonts"
+import { docsMetadata, siteConfig } from "@/src/lib/site-config"
+import { fonts } from "@repo/ui/lib/fonts"
 import { RootProvider } from "fumadocs-ui/provider"
+import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { DocsLayoutWrapper } from "../components/docs-layout-wrapper"
 
@@ -16,7 +18,42 @@ export default function Layout({ children }: { children: ReactNode }) {
   )
 }
 
-export const metadata = {
-  title: "Lightfast Chat Documentation",
-  description: "Documentation for Lightfast Chat - AI-powered chat application",
+export const metadata: Metadata = {
+  title: {
+    default: siteConfig.name,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  keywords: [...docsMetadata.keywords],
+  authors: [...docsMetadata.authors],
+  creator: docsMetadata.creator,
+  metadataBase: new URL(siteConfig.url),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteConfig.url,
+    title: siteConfig.name,
+    description: siteConfig.description,
+    siteName: siteConfig.name,
+    images: [
+      {
+        url: siteConfig.ogImage,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: [siteConfig.ogImage],
+    creator: "@lightfastai",
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-16x16.png",
+    apple: "/apple-touch-icon.png",
+  },
 }

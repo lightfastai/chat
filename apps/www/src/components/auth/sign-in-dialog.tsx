@@ -1,5 +1,6 @@
 "use client"
 
+import { siteConfig } from "@/lib/site-config"
 import { Card, CardContent } from "@repo/ui/components/card"
 import {
   Dialog,
@@ -44,7 +45,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
               <p className="text-xs text-muted-foreground">
                 By signing in, you agree to our{" "}
                 <Link
-                  href="https://lightfast.ai/legal/terms"
+                  href={siteConfig.links.terms.href}
                   target="_blank"
                   className="underline"
                 >
@@ -52,7 +53,7 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
                 </Link>{" "}
                 and{" "}
                 <Link
-                  href="https://lightfast.ai/legal/privacy"
+                  href={siteConfig.links.privacy.href}
                   target="_blank"
                   className="underline"
                 >

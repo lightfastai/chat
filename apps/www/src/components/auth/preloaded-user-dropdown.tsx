@@ -1,5 +1,6 @@
 "use client"
 
+import { siteConfig } from "@/lib/site-config"
 import { useAuthActions } from "@convex-dev/auth/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui/components/avatar"
 import { Button } from "@repo/ui/components/button"
@@ -110,7 +111,7 @@ export function PreloadedUserDropdown({
         )}
         <DropdownMenuItem asChild>
           <Link
-            href="https://github.com/lightfastai/chat"
+            href={siteConfig.links.github.href}
             target="_blank"
             rel="noopener noreferrer"
             className="cursor-pointer"

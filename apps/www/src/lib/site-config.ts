@@ -47,7 +47,7 @@ export const siteConfig: SiteConfig<SiteLinks> = {
     },
     docs: {
       title: "Documentation",
-      href: "/docs",
+      href: "https://chat.lightfast.ai/docs",
     },
   },
   location: "3141, Melbourne, VIC, Australia",
@@ -76,7 +76,7 @@ export const siteMetadata = {
     "conversational AI",
     "intelligent chat",
     "thread management",
-  ],
+  ] as string[],
   authors: [
     {
       name: "Lightfast",
@@ -84,4 +84,4 @@ export const siteMetadata = {
     },
   ],
   creator: "Lightfast",
-} as const
+}

@@ -69,7 +69,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
               <p className="text-xs text-muted-foreground">
                 By signing in, you agree to our{" "}
                 <Link
-                  href="https://lightfast.ai/legal/terms"
+                  href={siteConfig.links.terms.href}
                   target="_blank"
                   className="underline"
                 >
@@ -77,7 +77,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
                 </Link>{" "}
                 and{" "}
                 <Link
-                  href="https://lightfast.ai/legal/privacy"
+                  href={siteConfig.links.privacy.href}
                   target="_blank"
                   className="underline"
                 >
