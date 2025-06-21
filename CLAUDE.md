@@ -59,6 +59,93 @@ At the start of your session, tell Claude which mode to use:
 - "Use Vercel Build Mode" (default if not specified)
 - "Use Local Dev Mode - I'm running bun dev:all"
 
+## 🚀 Parallel Task Execution with Claude Code Subagents
+
+**YOU MUST** analyze complex tasks and use parallel Claude Code subagents when appropriate.
+
+### When to Use Parallel Subagents
+
+Use parallel execution when the task involves:
+1. **Multiple independent components** - Changes across different apps or packages
+2. **Research and implementation** - Simultaneous investigation and coding
+3. **Multi-file operations** - Updates to many files that don't depend on each other
+4. **Different technology domains** - Frontend, backend, and infrastructure tasks
+
+### Task Analysis Process
+
+When receiving a complex request, follow this process:
+
+```markdown
+1. **Analyze the request** - Break down into subtasks
+2. **Identify dependencies** - Determine which tasks can run in parallel
+3. **Launch parallel agents** - Use multiple Task invocations in a single message
+4. **Coordinate results** - Synthesize findings from all agents
+```
+
+### Example: Parallel Subagent Usage
+
+```markdown
+User: "Add authentication to the chat app with GitHub OAuth, update the docs, and create tests"
+
+Claude's Analysis:
+- Task 1: Implement GitHub OAuth (backend + frontend)
+- Task 2: Update documentation
+- Task 3: Create test suite
+
+These tasks are independent and can be parallelized.
+```
+
+### Implementation Pattern
+
+**YOU MUST** launch parallel agents in a single message for maximum efficiency:
+
+```markdown
+# Launching parallel agents (in a single tool use block):
+1. Task: "Implement GitHub OAuth"
+   - Search for existing auth patterns
+   - Implement OAuth flow
+   - Update UI components
+
+2. Task: "Update authentication docs"
+   - Create auth setup guide
+   - Document configuration
+   - Add troubleshooting section
+
+3. Task: "Create auth test suite"
+   - Write unit tests
+   - Create integration tests
+   - Add E2E test scenarios
+```
+
+### Best Practices for Parallel Execution
+
+1. **Clear task boundaries** - Each agent should have a well-defined scope
+2. **Minimize overlap** - Avoid agents working on the same files
+3. **Coordinate through context** - Use context files to track overall progress
+4. **Synthesize results** - Combine findings into a coherent solution
+5. **Handle conflicts** - If agents suggest conflicting changes, resolve intelligently
+
+### Anti-patterns to Avoid
+
+❌ **Sequential agents** - Don't launch agents one after another
+❌ **Overlapping work** - Don't have multiple agents editing the same files
+❌ **Vague instructions** - Each agent needs specific, actionable tasks
+❌ **No coordination** - Always synthesize results from parallel agents
+
+### Example Workflow
+
+```bash
+# User request: "Migrate the app to use new API endpoints and update all tests"
+
+# Claude's approach:
+# 1. Analyze: This involves API migration + test updates (can be parallel)
+# 2. Launch parallel agents:
+#    - Agent 1: Find and update all API calls
+#    - Agent 2: Update test mocks and assertions
+# 3. Coordinate: Ensure all endpoints are covered and tests pass
+# 4. Report: Summarize changes and any remaining work
+```
+
 ## 🚨 CRITICAL: Context Preservation
 
 **YOU MUST** preserve context to survive terminal crashes and session interruptions:
