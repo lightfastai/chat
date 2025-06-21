@@ -1,9 +1,60 @@
-export const siteConfig = {
-  name: "Lightfast",
+import type { SiteConfig } from "@repo/ui/types/site"
+
+type SiteLinks =
+  | "twitter"
+  | "github"
+  | "discord"
+  | "privacy"
+  | "terms"
+  | "chat"
+  | "docs"
+
+export const siteConfig: SiteConfig<SiteLinks> = {
+  name: "Lightfast Chat",
   url: "https://chat.lightfast.ai",
   ogImage: "https://lightfast.ai/og.jpg",
   description:
     "Real-time AI chat application with Claude 4, GPT-4o, and streaming responses. Built with Next.js and Convex for intelligent conversations.",
+  links: {
+    twitter: {
+      title: "Twitter",
+      href: "https://x.com/lightfastai",
+      external: true,
+    },
+    github: {
+      title: "GitHub",
+      href: "https://github.com/lightfastai/chat",
+      external: true,
+    },
+    discord: {
+      title: "Discord",
+      href: "https://discord.gg/YqPDfcar2C",
+      external: true,
+    },
+    privacy: {
+      title: "Privacy Policy",
+      href: "https://lightfast.ai/legal/privacy",
+      external: true,
+    },
+    terms: {
+      title: "Terms & Conditions",
+      href: "https://lightfast.ai/legal/terms",
+      external: true,
+    },
+    chat: {
+      title: "Chat",
+      href: "https://chat.lightfast.ai",
+    },
+    docs: {
+      title: "Documentation",
+      href: "/docs",
+    },
+  },
+  location: "3141, Melbourne, VIC, Australia",
+}
+
+// Export additional metadata that was previously in the config
+export const siteMetadata = {
   keywords: [
     "AI chat",
     "Claude 4",
@@ -25,21 +76,12 @@ export const siteConfig = {
     "conversational AI",
     "intelligent chat",
     "thread management",
-  ] as string[],
+  ],
   authors: [
     {
       name: "Lightfast",
       url: "https://lightfast.ai",
     },
-  ] as Array<{ name: string; url: string }>,
+  ],
   creator: "Lightfast",
-  links: {
-    twitter: "https://x.com/lightfastai",
-    github: "https://github.com/lightfastai",
-    discord: "https://discord.gg/YqPDfcar2C",
-    privacy: "https://lightfast.ai/legal/privacy",
-    terms: "https://lightfast.ai/legal/terms",
-    chat: "https://chat.lightfast.ai",
-  },
-  location: "3141, Melbourne, VIC, Australia",
 } as const

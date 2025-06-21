@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import "@repo/ui/globals.css"
 import { ConvexClientProvider } from "@/lib/convex-provider"
-import { siteConfig } from "@/lib/site-config"
+import { siteConfig, siteMetadata } from "@/lib/site-config"
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server"
 import { cn } from "@repo/ui/lib/utils"
 import { Analytics } from "@vercel/analytics/next"
@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(siteConfig.url),
   description: siteConfig.description,
-  keywords: siteConfig.keywords,
-  authors: siteConfig.authors,
-  creator: siteConfig.creator,
+  keywords: siteMetadata.keywords,
+  authors: siteMetadata.authors,
+  creator: siteMetadata.creator,
   openGraph: {
     type: "website",
     locale: "en_US",

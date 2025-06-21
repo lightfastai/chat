@@ -1,7 +1,7 @@
 import { AuthRedirectHandler } from "@/components/auth/auth-redirect-handler"
 import { LandingChatInput } from "@/components/landing/landing-chat-input"
 import { Footer } from "@/components/layout/footer"
-import { siteConfig } from "@/lib/site-config"
+import { siteConfig, siteMetadata } from "@/lib/site-config"
 import { Button } from "@repo/ui/components/button"
 import { Icons } from "@repo/ui/components/icons"
 import { Zap } from "lucide-react"
@@ -15,9 +15,9 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(siteConfig.url),
   description: siteConfig.description,
-  keywords: siteConfig.keywords,
-  authors: siteConfig.authors,
-  creator: siteConfig.creator,
+  keywords: siteMetadata.keywords,
+  authors: siteMetadata.authors,
+  creator: siteMetadata.creator,
   openGraph: {
     type: "website",
     locale: "en_US",

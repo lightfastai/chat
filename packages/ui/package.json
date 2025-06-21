@@ -7,7 +7,8 @@
     "./components/*": "./src/components/*.tsx",
     "./lib/*": "./src/lib/*.ts",
     "./lib/utils": "./src/lib/utils.ts",
-    "./globals.css": "./src/globals.css"
+    "./globals.css": "./src/globals.css",
+    "./types/*": "./src/types/*.ts"
   },
   "scripts": {
     "lint": "biome check --write .",
