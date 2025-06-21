@@ -1,36 +1,30 @@
-"use client"
-
 import Link from "next/link"
 import type * as React from "react"
 import { cn } from "../lib/utils"
-import type { SiteConfig } from "../types/site"
 import { Button } from "./button"
 import { Icons } from "./icons"
 
-export interface SiteHeaderProps<T extends string = string> {
+export interface SiteHeaderProps {
   className?: string
-  siteConfig: SiteConfig<T>
+  logoHref?: string
+  githubUrl?: string
+  signInHref?: string
   showLogo?: boolean
   showGitHub?: boolean
   showSignIn?: boolean
-  signInHref?: string
   children?: React.ReactNode
 }
 
-export function SiteHeader<T extends string = string>({
+export function SiteHeader({
   className,
-  siteConfig,
+  logoHref = "/",
+  githubUrl,
+  signInHref = "/signin",
   showLogo = true,
   showGitHub = true,
   showSignIn = true,
-  signInHref = "/signin",
   children,
-}: SiteHeaderProps<T>) {
-  const links = siteConfig.links as Record<
-    string,
-    { href: string; title?: string }
-  >
-
+}: SiteHeaderProps) {
   return (
     <header
       className={cn(
@@ -41,15 +35,15 @@ export function SiteHeader<T extends string = string>({
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {showLogo && (
-            <Link href="/">
+            <Link href={logoHref}>
               <Icons.logo className="w-6 h-5 text-foreground" />
             </Link>
           )}
         </div>
         <div className="flex items-center gap-4">
-          {showGitHub && links?.github && (
+          {showGitHub && githubUrl && (
             <Link
-              href={links.github.href}
+              href={githubUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"

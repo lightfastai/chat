@@ -1,24 +1,28 @@
-"use client"
-
 import { Dot } from "lucide-react"
 import Link from "next/link"
-import * as React from "react"
 import { cn } from "../lib/utils"
-import type { SiteConfig } from "../types/site"
 
-export interface SiteFooterProps<T extends string = string> {
+export interface SiteFooterProps {
   className?: string
-  siteConfig: SiteConfig<T>
+  siteName: string
+  homeUrl: string
+  links?: {
+    github?: string
+    discord?: string
+    twitter?: string
+    privacy?: string
+    terms?: string
+  }
 }
 
-export function SiteFooter<T extends string = string>({
+export function SiteFooter({
   className,
-  siteConfig,
-}: SiteFooterProps<T>) {
-  const links = siteConfig.links as Record<
-    string,
-    { href: string; title?: string }
-  >
+  siteName,
+  homeUrl,
+  links,
+}: SiteFooterProps) {
+  const currentYear = new Date().getFullYear()
+  const companyName = siteName.split(" ")[0]
 
   return (
     <footer className={cn("w-full py-8", className)}>
@@ -29,7 +33,7 @@ export function SiteFooter<T extends string = string>({
               {links?.github && (
                 <Link
                   target="_blank"
-                  href={links.github.href}
+                  href={links.github}
                   aria-label="GitHub"
                   className="transition-transform duration-200 hover:scale-110"
                 >
@@ -49,7 +53,7 @@ export function SiteFooter<T extends string = string>({
               {links?.discord && (
                 <Link
                   target="_blank"
-                  href={links.discord.href}
+                  href={links.discord}
                   aria-label="Discord"
                   className="transition-transform duration-200 hover:scale-110"
                 >
@@ -69,7 +73,7 @@ export function SiteFooter<T extends string = string>({
               {links?.twitter && (
                 <Link
                   target="_blank"
-                  href={links.twitter.href}
+                  href={links.twitter}
                   aria-label="Twitter"
                   className="transition-transform duration-200 hover:scale-110"
                 >
@@ -91,7 +95,7 @@ export function SiteFooter<T extends string = string>({
             <div className="flex flex-col items-center gap-2">
               <nav className="flex items-center gap-2 md:gap-4">
                 <Link
-                  href={siteConfig.url.replace("chat.", "")}
+                  href={homeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground text-xs transition-all duration-200 hover:underline hover:underline-offset-4"
@@ -102,7 +106,7 @@ export function SiteFooter<T extends string = string>({
                   <>
                     <Dot className="size-2" />
                     <Link
-                      href={links.privacy.href}
+                      href={links.privacy}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-foreground text-xs transition-all duration-200 hover:underline hover:underline-offset-4"
@@ -115,7 +119,7 @@ export function SiteFooter<T extends string = string>({
                   <>
                     <Dot className="size-2" />
                     <Link
-                      href={links.terms.href}
+                      href={links.terms}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-foreground text-xs transition-all duration-200 hover:underline hover:underline-offset-4"
@@ -130,7 +134,7 @@ export function SiteFooter<T extends string = string>({
             <div className="flex items-center gap-4">
               <span className="group relative cursor-default text-xs">
                 <span className="group-hover:text-foreground relative inline-block transition-all duration-300 group-hover:-translate-y-1">
-                  {siteConfig.name.split(" ")[0]}
+                  {companyName}
                 </span>
                 <span className="group-hover:text-primary relative mx-1 inline-block transition-all duration-300 group-hover:opacity-0">
                   Inc.
@@ -139,7 +143,7 @@ export function SiteFooter<T extends string = string>({
                   ©
                 </span>
                 <span className="group-hover:text-foreground relative ml-1 inline-block transition-all duration-300 group-hover:-translate-y-1">
-                  {new Date().getFullYear()}
+                  {currentYear}
                 </span>
                 <span className="from-primary/40 via-primary to-primary/40 absolute bottom-0 left-0 h-[1px] w-0 bg-gradient-to-r transition-all duration-500 group-hover:w-full" />
               </span>

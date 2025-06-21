@@ -73,7 +73,7 @@ export const metadata: Metadata = {
 function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <SiteHeader siteConfig={siteConfig} />
+      <SiteHeader githubUrl={siteConfig.links.github.href} />
 
       {/* Main content */}
       <main className="flex-1 container mx-auto px-4 py-48">
@@ -96,7 +96,17 @@ function LandingPage() {
         </div>
       </main>
 
-      <SiteFooter siteConfig={siteConfig} />
+      <SiteFooter
+        siteName={siteConfig.name}
+        homeUrl={siteConfig.url.replace("chat.", "")}
+        links={{
+          github: siteConfig.links.github.href,
+          discord: siteConfig.links.discord.href,
+          twitter: siteConfig.links.twitter.href,
+          privacy: siteConfig.links.privacy.href,
+          terms: siteConfig.links.terms.href,
+        }}
+      />
     </div>
   )
 }
