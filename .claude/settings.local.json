@@ -86,7 +86,9 @@
       "Bash(openssl rand:*)",
       "Bash(bun remove:*)",
       "Bash(bun update:*)",
-      "Bash(bunx tsc:*)"
+      "Bash(bunx tsc:*)",
+      "Bash(git mv:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

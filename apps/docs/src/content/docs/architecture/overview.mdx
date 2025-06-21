@@ -1,0 +1,95 @@
+---
+title: Architecture Overview
+description: Understanding the Lightfast Chat architecture
+---
+
+# Architecture Overview
+
+Lightfast Chat is built as a modern, scalable web application using a carefully selected tech stack.
+
+## High-Level Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│   Next.js App   │────▶│     Convex      │────▶│   AI Providers  │
+│   (Frontend)    │     │   (Backend)     │     │  (Claude, GPT)  │
+│                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+         │                       │
+         │                       │
+         ▼                       ▼
+┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │
+│     Vercel      │     │   File Storage  │
+│   (Hosting)     │     │    (Convex)     │
+│                 │     │                 │
+└─────────────────┘     └─────────────────┘
+```
+
+## Core Components
+
+### Frontend (Next.js)
+- **Framework**: Next.js 15 with App Router
+- **UI Library**: React 19
+- **Styling**: Tailwind CSS v4 + shadcn/ui
+- **Type Safety**: TypeScript with strict mode
+
+### Backend (Convex)
+- **Database**: Convex's built-in reactive database
+- **API**: Type-safe server functions
+- **Real-time**: WebSocket-based synchronization
+- **File Storage**: Integrated file handling
+
+### Infrastructure
+- **Hosting**: Vercel for frontend
+- **Monorepo**: Turborepo for build orchestration
+- **Package Manager**: Bun for fast installs
+- **Code Quality**: Biome for linting/formatting
+
+## Data Flow
+
+1. **User Interaction**: User sends a message through the UI
+2. **Optimistic Updates**: UI updates immediately for responsiveness
+3. **Server Processing**: Convex mutation processes the request
+4. **AI Integration**: Backend calls AI provider APIs
+5. **Real-time Sync**: Response streams back to all connected clients
+6. **Persistence**: Messages stored in Convex database
+
+## Key Design Decisions
+
+### Why Convex?
+- Built-in real-time synchronization
+- Type-safe from database to frontend
+- Serverless scalability
+- Integrated file storage
+
+### Why Next.js App Router?
+- Server Components for better performance
+- Streaming SSR capabilities
+- Built-in optimizations
+- Excellent developer experience
+
+### Why Turborepo?
+- Efficient monorepo builds
+- Shared configurations
+- Parallel task execution
+- Intelligent caching
+
+## Security Considerations
+
+- **Authentication**: GitHub OAuth via NextAuth
+- **API Keys**: Encrypted storage in Convex
+- **Data Isolation**: User data separated by authentication
+- **Rate Limiting**: Built-in Convex rate limits
+
+## Performance Optimizations
+
+- **Streaming Responses**: Real-time AI responses
+- **Optimistic Updates**: Instant UI feedback
+- **Code Splitting**: Automatic with Next.js
+- **Edge Runtime**: Where applicable
+
+Learn more about specific components:
+- [Tech Stack Details](/docs/architecture/tech-stack)
+- [Convex Integration](/docs/architecture/convex)

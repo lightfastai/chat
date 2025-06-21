@@ -1,0 +1,218 @@
+---
+title: Quickstart
+description: Get up and running with Lightfast Chat in 5 minutes
+---
+
+# Quickstart
+
+Get Lightfast Chat running in under 5 minutes with this quickstart guide.
+
+## Prerequisites
+
+Before starting, ensure you have:
+- **Bun 1.2.10+** installed ([install here](https://bun.sh))
+- A terminal/command prompt
+- API keys from at least one AI provider
+
+## 1. Clone and Install
+
+```bash
+# Clone the repository
+git clone https://github.com/lightfastai/chat.git
+cd chat
+
+# Install dependencies with Bun
+bun install
+```
+
+## 2. Quick Configuration
+
+Create a minimal environment configuration:
+
+```bash
+# Navigate to the main app
+cd apps/www
+
+# Create .env.local with your API keys
+cat > .env.local << 'EOF'
+# Convex (local development)
+NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
+
+# AI Providers (add your keys)
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+OPENAI_API_KEY=sk-your-key-here
+OPENROUTER_API_KEY=sk-or-your-key-here
+EXA_API_KEY=your-exa-key-here
+
+# Auth (generate a random key)
+JWT_PRIVATE_KEY=your-random-secret-key
+JWKS={}
+EOF
+```
+
+## 3. Start the Backend
+
+```bash
+# From the root directory
+bun run convex:dev
+```
+
+This will:
+- Start Convex development server
+- Create database schema
+- Deploy serverless functions
+
+## 4. Start the Application
+
+```bash
+# In a new terminal, from root directory
+bun dev:www
+
+# Or run everything together
+bun dev:all
+```
+
+## 5. Access the Application
+
+Open your browser and navigate to:
+```
+http://localhost:3000
+```
+
+## Your First Chat
+
+### 1. Sign In (Optional)
+For development, you can use the app without signing in. For full features:
+- Click "Sign in with GitHub"
+- Authorize the application
+- You'll be redirected back to the chat
+
+### 2. Start Chatting
+- Type your message in the input field at the bottom
+- Press Enter or click the send button
+- Watch as the AI response streams in real-time
+
+### 3. Try Key Features
+
+**Switch AI Models**
+- Click the model selector dropdown (default: Claude Sonnet 4)
+- Choose from available models:
+  - Claude Sonnet 4 (most capable)
+  - GPT-4o-mini (fast and efficient)
+  - GPT-4o (OpenAI's best)
+- Send another message to compare responses
+
+**Upload an Image**
+- Click the paperclip icon
+- Select an image file
+- Add a message about the image
+- Send to get AI analysis
+
+**Share a Conversation**
+- Click the share button in the top bar
+- Copy the public link
+- Open in an incognito window to view
+
+## Quick Customization
+
+### Change the Site Name
+
+Edit `apps/www/src/lib/site-config.ts`:
+```typescript
+export const siteConfig = {
+  name: "Your Chat App",
+  // ... other config
+}
+```
+
+### Add Your Logo
+
+Replace the logo file:
+```bash
+cp your-logo.svg apps/www/public/logo.svg
+```
+
+### Customize Colors
+
+Edit `apps/www/src/app/globals.css`:
+```css
+:root {
+  --primary: 220 90% 56%;  /* Change primary color */
+}
+```
+
+## Development Tips
+
+### Hot Reload
+Changes to your code automatically reload the browser. Try editing:
+- `apps/www/src/app/page.tsx` - Home page
+- `apps/www/src/components/chat/chat-interface.tsx` - Chat UI
+
+### View Logs
+```bash
+# Convex function logs
+bun run convex logs
+
+# Application logs
+# Check your terminal running bun dev:www
+```
+
+### Reset Database
+```bash
+# Clear all data (development only)
+bun run convex run --no-push setup:clearAll
+```
+
+## Common Quickstart Issues
+
+### "Convex connection failed"
+- Ensure `bun run convex:dev` is running
+- Check `NEXT_PUBLIC_CONVEX_URL` is set to `http://127.0.0.1:3210`
+
+### "No AI response"
+- Verify your AI API key is correct
+- Check you have credits/quota with your AI provider
+
+### "Build errors"
+```bash
+# Quick fix for most build issues
+SKIP_ENV_VALIDATION=true bun run build
+```
+
+## What's Next?
+
+Now that you have Lightfast Chat running:
+
+1. **Explore Features**: Try all the features in the [Features guide](/docs/features/chat)
+2. **Configuration**: Learn about [Configuration options](/docs/getting-started/configuration)
+3. **Development**: Set up proper [Development environment](/docs/development/setup)
+4. **Deployment**: Ready for production? See [Deployment guide](/docs/guides/deployment)
+
+## Quick Commands Reference
+
+```bash
+# Development (from root)
+bun dev:www          # Start Next.js dev server
+bun dev:all          # Start Next.js + Convex together
+bun run build:www    # Build for production
+bun run lint         # Run linter
+bun run format       # Format code
+
+# Convex
+bun run convex:dev   # Start Convex dev
+bun run convex:deploy # Deploy to production
+bun run convex logs  # View function logs
+
+# Monorepo
+bun dev              # Run all apps
+bun run build        # Build all apps
+bun run typecheck    # Type check all packages
+```
+
+## Get Help
+
+- **Documentation**: You're here!
+- **GitHub Issues**: [github.com/lightfastai/chat/issues](https://github.com/lightfastai/chat/issues)
+- **Discord**: [Join our community](https://discord.gg/YqPDfcar2C) for quick help
+
+Congratulations! You've successfully set up Lightfast Chat. Happy chatting! 🎉

@@ -31,7 +31,7 @@ show_usage() {
     echo "Creates a new worktree for feature development with automated setup:"
     echo "  - Creates worktree at worktrees/<feature_name>"
     echo "  - Creates branch <username>/<feature_name>"
-    echo "  - Installs dependencies with bun"
+    echo "  - Installs dependencies with pnpm"
     echo "  - Configures unique ports for multi-instance development"
     echo "  - Sets up independent Convex environment"
     echo "  - Syncs environment variables"
@@ -219,12 +219,12 @@ log_success "Worktree created at $WORKTREE_PATH"
 # Change to worktree directory for setup
 cd "$WORKTREE_PATH"
 
-log_info "Installing dependencies with bun..."
-if command -v bun > /dev/null 2>&1; then
-    bun install
+log_info "Installing dependencies with pnpm..."
+if command -v pnpm > /dev/null 2>&1; then
+    pnpm install
     log_success "Dependencies installed"
 else
-    log_error "bun not found. Please install bun first."
+    log_error "pnpm not found. Please install pnpm first."
     exit 1
 fi
 
@@ -282,7 +282,7 @@ const convexPort = process.env.CONVEX_PORT;
 
 // Update scripts with custom ports
 packageJson.scripts.dev = `next dev -p ${nextPort}`;
-packageJson.scripts["dev:all"] = `concurrently "bun dev" "bun convex:dev" --names "NEXT,CONVEX" --prefix-colors "blue,green"`;
+packageJson.scripts["dev:all"] = `concurrently "pnpm run dev" "pnpm run convex:dev" --names "NEXT,CONVEX" --prefix-colors "blue,green"`;
 
 // Add worktree-specific scripts
 packageJson.scripts["dev:local"] = `next dev -p ${nextPort}`;
@@ -307,7 +307,7 @@ if command -v npx > /dev/null 2>&1; then
         # Configure cloud deployment and sync environment variables
         if [ -f "$PROJECT_ROOT/scripts/sync-env.ts" ]; then
             log_info "Syncing environment variables to Convex..."
-            cd "$PROJECT_ROOT" && bun env:sync || log_warning "Environment sync failed, you may need to configure Convex manually"
+            cd "$PROJECT_ROOT" && pnpm run env:sync || log_warning "Environment sync failed, you may need to configure Convex manually"
         elif [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
             log_info "Syncing environment variables to Convex..."
             bash "$PROJECT_ROOT/scripts/sync-env.sh" || log_warning "Environment sync failed, you may need to configure Convex manually"
@@ -338,16 +338,16 @@ log_info "📝 Next steps:"
 log_info "1. cd $WORKTREE_PATH"
 log_info "2. Start development servers:"
 if [ "$USE_LOCAL_CONVEX" = true ]; then
-    log_info "   bun run dev:multi    # Concurrent with local Convex"
+    log_info "   pnpm run dev:multi    # Concurrent with local Convex"
 else
-    log_info "   bun run dev:multi    # Concurrent with cloud Convex"
+    log_info "   pnpm run dev:multi    # Concurrent with cloud Convex"
 fi
 log_info "   OR separately:"
-log_info "   bun dev              # Next.js on port $NEXT_PORT"
+log_info "   pnpm run dev         # Next.js on port $NEXT_PORT"
 if [ "$USE_LOCAL_CONVEX" = true ]; then
-    log_info "   bun convex:dev:local # Local Convex backend"
+    log_info "   pnpm run convex:dev:local # Local Convex backend"
 else
-    log_info "   bun convex:dev       # Cloud Convex backend"
+    log_info "   pnpm run convex:dev       # Cloud Convex backend"
 fi
 log_info "3. Your app will be available at: http://localhost:$NEXT_PORT"
 log_info "4. Make your changes and commit"

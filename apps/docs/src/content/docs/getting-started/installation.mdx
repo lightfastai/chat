@@ -1,0 +1,238 @@
+---
+title: Installation
+description: Step-by-step guide to install and set up Lightfast Chat
+---
+
+# Installation
+
+This guide will walk you through installing Lightfast Chat, a monorepo application built with Turborepo, Next.js 15, and Convex.
+
+## Prerequisites
+
+### System Requirements
+- **Node.js**: Version 18.17 or higher
+- **Bun**: Version 1.2.10 or higher (required)
+- **Memory**: 4GB RAM minimum (8GB recommended)
+- **Storage**: 2GB free disk space
+- **OS**: macOS, Linux, or Windows with WSL2
+
+### Required Accounts
+You'll need API keys from at least one AI provider:
+- **Anthropic** (for Claude Sonnet 4) - [Get API key](https://console.anthropic.com)
+- **OpenAI** (for GPT models) - [Get API key](https://platform.openai.com/api-keys)
+- **OpenRouter** (for additional models) - [Get API key](https://openrouter.ai)
+- **Exa** (for web search) - [Get API key](https://exa.ai)
+
+## Quick Install
+
+```bash
+# Install Bun if you haven't already
+curl -fsSL https://bun.sh/install | bash
+
+# Clone the repository
+git clone https://github.com/lightfastai/chat.git
+cd chat
+
+# Install dependencies
+bun install
+
+# Copy environment template
+cp apps/www/.env.example apps/www/.env.local
+
+# Navigate to the main app
+cd apps/www
+
+# Sync environment variables to Convex
+bun run env:sync
+```
+
+## Environment Configuration
+
+Edit `apps/www/.env.local` with your configuration:
+
+### Required Environment Variables
+
+```bash
+# Convex Configuration
+NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210  # For local development
+# CONVEX_DEPLOYMENT=your-deployment-name     # For production
+
+# AI API Keys (all required for full functionality)
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-key    # Claude Sonnet 4
+OPENAI_API_KEY=sk-your-openai-key              # GPT models
+OPENROUTER_API_KEY=sk-or-your-openrouter-key   # Additional models
+EXA_API_KEY=your-exa-api-key                   # Web search
+
+# Authentication
+JWT_PRIVATE_KEY=your-jwt-private-key           # JWT signing
+JWKS=your-jwks-string                          # JWT verification
+
+# GitHub OAuth (optional but recommended)
+AUTH_GITHUB_ID=your-github-oauth-client-id
+AUTH_GITHUB_SECRET=your-github-oauth-client-secret
+
+# Site Configuration (optional)
+SITE_URL=http://localhost:3000                 # Your site URL
+DOCS_URL=https://lightfast-docs.vercel.app     # Docs deployment URL
+```
+
+### Environment Validation
+
+The application uses type-safe environment variables with `@t3-oss/env-nextjs`. Missing required variables will be caught at build time.
+
+## Setting Up Services
+
+### 1. Convex Backend
+
+Start the Convex development server:
+
+```bash
+# From the root directory
+bun run convex:dev
+
+# Or from apps/www
+cd apps/www
+bun run convex:dev
+```
+
+This will:
+- Create a new Convex project (if needed)
+- Deploy database schema
+- Set up serverless functions
+- Enable real-time subscriptions
+- Provide a local development URL
+
+### 2. GitHub OAuth Setup
+
+To enable GitHub authentication:
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Configure with these settings:
+   - **Application name**: Your app name
+   - **Homepage URL**: `http://localhost:3000`
+   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
+4. Click "Register application"
+5. Copy the **Client ID** and **Client Secret**
+6. Add to your `.env.local`:
+   ```bash
+   AUTH_GITHUB_ID=your_client_id_here
+   AUTH_GITHUB_SECRET=your_client_secret_here
+   ```
+
+### 3. JWT Key Generation
+
+Generate JWT keys for authentication:
+
+```bash
+# Generate a secure private key
+openssl rand -base64 64
+
+# Add to JWT_PRIVATE_KEY in .env.local
+# For JWKS, use the corresponding public key configuration
+```
+
+### 4. Sync Environment Variables
+
+After configuring all environment variables:
+
+```bash
+# From apps/www directory
+bun run env:sync
+
+# This syncs your environment variables to Convex
+```
+
+## Running the Application
+
+### Start Development Servers
+
+You have two options for running the development environment:
+
+#### Option 1: Run Everything Together
+```bash
+# From the root directory
+bun dev:all
+
+# This starts both Next.js and Convex concurrently
+```
+
+#### Option 2: Run Separately
+```bash
+# Terminal 1: Start Convex
+bun run convex:dev
+
+# Terminal 2: Start Next.js
+bun dev:www
+```
+
+### Access the Application
+
+Once running, access:
+- **Chat Application**: [http://localhost:3000](http://localhost:3000)
+- **Documentation**: [http://localhost:3002/docs](http://localhost:3002/docs)
+- **Convex Dashboard**: Check your terminal for the Convex console URL
+
+### Verify Everything Works
+
+1. **Authentication**: Click "Sign in" and use GitHub OAuth
+2. **Create Chat**: Start a new conversation
+3. **Test AI**: Send a message and verify streaming response
+4. **Check Features**: Try file uploads, model switching, and web search
+
+## Troubleshooting
+
+### Common Issues
+
+**Missing Environment Variables**
+```bash
+# The build will show which variables are missing
+# Check apps/www/src/env.ts for the full list
+```
+
+**Convex Connection Failed**
+```bash
+# Ensure Convex is running
+bun run convex:dev
+
+# Check NEXT_PUBLIC_CONVEX_URL is correct
+# For local dev: http://127.0.0.1:3210
+```
+
+**Build Errors**
+```bash
+# Skip validation for testing
+SKIP_ENV_VALIDATION=true bun run build:www
+
+# Fix any TypeScript errors shown
+```
+
+**Port Already in Use**
+```bash
+# Use different ports
+PORT=3001 bun dev:www
+```
+
+**Monorepo Dependencies**
+```bash
+# If packages aren't found
+bun install
+
+# Clean and reinstall
+rm -rf node_modules bun.lockb
+bun install
+```
+
+## Next Steps
+
+Now that Lightfast Chat is installed:
+
+1. 📖 Continue to [Quickstart](/docs/getting-started/quickstart) for using the chat
+2. ⚙️ Learn about [Configuration](/docs/getting-started/configuration) options
+3. 🚀 Explore [Deployment](/docs/guides/deployment) for production
+4. 👨‍💻 Check [Development Setup](/docs/development/setup) for contributing
+
+Need help? 
+- Join our [Discord Community](https://discord.gg/YqPDfcar2C)
+- Open an issue on [GitHub](https://github.com/lightfastai/chat/issues)
+- Check [Troubleshooting](/docs/resources/troubleshooting) guide

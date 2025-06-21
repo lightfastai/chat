@@ -1,0 +1,138 @@
+---
+title: Development Setup
+description: Set up your local development environment
+---
+
+# Development Setup
+
+Get your local development environment ready for contributing to Lightfast Chat.
+
+## Required Tools
+
+- **Node.js 18+** or **Bun 1.0+**
+- **Git** for version control
+- **VS Code** (recommended) or your preferred editor
+
+## Initial Setup
+
+### 1. Fork and Clone
+
+Fork the repository on GitHub, then clone your fork:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/chat.git
+cd chat
+```
+
+### 2. Install Dependencies
+
+```bash
+bun install
+```
+
+### 3. Environment Configuration
+
+```bash
+cp .env.example .env.local
+```
+
+Configure the required environment variables in `.env.local`.
+
+### 4. Database Setup
+
+Initialize Convex:
+
+```bash
+bun convex dev
+```
+
+Keep this terminal running during development.
+
+### 5. Start Development
+
+In a new terminal:
+
+```bash
+bun dev
+```
+
+Visit http://localhost:3000 to see the app.
+
+## VS Code Setup
+
+### Recommended Extensions
+
+- **Biome** - Code formatting and linting
+- **Tailwind CSS IntelliSense** - Tailwind autocomplete
+- **TypeScript** - Enhanced TypeScript support
+- **Convex** - Convex syntax highlighting
+
+### Workspace Settings
+
+```json
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "quickfix.biome": "explicit"
+  }
+}
+```
+
+## Development Workflow
+
+### 1. Create a Branch
+
+```bash
+git checkout -b feature/your-feature-name
+```
+
+### 2. Make Changes
+
+Edit files and test locally.
+
+### 3. Run Quality Checks
+
+```bash
+bun run lint
+bun run format
+bun run typecheck
+bun run build
+```
+
+### 4. Commit Changes
+
+```bash
+git add .
+git commit -m "feat: add new feature"
+```
+
+### 5. Push and Create PR
+
+```bash
+git push origin feature/your-feature-name
+```
+
+Then create a pull request on GitHub.
+
+## Troubleshooting
+
+### Port Already in Use
+
+If port 3000 is taken:
+
+```bash
+bun dev -- --port 3001
+```
+
+### Convex Connection Issues
+
+Ensure the Convex dev server is running and check your `NEXT_PUBLIC_CONVEX_URL`.
+
+### Build Errors
+
+For environment validation errors:
+
+```bash
+SKIP_ENV_VALIDATION=true bun run build
+```

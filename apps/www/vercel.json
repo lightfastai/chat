@@ -1,0 +1,17 @@
+{
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"buildCommand": "bunx convex deploy --cmd 'turbo build' --preview-run 'setup:setupInitialData'",
+	"framework": "nextjs",
+	"outputDirectory": ".next",
+	"functions": {
+		"app/api/**/*.ts": {
+			"maxDuration": 30
+		}
+	},
+	"rewrites": [
+		{
+			"source": "/api/:path*",
+			"destination": "/api/:path*"
+		}
+	]
+}
