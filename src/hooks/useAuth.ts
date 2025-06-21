@@ -15,9 +15,21 @@ export function useAuth() {
   const currentUser = useQuery(api.users.current)
 
   const handleSignIn = useCallback(
-    async (provider: "github" = "github") => {
+    async (
+      provider: "github" | "password" | "anonymous" = "password",
+      options?: {
+        email?: string
+        password?: string
+        name?: string
+        flow?: "signIn" | "signUp"
+      },
+    ) => {
       try {
-        await signIn(provider)
+        if (provider === "password" && options) {
+          await signIn(provider, options)
+        } else {
+          await signIn(provider)
+        }
       } catch (error) {
         console.error("Error signing in:", error)
         throw error

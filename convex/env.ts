@@ -25,6 +25,13 @@ export const env = createEnv({
       .optional()
       .describe("Site URL for authentication configuration"),
 
+    // GitHub OAuth (optional for feature flag system)
+    AUTH_GITHUB_ID: z.string().optional().describe("GitHub OAuth client ID"),
+    AUTH_GITHUB_SECRET: z
+      .string()
+      .optional()
+      .describe("GitHub OAuth client secret"),
+
     // Environment
     NODE_ENV: z
       .enum(["development", "test", "production"])
