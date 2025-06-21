@@ -380,11 +380,25 @@ Simply visit [chat.lightfast.ai](https://chat.lightfast.ai) and start chatting w
 
 ## 📚 Documentation
 
-- [**Getting Started Guide**](./docs/installation.mdx) - Detailed setup instructions
-- [**API Documentation**](./docs/api/overview.mdx) - Backend API reference
-- [**Authentication Setup**](./docs/authentication.mdx) - OAuth configuration
-- [**AI Models Guide**](./docs/ai-models.mdx) - Supported models and configuration
-- [**Chat Features**](./docs/chat.mdx) - Using the chat interface
+Comprehensive documentation is available at [chat.lightfast.ai/docs](https://chat.lightfast.ai/docs).
+
+### Documentation Structure
+- **[Overview](https://chat.lightfast.ai/docs/overview)** - Introduction and features
+- **[Getting Started](https://chat.lightfast.ai/docs/getting-started)** - Installation and quick start
+- **[Guides](https://chat.lightfast.ai/docs/guides)** - In-depth tutorials and workflows
+- **[Architecture](https://chat.lightfast.ai/docs/architecture)** - Technical details
+- **[API Reference](https://chat.lightfast.ai/docs/reference/api)** - Backend API documentation
+- **[Development](https://chat.lightfast.ai/docs/development)** - Contributing and setup
+
+### Local Documentation Development
+```bash
+# Run documentation locally
+bun dev:docs
+
+# Access at http://localhost:3002/docs
+```
+
+The documentation is built with Fumadocs and MDX, allowing rich content with React components.
 
 ## 🤝 Contributing
 

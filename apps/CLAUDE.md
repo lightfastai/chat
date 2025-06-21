@@ -87,66 +87,181 @@ bun run env:sync    # Sync environment variables
 
 ## Docs App (Documentation Site)
 
+### Overview
+The docs app is a standalone Next.js 15 application using Fumadocs v15 for documentation. It's configured to be served at the `/docs` path of the main domain.
+
 ### Structure
 ```
 apps/docs/
-├── app/                 # Next.js App Router
-│   ├── [[...slug]]/    # Dynamic route for all docs
-│   └── layout.tsx      # Root layout with Fumadocs
-├── content/            # MDX documentation files
-│   └── docs/          # Documentation content
-├── components/         # Docs-specific components
-└── lib/               # Utilities
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── [[...slug]]/       # Catch-all dynamic route
+│   │   │   └── page.tsx       # Renders all doc pages
+│   │   ├── globals.css        # Global styles
+│   │   ├── layout.tsx         # Root layout with providers
+│   │   └── not-found.tsx      # 404 page
+│   ├── components/            # Docs-specific components
+│   │   ├── docs-layout-config.tsx    # Layout configuration
+│   │   ├── docs-layout-wrapper.tsx   # Fumadocs layout wrapper
+│   │   └── site-header.tsx          # Custom header
+│   ├── content/               # MDX documentation files
+│   │   └── docs/             # All documentation content
+│   │       ├── index.mdx     # Welcome page
+│   │       ├── meta.json     # Root navigation
+│   │       └── ...sections/  # Documentation sections
+│   └── lib/                  # Utilities
+│       ├── site-config.ts    # Site configuration
+│       ├── source.ts         # Fumadocs source loader
+│       └── utils.ts          # Helper utilities
+├── source.config.ts          # Fumadocs configuration
+├── next.config.ts            # Next.js configuration
+├── package.json              # Dependencies
+└── vercel.json              # Deployment configuration
 ```
 
 ### Key Configuration
 
-#### 1. Base Path
-The docs app uses `basePath: "/docs"` in `next.config.mjs`:
-```js
+#### 1. Base Path & Routing
+The docs app uses `basePath: "/docs"` in `next.config.ts`:
+```typescript
 const nextConfig = {
   basePath: "/docs",
   assetPrefix: "/docs",
 }
 ```
 
-#### 2. Content Structure
-Documentation is organized in `content/docs/`:
+All routes are handled by the `[[...slug]]` catch-all route, which:
+- Fetches content based on the URL slug
+- Generates static pages at build time
+- Provides metadata for SEO
+
+#### 2. Content Organization
+Documentation is in `src/content/docs/` with hierarchical structure:
 ```
-content/docs/
-├── index.mdx           # /docs root page
-├── getting-started.mdx # /docs/getting-started
-├── architecture/       # /docs/architecture/*
-├── features/          # /docs/features/*
-└── development/       # /docs/development/*
+src/content/docs/
+├── index.mdx                    # /docs
+├── meta.json                    # Navigation order
+├── overview/                    # /docs/overview/*
+│   ├── index.mdx               # Section landing
+│   ├── introduction.mdx        # Individual pages
+│   ├── features.mdx
+│   └── meta.json               # Section navigation
+├── getting-started/            # /docs/getting-started/*
+├── guides/                     # /docs/guides/*
+├── development/                # /docs/development/*
+├── architecture/               # /docs/architecture/*
+├── features/                   # /docs/features/*
+├── reference/                  # /docs/reference/*
+└── resources/                  # /docs/resources/*
 ```
 
-#### 3. Fumadocs Configuration
-- Source configuration in `source.config.ts`
-- Layout configuration in `app/layout.config.tsx`
-- Uses Fumadocs UI components for navigation
+Each `meta.json` defines:
+```json
+{
+  "title": "Section Title",
+  "pages": ["page1", "page2", "page3"]
+}
+```
+
+#### 3. Fumadocs Setup
+- **source.config.ts**: Defines docs directory and MDX configuration
+- **src/lib/source.ts**: Creates MDX source with page utilities
+- **Layout**: Uses `DocsLayout` from Fumadocs UI with custom configuration
+- **Search**: Built-in search functionality (can be enhanced)
 
 ### Development Commands
 ```bash
-# From root
-bun dev:docs        # Run dev server on port 3002
+# From root (recommended)
+bun dev:docs        # Run dev server on port 3002/docs
 bun run build:docs  # Build for production
 
 # From apps/docs
 bun run dev         # Run dev server
-bun run build       # Build for production
+bun run build       # Build (calls root build:docs)
+bun run start       # Run production server
+bun run lint        # Run Biome linter
+bun run format      # Format code
 ```
 
 ### Adding Documentation
-1. Create MDX files in `content/docs/`
-2. Add frontmatter with title and description
-3. Update `meta.json` files for navigation order
-4. Use standard markdown with MDX components
+
+#### Creating a New Page
+1. Create an MDX file in the appropriate directory:
+```mdx
+---
+title: Your Page Title
+description: Brief description for SEO
+---
+
+# Your Page Title
+
+Your content here...
+```
+
+2. Update the section's `meta.json`:
+```json
+{
+  "title": "Section Name",
+  "pages": ["existing-page", "your-new-page"]
+}
+```
+
+#### Creating a New Section
+1. Create a directory under `src/content/docs/`
+2. Add `index.mdx` for the section landing
+3. Create `meta.json` with configuration
+4. Update parent `meta.json` to include section
+
+#### Using Components
+Fumadocs provides built-in components:
+```mdx
+import { Callout } from 'fumadocs-ui/components/callout'
+import { Card, Cards } from 'fumadocs-ui/components/card'
+import { Steps, Step } from 'fumadocs-ui/components/steps'
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs'
+
+<Callout type="info">
+  Important information
+</Callout>
+
+<Cards>
+  <Card title="Feature 1" href="/docs/feature1">
+    Description
+  </Card>
+</Cards>
+```
 
 ### Deployment
 - Deployed as separate Vercel project
-- Accessible at `/docs` path on main domain
-- www app rewrites `/docs/*` to docs deployment
+- Production URL set in `DOCS_URL` environment variable
+- Main app (www) rewrites `/docs/*` to docs deployment:
+  ```typescript
+  // In www/next.config.ts
+  async rewrites() {
+    return [
+      {
+        source: "/docs/:path*",
+        destination: `${env.DOCS_URL}/docs/:path*`,
+      },
+    ]
+  }
+  ```
+- Static generation for optimal performance
+
+### UI Integration
+- Uses `@repo/ui` for shared components
+- Icons imported from shared package
+- Custom header maintains brand consistency
+- Dark mode support (currently disabled)
+
+### Best Practices
+1. **MDX Files**: Use frontmatter for metadata
+2. **Navigation**: Always update `meta.json` files
+3. **URLs**: Use relative links within docs
+4. **Images**: Place in `public/` directory
+5. **Components**: Leverage Fumadocs UI components
+6. **SEO**: Add descriptions to all pages
+7. **Testing**: Preview with `bun dev:docs` before deploying
 
 ## Common Patterns Across Apps
 
