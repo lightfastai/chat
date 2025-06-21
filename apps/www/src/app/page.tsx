@@ -73,8 +73,8 @@ export const metadata: Metadata = {
 function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <SiteHeader 
-        githubUrl={siteConfig.links.github.href} 
+      <SiteHeader
+        githubUrl={siteConfig.links.github.href}
         docsUrl={siteConfig.links.docs.href}
       />
 

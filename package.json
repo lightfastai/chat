@@ -15,7 +15,7 @@
     "format": "turbo run format",
     "clean": "turbo run clean",
     "typecheck": "turbo run typecheck",
-    "vercel-build": "cd apps/www && bunx convex deploy --cmd 'cd ../.. && bun run build:www'",
+    "vercel-build": "cd apps/www && bunx convex deploy --cmd 'turbo build --filter=@lightfast/www'",
     "ui:add": "bunx shadcn@latest add",
     "ui:diff": "bunx shadcn@latest diff"
   },

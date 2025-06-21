@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && bunx convex deploy --cmd 'bun run build:www' --preview-run 'setup:setupInitialData'",
-  "installCommand": "cd ../.. && bun install",
+  "buildCommand": "bunx convex deploy --cmd 'turbo build' --preview-run 'setup:setupInitialData'",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "functions": {
