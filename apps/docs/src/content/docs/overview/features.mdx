@@ -10,10 +10,11 @@ Lightfast Chat provides a comprehensive set of features designed for both end us
 ## Chat Features
 
 ### Multi-Model AI Support
-- **Claude Models**: Access to Claude 3.5 Sonnet, Claude 3 Opus, and Haiku
-- **OpenAI Models**: GPT-4o, GPT-4 Turbo, and GPT-3.5
-- **Open Source Models**: Integration with models via OpenRouter
-- **Model Switching**: Change models mid-conversation without losing context
+- **Claude Sonnet 4**: Anthropic's most advanced model (default)
+- **GPT-4o**: OpenAI's flagship multimodal model
+- **GPT-4o-mini**: Fast and cost-effective for most tasks
+- **OpenRouter Integration**: Access to 100+ models including Llama, Mixtral, and more
+- **Model Switching**: Change models mid-conversation with preserved context
 
 ### Real-time Streaming
 - **Token Streaming**: See responses as they're generated
@@ -21,37 +22,44 @@ Lightfast Chat provides a comprehensive set of features designed for both end us
 - **Progress Indicators**: Visual feedback during generation
 - **Cancellation**: Stop generation at any time
 
+### Enhanced Capabilities
+- **Web Search**: Integrated Exa search for real-time information
+- **Token Usage Tracking**: Monitor API costs per message
+- **Model Context**: Full conversation context for better responses
+- **Markdown Support**: Rich formatting in AI responses
+
 ### Conversation Management
-- **Thread Organization**: Group related messages into conversations
-- **Search**: Full-text search across all conversations
-- **History**: Persistent conversation history with pagination
-- **Export**: Download conversations in various formats
+- **Thread Organization**: Each conversation is a separate thread
+- **Sidebar Navigation**: Quick access to all your chats
+- **Auto-Titling**: AI generates titles for your conversations
+- **Persistent History**: All conversations saved automatically
+- **Delete Threads**: Remove conversations you no longer need
 
 ### File Support
-- **Image Uploads**: Share images directly in chat
-- **Document Processing**: Upload PDFs and text files
-- **Multi-file Support**: Attach multiple files to a single message
-- **Preview**: In-line previews for supported file types
+- **Image Uploads**: Share images for AI analysis (PNG, JPG, WebP)
+- **Drag & Drop**: Simply drag files into the chat
+- **File Preview**: See uploaded images inline
+- **Size Limits**: Up to 10MB per file
 
 ### Sharing & Collaboration
 - **Public Links**: Share conversations with unique URLs
-- **Privacy Controls**: Choose what to share and with whom
-- **Embedding**: Embed conversations in other websites
-- **Collaboration**: Real-time updates for shared conversations
+- **Read-Only Access**: Shared chats are view-only for privacy
+- **No Sign-In Required**: Anyone with the link can view
+- **Automatic Expiry**: Optional expiration for shared links
 
 ## User Experience
 
 ### Modern Interface
-- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
-- **Dark Mode**: Automatic theme switching based on system preferences
-- **Keyboard Shortcuts**: Efficient navigation without mouse
-- **Accessibility**: WCAG-compliant with screen reader support
+- **Responsive Design**: Optimized for desktop and mobile
+- **Dark Mode**: Beautiful dark theme by default
+- **Keyboard Shortcuts**: Enter to send, Shift+Enter for new line
+- **Clean UI**: Minimalist design focused on conversation
 
 ### Performance
-- **Instant Loading**: Optimized initial page load under 1 second
-- **Offline Support**: Continue reading conversations without internet
-- **Smart Caching**: Intelligent caching for fast navigation
-- **Low Bandwidth**: Optimized for slower connections
+- **Instant Loading**: Server-side rendering for fast initial load
+- **Partial Prerendering**: Next.js 15 PPR for optimal performance
+- **Real-time Updates**: Convex provides instant message updates
+- **Optimistic UI**: Messages appear instantly while sending
 
 ### Customization
 - **Themes**: Choose from multiple color schemes
@@ -68,10 +76,10 @@ Lightfast Chat provides a comprehensive set of features designed for both end us
 - **API Design**: RESTful and real-time APIs
 
 ### Deployment Options
-- **Vercel**: One-click deployment with automatic scaling
-- **Self-Hosting**: Docker support for on-premise deployment
-- **Edge Runtime**: Deploy globally with edge functions
-- **Custom Domains**: Use your own domain with SSL
+- **Vercel**: Optimized for Vercel deployment
+- **Self-Hosting**: Full instructions for self-deployment
+- **Convex Backend**: Serverless backend with global distribution
+- **Environment Flexibility**: Works with any Node.js host
 
 ### Extensibility
 - **Plugin System**: Add custom functionality
@@ -88,16 +96,16 @@ Lightfast Chat provides a comprehensive set of features designed for both end us
 ## Security & Privacy
 
 ### Authentication
-- **OAuth Providers**: GitHub, Google, and more
-- **Session Management**: Secure session handling
-- **Multi-factor Authentication**: Optional 2FA support
-- **API Keys**: Secure API key management
+- **GitHub OAuth**: Sign in with your GitHub account
+- **JWT Sessions**: Secure session management
+- **API Key Storage**: Encrypted storage for personal API keys
+- **Guest Mode**: Try without signing in (limited features)
 
 ### Data Protection
-- **Encryption**: End-to-end encryption for sensitive data
-- **Data Retention**: Configurable retention policies
-- **GDPR Compliance**: Tools for data export and deletion
-- **Audit Logs**: Track all system activities
+- **Encrypted Storage**: API keys encrypted at rest
+- **No Training**: Your conversations aren't used for AI training
+- **Data Export**: Download your conversation history
+- **Account Deletion**: Remove all data on request
 
 ### Access Control
 - **Role-Based Access**: Fine-grained permissions
@@ -129,8 +137,9 @@ Lightfast Chat provides a comprehensive set of features designed for both end us
 
 ### Planned Features
 - **Voice Input**: Speech-to-text for messages
-- **Multi-language**: UI translations
-- **Advanced Search**: Semantic search capabilities
-- **Mobile Apps**: Native iOS and Android apps
+- **Code Execution**: Run code snippets in chat
+- **Advanced Search**: Search within conversations
+- **Team Collaboration**: Shared workspaces
+- **Plugin System**: Extend with custom functionality
 
-Stay updated with our [Changelog](/docs/changelog) for the latest feature releases.
+Stay updated with our [Changelog](/docs/resources/changelog) for the latest feature releases and join our [Discord](https://discord.gg/YqPDfcar2C) for announcements.

@@ -10,69 +10,66 @@ Get Lightfast Chat running in under 5 minutes with this quickstart guide.
 ## Prerequisites
 
 Before starting, ensure you have:
-- Node.js 18+ or Bun installed
+- **Bun 1.2.10+** installed ([install here](https://bun.sh))
 - A terminal/command prompt
-- A code editor (VS Code recommended)
+- API keys from at least one AI provider
 
-## 1. Quick Install
+## 1. Clone and Install
 
 ```bash
-# Clone and enter the repository
+# Clone the repository
 git clone https://github.com/lightfastai/chat.git
 cd chat
 
-# Install dependencies (choose one)
-bun install    # Recommended: Faster
-npm install    # Alternative: Node.js
+# Install dependencies with Bun
+bun install
 ```
 
-## 2. Minimal Configuration
+## 2. Quick Configuration
 
-Create a `.env.local` file with minimal configuration:
-
-```bash
-# Copy example environment
-cp .env.example .env.local
-```
-
-Edit `.env.local` with these essential values:
+Create a minimal environment configuration:
 
 ```bash
-# Convex (Required)
-NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
-CONVEX_DEPLOY_KEY=your-deploy-key
+# Navigate to the main app
+cd apps/www
 
-# AI Provider (at least one)
-ANTHROPIC_API_KEY=sk-ant-api03-...
-# OR
-OPENAI_API_KEY=sk-...
+# Create .env.local with your API keys
+cat > .env.local << 'EOF'
+# Convex (local development)
+NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210
 
-# Authentication (Required)
-JWT_PRIVATE_KEY=any-secret-key-for-development
+# AI Providers (add your keys)
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+OPENAI_API_KEY=sk-your-key-here
+OPENROUTER_API_KEY=sk-or-your-key-here
+EXA_API_KEY=your-exa-key-here
+
+# Auth (generate a random key)
+JWT_PRIVATE_KEY=your-random-secret-key
 JWKS={}
-
-# Site URL
-SITE_URL=http://localhost:3000
+EOF
 ```
 
-## 3. Quick Convex Setup
+## 3. Start the Backend
 
 ```bash
-# Install Convex CLI and set up project
-npx convex dev
+# From the root directory
+bun run convex:dev
 ```
 
-When prompted:
-1. Choose "Create a new project"
-2. Enter a project name
-3. Wait for setup to complete
+This will:
+- Start Convex development server
+- Create database schema
+- Deploy serverless functions
 
 ## 4. Start the Application
 
 ```bash
-# Start development server
-bun dev    # If using Bun
-npm run dev    # If using npm
+# In a new terminal, from root directory
+bun dev:www
+
+# Or run everything together
+bun dev:all
 ```
 
 ## 5. Access the Application
@@ -84,25 +81,26 @@ http://localhost:3000
 
 ## Your First Chat
 
-### 1. Sign In
-- Click "Sign In" in the top right
-- Use the demo authentication (no external login required for development)
+### 1. Sign In (Optional)
+For development, you can use the app without signing in. For full features:
+- Click "Sign in with GitHub"
+- Authorize the application
+- You'll be redirected back to the chat
 
-### 2. Create a Conversation
-- Click "New Chat" or the + button
-- Your conversation is automatically created
+### 2. Start Chatting
+- Type your message in the input field at the bottom
+- Press Enter or click the send button
+- Watch as the AI response streams in real-time
 
-### 3. Send Your First Message
-- Type a message in the input field
-- Press Enter or click Send
-- Watch the AI response stream in real-time
-
-### 4. Try Different Features
+### 3. Try Key Features
 
 **Switch AI Models**
-- Click the model selector (default: Claude 3.5 Sonnet)
-- Choose a different model
-- Send another message to see the difference
+- Click the model selector dropdown (default: Claude Sonnet 4)
+- Choose from available models:
+  - Claude Sonnet 4 (most capable)
+  - GPT-4o-mini (fast and efficient)
+  - GPT-4o (OpenAI's best)
+- Send another message to compare responses
 
 **Upload an Image**
 - Click the paperclip icon
@@ -153,23 +151,23 @@ Changes to your code automatically reload the browser. Try editing:
 ### View Logs
 ```bash
 # Convex function logs
-npx convex logs
+bun run convex logs
 
 # Application logs
-# Check your terminal running the dev server
+# Check your terminal running bun dev:www
 ```
 
 ### Reset Database
 ```bash
 # Clear all data (development only)
-npx convex run --no-push migrations:clearAll
+bun run convex run --no-push setup:clearAll
 ```
 
 ## Common Quickstart Issues
 
 ### "Convex connection failed"
-- Ensure `npx convex dev` is running
-- Check `NEXT_PUBLIC_CONVEX_URL` matches your project
+- Ensure `bun run convex:dev` is running
+- Check `NEXT_PUBLIC_CONVEX_URL` is set to `http://127.0.0.1:3210`
 
 ### "No AI response"
 - Verify your AI API key is correct
@@ -185,33 +183,36 @@ SKIP_ENV_VALIDATION=true bun run build
 
 Now that you have Lightfast Chat running:
 
-1. **Explore Features**: Try all the features in the [Features guide](/docs/features)
-2. **Configuration**: Learn about advanced [Configuration](/docs/configuration)
-3. **Development**: Set up proper [Development environment](/docs/setup)
-4. **Deployment**: Ready for production? See [Deployment guide](/docs/deployment)
+1. **Explore Features**: Try all the features in the [Features guide](/docs/features/chat)
+2. **Configuration**: Learn about [Configuration options](/docs/getting-started/configuration)
+3. **Development**: Set up proper [Development environment](/docs/development/setup)
+4. **Deployment**: Ready for production? See [Deployment guide](/docs/guides/deployment)
 
 ## Quick Commands Reference
 
 ```bash
-# Development
-bun dev              # Start dev server
-bun build            # Build for production
-bun lint             # Run linter
-bun format           # Format code
+# Development (from root)
+bun dev:www          # Start Next.js dev server
+bun dev:all          # Start Next.js + Convex together
+bun run build:www    # Build for production
+bun run lint         # Run linter
+bun run format       # Format code
 
 # Convex
-npx convex dev       # Start Convex dev
-npx convex deploy    # Deploy to production
-npx convex logs      # View function logs
+bun run convex:dev   # Start Convex dev
+bun run convex:deploy # Deploy to production
+bun run convex logs  # View function logs
 
-# Database
-npx convex run migrations:clearAll  # Reset database
+# Monorepo
+bun dev              # Run all apps
+bun run build        # Build all apps
+bun run typecheck    # Type check all packages
 ```
 
 ## Get Help
 
 - **Documentation**: You're here!
 - **GitHub Issues**: [github.com/lightfastai/chat/issues](https://github.com/lightfastai/chat/issues)
-- **Discord**: Join our community for quick help
+- **Discord**: [Join our community](https://discord.gg/YqPDfcar2C) for quick help
 
 Congratulations! You've successfully set up Lightfast Chat. Happy chatting! 🎉
