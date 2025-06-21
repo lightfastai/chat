@@ -1,0 +1,245 @@
+---
+title: Installation
+description: Step-by-step guide to install Lightfast Chat
+---
+
+# Installation
+
+This guide will walk you through installing Lightfast Chat on your local machine or server.
+
+## System Requirements
+
+### Minimum Requirements
+- **Node.js**: Version 18.17 or higher
+- **Memory**: 4GB RAM minimum
+- **Storage**: 2GB free disk space
+- **OS**: macOS, Linux, or Windows with WSL2
+
+### Recommended Setup
+- **Runtime**: Bun 1.2.10 or higher (for faster performance)
+- **Memory**: 8GB RAM or more
+- **Storage**: SSD with 10GB free space
+- **OS**: Ubuntu 22.04 LTS or macOS 14+
+
+## Installation Methods
+
+### Method 1: Using Bun (Recommended)
+
+```bash
+# Install Bun if you haven't already
+curl -fsSL https://bun.sh/install | bash
+
+# Clone the repository
+git clone https://github.com/lightfastai/chat.git
+cd chat
+
+# Install dependencies
+bun install
+
+# Set up environment
+cp .env.example .env.local
+```
+
+### Method 2: Using Node.js and npm
+
+```bash
+# Clone the repository
+git clone https://github.com/lightfastai/chat.git
+cd chat
+
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env.local
+```
+
+### Method 3: Using Docker
+
+```bash
+# Clone the repository
+git clone https://github.com/lightfastai/chat.git
+cd chat
+
+# Build and run with Docker Compose
+docker compose up -d
+```
+
+## Environment Setup
+
+### Required Environment Variables
+
+Edit your `.env.local` file with the following required variables:
+
+```bash
+# Convex Configuration
+NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
+CONVEX_DEPLOY_KEY=your-convex-deploy-key
+
+# AI Provider Keys (at least one required)
+ANTHROPIC_API_KEY=sk-ant-api03-...
+OPENAI_API_KEY=sk-...
+OPENROUTER_API_KEY=sk-or-v1-...
+
+# Authentication
+JWT_PRIVATE_KEY=your-generated-private-key
+JWKS=your-public-keys-json
+
+# Site Configuration
+SITE_URL=http://localhost:3000
+```
+
+### Optional Environment Variables
+
+```bash
+# GitHub OAuth (for GitHub login)
+AUTH_GITHUB_ID=your-github-oauth-app-id
+AUTH_GITHUB_SECRET=your-github-oauth-app-secret
+
+# Additional AI Services
+EXA_API_KEY=your-exa-api-key
+
+# Analytics (optional)
+NEXT_PUBLIC_POSTHOG_KEY=your-posthog-key
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+```
+
+## Setting Up Services
+
+### 1. Convex Setup
+
+Convex provides the real-time backend for Lightfast Chat.
+
+```bash
+# Install Convex CLI globally
+npm install -g convex
+
+# Initialize Convex (creates new project)
+npx convex dev
+
+# Or deploy to existing project
+npx convex deploy --url YOUR_CONVEX_URL
+```
+
+### 2. AI Provider Setup
+
+#### Anthropic (Claude)
+1. Visit [console.anthropic.com](https://console.anthropic.com)
+2. Create an API key
+3. Add to `ANTHROPIC_API_KEY` in `.env.local`
+
+#### OpenAI
+1. Visit [platform.openai.com](https://platform.openai.com)
+2. Create an API key
+3. Add to `OPENAI_API_KEY` in `.env.local`
+
+#### OpenRouter
+1. Visit [openrouter.ai](https://openrouter.ai)
+2. Create an API key
+3. Add to `OPENROUTER_API_KEY` in `.env.local`
+
+### 3. Authentication Setup
+
+Generate JWT keys for authentication:
+
+```bash
+# Generate private key
+openssl genrsa -out private.pem 2048
+
+# Extract public key
+openssl rsa -in private.pem -pubout -out public.pem
+
+# Convert to base64 for environment variable
+JWT_PRIVATE_KEY=$(base64 -i private.pem | tr -d '\n')
+```
+
+### 4. GitHub OAuth (Optional)
+
+For GitHub authentication:
+
+1. Go to GitHub Settings > Developer settings > OAuth Apps
+2. Click "New OAuth App"
+3. Fill in:
+   - Application name: "Lightfast Chat"
+   - Homepage URL: Your site URL
+   - Authorization callback URL: `http://localhost:3000/api/auth/callback/github`
+4. Save Client ID and Client Secret to environment variables
+
+## Database Initialization
+
+Convex automatically handles database setup. On first run:
+
+```bash
+# Start Convex in development mode
+npx convex dev
+
+# This will:
+# - Create database schema
+# - Deploy serverless functions
+# - Set up real-time subscriptions
+```
+
+## Verify Installation
+
+### 1. Run Development Server
+
+```bash
+# Using Bun
+bun dev
+
+# Using npm
+npm run dev
+```
+
+### 2. Check Services
+
+Visit these URLs to verify everything is working:
+
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Convex Dashboard: Check your Convex console
+
+### 3. Test Features
+
+1. Sign in with your configured authentication method
+2. Create a new conversation
+3. Send a test message
+4. Verify AI response streaming
+
+## Troubleshooting Installation
+
+### Common Issues
+
+**Dependencies fail to install**
+```bash
+# Clear cache and retry
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+```
+
+**Convex connection errors**
+- Verify `NEXT_PUBLIC_CONVEX_URL` is correct
+- Check network connectivity
+- Ensure Convex project is deployed
+
+**Build errors**
+```bash
+# Skip environment validation during build
+SKIP_ENV_VALIDATION=true npm run build
+```
+
+**Port already in use**
+```bash
+# Use a different port
+PORT=3001 npm run dev
+```
+
+## Next Steps
+
+Now that you have Lightfast Chat installed:
+
+1. Continue to [Quickstart](/docs/quickstart) for your first chat
+2. Learn about [Configuration](/docs/configuration) options
+3. Explore [Deployment](/docs/deployment) for production setup
+
+Need help? Check our [Troubleshooting guide](/docs/troubleshooting) or open an issue on [GitHub](https://github.com/lightfastai/chat/issues).

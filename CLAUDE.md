@@ -13,7 +13,7 @@
 
 **NO EXCEPTIONS**: If you're modifying code, you MUST be in a worktree.
 
-## Overview
+## Overvietw
 
 This development workflow integrates:
 - **GitHub MCP Server**: Issue tracking and PR management
@@ -58,6 +58,93 @@ Use this mode when you're already running `bun dev:all` locally:
 At the start of your session, tell Claude which mode to use:
 - "Use Vercel Build Mode" (default if not specified)
 - "Use Local Dev Mode - I'm running bun dev:all"
+
+## 🚀 Parallel Task Execution with Claude Code Subagents
+
+**YOU MUST** analyze complex tasks and use parallel Claude Code subagents when appropriate.
+
+### When to Use Parallel Subagents
+
+Use parallel execution when the task involves:
+1. **Multiple independent components** - Changes across different apps or packages
+2. **Research and implementation** - Simultaneous investigation and coding
+3. **Multi-file operations** - Updates to many files that don't depend on each other
+4. **Different technology domains** - Frontend, backend, and infrastructure tasks
+
+### Task Analysis Process
+
+When receiving a complex request, follow this process:
+
+```markdown
+1. **Analyze the request** - Break down into subtasks
+2. **Identify dependencies** - Determine which tasks can run in parallel
+3. **Launch parallel agents** - Use multiple Task invocations in a single message
+4. **Coordinate results** - Synthesize findings from all agents
+```
+
+### Example: Parallel Subagent Usage
+
+```markdown
+User: "Add authentication to the chat app with GitHub OAuth, update the docs, and create tests"
+
+Claude's Analysis:
+- Task 1: Implement GitHub OAuth (backend + frontend)
+- Task 2: Update documentation
+- Task 3: Create test suite
+
+These tasks are independent and can be parallelized.
+```
+
+### Implementation Pattern
+
+**YOU MUST** launch parallel agents in a single message for maximum efficiency:
+
+```markdown
+# Launching parallel agents (in a single tool use block):
+1. Task: "Implement GitHub OAuth"
+   - Search for existing auth patterns
+   - Implement OAuth flow
+   - Update UI components
+
+2. Task: "Update authentication docs"
+   - Create auth setup guide
+   - Document configuration
+   - Add troubleshooting section
+
+3. Task: "Create auth test suite"
+   - Write unit tests
+   - Create integration tests
+   - Add E2E test scenarios
+```
+
+### Best Practices for Parallel Execution
+
+1. **Clear task boundaries** - Each agent should have a well-defined scope
+2. **Minimize overlap** - Avoid agents working on the same files
+3. **Coordinate through context** - Use context files to track overall progress
+4. **Synthesize results** - Combine findings into a coherent solution
+5. **Handle conflicts** - If agents suggest conflicting changes, resolve intelligently
+
+### Anti-patterns to Avoid
+
+❌ **Sequential agents** - Don't launch agents one after another
+❌ **Overlapping work** - Don't have multiple agents editing the same files
+❌ **Vague instructions** - Each agent needs specific, actionable tasks
+❌ **No coordination** - Always synthesize results from parallel agents
+
+### Example Workflow
+
+```bash
+# User request: "Migrate the app to use new API endpoints and update all tests"
+
+# Claude's approach:
+# 1. Analyze: This involves API migration + test updates (can be parallel)
+# 2. Launch parallel agents:
+#    - Agent 1: Find and update all API calls
+#    - Agent 2: Update test mocks and assertions
+# 3. Coordinate: Ensure all endpoints are covered and tests pass
+# 4. Report: Summarize changes and any remaining work
+```
 
 ## 🚨 CRITICAL: Context Preservation
 
@@ -259,8 +346,8 @@ mkdir -p worktrees
 git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 cd worktrees/<feature_name>
 bun install
-cp ../../.env.local .env.local
-bun run env:sync
+cp ../../.env.local apps/www/.env.local
+cd apps/www && bun run env:sync
 ```
 
 ### Step 4: Development Cycle
@@ -446,15 +533,17 @@ export function TabsComponent() {
 
 ### Quality Gates (MUST pass before commit)
 ```bash
-# Build validation
-SKIP_ENV_VALIDATION=true bun run build
+# Build validation (from root)
+bun run build:www
+# OR from apps/www
+cd apps/www && SKIP_ENV_VALIDATION=true bun run build
 
-# Code quality
+# Code quality (from root)
 bun run lint
 bun run format
 
-# Environment sync
-bun run env:sync
+# Environment sync (from apps/www)
+cd apps/www && bun run env:sync
 ```
 
 ### Context Management
@@ -497,23 +586,70 @@ gh pr view <pr_number> --json statusCheckRollup
 - **Lint errors**: Run `bun run lint` to auto-fix
 - **Build errors**: Check imports and environment variables
 
-## Project Structure
+## Monorepo Structure
+
+### Overview
+This is a Turborepo monorepo with the following structure:
 ```
-├── src/
-│   ├── app/            # Next.js App Router pages
-│   ├── components/     # React components (ui/, chat/, auth/)
-│   └── lib/           # Utilities
-├── convex/            # Backend functions
-├── scripts/           # Development scripts
-├── worktrees/         # Feature development (git worktrees)
-└── CLAUDE.md         # This file
+├── apps/                    # Applications
+│   ├── www/                # Main chat application
+│   │   ├── src/           # Source code
+│   │   │   ├── app/       # Next.js App Router pages
+│   │   │   ├── components/# React components (chat/, auth/, etc)
+│   │   │   └── lib/       # App-specific utilities
+│   │   ├── convex/        # Backend functions & database
+│   │   └── public/        # Static assets
+│   └── docs/              # Documentation site (Fumadocs)
+│       ├── app/           # Next.js app directory
+│       ├── content/       # MDX documentation files
+│       └── components/    # Docs-specific components
+├── packages/              # Shared packages
+│   └── ui/               # Shared UI component library
+│       ├── src/
+│       │   ├── components/ # All shadcn/ui components
+│       │   ├── lib/       # Shared utilities (cn, etc)
+│       │   └── hooks/     # Shared React hooks
+│       └── globals.css    # Shared Tailwind styles
+├── scripts/              # Development & deployment scripts
+├── worktrees/           # Git worktrees for features
+├── turbo.json          # Turborepo configuration
+├── components.json     # shadcn/ui configuration
+├── tailwind.config.ts  # Root Tailwind configuration
+└── CLAUDE.md          # This file
+```
+
+### Monorepo Commands
+```bash
+# Development
+bun dev              # Run all apps in dev mode
+bun dev:www         # Run only www app
+bun dev:docs        # Run only docs app
+
+# Building
+bun run build       # Build all apps
+bun run build:www   # Build only www app
+bun run build:docs  # Build only docs app
+
+# UI Components
+bun run ui:add <component>  # Add new shadcn component
+bun run ui:diff            # Check for component updates
+
+# Quality
+bun run lint        # Lint all packages
+bun run format      # Format all packages
+bun run typecheck   # Type check all packages
 ```
 
 ## Environment Variables
 - `ANTHROPIC_API_KEY` - Claude Sonnet 4 (required)
 - `OPENAI_API_KEY` - GPT models (required)
+- `OPENROUTER_API_KEY` - OpenRouter API key (required)
+- `EXA_API_KEY` - Exa API key for web search (required)
 - `NEXT_PUBLIC_CONVEX_URL` - Backend URL (required)
-- Optional: GitHub OAuth, JWT keys, SITE_URL
+- `JWT_PRIVATE_KEY` - JWT private key for auth (required)
+- `JWKS` - JWT public keys for verification (required)
+- `DOCS_URL` - Documentation deployment URL (optional)
+- Optional: `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `SITE_URL`
 
 ## Key Reminders
 
@@ -527,7 +663,9 @@ gh pr view <pr_number> --json statusCheckRollup
 
 ## Technology-Specific Documentation
 
-For detailed guidelines on specific technologies used in this project, refer to:
+For detailed guidelines on specific technologies and packages used in this project, refer to:
 
-- **Convex**: See `convex/CLAUDE.md` for Convex-specific patterns, server rendering, optimistic updates, and API guidelines
-- **Additional technology docs**: May be found in their respective directories
+- **Apps Directory**: See `apps/CLAUDE.md` for app-specific patterns, deployment, and configuration
+- **Packages Directory**: See `packages/CLAUDE.md` for shared package guidelines and UI component usage
+- **Convex**: See `apps/www/convex/CLAUDE.md` for Convex-specific patterns, server rendering, optimistic updates, and API guidelines
+- **UI Components**: See `packages/ui/README.md` for shadcn/ui component documentation

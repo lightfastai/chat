@@ -1,0 +1,489 @@
+---
+title: Migration Guide
+description: Guide for migrating between versions of Lightfast Chat
+---
+
+# Migration Guide
+
+This guide helps you migrate between different versions of Lightfast Chat, including breaking changes and upgrade paths.
+
+## Version History
+
+### Current Version: 1.0.0
+
+Initial stable release with:
+- Multi-model AI support (Claude, GPT-4)
+- Real-time streaming
+- File uploads
+- Conversation sharing
+- GitHub authentication
+
+## Migration Strategies
+
+### Before You Migrate
+
+1. **Backup Your Data**
+   ```bash
+   # Export Convex data
+   npx convex run backup:export > backup-$(date +%Y%m%d).json
+   
+   # Backup environment
+   cp .env.local .env.backup
+   ```
+
+2. **Check Breaking Changes**
+   - Review changelog for your version jump
+   - Test in development environment first
+   - Plan for downtime if needed
+
+3. **Update Dependencies**
+   ```bash
+   # Update to latest versions
+   bun update
+   
+   # Or update specific packages
+   bun update @convex-dev/server@latest
+   ```
+
+## Future Migration Guides
+
+As new versions are released, migration guides will be added here. Each guide will include:
+
+- Breaking changes
+- Step-by-step migration instructions
+- Database migration scripts
+- Environment variable changes
+- API changes
+
+### Version 0.x to 1.0.0
+
+If you're using a pre-release version:
+
+1. **Update Dependencies**
+   ```bash
+   bun update --latest
+   ```
+
+2. **Environment Variables**
+   - Renamed: `CONVEX_URL` → `NEXT_PUBLIC_CONVEX_URL`
+   - New: `JWT_PRIVATE_KEY` and `JWKS` for authentication
+   - New: `SITE_URL` for production deployments
+
+3. **Database Schema**
+   ```typescript
+   // Run migration
+   npx convex run migrations:v1_0_0
+   ```
+
+4. **API Changes**
+   - Conversations now require authentication
+   - Message format includes metadata field
+   - File uploads use new storage system
+
+## Database Migrations
+
+### Migration System
+
+Lightfast Chat includes a migration system for database updates:
+
+```typescript
+// convex/migrations/index.ts
+export const runMigration = internalAction({
+  args: { version: v.string() },
+  handler: async (ctx, args) => {
+    const migrations = {
+      "1.0.0": v1_0_0,
+      "1.1.0": v1_1_0,
+      // Add new migrations here
+    }
+    
+    const migration = migrations[args.version]
+    if (!migration) {
+      throw new Error(`Unknown migration version: ${args.version}`)
+    }
+    
+    await migration(ctx)
+  },
+})
+```
+
+### Running Migrations
+
+```bash
+# Run specific migration
+npx convex run migrations:runMigration --args '{"version": "1.0.0"}'
+
+# Check migration status
+npx convex run migrations:status
+```
+
+### Writing Migrations
+
+```typescript
+// convex/migrations/v1_1_0.ts
+export async function v1_1_0(ctx: ActionCtx) {
+  // 1. Add new fields with defaults
+  const conversations = await ctx.runQuery(internal.migrations.getAllConversations)
+  
+  for (const conversation of conversations) {
+    await ctx.runMutation(internal.migrations.updateConversation, {
+      id: conversation._id,
+      updates: {
+        newField: "default value",
+      },
+    })
+  }
+  
+  // 2. Transform existing data
+  const messages = await ctx.runQuery(internal.migrations.getAllMessages)
+  
+  for (const message of messages) {
+    await ctx.runMutation(internal.migrations.updateMessage, {
+      id: message._id,
+      updates: {
+        // Transform old format to new
+        content: transformContent(message.content),
+      },
+    })
+  }
+  
+  // 3. Clean up old data
+  await ctx.runMutation(internal.migrations.cleanupOldData)
+}
+```
+
+## Environment Changes
+
+### Adding New Variables
+
+When new environment variables are added:
+
+1. **Update `.env.example`**
+   ```bash
+   # New AI provider
+   GROQ_API_KEY=your-groq-api-key
+   ```
+
+2. **Update validation schema**
+   ```typescript
+   // src/env.ts
+   export const env = createEnv({
+     server: {
+       GROQ_API_KEY: z.string().optional(),
+     },
+   })
+   ```
+
+3. **Document in upgrade notes**
+   ```markdown
+   ## New Environment Variables
+   - `GROQ_API_KEY`: Optional, for Groq AI integration
+   ```
+
+### Removing Variables
+
+1. **Deprecation period**
+   ```typescript
+   // Show warning if old variable is used
+   if (process.env.OLD_VARIABLE) {
+     console.warn('OLD_VARIABLE is deprecated, use NEW_VARIABLE instead')
+   }
+   ```
+
+2. **Migration helper**
+   ```typescript
+   // Automatically map old to new
+   const apiKey = process.env.NEW_VARIABLE || process.env.OLD_VARIABLE
+   ```
+
+## API Versioning
+
+### Convex Function Changes
+
+When updating Convex functions:
+
+1. **Backward compatibility**
+   ```typescript
+   export const getMessage = query({
+     args: {
+       id: v.id("messages"),
+       // Support old and new parameter names
+       includeMetadata: v.optional(v.boolean()),
+       include_metadata: v.optional(v.boolean()), // Deprecated
+     },
+     handler: async (ctx, args) => {
+       const include = args.includeMetadata ?? args.include_metadata ?? false
+       // Implementation
+     },
+   })
+   ```
+
+2. **Version-specific endpoints**
+   ```typescript
+   // v1/messages.ts
+   export const list = query({
+     // Original implementation
+   })
+   
+   // v2/messages.ts
+   export const list = query({
+     // New implementation with breaking changes
+   })
+   ```
+
+### REST API Changes
+
+For REST endpoints:
+
+```typescript
+// app/api/v1/[...route]/route.ts
+export async function GET(req: Request) {
+  // v1 implementation
+}
+
+// app/api/v2/[...route]/route.ts
+export async function GET(req: Request) {
+  // v2 implementation with new features
+}
+```
+
+## Frontend Updates
+
+### Component Changes
+
+When components change significantly:
+
+1. **Create compatibility layer**
+   ```typescript
+   // components/chat/message-item-v2.tsx
+   export function MessageItem(props: MessageItemProps) {
+     // New implementation
+   }
+   
+   // components/chat/message-item.tsx
+   import { MessageItem as MessageItemV2 } from './message-item-v2'
+   
+   // Adapter for old props
+   export function MessageItem(props: OldMessageItemProps) {
+     const newProps = transformProps(props)
+     return <MessageItemV2 {...newProps} />
+   }
+   ```
+
+2. **Gradual migration**
+   ```typescript
+   // Use feature flag
+   const MessageComponent = features.useNewMessageItem 
+     ? MessageItemV2 
+     : MessageItem
+   ```
+
+### Style Updates
+
+For major style changes:
+
+1. **CSS variables migration**
+   ```css
+   /* Provide both old and new variables */
+   :root {
+     /* Deprecated */
+     --primary-color: var(--color-primary);
+     
+     /* New naming convention */
+     --color-primary: hsl(220 90% 56%);
+   }
+   ```
+
+2. **Class name changes**
+   ```typescript
+   // Support both class names temporarily
+   <div className={cn(
+     "new-class-name",
+     "old-class-name", // Deprecated
+   )} />
+   ```
+
+## Deployment Updates
+
+### Vercel Configuration
+
+When Vercel config changes:
+
+1. **Update `vercel.json`**
+   ```json
+   {
+     "buildCommand": "bun run build",
+     "functions": {
+       // New function configuration
+       "app/api/ai/chat/route.ts": {
+         "maxDuration": 300
+       }
+     }
+   }
+   ```
+
+2. **Environment migration**
+   ```bash
+   # Export existing vars
+   vercel env pull .env.production
+   
+   # Update and push
+   vercel env push .env.production
+   ```
+
+### Docker Updates
+
+For Docker deployments:
+
+1. **Multi-stage migration**
+   ```dockerfile
+   # Support both old and new builds
+   FROM node:18 AS legacy-builder
+   # Old build process
+   
+   FROM oven/bun:1 AS modern-builder
+   # New build process
+   
+   # Runtime uses modern build
+   FROM oven/bun:1-slim
+   COPY --from=modern-builder /app/dist ./dist
+   ```
+
+## Rollback Procedures
+
+### Quick Rollback
+
+If issues arise after migration:
+
+1. **Revert code**
+   ```bash
+   git revert HEAD
+   git push origin main
+   ```
+
+2. **Restore environment**
+   ```bash
+   cp .env.backup .env.local
+   ```
+
+3. **Revert database** (if migrations were run)
+   ```bash
+   npx convex run migrations:rollback --args '{"version": "1.0.0"}'
+   ```
+
+### Gradual Rollback
+
+For complex migrations:
+
+1. **Feature flags**
+   ```typescript
+   // Disable new features
+   export const features = {
+     useNewChat: false,
+     useNewAuth: false,
+   }
+   ```
+
+2. **Canary deployment**
+   ```bash
+   # Deploy old version to some users
+   vercel alias old-version-url.vercel.app 10percent.yourdomain.com
+   ```
+
+## Testing Migrations
+
+### Migration Testing Checklist
+
+- [ ] Backup production data
+- [ ] Test in development environment
+- [ ] Run migration on staging
+- [ ] Verify data integrity
+- [ ] Test all critical paths
+- [ ] Check performance impact
+- [ ] Validate API compatibility
+- [ ] Test rollback procedure
+
+### Automated Tests
+
+```typescript
+// tests/migrations/v1_0_0.test.ts
+import { test, expect } from "bun:test"
+import { runMigration } from "./test-utils"
+
+test("v1.0.0 migration", async () => {
+  // Setup test data
+  const testData = await setupTestData()
+  
+  // Run migration
+  await runMigration("1.0.0")
+  
+  // Verify results
+  const migratedData = await getTestData()
+  expect(migratedData.version).toBe("1.0.0")
+  expect(migratedData.conversations[0].newField).toBeDefined()
+})
+```
+
+## Communication
+
+### Announcing Migrations
+
+1. **Advance Notice**
+   - Blog post 2 weeks before
+   - Email to users 1 week before
+   - In-app banner 3 days before
+
+2. **Migration Guide**
+   - Step-by-step instructions
+   - Expected downtime
+   - Support contact
+
+3. **Post-Migration**
+   - Confirmation email
+   - Known issues list
+   - Feedback collection
+
+### Version Support
+
+| Version | Status | Support Until |
+|---------|--------|---------------|
+| 1.0.x | Current | Active |
+| 0.9.x | Deprecated | 2024-06-01 |
+| 0.8.x | Unsupported | - |
+
+## Best Practices
+
+1. **Incremental Changes**
+   - Avoid massive breaking changes
+   - Provide migration paths
+   - Support old APIs temporarily
+
+2. **Clear Documentation**
+   - Document all changes
+   - Provide examples
+   - Include troubleshooting
+
+3. **Testing**
+   - Test migrations thoroughly
+   - Have rollback plans
+   - Monitor after deployment
+
+4. **Communication**
+   - Announce early
+   - Be transparent
+   - Provide support
+
+## Getting Help
+
+If you encounter issues during migration:
+
+1. **Check the docs**: This guide and changelog
+2. **Search issues**: Others may have same problem
+3. **Ask community**: Discord or discussions
+4. **Open issue**: If you find a bug
+
+## Next Steps
+
+- Review [Changelog](/docs/changelog) for detailed changes
+- Test in [Development](/docs/setup) first
+- Plan your [Deployment](/docs/deployment) strategy
