@@ -6,7 +6,14 @@ import { AuthLoadingClient } from "./client"
 export default async function AuthLoadingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ provider?: string; redirectTo?: string }>
+  searchParams: Promise<{
+    provider?: string
+    redirectTo?: string
+    flow?: string
+    email?: string
+    password?: string
+    name?: string
+  }>
 }) {
   const params = await searchParams
   // If no provider is specified, redirect to signin
@@ -30,6 +37,10 @@ export default async function AuthLoadingPage({
           <AuthLoadingClient
             provider={params.provider}
             redirectTo={params.redirectTo}
+            flow={params.flow}
+            email={params.email}
+            password={params.password}
+            name={params.name}
           />
         </Suspense>
 

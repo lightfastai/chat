@@ -1,8 +1,9 @@
 import { signInAction } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
-import { env } from "@/env"
+import { features } from "@/lib/config/features"
 import { cn } from "@/lib/utils"
 import { Github, UserIcon } from "lucide-react"
+import { PasswordAuthForm } from "./PasswordAuthForm"
 
 interface SignInButtonsProps {
   className?: string
@@ -14,7 +15,7 @@ interface SignInButtonsProps {
 
 /**
  * Server component for sign in buttons
- * Renders a form that posts to server actions
+ * Renders authentication options based on feature flags
  */
 export function SignInButtons({
   className,
@@ -30,41 +31,81 @@ export function SignInButtons({
   ) : null
 
   return (
-    <div className={cn("space-y-3", className)}>
-      {/* Hide GitHub login in Vercel previews */}
-      {env.NEXT_PUBLIC_VERCEL_ENV === "production" && (
-        <form action={signInAction}>
-          <input type="hidden" name="redirectTo" value={redirectTo} />
-          <Button
-            type="submit"
-            name="provider"
-            value="github"
-            className={cn(buttonClassName, animationClass, "cursor-pointer")}
-            size={size}
-          >
-            {animationElement}
-            <Github className="w-5 h-5 mr-2" />
-            Continue with GitHub
-          </Button>
-        </form>
+    <div className={cn("space-y-4", className)}>
+      {/* Password Authentication (default, always first) */}
+      {features.auth.password && (
+        <PasswordAuthForm
+          redirectTo={redirectTo}
+          buttonClassName={buttonClassName}
+          size={size}
+          showAnimations={showAnimations}
+        />
       )}
 
-      {/* Show anonymous login in all non-production environments */}
-      {env.NEXT_PUBLIC_VERCEL_ENV !== "production" && (
-        <form action={signInAction}>
-          <input type="hidden" name="redirectTo" value={redirectTo} />
-          <Button
-            type="submit"
-            name="provider"
-            value="anonymous"
-            className={cn(buttonClassName, animationClass, "cursor-pointer")}
-            size={size}
-          >
-            {animationElement}
-            <UserIcon className="w-5 h-5 mr-2" />
-            Continue as Guest
-          </Button>
-        </form>
+      {/* GitHub OAuth (when available) */}
+      {features.auth.github && (
+        <>
+          {features.auth.password && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+          )}
+          <form action={signInAction}>
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            <Button
+              type="submit"
+              name="provider"
+              value="github"
+              variant={features.auth.password ? "outline" : "default"}
+              className={cn(buttonClassName, animationClass, "cursor-pointer")}
+              size={size}
+            >
+              {animationElement}
+              <Github className="w-5 h-5 mr-2" />
+              Continue with GitHub
+            </Button>
+          </form>
+        </>
+      )}
+
+      {/* Anonymous Authentication (development/testing) */}
+      {features.auth.anonymous && (
+        <>
+          {(features.auth.github || features.auth.password) && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Or continue as guest
+                </span>
+              </div>
+            </div>
+          )}
+          <form action={signInAction}>
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            <Button
+              type="submit"
+              name="provider"
+              value="anonymous"
+              variant="outline"
+              className={cn(buttonClassName, animationClass, "cursor-pointer")}
+              size={size}
+            >
+              {animationElement}
+              <UserIcon className="w-5 h-5 mr-2" />
+              Continue as Guest
+            </Button>
+          </form>
+        </>
       )}
     </div>
   )
