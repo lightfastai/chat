@@ -11,8 +11,8 @@ type SiteLinks =
 
 export const siteConfig: SiteConfig<SiteLinks> = {
   name: "Lightfast Docs",
-  url: "https://chat.lightfast.ai/docs",
-  ogImage: "https://lightfast.ai/og-docs.jpg",
+  url: "https://chat.lightfast.ai",
+  ogImage: "https://lightfast.ai/og.jpg",
   description:
     "Documentation for Lightfast Chat - Learn how to build and deploy real-time AI chat applications with Claude 4, GPT-4o, and streaming responses.",
   links: {
