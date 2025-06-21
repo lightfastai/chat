@@ -1,0 +1,579 @@
+---
+title: Deployment
+description: Deploy Lightfast Chat to production
+---
+
+# Deployment
+
+This guide covers deploying Lightfast Chat to various platforms and environments.
+
+## Deployment Options
+
+### Quick Comparison
+
+| Platform | Best For | Pros | Cons |
+|----------|----------|------|------|
+| **Vercel** | Most users | Zero-config, automatic scaling | Vendor lock-in |
+| **Self-hosted** | Full control | Complete ownership, customizable | Requires maintenance |
+| **Docker** | Containerized | Portable, consistent | More complex setup |
+| **Edge** | Global reach | Low latency worldwide | Limited compute |
+
+## Vercel Deployment (Recommended)
+
+### One-Click Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/lightfastai/chat)
+
+### Manual Deployment
+
+#### 1. Install Vercel CLI
+
+```bash
+npm i -g vercel
+```
+
+#### 2. Configure Environment
+
+Create `.env.production` with production values:
+
+```bash
+# Production Convex
+NEXT_PUBLIC_CONVEX_URL=https://your-prod.convex.cloud
+CONVEX_DEPLOY_KEY=prod-deploy-key
+
+# Production APIs
+ANTHROPIC_API_KEY=sk-ant-api03-prod-...
+OPENAI_API_KEY=sk-prod-...
+
+# Production Auth
+JWT_PRIVATE_KEY=prod-private-key
+JWKS={"keys":[...]}
+
+# Production URL
+SITE_URL=https://your-domain.com
+```
+
+#### 3. Deploy
+
+```bash
+# Deploy to Vercel
+vercel --prod
+
+# Follow prompts:
+# - Link to existing project or create new
+# - Configure environment variables
+# - Choose production settings
+```
+
+#### 4. Configure Domain
+
+```bash
+# Add custom domain
+vercel domains add your-domain.com
+
+# Set as production domain
+vercel alias your-domain.com
+```
+
+### Vercel Configuration
+
+#### Build Settings
+
+```json
+{
+  "buildCommand": "bun run build",
+  "outputDirectory": "apps/www/.next",
+  "installCommand": "bun install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "apps/www/app/api/*": {
+      "maxDuration": 60
+    }
+  }
+}
+```
+
+#### Environment Variables
+
+In Vercel Dashboard:
+1. Go to Settings → Environment Variables
+2. Add all production environment variables
+3. Set appropriate scopes (Production, Preview, Development)
+
+## Self-Hosted Deployment
+
+### Prerequisites
+
+- Ubuntu 22.04+ or similar Linux distribution
+- Node.js 18+ or Bun runtime
+- PostgreSQL 14+ (optional, for analytics)
+- Nginx or Caddy for reverse proxy
+- SSL certificate (Let's Encrypt recommended)
+
+### Server Setup
+
+#### 1. System Preparation
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install dependencies
+sudo apt install -y curl git build-essential nginx certbot python3-certbot-nginx
+
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
+
+# Install Node.js (alternative)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+#### 2. Application Setup
+
+```bash
+# Create app directory
+sudo mkdir -p /opt/lightfast-chat
+sudo chown $USER:$USER /opt/lightfast-chat
+cd /opt/lightfast-chat
+
+# Clone repository
+git clone https://github.com/lightfastai/chat.git .
+
+# Install dependencies
+bun install
+
+# Copy environment file
+cp .env.example .env.production
+# Edit with production values
+nano .env.production
+```
+
+#### 3. Build Application
+
+```bash
+# Build for production
+NODE_ENV=production bun run build
+
+# Test the build
+PORT=3000 bun run start
+```
+
+#### 4. Process Management
+
+Create systemd service `/etc/systemd/system/lightfast-chat.service`:
+
+```ini
+[Unit]
+Description=Lightfast Chat
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/lightfast-chat
+ExecStart=/usr/bin/bun run start
+Restart=on-failure
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+
+```bash
+sudo systemctl enable lightfast-chat
+sudo systemctl start lightfast-chat
+sudo systemctl status lightfast-chat
+```
+
+#### 5. Nginx Configuration
+
+Create `/etc/nginx/sites-available/lightfast-chat`:
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+Enable site:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/lightfast-chat /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+#### 6. SSL Setup
+
+```bash
+# Get SSL certificate
+sudo certbot --nginx -d your-domain.com
+
+# Auto-renewal
+sudo systemctl enable certbot.timer
+```
+
+## Docker Deployment
+
+### Docker Compose
+
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+    networks:
+      - lightfast
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./certs:/etc/nginx/certs
+    depends_on:
+      - app
+    networks:
+      - lightfast
+
+networks:
+  lightfast:
+    driver: bridge
+```
+
+### Dockerfile
+
+Create `Dockerfile`:
+
+```dockerfile
+# Build stage
+FROM oven/bun:1.2.10 AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lockb ./
+COPY apps/www/package.json ./apps/www/
+COPY packages/ui/package.json ./packages/ui/
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source
+COPY . .
+
+# Build application
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV SKIP_ENV_VALIDATION=true
+RUN bun run build
+
+# Runtime stage
+FROM oven/bun:1.2.10-slim
+
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder /app/apps/www/.next ./apps/www/.next
+COPY --from=builder /app/apps/www/public ./apps/www/public
+COPY --from=builder /app/apps/www/package.json ./apps/www/
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/bun.lockb ./
+
+# Install production dependencies only
+RUN bun install --production
+
+# Expose port
+EXPOSE 3000
+
+# Start application
+CMD ["bun", "run", "start"]
+```
+
+### Deploy with Docker
+
+```bash
+# Build and run
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Update
+git pull
+docker compose build
+docker compose up -d
+```
+
+## Convex Deployment
+
+### Production Setup
+
+#### 1. Create Production Project
+
+```bash
+# Deploy to new production project
+npx convex deploy --prod
+
+# Or deploy to specific project
+npx convex deploy --url https://your-prod.convex.cloud
+```
+
+#### 2. Environment Configuration
+
+```bash
+# Set production environment variables
+npx convex env set ANTHROPIC_API_KEY "sk-ant-api03-prod-..."
+npx convex env set OPENAI_API_KEY "sk-prod-..."
+```
+
+#### 3. Database Migrations
+
+```bash
+# Run production migrations
+npx convex run migrations:init --prod
+```
+
+## Monitoring & Maintenance
+
+### Health Checks
+
+Add health check endpoint `app/api/health/route.ts`:
+
+```typescript
+export async function GET() {
+  try {
+    // Check database connection
+    // Check external services
+    return Response.json({ status: "healthy" })
+  } catch (error) {
+    return Response.json({ status: "unhealthy" }, { status: 503 })
+  }
+}
+```
+
+### Monitoring Setup
+
+#### Uptime Monitoring
+
+```bash
+# Using UptimeRobot, Pingdom, or similar
+# Monitor: https://your-domain.com/api/health
+# Alert on: Response time > 5s or status != 200
+```
+
+#### Application Monitoring
+
+```typescript
+// Install Sentry
+bun add @sentry/nextjs
+
+// Configure in next.config.ts
+const { withSentryConfig } = require("@sentry/nextjs")
+
+module.exports = withSentryConfig(nextConfig, {
+  silent: true,
+  org: "your-org",
+  project: "lightfast-chat",
+})
+```
+
+#### Log Aggregation
+
+```bash
+# Using journalctl for systemd logs
+journalctl -u lightfast-chat -f
+
+# Or use external service (Datadog, LogDNA, etc.)
+```
+
+### Backup Strategy
+
+#### Database Backups
+
+```bash
+# Convex automatic backups
+# Access via Convex dashboard
+
+# Self-hosted backup script
+#!/bin/bash
+# backup.sh
+BACKUP_DIR="/backups/lightfast-chat"
+mkdir -p $BACKUP_DIR
+
+# Backup Convex data (via export API)
+npx convex run backup:export > "$BACKUP_DIR/convex-$(date +%Y%m%d).json"
+
+# Backup environment
+cp .env.production "$BACKUP_DIR/env-$(date +%Y%m%d).env"
+
+# Cleanup old backups (keep 30 days)
+find $BACKUP_DIR -type f -mtime +30 -delete
+```
+
+#### Automated Backups
+
+```bash
+# Add to crontab
+0 2 * * * /opt/lightfast-chat/backup.sh
+```
+
+## Performance Optimization
+
+### CDN Setup
+
+#### Cloudflare
+
+1. Add site to Cloudflare
+2. Configure caching rules:
+   - Cache static assets: 1 year
+   - Cache API responses: 5 minutes
+   - Bypass cache for auth endpoints
+
+#### Custom CDN
+
+```nginx
+# Nginx caching
+location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+}
+```
+
+### Database Optimization
+
+```typescript
+// Optimize Convex queries
+export const getConversations = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    // Use indexes
+    return await ctx.db
+      .query("conversations")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .take(20)
+  },
+})
+```
+
+## Security Hardening
+
+### Environment Security
+
+```bash
+# Secure environment files
+chmod 600 .env.production
+chown www-data:www-data .env.production
+
+# Use secrets management
+# Consider: HashiCorp Vault, AWS Secrets Manager
+```
+
+### Network Security
+
+```nginx
+# Rate limiting
+limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+
+location /api/ {
+    limit_req zone=api burst=20 nodelay;
+    # ... proxy settings
+}
+```
+
+### Headers
+
+```typescript
+// Security headers in middleware
+export function middleware(request: NextRequest) {
+  const headers = new Headers(request.headers)
+  
+  headers.set('X-Frame-Options', 'DENY')
+  headers.set('X-Content-Type-Options', 'nosniff')
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  
+  return NextResponse.next({ headers })
+}
+```
+
+## Troubleshooting Deployment
+
+### Common Issues
+
+**Build Failures**
+```bash
+# Clear caches
+rm -rf .next node_modules
+bun install
+SKIP_ENV_VALIDATION=true bun run build
+```
+
+**Memory Issues**
+```bash
+# Increase Node memory
+NODE_OPTIONS="--max-old-space-size=4096" bun run build
+```
+
+**Connection Errors**
+- Verify environment variables
+- Check firewall rules
+- Confirm service status
+
+**Performance Issues**
+- Enable caching
+- Optimize images
+- Use CDN for assets
+
+## Deployment Checklist
+
+- [ ] Environment variables configured
+- [ ] Production build successful
+- [ ] SSL certificate installed
+- [ ] Monitoring configured
+- [ ] Backups scheduled
+- [ ] Security headers added
+- [ ] Rate limiting enabled
+- [ ] Health checks passing
+- [ ] Documentation updated
+- [ ] Team notified
+
+## Next Steps
+
+- Set up [Monitoring](/docs/troubleshooting#monitoring)
+- Configure [Self-Hosting](/docs/self-hosting) options
+- Review [Security](/docs/configuration#security-configuration) settings

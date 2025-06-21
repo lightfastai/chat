@@ -1,12 +1,10 @@
 import { AuthRedirectHandler } from "@/components/auth/auth-redirect-handler"
 import { LandingChatInput } from "@/components/landing/landing-chat-input"
-import { Footer } from "@/components/layout/footer"
 import { siteConfig, siteMetadata } from "@/lib/site-config"
-import { Button } from "@repo/ui/components/button"
-import { Icons } from "@repo/ui/components/icons"
+import { SiteFooter } from "@repo/ui/components/site-footer"
+import { SiteHeader } from "@repo/ui/components/site-header"
 import { Zap } from "lucide-react"
 import type { Metadata } from "next"
-import Link from "next/link"
 
 export const metadata: Metadata = {
   title: {
@@ -71,39 +69,11 @@ export const metadata: Metadata = {
   },
 }
 
-// Server-side header component for landing page
-function LandingHeader() {
-  return (
-    <header className="bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <Icons.logo className="w-6 h-5 text-foreground" />
-          </Link>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link
-            href={siteConfig.links.github.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            GitHub
-          </Link>
-          <Link href="/signin">
-            <Button variant="outline">Sign In</Button>
-          </Link>
-        </div>
-      </div>
-    </header>
-  )
-}
-
 // Landing page component - fully SSR
 function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <LandingHeader />
+      <SiteHeader siteConfig={siteConfig} />
 
       {/* Main content */}
       <main className="flex-1 container mx-auto px-4 py-48">
@@ -126,7 +96,7 @@ function LandingPage() {
         </div>
       </main>
 
-      <Footer />
+      <SiteFooter siteConfig={siteConfig} />
     </div>
   )
 }

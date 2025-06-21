@@ -1,0 +1,356 @@
+---
+title: Claude Code Workflow
+description: Best practices for developing Lightfast Chat with Claude Code
+---
+
+# Claude Code Workflow
+
+This guide explains the recommended workflow for developing Lightfast Chat using Claude Code, Anthropic's AI-powered development assistant.
+
+## Overview
+
+Claude Code follows a structured workflow that integrates:
+- **Git Worktrees**: Isolated feature development
+- **GitHub Integration**: Issue and PR management
+- **Vercel Deployments**: Preview testing
+- **Context Preservation**: Surviving session interruptions
+
+## Development Modes
+
+### Vercel Build Mode (Default)
+
+The recommended mode where Claude handles the complete development lifecycle:
+
+```bash
+# Claude's responsibilities:
+- Makes code changes
+- Runs build, lint, and format commands
+- Commits and pushes automatically
+- Provides Vercel preview URLs
+
+# Your responsibilities:
+- Test on Vercel previews
+- Report issues back to Claude
+```
+
+### Local Dev Mode
+
+For rapid prototyping when you're running `bun dev:all`:
+
+```bash
+# Start local development first
+bun dev:all
+
+# Tell Claude to use Local Dev Mode
+"Use Local Dev Mode - I'm running bun dev:all"
+
+# Claude acts as code generator only
+# You handle commits and testing
+```
+
+## Workflow Steps
+
+### 1. Create an Issue
+
+Always start with a GitHub issue:
+
+```bash
+# Claude creates issue with template
+gh issue create --repo lightfastai/chat \
+  --title "feat: add dark mode toggle" \
+  --body "Implement dark mode with system preference detection"
+
+# Add to project board
+gh project item-add 2 --owner lightfastai --url $ISSUE_URL
+```
+
+### 2. Set Up Worktree
+
+**Mandatory**: Create a worktree for any code changes:
+
+```bash
+# Automated setup (recommended)
+./scripts/setup-worktree.sh jeevanpillay/dark-mode
+cd worktrees/dark-mode
+
+# Manual setup if needed
+git worktree add worktrees/dark-mode -b jeevanpillay/dark-mode
+cd worktrees/dark-mode
+bun install
+```
+
+### 3. Context Management
+
+Claude maintains context through local files and GitHub comments:
+
+```bash
+# Set up context file
+mkdir -p tmp_context
+CONTEXT_FILE="./tmp_context/claude-context-dark-mode.md"
+
+# Create initial context
+cat > "$CONTEXT_FILE" << EOF
+# Claude Code Context - dark-mode
+Last Updated: $(date)
+Issue: #123
+Branch: jeevanpillay/dark-mode
+Development Mode: Vercel Build Mode
+
+## Todo List
+- [ ] Add theme context provider
+- [ ] Implement theme toggle component
+- [ ] Update CSS variables
+- [ ] Test system preference detection
+
+## Current Focus
+Working on: Theme context setup
+EOF
+```
+
+### 4. Development Cycle
+
+Claude follows this iterative cycle:
+
+```bash
+# 1. Make code changes
+# ... implement feature ...
+
+# 2. Validate changes
+SKIP_ENV_VALIDATION=true bun run build
+bun run lint
+bun run format
+
+# 3. Update context
+echo "✅ Completed theme context" >> "$CONTEXT_FILE"
+
+# 4. Commit progress
+git add .
+git commit -m "feat: add theme context provider
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+# 5. Push for Vercel preview
+git push -u origin jeevanpillay/dark-mode
+```
+
+### 5. GitHub Updates
+
+Claude posts regular updates:
+
+```bash
+# Progress updates
+gh pr comment $PR_NUM --body "🔧 Progress: Added theme context and toggle component"
+
+# Blockers
+gh pr comment $PR_NUM --body "⚠️ Blocker: TypeScript error in theme hook"
+
+# Completion
+gh pr comment $PR_NUM --body "✅ Completed: Dark mode fully implemented"
+```
+
+### 6. Testing on Vercel
+
+After each push, test on the Vercel preview:
+
+```
+https://lightfast-chat-pr-123-lightfastai.vercel.app
+```
+
+Report issues back to Claude for fixes.
+
+### 7. PR Creation
+
+Once feature is complete:
+
+```bash
+# Create PR
+PR_URL=$(gh pr create --repo lightfastai/chat \
+  --title "feat: add dark mode toggle" \
+  --body "Closes #123
+
+## Summary
+- Adds system-aware dark mode
+- Includes manual toggle option
+- Persists user preference
+
+## Testing
+Tested on Vercel preview with:
+- System preference changes
+- Manual toggle
+- Preference persistence")
+
+# Add to project
+gh project item-add 2 --owner lightfastai --url $PR_URL
+```
+
+### 8. Cleanup
+
+**Critical**: Remove worktree before merging:
+
+```bash
+# Navigate out of worktree
+cd ../..
+
+# Remove worktree
+git worktree remove worktrees/dark-mode
+
+# Merge PR
+gh pr merge $PR_NUM --squash --delete-branch
+```
+
+## Best Practices
+
+### Context Preservation
+
+1. **Always use context files**: Survive terminal crashes
+2. **Update GitHub frequently**: Document progress
+3. **Include session state**: Current task, blockers, next steps
+
+### Code Quality
+
+1. **Build must pass**: No TypeScript errors
+2. **Lint clean**: Follow project standards
+3. **Format consistently**: Use Biome formatter
+
+### Git Workflow
+
+1. **One worktree per feature**: Keep changes isolated
+2. **Atomic commits**: One logical change per commit
+3. **Clear messages**: Describe the "why" not "what"
+
+### Communication
+
+1. **Regular updates**: Post progress every 30-60 minutes
+2. **Document blockers**: Immediately report issues
+3. **Test thoroughly**: Verify on Vercel before marking complete
+
+## Common Patterns
+
+### Feature Implementation
+
+```bash
+# Standard feature workflow
+1. Create issue with clear requirements
+2. Set up worktree with descriptive name
+3. Implement incrementally with tests
+4. Push for Vercel preview testing
+5. Iterate based on feedback
+6. Create PR when complete
+```
+
+### Bug Fixes
+
+```bash
+# Quick fix workflow
+1. Create bug report issue
+2. Minimal worktree for fix
+3. Add regression test
+4. Verify fix on Vercel
+5. Fast-track PR review
+```
+
+### Research Tasks
+
+```bash
+# Exploration workflow
+1. Create research issue
+2. Document findings in issue
+3. Create POC in worktree
+4. Share results via PR draft
+5. Iterate on approach
+```
+
+## Troubleshooting
+
+### Lost Context
+
+```bash
+# Recover from context file
+cat ./tmp_context/claude-context-*.md
+
+# Check GitHub comments
+gh pr view $PR_NUM --comments
+```
+
+### Build Failures
+
+```bash
+# Debug build issues
+SKIP_ENV_VALIDATION=true bun run build --debug
+
+# Check for type errors
+bun run typecheck
+```
+
+### Merge Conflicts
+
+```bash
+# Update from main
+git fetch origin main
+git rebase origin/main
+
+# Resolve conflicts
+git status
+# ... fix conflicts ...
+git rebase --continue
+```
+
+## Advanced Workflows
+
+### Multi-PR Features
+
+For large features spanning multiple PRs:
+
+```bash
+# Create tracking issue
+gh issue create --title "epic: implement real-time collaboration"
+
+# Create sub-issues
+gh issue create --title "feat: add presence indicators" --body "Part of #200"
+gh issue create --title "feat: add cursor sharing" --body "Part of #200"
+
+# Link PRs to parent issue
+gh pr create --body "Part of #200: Implements presence indicators"
+```
+
+### Dependency Updates
+
+```bash
+# Create dedicated worktree
+./scripts/setup-worktree.sh jeevanpillay/deps-update
+
+# Update dependencies
+bun update --latest
+
+# Test thoroughly
+bun run build
+bun run test
+bun run lint
+
+# Create PR with changelog
+gh pr create --title "chore: update dependencies" \
+  --body "Updates all dependencies to latest versions
+
+## Changes
+$(git diff package.json | grep '^[+-]' | grep -v '^[+-][+-][+-]')
+
+## Testing
+- ✅ Build passes
+- ✅ Tests pass
+- ✅ Lint clean"
+```
+
+## Tips for Working with Claude
+
+1. **Be specific**: Clear requirements get better results
+2. **Provide context**: Share relevant files and errors
+3. **Iterate quickly**: Small changes are easier to debug
+4. **Trust the process**: Let Claude handle the workflow
+
+## Next Steps
+
+- Learn about [Deployment](/docs/deployment) workflows
+- Explore [Architecture](/docs/architecture) for deeper understanding
+- Read [Contributing](/docs/contributing) guidelines

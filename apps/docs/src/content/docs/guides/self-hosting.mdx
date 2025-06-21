@@ -1,0 +1,799 @@
+---
+title: Self-Hosting
+description: Complete guide to self-hosting Lightfast Chat
+---
+
+# Self-Hosting Guide
+
+This comprehensive guide covers everything you need to self-host Lightfast Chat on your own infrastructure.
+
+## Why Self-Host?
+
+### Benefits
+- **Complete Data Control**: Your data never leaves your servers
+- **Customization**: Modify any aspect of the application
+- **Cost Control**: Predictable costs at scale
+- **Compliance**: Meet specific regulatory requirements
+- **Performance**: Optimize for your specific use case
+
+### Considerations
+- **Maintenance**: You're responsible for updates and security
+- **Complexity**: More complex than managed solutions
+- **Resources**: Requires DevOps knowledge and time
+
+## Infrastructure Requirements
+
+### Minimum Specifications
+
+| Component | Minimum | Recommended | Notes |
+|-----------|---------|-------------|-------|
+| **CPU** | 2 cores | 4+ cores | More for concurrent users |
+| **RAM** | 4GB | 8GB+ | Depends on traffic |
+| **Storage** | 20GB SSD | 50GB+ SSD | For app + data |
+| **Bandwidth** | 100Mbps | 1Gbps | For smooth streaming |
+
+### Software Requirements
+
+- **OS**: Ubuntu 22.04 LTS (recommended) or any modern Linux
+- **Runtime**: Node.js 18+ or Bun 1.2+
+- **Database**: Convex (managed) or PostgreSQL (self-managed)
+- **Reverse Proxy**: Nginx or Caddy
+- **SSL**: Let's Encrypt or your certificates
+
+## Installation Options
+
+### Option 1: Bare Metal Server
+
+Best for maximum control and performance.
+
+#### Step 1: Server Preparation
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install essential packages
+sudo apt install -y \
+  curl \
+  git \
+  build-essential \
+  nginx \
+  postgresql \
+  redis-server \
+  certbot \
+  python3-certbot-nginx \
+  ufw
+
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
+```
+
+#### Step 2: PostgreSQL Setup (Optional)
+
+If self-hosting the database:
+
+```bash
+# Configure PostgreSQL
+sudo -u postgres psql
+
+CREATE DATABASE lightfast_chat;
+CREATE USER lightfast WITH ENCRYPTED PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE lightfast_chat TO lightfast;
+\q
+
+# Enable remote connections if needed
+sudo nano /etc/postgresql/14/main/postgresql.conf
+# Set: listen_addresses = '*'
+
+sudo nano /etc/postgresql/14/main/pg_hba.conf
+# Add: host all all 0.0.0.0/0 md5
+
+sudo systemctl restart postgresql
+```
+
+#### Step 3: Application Setup
+
+```bash
+# Create application directory
+sudo mkdir -p /opt/lightfast
+sudo chown $USER:$USER /opt/lightfast
+cd /opt/lightfast
+
+# Clone repository
+git clone https://github.com/lightfastai/chat.git
+cd chat
+
+# Install dependencies
+bun install
+
+# Setup environment
+cp .env.example .env.production
+nano .env.production
+```
+
+#### Step 4: Environment Configuration
+
+```bash
+# Essential configuration
+NEXT_PUBLIC_CONVEX_URL=https://your-convex-instance.com
+CONVEX_DEPLOY_KEY=your-deploy-key
+
+# Database (if self-hosted)
+DATABASE_URL=postgresql://lightfast:password@localhost:5432/lightfast_chat
+
+# Redis (for caching/sessions)
+REDIS_URL=redis://localhost:6379
+
+# Authentication
+JWT_PRIVATE_KEY=base64_encoded_private_key
+JWKS={"keys":[...]}
+
+# AI Providers
+ANTHROPIC_API_KEY=your-key
+OPENAI_API_KEY=your-key
+
+# Site Configuration
+SITE_URL=https://chat.yourdomain.com
+```
+
+#### Step 5: Build and Test
+
+```bash
+# Build application
+NODE_ENV=production bun run build
+
+# Test the build
+PORT=3000 bun run start
+
+# Check if it's running
+curl http://localhost:3000
+```
+
+### Option 2: Docker Deployment
+
+Best for consistency and easier management.
+
+#### Docker Setup
+
+Create `docker-compose.production.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: lightfast-chat
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env.production
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - lightfast-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: lightfast-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lightfast_chat
+      POSTGRES_USER: lightfast
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lightfast-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: lightfast-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - lightfast-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: lightfast-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - app
+    networks:
+      - lightfast-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  lightfast-network:
+    driver: bridge
+```
+
+Create `Dockerfile.production`:
+
+```dockerfile
+# Build stage
+FROM oven/bun:1.2.10-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependency files
+COPY package.json bun.lockb ./
+COPY apps/www/package.json ./apps/www/
+COPY packages/*/package.json ./packages/*/
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Build application
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV SKIP_ENV_VALIDATION=true
+RUN bun run build
+
+# Production stage
+FROM oven/bun:1.2.10-alpine
+
+WORKDIR /app
+
+# Install production dependencies
+COPY package.json bun.lockb ./
+COPY apps/www/package.json ./apps/www/
+RUN bun install --production
+
+# Copy built application
+COPY --from=builder /app/apps/www/.next ./apps/www/.next
+COPY --from=builder /app/apps/www/public ./apps/www/public
+COPY --from=builder /app/apps/www/convex ./apps/www/convex
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
+
+# Start application
+CMD ["bun", "run", "start"]
+```
+
+#### Deploy with Docker
+
+```bash
+# Build and start services
+docker compose -f docker-compose.production.yml up -d
+
+# View logs
+docker compose -f docker-compose.production.yml logs -f
+
+# Scale if needed
+docker compose -f docker-compose.production.yml up -d --scale app=3
+```
+
+### Option 3: Kubernetes Deployment
+
+Best for scalability and orchestration.
+
+Create `k8s/deployment.yaml`:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lightfast-chat
+  labels:
+    app: lightfast-chat
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: lightfast-chat
+  template:
+    metadata:
+      labels:
+        app: lightfast-chat
+    spec:
+      containers:
+      - name: lightfast-chat
+        image: your-registry/lightfast-chat:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        envFrom:
+        - secretRef:
+            name: lightfast-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lightfast-chat-service
+spec:
+  selector:
+    app: lightfast-chat
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lightfast-chat-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: lightfast-chat
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+```
+
+## Web Server Configuration
+
+### Nginx Configuration
+
+Create `/etc/nginx/sites-available/lightfast-chat`:
+
+```nginx
+# Rate limiting
+limit_req_zone $binary_remote_addr zone=general:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=api:10m rate=30r/s;
+
+# Upstream servers
+upstream lightfast_backend {
+    least_conn;
+    server localhost:3000 weight=1 max_fails=3 fail_timeout=30s;
+    # Add more servers for load balancing
+    # server localhost:3001 weight=1 max_fails=3 fail_timeout=30s;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name chat.yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name chat.yourdomain.com;
+
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/chat.yourdomain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/chat.yourdomain.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';" always;
+
+    # Logging
+    access_log /var/log/nginx/lightfast-access.log;
+    error_log /var/log/nginx/lightfast-error.log;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    # Static files
+    location /_next/static {
+        proxy_cache_valid 60m;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        proxy_pass http://lightfast_backend;
+    }
+
+    # API routes with rate limiting
+    location /api {
+        limit_req zone=api burst=50 nodelay;
+        proxy_pass http://lightfast_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # WebSocket support for real-time
+    location /convex {
+        proxy_pass http://lightfast_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+
+    # Main application
+    location / {
+        limit_req zone=general burst=20 nodelay;
+        proxy_pass http://lightfast_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Enable the site:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/lightfast-chat /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## Security Hardening
+
+### Firewall Configuration
+
+```bash
+# Configure UFW
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp  # SSH
+sudo ufw allow 80/tcp  # HTTP
+sudo ufw allow 443/tcp # HTTPS
+sudo ufw enable
+```
+
+### System Security
+
+```bash
+# Create dedicated user
+sudo useradd -m -s /bin/bash lightfast
+sudo usermod -aG sudo lightfast
+
+# Set correct permissions
+sudo chown -R lightfast:lightfast /opt/lightfast
+sudo chmod -R 755 /opt/lightfast
+sudo chmod 600 /opt/lightfast/chat/.env.production
+
+# Disable root SSH
+sudo nano /etc/ssh/sshd_config
+# Set: PermitRootLogin no
+sudo systemctl restart sshd
+```
+
+### Application Security
+
+Create `.env.production` with secure values:
+
+```bash
+# Generate secure keys
+openssl rand -base64 32  # For session secrets
+openssl genrsa 2048      # For JWT private key
+
+# Secure database URLs
+DATABASE_URL=postgresql://user:$(openssl rand -base64 32)@localhost/db
+
+# API key rotation
+ANTHROPIC_API_KEY_ROTATION_DAYS=90
+```
+
+## Monitoring & Maintenance
+
+### System Monitoring
+
+Install monitoring stack:
+
+```bash
+# Prometheus + Grafana
+docker run -d \
+  --name prometheus \
+  -p 9090:9090 \
+  -v prometheus-data:/prometheus \
+  prom/prometheus
+
+docker run -d \
+  --name grafana \
+  -p 3001:3000 \
+  grafana/grafana
+```
+
+### Application Monitoring
+
+Add monitoring endpoints:
+
+```typescript
+// app/api/metrics/route.ts
+export async function GET() {
+  const metrics = {
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    cpu: process.cpuUsage(),
+    activeConnections: getActiveConnections(),
+    messageRate: getMessageRate(),
+  }
+  
+  return Response.json(metrics)
+}
+```
+
+### Log Management
+
+Configure centralized logging:
+
+```bash
+# Install Vector for log aggregation
+curl -sSL https://sh.vector.dev | bash
+
+# Configure Vector
+cat > /etc/vector/vector.toml << EOF
+[sources.app_logs]
+type = "file"
+include = ["/opt/lightfast/chat/logs/*.log"]
+
+[transforms.parse_logs]
+type = "remap"
+inputs = ["app_logs"]
+source = '''
+. = parse_json!(string!(.message))
+'''
+
+[sinks.elasticsearch]
+type = "elasticsearch"
+inputs = ["parse_logs"]
+endpoint = "http://localhost:9200"
+EOF
+```
+
+### Backup Automation
+
+Create `/opt/lightfast/scripts/backup.sh`:
+
+```bash
+#!/bin/bash
+set -e
+
+BACKUP_DIR="/backups/lightfast"
+DATE=$(date +%Y%m%d_%H%M%S)
+S3_BUCKET="s3://your-backup-bucket"
+
+# Create backup directory
+mkdir -p $BACKUP_DIR/$DATE
+
+# Backup database
+pg_dump $DATABASE_URL > $BACKUP_DIR/$DATE/database.sql
+
+# Backup files
+tar -czf $BACKUP_DIR/$DATE/uploads.tar.gz /opt/lightfast/chat/uploads
+
+# Backup configuration
+cp /opt/lightfast/chat/.env.production $BACKUP_DIR/$DATE/
+
+# Sync to S3 (optional)
+aws s3 sync $BACKUP_DIR/$DATE $S3_BUCKET/$DATE
+
+# Clean old backups (keep 30 days)
+find $BACKUP_DIR -type d -mtime +30 -exec rm -rf {} +
+
+echo "Backup completed: $DATE"
+```
+
+Schedule backups:
+
+```bash
+# Add to crontab
+0 2 * * * /opt/lightfast/scripts/backup.sh >> /var/log/lightfast-backup.log 2>&1
+```
+
+## Updates & Maintenance
+
+### Update Process
+
+Create `/opt/lightfast/scripts/update.sh`:
+
+```bash
+#!/bin/bash
+set -e
+
+cd /opt/lightfast/chat
+
+# Backup current version
+git tag backup-$(date +%Y%m%d_%H%M%S)
+
+# Pull updates
+git pull origin main
+
+# Install dependencies
+bun install
+
+# Build application
+NODE_ENV=production bun run build
+
+# Run migrations if needed
+bun run migrate:prod
+
+# Restart services
+sudo systemctl restart lightfast-chat
+
+echo "Update completed successfully"
+```
+
+### Zero-Downtime Updates
+
+For zero-downtime deployments:
+
+```bash
+# Blue-green deployment
+# 1. Deploy to secondary instance
+# 2. Test secondary instance
+# 3. Switch load balancer
+# 4. Decommission old instance
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Application won't start**
+```bash
+# Check logs
+journalctl -u lightfast-chat -n 100
+# Check permissions
+ls -la /opt/lightfast/chat
+# Verify environment
+bun run env:check
+```
+
+**Database connection issues**
+```bash
+# Test connection
+psql $DATABASE_URL -c "SELECT 1"
+# Check PostgreSQL logs
+sudo tail -f /var/log/postgresql/*.log
+```
+
+**High memory usage**
+```bash
+# Check Node.js memory
+node -e "console.log(process.memoryUsage())"
+# Increase memory limit
+NODE_OPTIONS="--max-old-space-size=4096" bun run start
+```
+
+**SSL certificate issues**
+```bash
+# Renew certificate
+sudo certbot renew
+# Test SSL
+openssl s_client -connect chat.yourdomain.com:443
+```
+
+## Performance Tuning
+
+### System Optimization
+
+```bash
+# Kernel parameters
+sudo nano /etc/sysctl.conf
+
+# Add:
+net.core.somaxconn = 65535
+net.ipv4.tcp_max_syn_backlog = 65535
+net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.tcp_tw_reuse = 1
+
+# Apply changes
+sudo sysctl -p
+```
+
+### Application Optimization
+
+```typescript
+// Enable clustering
+import cluster from 'cluster'
+import { cpus } from 'os'
+
+if (cluster.isPrimary) {
+  const numWorkers = cpus().length
+  
+  for (let i = 0; i < numWorkers; i++) {
+    cluster.fork()
+  }
+  
+  cluster.on('exit', (worker) => {
+    console.log(`Worker ${worker.process.pid} died`)
+    cluster.fork()
+  })
+} else {
+  // Start application
+  startServer()
+}
+```
+
+## Support Resources
+
+- **Documentation**: This guide and others
+- **GitHub Issues**: Report bugs and request features
+- **Discord Community**: Get help from other self-hosters
+- **Professional Support**: Available for enterprise deployments
+
+## Next Steps
+
+- Configure [Monitoring](/docs/troubleshooting#monitoring)
+- Set up [Backups](/docs/troubleshooting#backup-recovery)
+- Review [Security](/docs/configuration#security-configuration) best practices
+- Join the [Community](https://discord.gg/lightfast) for support
