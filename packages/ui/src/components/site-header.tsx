@@ -8,9 +8,11 @@ export interface SiteHeaderProps {
   className?: string
   logoHref?: string
   githubUrl?: string
+  docsUrl?: string
   signInHref?: string
   showLogo?: boolean
   showGitHub?: boolean
+  showDocs?: boolean
   showSignIn?: boolean
   children?: React.ReactNode
 }
@@ -19,9 +21,11 @@ export function SiteHeader({
   className,
   logoHref = "/",
   githubUrl,
+  docsUrl,
   signInHref = "/signin",
   showLogo = true,
   showGitHub = true,
+  showDocs = true,
   showSignIn = true,
   children,
 }: SiteHeaderProps) {
@@ -41,6 +45,14 @@ export function SiteHeader({
           )}
         </div>
         <div className="flex items-center gap-4">
+          {showDocs && docsUrl && (
+            <Link
+              href={docsUrl}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Docs
+            </Link>
+          )}
           {showGitHub && githubUrl && (
             <Link
               href={githubUrl}
