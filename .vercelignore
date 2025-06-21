@@ -1,6 +1,3 @@
-# Ignore docs app by default (can be deployed separately)
-apps/docs
-
 # Ignore worktrees
 worktrees
 
