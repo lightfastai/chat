@@ -13,15 +13,45 @@ The packages directory contains shared code used across multiple apps:
 ```
 packages/ui/
 ├── src/
-│   ├── components/      # All UI components
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── dialog.tsx
-│   │   └── ... (all shadcn components)
+│   ├── components/      # All UI components (28 total)
+│   │   ├── alert.tsx         # Alert notifications
+│   │   ├── avatar.tsx        # User/AI avatars
+│   │   ├── badge.tsx         # Status badges
+│   │   ├── button.tsx        # Button variants
+│   │   ├── card.tsx          # Card containers
+│   │   ├── checkbox.tsx      # Checkbox input
+│   │   ├── code-block.tsx    # Code syntax highlighting
+│   │   ├── dialog.tsx        # Modal dialogs
+│   │   ├── dropdown-menu.tsx # Dropdown menus
+│   │   ├── form.tsx          # Form components
+│   │   ├── icons.tsx         # Icon components
+│   │   ├── input.tsx         # Text inputs
+│   │   ├── label.tsx         # Form labels
+│   │   ├── markdown.tsx      # Markdown renderer
+│   │   ├── progress.tsx      # Progress indicators
+│   │   ├── scroll-area.tsx   # Scrollable areas
+│   │   ├── select.tsx        # Select dropdowns
+│   │   ├── separator.tsx     # Visual separators
+│   │   ├── sheet.tsx         # Side sheets
+│   │   ├── sidebar.tsx       # Sidebar navigation
+│   │   ├── skeleton.tsx      # Loading skeletons
+│   │   ├── switch.tsx        # Toggle switches
+│   │   ├── tabs.tsx          # Tab navigation
+│   │   ├── textarea.tsx      # Multiline text input
+│   │   ├── toast.tsx         # Toast notifications
+│   │   ├── toaster.tsx       # Toast container
+│   │   ├── tooltip.tsx       # Tooltips
+│   │   ├── site-footer.tsx   # Site footer component
+│   │   ├── site-header.tsx   # Site header component
+│   │   └── sonner.tsx        # Sonner toast library
 │   ├── lib/            # Utilities
-│   │   └── utils.ts    # cn() utility and helpers
+│   │   ├── utils.ts    # cn() utility and helpers
+│   │   └── fonts.ts    # Font configuration
 │   ├── hooks/          # Shared React hooks
-│   │   └── use-mobile.ts
+│   │   └── use-mobile.ts # Mobile detection hook
+│   ├── types/          # TypeScript type definitions
+│   │   ├── nav.ts      # Navigation types
+│   │   └── site.ts     # Site configuration types
 │   └── globals.css     # Tailwind directives & global styles
 ├── package.json
 ├── tsconfig.json
@@ -51,6 +81,9 @@ import { Card, CardContent } from "@repo/ui/components/card"
 
 // Import utilities
 import { cn } from "@repo/ui/lib/utils"
+
+// Import types
+import type { SiteConfig, NavItem } from "@repo/ui/types/site"
 
 // Import global styles (in root layout only)
 import "@repo/ui/globals.css"

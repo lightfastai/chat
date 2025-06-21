@@ -247,27 +247,62 @@ SKIP_ENV_VALIDATION=true bun run build
 
 ## Available Scripts
 
-- `bun run dev` - Start the Next.js development server
-- `bun run build` - Build the application for production
-- `bun run start` - Start the production server
+### Monorepo Commands
+- `bun dev` - Run all apps in development mode
+- `bun dev:www` - Run only the chat application
+- `bun dev:docs` - Run only the documentation site
+- `bun run build` - Build all applications
+- `bun run build:www` - Build only the chat application
+- `bun run build:docs` - Build only the documentation site
+
+### Code Quality
 - `bun run lint` - Run Biome linter and fix issues
 - `bun run format` - Format code with Biome
+- `bun run typecheck` - Run TypeScript type checking
+
+### Convex Backend
 - `bun run convex:dev` - Start Convex development server
 - `bun run convex:deploy` - Deploy to Convex
+- `bun run env:sync` - Sync environment variables to Convex
+
+### UI Components
+- `bun run ui:add <component>` - Add a new shadcn/ui component
+- `bun run ui:diff` - Check for component updates
 
 ## Project Structure
 
+This is a Turborepo monorepo with the following structure:
+
 ```
-├── src/
-│   ├── app/            # Next.js App Router pages
-│   ├── components/     # React components
-│   └── lib/           # Utility functions
-├── convex/            # Convex backend functions
-│   ├── schema.ts      # Database schema
-│   └── messages.ts    # Message functions
-├── public/            # Static assets
-└── package.json       # Dependencies and scripts
+├── apps/                    # Applications
+│   ├── www/                # Main chat application
+│   │   ├── src/           # Source code
+│   │   │   ├── app/       # Next.js App Router pages
+│   │   │   ├── components/# Feature-based components
+│   │   │   ├── hooks/     # Custom React hooks
+│   │   │   └── lib/       # Utilities and config
+│   │   ├── convex/        # Backend functions & database
+│   │   └── public/        # Static assets
+│   └── docs/              # Documentation site (Fumadocs)
+├── packages/              # Shared packages
+│   └── ui/               # Shared UI component library
+│       ├── src/
+│       │   ├── components/ # shadcn/ui components (28 total)
+│       │   ├── lib/       # Shared utilities
+│       │   ├── hooks/     # Shared React hooks
+│       │   └── types/     # TypeScript definitions
+│       └── globals.css    # Shared Tailwind styles
+├── scripts/              # Development & deployment scripts
+├── turbo.json           # Turborepo configuration
+├── components.json      # shadcn/ui configuration
+└── package.json         # Root dependencies and scripts
 ```
+
+### Key Directories
+- **apps/www**: Main chat application with Next.js 15, Convex, and TypeScript
+- **apps/docs**: Documentation site built with Fumadocs
+- **packages/ui**: Shared UI components based on shadcn/ui
+- **scripts**: Automation scripts for development workflow
 
 ## Development
 
