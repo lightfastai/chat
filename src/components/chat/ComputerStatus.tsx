@@ -34,8 +34,7 @@ export function ComputerStatus({
   const shouldShow =
     computerStatus &&
     (computerStatus.isRunning ||
-      (computerStatus.instanceId &&
-        computerStatus.currentOperation !== "Ready"))
+      computerStatus.currentOperation === "Initializing environment...")
 
   useEffect(() => {
     if (shouldShow) {
@@ -95,9 +94,7 @@ export function ComputerStatus({
                     Lightfast Computer
                   </span>
                   <span className="text-xs text-blue-700/70 dark:text-blue-300/70">
-                    {computerStatus.currentOperation === "Ready"
-                      ? "Initializing environment..."
-                      : computerStatus.currentOperation || "Processing..."}
+                    {computerStatus.currentOperation || "Processing..."}
                   </span>
                   {duration > 0 && (
                     <span className="text-xs text-blue-600/60 dark:text-blue-400/60 ml-auto mr-2">

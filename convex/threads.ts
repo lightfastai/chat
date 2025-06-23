@@ -89,6 +89,12 @@ export const create = mutation({
         messageCount: 0,
         modelStats: {},
       },
+      // Initialize computer status to show initialization
+      computerStatus: {
+        isRunning: false,
+        currentOperation: "Initializing environment...",
+        startedAt: now,
+      },
     })
 
     // Schedule computer initialization for this thread
@@ -368,6 +374,12 @@ export const branchFromMessage = mutation({
         totalCachedInputTokens: 0,
         messageCount: 0,
         modelStats: {},
+      },
+      // Initialize computer status to show initialization
+      computerStatus: {
+        isRunning: false,
+        currentOperation: "Initializing environment...",
+        startedAt: now,
       },
     })
 

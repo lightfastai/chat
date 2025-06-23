@@ -32,7 +32,7 @@ export const initializeComputer = internalAction({
       // Create the computer instance
       const instance = await instanceManager.getOrCreateInstance()
 
-      // Update thread with computer status
+      // Update thread with computer status - show as ready
       await ctx.runMutation(internal.threads.internals.updateComputerStatus, {
         threadId: args.threadId,
         status: {
@@ -42,6 +42,12 @@ export const initializeComputer = internalAction({
           startedAt: Date.now(),
           lastUpdateAt: Date.now(),
         },
+      })
+
+      // After a short delay, clear the computer status to hide the UI
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      await ctx.runMutation(internal.threads.internals.clearComputerStatus, {
+        threadId: args.threadId,
       })
 
       console.log(
