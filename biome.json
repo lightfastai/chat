@@ -44,7 +44,8 @@
       "dist/**",
       "build/**",
       ".env*",
-      "worktrees/**"
+      "worktrees/**",
+      "tmp_repo/**"
     ]
   }
 }

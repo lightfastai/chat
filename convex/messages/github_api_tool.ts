@@ -17,11 +17,11 @@ export function createGitHubAPITool() {
       try {
         // Use GitHub's public API to verify repository existence
         const url = `https://api.github.com/repos/${owner}/${repo}`
-        
+
         const response = await fetch(url, {
           headers: {
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'lightfast-chat-app',
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "lightfast-chat-app",
           },
         })
 
@@ -34,7 +34,7 @@ export function createGitHubAPITool() {
               statusCode: 404,
             }
           }
-          
+
           return {
             success: false,
             exists: false,
@@ -75,7 +75,8 @@ export function createGitHubAPITool() {
         return {
           success: false,
           exists: false,
-          error: error instanceof Error ? error.message : "Unknown error occurred",
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
         }
       }
     },

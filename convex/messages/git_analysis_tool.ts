@@ -1,17 +1,24 @@
 import { tool } from "ai"
 import { z } from "zod"
-// import { internal } from "../_generated/api.js" // TODO: Re-enable for computer status tracking
-import { env } from "../env.js"
-import { ComputerInstanceManager } from "./computer_instance_manager.js"
 import type { Id } from "../_generated/dataModel.js"
+import { env } from "../env.js"
+// import { internal } from "../_generated/api.js" // TODO: Re-enable for computer status tracking
+import { ComputerInstanceManager } from "./computer_instance_manager.js"
 
 /**
- * Creates a git analysis tool that allows AI to clone repositories
- * and analyze their contents in an isolated environment with status tracking
+ * Creates a computer tool that allows AI to perform git operations,
+ * file analysis, and code exploration in an isolated environment
  */
-export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
-  const instanceManager = new ComputerInstanceManager(threadId)
-  
+export function createGitAnalysisTool(
+  threadId: Id<"threads">,
+  existingInstanceId?: string,
+) {
+  const instanceManager = new ComputerInstanceManager({
+    threadId,
+    flyApiToken: env.FLY_API_TOKEN,
+    flyAppName: env.FLY_APP_NAME,
+  })
+
   return tool({
     description:
       "Clone git repositories and analyze their structure, code, and contents. Use this to examine codebases, understand project architecture, review implementation patterns, or search for specific functionality.",
@@ -21,7 +28,9 @@ export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
         .describe("The operation to perform"),
       repoUrl: z
         .string()
-        .describe("Git repository URL (required for clone operation, optional for others)")
+        .describe(
+          "Git repository URL (required for clone operation, optional for others)",
+        )
         .default(""),
       path: z
         .string()
@@ -39,27 +48,20 @@ export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
         .default(3),
     }),
     execute: async ({ operation, repoUrl, path, pattern, depth }) => {
-      console.log(`Git analysis tool: ${operation}`, { repoUrl, path, pattern, depth })
+      console.log(`Git analysis tool: ${operation}`, {
+        repoUrl,
+        path,
+        pattern,
+        depth,
+      })
 
       // Note: This is a mock implementation showing the interface
       // The actual implementation would use the Computer SDK
 
       try {
-        // Check if FLY_API_TOKEN is configured
-        if (!env.FLY_API_TOKEN) {
-          return {
-            success: false,
-            operation,
-            error:
-              "Git analysis tool is not configured. FLY_API_TOKEN is required.",
-            repoUrl,
-            path,
-            pattern,
-          }
-        }
-
         // Get or create an instance using the instance manager
-        const instance = await instanceManager.getOrCreateInstance()
+        const instance =
+          await instanceManager.getOrCreateInstance(existingInstanceId)
         const sdk = await instanceManager.getSDK()
 
         switch (operation) {
@@ -145,7 +147,7 @@ export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
           }
 
           case "analyze": {
-            const targetPath = (path && path.trim() !== "") ? path : "/home/repo"
+            const targetPath = path && path.trim() !== "" ? path : "/home/repo"
 
             // Update status
             // TODO: Re-enable once types regenerate
@@ -158,7 +160,10 @@ export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
             const treeResult = await sdk.commands.execute({
               instanceId: instance.id,
               command: "bash",
-              args: ["-c", `cd "${targetPath}" && find . -type f -maxdepth ${depth} | head -100`],
+              args: [
+                "-c",
+                `cd "${targetPath}" && find . -type f -maxdepth ${depth} | head -100`,
+              ],
               timeout: 15000,
             })
 
@@ -166,7 +171,10 @@ export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
             const statsResult = await sdk.commands.execute({
               instanceId: instance.id,
               command: "bash",
-              args: ["-c", `cd "${targetPath}" && du -sh . 2>/dev/null || echo "Size unknown"`],
+              args: [
+                "-c",
+                `cd "${targetPath}" && du -sh . 2>/dev/null || echo "Size unknown"`,
+              ],
               timeout: 10000,
             })
 
@@ -209,7 +217,7 @@ export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
               }
             }
 
-            const searchPath = (path && path.trim() !== "") ? path : "/home/repo"
+            const searchPath = path && path.trim() !== "" ? path : "/home/repo"
 
             // Update status
             // TODO: Re-enable once types regenerate
@@ -222,7 +230,10 @@ export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
             const searchResult = await sdk.commands.execute({
               instanceId: instance.id,
               command: "bash",
-              args: ["-c", `cd "${searchPath}" && find . -name "*${pattern}*" -type f | head -50`],
+              args: [
+                "-c",
+                `cd "${searchPath}" && find . -name "*${pattern}*" -type f | head -50`,
+              ],
               timeout: 30000,
             })
 
@@ -281,4 +292,3 @@ export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
     },
   })
 }
-

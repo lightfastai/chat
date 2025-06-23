@@ -155,6 +155,15 @@ export const createThreadAndSend = mutation({
       },
     })
 
+    // Schedule computer initialization for this thread
+    await ctx.scheduler.runAfter(
+      0,
+      internal.threads.actions.initializeComputer,
+      {
+        threadId,
+      },
+    )
+
     // Insert user message
     const userMessageId = await ctx.db.insert("messages", {
       threadId,

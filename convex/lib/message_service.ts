@@ -1,4 +1,4 @@
-import type { CoreMessage } from "ai"
+import type { CoreMessage, PrepareStepFunction, ToolSet } from "ai"
 import { stepCountIs, streamText } from "ai"
 import type { ModelId } from "../../src/lib/ai/schemas.js"
 import {
@@ -9,7 +9,11 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"
 import { createAIClient } from "./ai_client.js"
-import { createGitAnalysisTool, createGitHubAPITool, createWebSearchTool } from "./ai_tools.js"
+import {
+  createGitAnalysisTool,
+  createGitHubAPITool,
+  createWebSearchTool,
+} from "./ai_tools.js"
 import { buildMessageContent, createSystemPrompt } from "./message_builder.js"
 
 /**
@@ -116,14 +120,8 @@ export async function streamAIResponse(
   } | null,
   webSearchEnabled?: boolean,
   gitAnalysisEnabled?: boolean,
-  prepareStep?: (options: {
-    steps: any[]
-    stepNumber: number
-    model: any
-  }) => Promise<{
-    toolChoice?: any
-    activeTools?: string[]
-  } | undefined>,
+  prepareStep?: PrepareStepFunction<NoInfer<ToolSet>> | undefined,
+  threadComputerInstanceId?: string,
 ) {
   const provider = getProviderFromModelId(modelId)
   const aiClient = createAIClient(modelId, userApiKeys)
@@ -136,14 +134,17 @@ export async function streamAIResponse(
   }
 
   // Add tools if enabled
-  const tools: any = {}
+  const tools: ToolSet = {}
 
   if (webSearchEnabled) {
     tools.web_search = createWebSearchTool()
   }
 
   if (gitAnalysisEnabled) {
-    tools.git_analysis = createGitAnalysisTool(ctx, threadId)
+    tools.git_analysis = createGitAnalysisTool(
+      threadId,
+      threadComputerInstanceId,
+    )
     tools.github_api = createGitHubAPITool()
   }
 

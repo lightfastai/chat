@@ -1,4 +1,4 @@
-import { type CoreMessage, stepCountIs, streamText } from "ai"
+import { type CoreMessage, type ToolSet, stepCountIs, streamText } from "ai"
 import { v } from "convex/values"
 import {
   type ModelId,
@@ -8,7 +8,11 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import { internalAction } from "../_generated/server.js"
 import { createAIClient } from "../lib/ai_client.js"
-import { createGitAnalysisTool, createGitHubAPITool, createWebSearchTool } from "../lib/ai_tools.js"
+import {
+  createGitAnalysisTool,
+  createGitHubAPITool,
+  createWebSearchTool,
+} from "../lib/ai_tools.js"
 import { requireResource } from "../lib/errors.js"
 import {
   buildMessageContent,
@@ -154,14 +158,19 @@ export const generateAIResponseWithMessage = internalAction({
       }
 
       // Add tools if enabled
-      const tools: any = {}
+      const tools: ToolSet = {}
 
       if (args.webSearchEnabled) {
         tools.web_search = createWebSearchTool()
       }
 
       if (args.gitAnalysisEnabled) {
-        tools.git_analysis = createGitAnalysisTool(ctx, args.threadId)
+        // Pass the thread's existing computer instance ID if available
+        const threadComputerInstanceId = thread.computerStatus?.instanceId
+        tools.git_analysis = createGitAnalysisTool(
+          args.threadId,
+          threadComputerInstanceId,
+        )
         tools.github_api = createGitHubAPITool()
       }
 
@@ -174,8 +183,8 @@ export const generateAIResponseWithMessage = internalAction({
         if (args.gitAnalysisEnabled) {
           generationOptions.prepareStep = async ({ steps, stepNumber }) => {
             // Check if any previous step used git_analysis tool
-            const hasGitAnalysisCall = steps.some(step =>
-              step.toolCalls?.some(tc => tc.toolName === 'git_analysis')
+            const hasGitAnalysisCall = steps.some((step) =>
+              step.toolCalls?.some((tc) => tc.toolName === "git_analysis"),
             )
 
             // If git analysis was called, ensure Computer instance is ready
@@ -367,6 +376,7 @@ export const generateAIResponse = internalAction({
         args.webSearchEnabled,
         args.gitAnalysisEnabled,
         undefined, // prepareStep - not used in legacy generateAIResponse
+        thread.computerStatus?.instanceId, // Pass thread's computer instance ID
       )
 
       // Update thread usage using shared utility

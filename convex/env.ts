@@ -18,12 +18,10 @@ export const env = createEnv({
     FLY_API_TOKEN: z
       .string()
       .min(1)
-      .optional()
       .describe("Fly.io API token for Computer SDK instances"),
     FLY_APP_NAME: z
       .string()
       .min(1)
-      .optional()
       .describe("Fly.io app name for Computer SDK instances"),
     // Authentication & Encryption
     ENCRYPTION_KEY: z

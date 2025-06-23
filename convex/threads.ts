@@ -62,7 +62,7 @@ export const create = mutation({
     }
 
     const now = Date.now()
-    return await ctx.db.insert("threads", {
+    const threadId = await ctx.db.insert("threads", {
       clientId: args.clientId,
       title: args.title,
       userId: userId,
@@ -80,6 +80,17 @@ export const create = mutation({
         modelStats: {},
       },
     })
+
+    // Schedule computer initialization for this thread
+    await ctx.scheduler.runAfter(
+      0,
+      internal.threads.actions.initializeComputer,
+      {
+        threadId,
+      },
+    )
+
+    return threadId
   },
 })
 
@@ -193,6 +204,17 @@ export const deleteThread = mutation({
       args.threadId,
       userId,
     )
+
+    // Schedule computer cleanup if thread has a computer instance
+    if (thread.computerStatus?.isRunning) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.threads.actions.cleanupComputer,
+        {
+          threadId: args.threadId,
+        },
+      )
+    }
 
     // First delete all messages in the thread
     const messages = await ctx.db
@@ -338,6 +360,15 @@ export const branchFromMessage = mutation({
         modelStats: {},
       },
     })
+
+    // Schedule computer initialization for this thread
+    await ctx.scheduler.runAfter(
+      0,
+      internal.threads.actions.initializeComputer,
+      {
+        threadId: newThreadId,
+      },
+    )
 
     // Copy messages to new thread and accumulate usage
     let lastUserMessage = ""
