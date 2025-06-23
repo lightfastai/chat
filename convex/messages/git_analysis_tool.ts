@@ -1,19 +1,17 @@
-import {
-  type CreateInstanceOptions,
-  type Instance,
-  type LightfastComputerSDK,
-  createLightfastComputer,
-} from "@lightfastai/computer"
 import { tool } from "ai"
 import { z } from "zod"
 // import { internal } from "../_generated/api.js" // TODO: Re-enable for computer status tracking
 import { env } from "../env.js"
+import { ComputerInstanceManager } from "./computer_instance_manager.js"
+import type { Id } from "../_generated/dataModel.js"
 
 /**
  * Creates a git analysis tool that allows AI to clone repositories
  * and analyze their contents in an isolated environment with status tracking
  */
-export function createGitAnalysisTool(ctx: any, threadId: string) {
+export function createGitAnalysisTool(ctx: any, threadId: Id<"threads">) {
+  const instanceManager = new ComputerInstanceManager(threadId)
+  
   return tool({
     description:
       "Clone git repositories and analyze their structure, code, and contents. Use this to examine codebases, understand project architecture, review implementation patterns, or search for specific functionality.",
@@ -60,23 +58,9 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
           }
         }
 
-        // Check that Computer SDK environment variables are available
-        if (!env.FLY_API_TOKEN || !env.FLY_APP_NAME) {
-          return {
-            success: false,
-            operation,
-            error: "Computer SDK requires FLY_API_TOKEN and FLY_APP_NAME environment variables",
-          }
-        }
-
-        // Initialize Computer SDK with Fly API token and app name
-        const sdk = createLightfastComputer({
-          flyApiToken: env.FLY_API_TOKEN,
-          appName: env.FLY_APP_NAME,
-        })
-
-        // Get or create an instance for this session
-        const instance = await getOrCreateInstance(sdk, ctx, threadId as any)
+        // Get or create an instance using the instance manager
+        const instance = await instanceManager.getOrCreateInstance()
+        const sdk = await instanceManager.getSDK()
 
         switch (operation) {
           case "clone": {
@@ -298,106 +282,3 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
   })
 }
 
-// Helper to manage Computer instances with status tracking
-async function getOrCreateInstance(
-  sdk: LightfastComputerSDK,
-  _ctx: any,
-  _threadId: string,
-): Promise<Instance> {
-  // Check for existing running instances
-  const listResult = await sdk.instances.list()
-
-  if (listResult.isOk()) {
-    // First, look for instances specifically tied to this thread
-    const threadInstances = listResult.value.filter(
-      (i) => i.status === "running" && 
-      (i.name === `git-analysis-${_threadId}` || i.metadata?.threadId === _threadId)
-    )
-    
-    if (threadInstances.length > 0) {
-      console.log(`Using existing thread instance: ${threadInstances[0].id}`)
-      return threadInstances[0]
-    }
-    
-    // Fallback: look for any running git-analysis instances
-    const runningInstances = listResult.value.filter(
-      (i) => i.status === "running" && i.name?.startsWith("git-analysis-")
-    )
-    if (runningInstances.length > 0) {
-      console.log(`Using existing instance: ${runningInstances[0].id}`)
-      return runningInstances[0]
-    }
-  }
-
-  // Create new instance if none exist
-  console.log("Creating new Computer instance...")
-  
-  // Update computer status to show creation
-  // TODO: Re-enable once types regenerate
-  // await ctx.runMutation(internal.messages.updateComputerStatus, {
-  //   threadId: threadId as any,
-  //   status: {
-  //     isRunning: true,
-  //     instanceId: undefined,
-  //     currentOperation: "Creating instance",
-  //     startedAt: Date.now(),
-  //   },
-  // })
-
-  const createOptions: CreateInstanceOptions = {
-    name: `git-analysis-${_threadId}`,
-    region: "iad", // US East (Washington DC)
-    size: "shared-cpu-2x",
-    memoryMb: 512,
-    metadata: {
-      purpose: "git-analysis",
-      createdBy: "chat-app",
-      threadId: _threadId,
-    },
-  }
-
-  const createResult = await sdk.instances.create(createOptions)
-
-  if (createResult.isErr()) {
-    throw new Error(`Failed to create instance: ${createResult.error.message}`)
-  }
-
-  // Wait for instance to be running
-  let instance = createResult.value
-  let attempts = 0
-  
-  // Update status with instance ID
-  // TODO: Re-enable once types regenerate
-  // await ctx.runMutation(internal.messages.updateComputerStatus, {
-  //   threadId: threadId as any,
-  //   status: {
-  //     isRunning: true,
-  //     instanceId: instance.id,
-  //     currentOperation: "Starting instance",
-  //     startedAt: Date.now(),
-  //   },
-  // })
-
-  while (instance.status !== "running" && attempts < 30) {
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    const getResult = await sdk.instances.get(instance.id)
-    if (getResult.isOk()) {
-      instance = getResult.value
-    }
-    attempts++
-  }
-
-  if (instance.status !== "running") {
-    throw new Error(`Instance failed to start: ${instance.status}`)
-  }
-
-  // Update status to show instance is ready
-  // TODO: Re-enable once types regenerate
-  // await ctx.runMutation(internal.messages.updateComputerOperation, {
-  //   threadId: threadId as any,
-  //   operation: "Instance ready",
-  // })
-
-  console.log(`Created new instance: ${instance.id}`)
-  return instance
-}

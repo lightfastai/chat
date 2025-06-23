@@ -116,6 +116,14 @@ export async function streamAIResponse(
   } | null,
   webSearchEnabled?: boolean,
   gitAnalysisEnabled?: boolean,
+  prepareStep?: (options: {
+    steps: any[]
+    stepNumber: number
+    model: any
+  }) => Promise<{
+    toolChoice?: any
+    activeTools?: string[]
+  } | undefined>,
 ) {
   const provider = getProviderFromModelId(modelId)
   const aiClient = createAIClient(modelId, userApiKeys)
@@ -142,6 +150,11 @@ export async function streamAIResponse(
   if (Object.keys(tools).length > 0) {
     generationOptions.tools = tools
     generationOptions.stopWhen = stepCountIs(5)
+    
+    // Add prepareStep if provided
+    if (prepareStep) {
+      generationOptions.experimental_prepareStep = prepareStep
+    }
   }
 
   // For Claude 4.0 thinking mode, enable thinking/reasoning
