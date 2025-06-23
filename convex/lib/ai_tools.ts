@@ -7,6 +7,7 @@
 
 export { createWebSearchTool } from "../messages/tools.js"
 export { createGitAnalysisTool } from "../messages/git_analysis_tool.js"
+export { createGitHubAPITool } from "../messages/github_api_tool.js"
 
 // Future tools can be added here:
 // - createImageGenerationTool

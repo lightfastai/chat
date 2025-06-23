@@ -515,27 +515,26 @@ export const updateComputerStatus = internalMutation({
     }),
   },
   returns: v.null(),
-  handler: async (_ctx, _args) => {
-    // TODO: Enable once computerStatus field is added to schema
-    // const { threadId, status } = args
+  handler: async (ctx, args) => {
+    const { threadId, status } = args
 
-    // if (status.isRunning) {
-    //   // Starting computer
-    //   await ctx.db.patch(threadId, {
-    //     computerStatus: {
-    //       isRunning: true,
-    //       instanceId: status.instanceId,
-    //       currentOperation: status.currentOperation || "Initializing",
-    //       startedAt: status.startedAt || Date.now(),
-    //       lastUpdateAt: Date.now(),
-    //     },
-    //   })
-    // } else {
-    //   // Stopping computer - clear the status
-    //   await ctx.db.patch(threadId, {
-    //     computerStatus: undefined,
-    //   })
-    // }
+    if (status.isRunning) {
+      // Starting computer
+      await ctx.db.patch(threadId, {
+        computerStatus: {
+          isRunning: true,
+          instanceId: status.instanceId,
+          currentOperation: status.currentOperation || "Initializing",
+          startedAt: status.startedAt || Date.now(),
+          lastUpdateAt: Date.now(),
+        },
+      })
+    } else {
+      // Stopping computer - clear the status
+      await ctx.db.patch(threadId, {
+        computerStatus: undefined,
+      })
+    }
 
     return null
   },
@@ -548,22 +547,21 @@ export const updateComputerOperation = internalMutation({
     operation: v.string(),
   },
   returns: v.null(),
-  handler: async (_ctx, _args) => {
-    // TODO: Enable once computerStatus field is added to schema
-    // const { threadId, operation } = args
+  handler: async (ctx, args) => {
+    const { threadId, operation } = args
 
-    // const thread = await ctx.db.get(threadId)
-    // if (!thread || !thread.computerStatus?.isRunning) {
-    //   return null
-    // }
+    const thread = await ctx.db.get(threadId)
+    if (!thread || !thread.computerStatus?.isRunning) {
+      return null
+    }
 
-    // await ctx.db.patch(threadId, {
-    //   computerStatus: {
-    //     ...thread.computerStatus,
-    //     currentOperation: operation,
-    //     lastUpdateAt: Date.now(),
-    //   },
-    // })
+    await ctx.db.patch(threadId, {
+      computerStatus: {
+        ...thread.computerStatus,
+        currentOperation: operation,
+        lastUpdateAt: Date.now(),
+      },
+    })
 
     return null
   },

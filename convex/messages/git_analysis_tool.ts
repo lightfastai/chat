@@ -6,13 +6,14 @@ import {
 } from "@lightfastai/computer"
 import { tool } from "ai"
 import { z } from "zod"
+import { api } from "../_generated/api.js"
 import { env } from "../env.js"
 
 /**
  * Creates a git analysis tool that allows AI to clone repositories
- * and analyze their contents in an isolated environment
+ * and analyze their contents in an isolated environment with status tracking
  */
-export function createGitAnalysisTool() {
+export function createGitAnalysisTool(ctx: any, threadId: string) {
   return tool({
     description:
       "Clone git repositories and analyze their structure, code, and contents. Use this to examine codebases, understand project architecture, review implementation patterns, or search for specific functionality.",
@@ -76,7 +77,7 @@ export function createGitAnalysisTool() {
         })
 
         // Get or create an instance for this session
-        const instance = await getOrCreateInstance(sdk)
+        const instance = await getOrCreateInstance(sdk, ctx, threadId as any)
 
         switch (operation) {
           case "clone": {
@@ -99,11 +100,33 @@ export function createGitAnalysisTool() {
               }
             }
 
+            // Update status to show cloning
+            await ctx.runMutation(api.messages.updateComputerOperation, {
+              threadId: threadId as any,
+              operation: `Cloning ${repoUrl}`,
+            })
+
+            // Prepare working directory and clone
+            const setupResult = await sdk.commands.execute({
+              instanceId: instance.id,
+              command: "bash",
+              args: ["-c", "cd /home && rm -rf repo && mkdir -p repo"],
+              timeout: 10000,
+            })
+
+            if (setupResult.isErr()) {
+              return {
+                success: false,
+                operation,
+                error: `Failed to setup working directory: ${setupResult.error.message}`,
+              }
+            }
+
             // Execute git clone
             const result = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "git",
-              args: ["clone", "--depth", "1", repoUrl, "/tmp/repo"],
+              command: "bash",
+              args: ["-c", `cd /home && git clone --depth 1 "${repoUrl}" repo`],
               timeout: 60000,
             })
 
@@ -115,12 +138,18 @@ export function createGitAnalysisTool() {
               }
             }
 
+            // Update status to show analysis
+            await ctx.runMutation(api.messages.updateComputerOperation, {
+              threadId: threadId as any,
+              operation: "Analyzing repository structure",
+            })
+
             return {
               success: true,
               operation,
               repoUrl,
               message: "Repository cloned successfully",
-              path: "/tmp/repo",
+              path: "/home/repo",
               // Include basic repo info
               stats: {
                 filesAnalyzed: 0,
@@ -131,21 +160,27 @@ export function createGitAnalysisTool() {
           }
 
           case "analyze": {
-            const targetPath = path || "/tmp/repo"
+            const targetPath = path || "/home/repo"
 
-            // Analyze directory structure
+            // Update status
+            await ctx.runMutation(api.messages.updateComputerOperation, {
+              threadId: threadId as any,
+              operation: `Analyzing ${targetPath}`,
+            })
+
+            // Analyze directory structure using ls -la for better output
             const treeResult = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "find",
-              args: [targetPath, "-type", "f", "-maxdepth", String(depth)],
+              command: "bash",
+              args: ["-c", `cd "${targetPath}" && find . -type f -maxdepth ${depth} | head -100`],
               timeout: 15000,
             })
 
             // Get file statistics
             const statsResult = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "du",
-              args: ["-sh", targetPath],
+              command: "bash",
+              args: ["-c", `cd "${targetPath}" && du -sh . 2>/dev/null || echo "Size unknown"`],
               timeout: 10000,
             })
 
@@ -188,13 +223,19 @@ export function createGitAnalysisTool() {
               }
             }
 
-            const searchPath = path || "/tmp/repo"
+            const searchPath = path || "/home/repo"
 
-            // Search for pattern in files
+            // Update status
+            await ctx.runMutation(api.messages.updateComputerOperation, {
+              threadId: threadId as any,
+              operation: `Searching for "${pattern}"`,
+            })
+
+            // Search for pattern in files or find files by name
             const searchResult = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "grep",
-              args: ["-r", "-n", "--include", pattern, ".", searchPath],
+              command: "bash",
+              args: ["-c", `cd "${searchPath}" && find . -name "*${pattern}*" -type f | head -50`],
               timeout: 30000,
             })
 
@@ -254,9 +295,11 @@ export function createGitAnalysisTool() {
   })
 }
 
-// Helper to manage Computer instances
+// Helper to manage Computer instances with status tracking
 async function getOrCreateInstance(
   sdk: LightfastComputerSDK,
+  ctx: any,
+  threadId: string,
 ): Promise<Instance> {
   // Check for existing running instances
   const listResult = await sdk.instances.list()
@@ -273,6 +316,18 @@ async function getOrCreateInstance(
 
   // Create new instance if none exist
   console.log("Creating new Computer instance...")
+  
+  // Update computer status to show creation
+  await ctx.runMutation(api.messages.updateComputerStatus, {
+    threadId: threadId as any,
+    status: {
+      isRunning: true,
+      instanceId: undefined,
+      currentOperation: "Creating instance",
+      startedAt: Date.now(),
+    },
+  })
+
   const createOptions: CreateInstanceOptions = {
     name: `git-analysis-${Date.now()}`,
     region: "iad", // US East (Washington DC)
@@ -293,6 +348,18 @@ async function getOrCreateInstance(
   // Wait for instance to be running
   let instance = createResult.value
   let attempts = 0
+  
+  // Update status with instance ID
+  await ctx.runMutation(api.messages.updateComputerStatus, {
+    threadId: threadId as any,
+    status: {
+      isRunning: true,
+      instanceId: instance.id,
+      currentOperation: "Starting instance",
+      startedAt: Date.now(),
+    },
+  })
+
   while (instance.status !== "running" && attempts < 30) {
     await new Promise((resolve) => setTimeout(resolve, 2000))
     const getResult = await sdk.instances.get(instance.id)
@@ -305,6 +372,12 @@ async function getOrCreateInstance(
   if (instance.status !== "running") {
     throw new Error(`Instance failed to start: ${instance.status}`)
   }
+
+  // Update status to show instance is ready
+  await ctx.runMutation(api.messages.updateComputerOperation, {
+    threadId: threadId as any,
+    operation: "Instance ready",
+  })
 
   console.log(`Created new instance: ${instance.id}`)
   return instance

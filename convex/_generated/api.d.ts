@@ -29,6 +29,7 @@ import type * as lib_message_service from "../lib/message_service.js";
 import type * as messages_actions from "../messages/actions.js";
 import type * as messages_git_analysis_tool from "../messages/git_analysis_tool.js";
 import type * as messages_git_analysis_tool_stream from "../messages/git_analysis_tool_stream.js";
+import type * as messages_github_api_tool from "../messages/github_api_tool.js";
 import type * as messages_helpers from "../messages/helpers.js";
 import type * as messages_mutations from "../messages/mutations.js";
 import type * as messages_queries from "../messages/queries.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "messages/actions": typeof messages_actions;
   "messages/git_analysis_tool": typeof messages_git_analysis_tool;
   "messages/git_analysis_tool_stream": typeof messages_git_analysis_tool_stream;
+  "messages/github_api_tool": typeof messages_github_api_tool;
   "messages/helpers": typeof messages_helpers;
   "messages/mutations": typeof messages_mutations;
   "messages/queries": typeof messages_queries;

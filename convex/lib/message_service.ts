@@ -9,7 +9,7 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"
 import { createAIClient } from "./ai_client.js"
-import { createGitAnalysisTool, createWebSearchTool } from "./ai_tools.js"
+import { createGitAnalysisTool, createGitHubAPITool, createWebSearchTool } from "./ai_tools.js"
 import { buildMessageContent, createSystemPrompt } from "./message_builder.js"
 
 /**
@@ -108,7 +108,7 @@ export async function streamAIResponse(
   modelId: ModelId,
   messages: CoreMessage[],
   messageId: Id<"messages">,
-  _threadId: Id<"threads">, // TODO: Remove underscore when computer status is enabled
+  threadId: Id<"threads">,
   userApiKeys: {
     openai?: string
     anthropic?: string
@@ -132,6 +132,7 @@ export async function streamAIResponse(
     string,
     | ReturnType<typeof createWebSearchTool>
     | ReturnType<typeof createGitAnalysisTool>
+    | ReturnType<typeof createGitHubAPITool>
   > = {}
 
   if (webSearchEnabled) {
@@ -139,7 +140,8 @@ export async function streamAIResponse(
   }
 
   if (gitAnalysisEnabled) {
-    tools.git_analysis = createGitAnalysisTool()
+    tools.git_analysis = createGitAnalysisTool(ctx, threadId)
+    tools.github_api = createGitHubAPITool()
   }
 
   if (Object.keys(tools).length > 0) {
@@ -189,43 +191,41 @@ export async function streamAIResponse(
 
         // Check if this is a git analysis tool call
         if (streamPart.toolName === "git_analysis") {
-          // TODO: Enable computer status tracking once types are synced
-          // await ctx.runMutation(internal.messages.updateComputerStatus, {
-          //   threadId,
-          //   status: {
-          //     isRunning: true,
-          //     instanceId: `instance_${Date.now()}`,
-          //     currentOperation: "Initializing git analysis",
-          //     startedAt: Date.now(),
-          //   },
-          // })
+          await ctx.runMutation(internal.messages.updateComputerStatus, {
+            threadId,
+            status: {
+              isRunning: true,
+              instanceId: `instance_${Date.now()}`,
+              currentOperation: "Initializing git analysis",
+              startedAt: Date.now(),
+            },
+          })
           // Extract operation from args if available
-          // try {
-          //   const toolArgs = streamPart.args as any
-          //   if (toolArgs?.operation) {
-          //     await ctx.runMutation(internal.messages.updateComputerOperation, {
-          //       threadId,
-          //       operation: `${toolArgs.operation}: ${
-          //         toolArgs.repoUrl || toolArgs.path || "processing"
-          //       }`,
-          //     })
-          //   }
-          // } catch (e) {
-          //   // Ignore parsing errors
-          // }
+          try {
+            const toolArgs = streamPart.args as any
+            if (toolArgs?.operation) {
+              await ctx.runMutation(internal.messages.updateComputerOperation, {
+                threadId,
+                operation: `${toolArgs.operation}: ${
+                  toolArgs.repoUrl || toolArgs.path || "processing"
+                }`,
+              })
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
         }
       }
 
       if (streamPart.type === "tool-result") {
         // Check if this is a git analysis tool result
         if (streamPart.toolName === "git_analysis") {
-          // TODO: Enable computer status tracking once types are synced
-          // await ctx.runMutation(internal.messages.updateComputerStatus, {
-          //   threadId,
-          //   status: {
-          //     isRunning: false,
-          //   },
-          // })
+          await ctx.runMutation(internal.messages.updateComputerStatus, {
+            threadId,
+            status: {
+              isRunning: false,
+            },
+          })
         }
       }
     }
