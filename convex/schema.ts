@@ -71,7 +71,7 @@ export default defineSchema({
     shareSettings: shareSettingsValidator,
     // Thread-level usage tracking (denormalized for performance)
     usage: threadUsageValidator,
-    // Computer status tracking
+    // Computer status tracking - tracks Lightfast Computer instance state
     computerStatus: v.optional(
       v.object({
         isRunning: v.boolean(),
