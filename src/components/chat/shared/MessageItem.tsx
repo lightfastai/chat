@@ -4,6 +4,7 @@ import { Markdown } from "@/components/ui/markdown"
 import { cn } from "@/lib/utils"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
+import { ToolInvocation } from "../tools/ToolInvocation"
 import { AssistantMessageHeader } from "./AssistantMessageHeader"
 import { MessageAvatar } from "./MessageAvatar"
 import { MessageLayout } from "./MessageLayout"
@@ -98,16 +99,52 @@ export function MessageItem({
           />
         )}
 
-      {/* Message body - unified for both read-only and interactive modes */}
+      {/* Message body - render parts if available, otherwise fallback to body */}
       <div className="text-sm leading-relaxed">
-        {displayText ? (
-          <>
-            <Markdown className="text-sm">{displayText}</Markdown>
-            {isStreaming && !isComplete && (
-              <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-            )}
-          </>
-        ) : null}
+        {message.parts && message.parts.length > 0 ? (
+          // Render message parts
+          <div className="space-y-2">
+            {message.parts.map((part, index) => {
+              switch (part.type) {
+                case "text":
+                  // For text parts, use the accumulated body text for backward compatibility
+                  // Only render the text part if it's the first one or if we're in streaming mode
+                  if (index === 0 || isStreaming) {
+                    return (
+                      <div key={index}>
+                        {displayText ? (
+                          <>
+                            <Markdown className="text-sm">{displayText}</Markdown>
+                            {isStreaming && !isComplete && (
+                              <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
+                            )}
+                          </>
+                        ) : null}
+                      </div>
+                    )
+                  }
+                  return null
+                case "tool-invocation":
+                  return <ToolInvocation key={index} part={part} />
+                case "reasoning":
+                  // Reasoning content is already handled by ThinkingContent above
+                  return null
+                default:
+                  return null
+              }
+            })}
+          </div>
+        ) : (
+          // Fallback to original rendering for backward compatibility
+          displayText ? (
+            <>
+              <Markdown className="text-sm">{displayText}</Markdown>
+              {isStreaming && !isComplete && (
+                <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
+              )}
+            </>
+          ) : null
+        )}
       </div>
     </div>
   )

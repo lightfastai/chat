@@ -497,3 +497,84 @@ export const clearGenerationFlag = internalMutation({
     })
   },
 })
+
+// Internal mutation to add a message part
+export const addMessagePart = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    part: v.object({
+      type: v.union(
+        v.literal("text"),
+        v.literal("tool-invocation"),
+        v.literal("reasoning"),
+        v.literal("source"),
+        v.literal("step-start")
+      ),
+      content: v.optional(v.string()),
+      toolCallId: v.optional(v.string()),
+      toolName: v.optional(v.string()),
+      args: v.optional(v.any()),
+      state: v.optional(v.union(
+        v.literal("partial-call"),
+        v.literal("call"),
+        v.literal("result"),
+        v.literal("error")
+      )),
+      result: v.optional(v.any()),
+      error: v.optional(v.string()),
+    }),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId)
+    if (!message) return null
+
+    const currentParts = message.parts || []
+    const updatedParts = [...currentParts, args.part]
+
+    await ctx.db.patch(args.messageId, {
+      parts: updatedParts,
+    })
+
+    return null
+  },
+})
+
+// Internal mutation to update a tool invocation part
+export const updateToolInvocation = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    toolCallId: v.string(),
+    state: v.union(
+      v.literal("partial-call"),
+      v.literal("call"),
+      v.literal("result"),
+      v.literal("error")
+    ),
+    result: v.optional(v.any()),
+    error: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId)
+    if (!message || !message.parts) return null
+
+    const updatedParts = message.parts.map(part => {
+      if (part.type === "tool-invocation" && part.toolCallId === args.toolCallId) {
+        return {
+          ...part,
+          state: args.state,
+          result: args.result,
+          error: args.error,
+        }
+      }
+      return part
+    })
+
+    await ctx.db.patch(args.messageId, {
+      parts: updatedParts,
+    })
+
+    return null
+  },
+})

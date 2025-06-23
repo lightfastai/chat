@@ -166,32 +166,85 @@ export const generateAIResponseWithMessage = internalAction({
       let fullText = ""
       let hasContent = false
 
-      // Process the stream
-      for await (const chunk of result.textStream) {
-        if (chunk) {
-          fullText += chunk
-          hasContent = true
-          const chunkId = generateChunkId()
+      // First, add initial text part to message parts
+      await ctx.runMutation(internal.messages.addMessagePart, {
+        messageId: args.messageId,
+        part: {
+          type: "text",
+          content: "",
+        },
+      })
 
-          await ctx.runMutation(internal.messages.appendStreamChunk, {
-            messageId: args.messageId,
-            chunk,
-            chunkId,
-          })
-        }
-      }
+      // Process the full stream to capture both text and tool invocations
+      for await (const streamPart of result.fullStream) {
+        switch (streamPart.type) {
+          case "text-delta":
+            if (streamPart.textDelta) {
+              fullText += streamPart.textDelta
+              hasContent = true
+              const chunkId = generateChunkId()
 
-      // Process tool calls if web search is enabled
-      if (args.webSearchEnabled) {
-        for await (const streamPart of result.fullStream) {
-          if (streamPart.type === "tool-call") {
-            // Tool calls are handled by the AI SDK
-          }
+              // Update the message body for backward compatibility
+              await ctx.runMutation(internal.messages.appendStreamChunk, {
+                messageId: args.messageId,
+                chunk: streamPart.textDelta,
+                chunkId,
+              })
+            }
+            break
 
-          if (streamPart.type === "tool-result") {
-            // Tool results are handled by the AI SDK and included in the response
-            // We don't need to store them separately
-          }
+          case "tool-call":
+            // Add tool invocation part in "call" state
+            await ctx.runMutation(internal.messages.addMessagePart, {
+              messageId: args.messageId,
+              part: {
+                type: "tool-invocation",
+                toolCallId: streamPart.toolCallId,
+                toolName: streamPart.toolName,
+                args: streamPart.args,
+                state: "call",
+              },
+            })
+            break
+
+          case "tool-result":
+            // Update tool invocation with result
+            await ctx.runMutation(internal.messages.updateToolInvocation, {
+              messageId: args.messageId,
+              toolCallId: streamPart.toolCallId,
+              state: "result",
+              result: streamPart.result,
+            })
+            break
+
+          case "tool-call-streaming-start":
+            // Add tool invocation part in "partial-call" state
+            if (streamPart.toolCallId && streamPart.toolName) {
+              await ctx.runMutation(internal.messages.addMessagePart, {
+                messageId: args.messageId,
+                part: {
+                  type: "tool-invocation",
+                  toolCallId: streamPart.toolCallId,
+                  toolName: streamPart.toolName,
+                  args: {},
+                  state: "partial-call",
+                },
+              })
+            }
+            break
+
+          case "reasoning-delta":
+            // Handle reasoning content if available
+            if (streamPart.reasoningDelta) {
+              await ctx.runMutation(internal.messages.addMessagePart, {
+                messageId: args.messageId,
+                part: {
+                  type: "reasoning",
+                  content: streamPart.reasoningDelta,
+                },
+              })
+            }
+            break
         }
       }
 
