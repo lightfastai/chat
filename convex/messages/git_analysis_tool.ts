@@ -113,7 +113,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", "cd /home && rm -rf repo && mkdir -p repo"],
               timeout: 10000,
-            // })
+            })
 
             if (setupResult.isErr()) {
               return {
@@ -129,7 +129,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", `cd /home && git clone --depth 1 "${repoUrl}" repo`],
               timeout: 60000,
-            // })
+            })
 
             if (result.isErr()) {
               return {
@@ -177,7 +177,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", `cd "${targetPath}" && find . -type f -maxdepth ${depth} | head -100`],
               timeout: 15000,
-            // })
+            })
 
             // Get file statistics
             const statsResult = await sdk.commands.execute({
@@ -185,7 +185,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", `cd "${targetPath}" && du -sh . 2>/dev/null || echo "Size unknown"`],
               timeout: 10000,
-            // })
+            })
 
             if (treeResult.isErr() || statsResult.isErr()) {
               return {
@@ -241,7 +241,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", `cd "${searchPath}" && find . -name "*${pattern}*" -type f | head -50`],
               timeout: 30000,
-            // })
+            })
 
             if (searchResult.isErr()) {
               return {
@@ -269,7 +269,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
                     }
                   }
                   return null
-                // })
+                })
                 .filter(Boolean)
                 .slice(0, 50), // Limit to first 50 matches
               totalMatches: searchResult.value.output
@@ -302,8 +302,8 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
 // Helper to manage Computer instances with status tracking
 async function getOrCreateInstance(
   sdk: LightfastComputerSDK,
-  ctx: any,
-  threadId: string,
+  _ctx: any,
+  _threadId: string,
 ): Promise<Instance> {
   // Check for existing running instances
   const listResult = await sdk.instances.list()
