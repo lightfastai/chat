@@ -15,7 +15,7 @@ import {
 } from "./validators.js"
 
 // Thread object validator used in returns
-const threadObjectValidator = v.object({
+export const threadObjectValidator = v.object({
   _id: v.id("threads"),
   _creationTime: v.number(),
   clientId: v.optional(clientIdValidator),
