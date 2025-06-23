@@ -61,9 +61,19 @@ export function createGitAnalysisTool() {
           }
         }
 
-        // Initialize Computer SDK with Fly API token
+        // Check that Computer SDK environment variables are available
+        if (!env.FLY_API_TOKEN || !env.FLY_APP_NAME) {
+          return {
+            success: false,
+            operation,
+            error: "Computer SDK requires FLY_API_TOKEN and FLY_APP_NAME environment variables",
+          }
+        }
+
+        // Initialize Computer SDK with Fly API token and app name
         const sdk = createLightfastComputer({
           flyApiToken: env.FLY_API_TOKEN,
+          appName: env.FLY_APP_NAME,
         })
 
         // Get or create an instance for this session
