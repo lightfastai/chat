@@ -1,18 +1,29 @@
 "use client"
 
-import { ChevronDown, Cpu, Loader2 } from "lucide-react"
-import { useState } from "react"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+import { ChevronDown, Cpu, Loader2 } from "lucide-react"
+import { useState } from "react"
 // import type { Doc } from "../../../convex/_generated/dataModel"
 
+interface ComputerStatus {
+  isRunning: boolean
+  instanceId?: string
+  currentOperation?: string
+  startedAt: number
+  lastUpdateAt?: number
+}
+
 interface ComputerStatusProps {
-  computerStatus?: any // TODO: Use Doc<"threads">["computerStatus"] once types are synced
+  computerStatus?: ComputerStatus
   className?: string
 }
 
-export function ComputerStatus({ computerStatus, className }: ComputerStatusProps) {
+export function ComputerStatus({
+  computerStatus,
+  className,
+}: ComputerStatusProps) {
   const [isExpanded, setIsExpanded] = useState(true)
 
   if (!computerStatus?.isRunning) {
@@ -73,7 +84,7 @@ export function ComputerStatus({ computerStatus, className }: ComputerStatusProp
               {computerStatus.currentOperation || "Running"}
             </span>
           </div>
-          
+
           {computerStatus.instanceId && (
             <div className="flex items-center justify-between text-muted-foreground">
               <span>Instance:</span>
@@ -92,7 +103,8 @@ export function ComputerStatus({ computerStatus, className }: ComputerStatusProp
 
           <div className="mt-3 pt-2 border-t border-blue-200/50 dark:border-blue-800/50">
             <p className="text-xs text-muted-foreground">
-              The computer instance is isolated and secure. Operations may take a few moments to complete.
+              The computer instance is isolated and secure. Operations may take
+              a few moments to complete.
             </p>
           </div>
         </div>
