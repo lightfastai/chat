@@ -112,6 +112,7 @@ export function ChatInterface({
         disabled={isDisabled}
         isLoading={isAIGenerating}
         preloadedUser={preloadedUser}
+        computerStatus={currentThread?.computerStatus}
       />
     )
   }
@@ -125,6 +126,7 @@ export function ChatInterface({
         placeholder="Message AI assistant..."
         disabled={isDisabled}
         isLoading={isAIGenerating}
+        computerStatus={currentThread?.computerStatus}
       />
     </div>
   )

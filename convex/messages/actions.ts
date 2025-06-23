@@ -55,6 +55,67 @@ export const generateAIResponseWithMessage = internalAction({
       })
       requireResource(thread, "Thread")
 
+      // If git analysis is enabled, wait for computer instance to be ready
+      if (args.gitAnalysisEnabled) {
+        console.log(
+          "Git analysis enabled, checking computer instance status...",
+        )
+
+        // Wait up to 60 seconds for computer instance to be ready
+        const maxWaitTime = 60000 // 60 seconds
+        const checkInterval = 2000 // Check every 2 seconds
+        const startTime = Date.now()
+
+        while (Date.now() - startTime < maxWaitTime) {
+          const currentThread = await ctx.runQuery(
+            internal.messages.getThreadById,
+            {
+              threadId: args.threadId,
+            },
+          )
+
+          if (
+            currentThread?.computerStatus?.lifecycleState === "idle" ||
+            currentThread?.computerStatus?.lifecycleState === "ready"
+          ) {
+            console.log("Computer instance is ready:", {
+              instanceId: currentThread.computerStatus.instanceId,
+              lifecycleState: currentThread.computerStatus.lifecycleState,
+            })
+            break
+          }
+
+          console.log("Waiting for computer instance...", {
+            currentState: currentThread?.computerStatus?.lifecycleState,
+            elapsed: Date.now() - startTime,
+          })
+
+          // Wait before checking again
+          await new Promise((resolve) => setTimeout(resolve, checkInterval))
+        }
+
+        // Final check - if still not ready, log warning but continue
+        const finalThread = await ctx.runQuery(
+          internal.messages.getThreadById,
+          {
+            threadId: args.threadId,
+          },
+        )
+
+        if (
+          finalThread?.computerStatus?.lifecycleState !== "idle" &&
+          finalThread?.computerStatus?.lifecycleState !== "ready"
+        ) {
+          console.warn(
+            "Computer instance not ready after waiting, proceeding anyway:",
+            {
+              finalState: finalThread?.computerStatus?.lifecycleState,
+              waitedFor: Date.now() - startTime,
+            },
+          )
+        }
+      }
+
       // Derive provider from modelId
       const provider = getProviderFromModelId(args.modelId as ModelId)
 
@@ -324,6 +385,67 @@ export const generateAIResponse = internalAction({
         threadId: args.threadId,
       })
       requireResource(thread, "Thread")
+
+      // If git analysis is enabled, wait for computer instance to be ready
+      if (args.gitAnalysisEnabled) {
+        console.log(
+          "Git analysis enabled, checking computer instance status...",
+        )
+
+        // Wait up to 60 seconds for computer instance to be ready
+        const maxWaitTime = 60000 // 60 seconds
+        const checkInterval = 2000 // Check every 2 seconds
+        const startTime = Date.now()
+
+        while (Date.now() - startTime < maxWaitTime) {
+          const currentThread = await ctx.runQuery(
+            internal.messages.getThreadById,
+            {
+              threadId: args.threadId,
+            },
+          )
+
+          if (
+            currentThread?.computerStatus?.lifecycleState === "idle" ||
+            currentThread?.computerStatus?.lifecycleState === "ready"
+          ) {
+            console.log("Computer instance is ready:", {
+              instanceId: currentThread.computerStatus.instanceId,
+              lifecycleState: currentThread.computerStatus.lifecycleState,
+            })
+            break
+          }
+
+          console.log("Waiting for computer instance...", {
+            currentState: currentThread?.computerStatus?.lifecycleState,
+            elapsed: Date.now() - startTime,
+          })
+
+          // Wait before checking again
+          await new Promise((resolve) => setTimeout(resolve, checkInterval))
+        }
+
+        // Final check - if still not ready, log warning but continue
+        const finalThread = await ctx.runQuery(
+          internal.messages.getThreadById,
+          {
+            threadId: args.threadId,
+          },
+        )
+
+        if (
+          finalThread?.computerStatus?.lifecycleState !== "idle" &&
+          finalThread?.computerStatus?.lifecycleState !== "ready"
+        ) {
+          console.warn(
+            "Computer instance not ready after waiting, proceeding anyway:",
+            {
+              finalState: finalThread?.computerStatus?.lifecycleState,
+              waitedFor: Date.now() - startTime,
+            },
+          )
+        }
+      }
 
       // Derive provider from modelId
       const provider = getProviderFromModelId(args.modelId as ModelId)

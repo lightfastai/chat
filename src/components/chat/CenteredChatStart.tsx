@@ -9,6 +9,22 @@ import type { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 import { ChatInput } from "./ChatInput"
 
+type ComputerLifecycleState =
+  | "initializing"
+  | "ready"
+  | "running"
+  | "idle"
+  | "error"
+  | "stopped"
+
+interface ComputerStatus {
+  lifecycleState: ComputerLifecycleState
+  instanceId?: string
+  currentOperation?: string
+  startedAt: number
+  lastUpdateAt?: number
+}
+
 interface CenteredChatStartProps {
   onSendMessage: (
     message: string,
@@ -20,6 +36,7 @@ interface CenteredChatStartProps {
   disabled?: boolean
   isLoading?: boolean
   preloadedUser?: Preloaded<typeof api.users.current>
+  computerStatus?: ComputerStatus
 }
 
 export function CenteredChatStart({
@@ -27,6 +44,7 @@ export function CenteredChatStart({
   disabled = false,
   isLoading = false,
   preloadedUser,
+  computerStatus,
 }: CenteredChatStartProps) {
   const { displayName, email } = useAuth()
   const greeting = useTimeGreeting()
@@ -60,6 +78,7 @@ export function CenteredChatStart({
           placeholder="How can I help you today?"
           disabled={disabled}
           isLoading={isLoading}
+          computerStatus={computerStatus}
         />
       </div>
     </div>
