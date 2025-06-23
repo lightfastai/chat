@@ -167,7 +167,6 @@ export const generateAIResponseWithMessage = internalAction({
       let hasContent = false
 
       // First, add initial text part to message parts
-      // @ts-ignore - Type not yet regenerated
       await ctx.runMutation(internal.messages.addMessagePart, {
         messageId: args.messageId,
         part: {
@@ -197,7 +196,6 @@ export const generateAIResponseWithMessage = internalAction({
 
           case "tool-call":
             // Add tool invocation part in "call" state
-            // @ts-ignore - Type not yet regenerated
             await ctx.runMutation(internal.messages.addMessagePart, {
               messageId: args.messageId,
               part: {
@@ -212,7 +210,6 @@ export const generateAIResponseWithMessage = internalAction({
 
           case "tool-result":
             // Update tool invocation with result
-            // @ts-ignore - Type not yet regenerated
             await ctx.runMutation(internal.messages.updateToolInvocation, {
               messageId: args.messageId,
               toolCallId: part.toolCallId,
@@ -224,7 +221,6 @@ export const generateAIResponseWithMessage = internalAction({
           case "tool-call-streaming-start":
             // Add tool invocation part in "partial-call" state
             if (part.toolCallId && part.toolName) {
-              // @ts-ignore - Type not yet regenerated
               await ctx.runMutation(internal.messages.addMessagePart, {
                 messageId: args.messageId,
                 part: {
@@ -241,7 +237,6 @@ export const generateAIResponseWithMessage = internalAction({
           case "reasoning-delta":
             // Handle reasoning content if available
             if (part.reasoningDelta) {
-              // @ts-ignore - Type not yet regenerated
               await ctx.runMutation(internal.messages.addMessagePart, {
                 messageId: args.messageId,
                 part: {

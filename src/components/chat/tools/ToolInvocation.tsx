@@ -5,18 +5,24 @@ import { GenericToolDisplay } from "./GenericToolDisplay"
 import { WebSearchTool } from "./WebSearchTool"
 
 export type MessagePart = NonNullable<Doc<"messages">["parts"]>[number]
-export type ToolInvocationPart = Extract<
-  MessagePart,
-  { type: "tool-invocation" }
->
+
+// Define a concrete interface for tool invocation parts
+export interface ToolInvocationPart {
+  type: "tool-invocation"
+  toolCallId?: string
+  toolName?: string
+  args?: any
+  state?: "partial-call" | "call" | "result" | "error"
+  result?: any
+  error?: string
+}
 
 export interface ToolInvocationProps {
   part: ToolInvocationPart
 }
 
 export function ToolInvocation({ part }: ToolInvocationProps) {
-  const toolPart = part as any // Type assertion for build
-  switch (toolPart.toolName) {
+  switch (part.toolName) {
     case "web_search":
       return <WebSearchTool part={part} />
     default:

@@ -125,8 +125,7 @@ export function MessageItem({
                   }
                   return null
                 case "tool-invocation":
-                  // @ts-ignore - Type narrowing issue with generated types
-                  return <ToolInvocation key={index} part={part} />
+                  return <ToolInvocation key={index} part={part as Extract<typeof part, { type: "tool-invocation" }>} />
                 case "reasoning":
                   // Reasoning content is already handled by ThinkingContent above
                   return null

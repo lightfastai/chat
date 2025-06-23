@@ -3,8 +3,19 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"
 
-// @ts-ignore - Type instantiation workaround
-const getFileWithUrlQuery = internal.files.getFileWithUrl
+// Type helper to avoid deep instantiation
+type FileWithUrl = {
+  _id: Id<"files">
+  _creationTime: number
+  storageId: string
+  fileName: string
+  fileType: string
+  fileSize: number
+  uploadedBy: Id<"users">
+  uploadedAt: number
+  metadata?: any
+  url: string
+}
 
 // Type definitions for multimodal content based on AI SDK v5
 type TextPart = { type: "text"; text: string }
@@ -45,7 +56,11 @@ export async function buildMessageContent(
 
   // Fetch each file with its URL
   for (const fileId of attachmentIds) {
-    const file = await ctx.runQuery(getFileWithUrlQuery, { fileId })
+    // TypeScript has a known limitation with deep type instantiation in complex generic types.
+    // This occurs when accessing Convex's generated API types which have deeply nested generics.
+    // See: https://github.com/microsoft/TypeScript/issues/34933
+    // @ts-expect-error - Deep instantiation issue with Convex generated types
+    const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId }) as FileWithUrl | null
     if (!file || !file.url) continue
 
     // Handle images
