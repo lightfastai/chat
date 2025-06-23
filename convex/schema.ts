@@ -6,6 +6,7 @@ import {
   chunkIdValidator,
   clientIdValidator,
   commentValidator,
+  computerStatusValidator,
   feedbackRatingValidator,
   feedbackReasonsValidator,
   fileMetadataValidator,
@@ -72,15 +73,7 @@ export default defineSchema({
     // Thread-level usage tracking (denormalized for performance)
     usage: threadUsageValidator,
     // Computer status tracking - tracks Lightfast Computer instance state
-    computerStatus: v.optional(
-      v.object({
-        isRunning: v.boolean(),
-        instanceId: v.optional(v.string()),
-        currentOperation: v.optional(v.string()),
-        startedAt: v.number(),
-        lastUpdateAt: v.optional(v.number()),
-      }),
-    ),
+    computerStatus: v.optional(computerStatusValidator),
   })
     .index("by_user", ["userId"])
     .index("by_client_id", ["clientId"])

@@ -155,8 +155,8 @@ export const createThreadAndSend = mutation({
       },
       // Initialize computer status to show initialization
       computerStatus: {
-        isRunning: false,
-        currentOperation: "Initializing environment...",
+        lifecycleState: "initializing",
+        currentOperation: "Setting up Lightfast Computer instance...",
         startedAt: now,
       },
     })

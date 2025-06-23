@@ -1,5 +1,6 @@
 import { v } from "convex/values"
 import { internalMutation } from "../_generated/server.js"
+import { computerStatusValidator } from "../validators.js"
 
 /**
  * Update computer status for a thread (internal use only)
@@ -7,13 +8,7 @@ import { internalMutation } from "../_generated/server.js"
 export const updateComputerStatus = internalMutation({
   args: {
     threadId: v.id("threads"),
-    status: v.object({
-      isRunning: v.boolean(),
-      instanceId: v.optional(v.string()),
-      currentOperation: v.optional(v.string()),
-      startedAt: v.number(),
-      lastUpdateAt: v.optional(v.number()),
-    }),
+    status: computerStatusValidator,
   },
   returns: v.null(),
   handler: async (ctx, args) => {

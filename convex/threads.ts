@@ -7,6 +7,7 @@ import { requireResource, throwConflictError } from "./lib/errors.js"
 import {
   branchInfoValidator,
   clientIdValidator,
+  computerStatusValidator,
   modelIdValidator,
   shareIdValidator,
   shareSettingsValidator,
@@ -36,15 +37,7 @@ export const threadObjectValidator = v.object({
   // Thread-level usage tracking (denormalized for performance)
   usage: threadUsageValidator,
   // Computer status tracking
-  computerStatus: v.optional(
-    v.object({
-      isRunning: v.boolean(),
-      instanceId: v.optional(v.string()),
-      currentOperation: v.optional(v.string()),
-      startedAt: v.number(),
-      lastUpdateAt: v.optional(v.number()),
-    }),
-  ),
+  computerStatus: v.optional(computerStatusValidator),
 })
 
 // Create a new thread
@@ -91,8 +84,8 @@ export const create = mutation({
       },
       // Initialize computer status to show initialization
       computerStatus: {
-        isRunning: false,
-        currentOperation: "Initializing environment...",
+        lifecycleState: "initializing",
+        currentOperation: "Setting up Lightfast Computer instance...",
         startedAt: now,
       },
     })
@@ -377,8 +370,8 @@ export const branchFromMessage = mutation({
       },
       // Initialize computer status to show initialization
       computerStatus: {
-        isRunning: false,
-        currentOperation: "Initializing environment...",
+        lifecycleState: "initializing",
+        currentOperation: "Setting up Lightfast Computer instance...",
         startedAt: now,
       },
     })
