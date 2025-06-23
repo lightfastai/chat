@@ -240,6 +240,7 @@ export const createStreamingMessage = internalMutation({
       modelId: args.modelId,
       usedUserApiKey: args.usedUserApiKey,
       parts: [], // Initialize empty parts array
+      usage: undefined, // Will be updated when streaming completes
     })
   },
 })
@@ -448,6 +449,8 @@ export const createErrorMessage = internalMutation({
       isComplete: true,
       thinkingStartedAt: now,
       thinkingCompletedAt: now,
+      parts: [], // Initialize empty parts array
+      usage: undefined, // No usage data for error messages
     })
 
     return null
