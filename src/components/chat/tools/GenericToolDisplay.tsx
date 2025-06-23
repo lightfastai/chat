@@ -2,7 +2,6 @@
 
 import { ChevronDown, ChevronRight, Loader2, Wrench } from "lucide-react"
 import { useState } from "react"
-import { cn } from "@/lib/utils"
 import type { ToolInvocationPart } from "./ToolInvocation"
 
 export interface GenericToolDisplayProps {

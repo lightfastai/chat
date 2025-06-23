@@ -3,6 +3,9 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"
 
+// @ts-ignore - Type instantiation workaround
+const getFileWithUrlQuery = internal.files.getFileWithUrl
+
 // Type definitions for multimodal content based on AI SDK v5
 type TextPart = { type: "text"; text: string }
 type ImagePart = { type: "image"; image: string | URL }
@@ -42,7 +45,7 @@ export async function buildMessageContent(
 
   // Fetch each file with its URL
   for (const fileId of attachmentIds) {
-    const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId }) as any
+    const file = await ctx.runQuery(getFileWithUrlQuery, { fileId })
     if (!file || !file.url) continue
 
     // Handle images
