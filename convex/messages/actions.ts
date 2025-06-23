@@ -195,16 +195,50 @@ export const generateAIResponseWithMessage = internalAction({
         }
       }
 
-      // Process tool calls if web search is enabled
-      if (args.webSearchEnabled) {
+      // Process tool calls if any tools are enabled
+      if (args.webSearchEnabled || args.gitAnalysisEnabled) {
         for await (const streamPart of result.fullStream) {
           if (streamPart.type === "tool-call") {
-            // Tool calls are handled by the AI SDK
+            // Check if this is a git analysis tool call
+            if (streamPart.toolName === "git_analysis") {
+              // TODO: Enable computer status tracking once types are synced
+              // await ctx.runMutation(internal.messages.updateComputerStatus, {
+              //   threadId: args.threadId,
+              //   status: {
+              //     isRunning: true,
+              //     instanceId: `instance_${Date.now()}`,
+              //     currentOperation: "Initializing git analysis",
+              //     startedAt: Date.now(),
+              //   },
+              // })
+              // Extract operation from args if available
+              // try {
+              //   const toolArgs = streamPart.args as any
+              //   if (toolArgs?.operation) {
+              //     await ctx.runMutation(internal.messages.updateComputerOperation, {
+              //       threadId: args.threadId,
+              //       operation: `${toolArgs.operation}: ${
+              //         toolArgs.repoUrl || toolArgs.path || "processing"
+              //       }`,
+              //     })
+              //   }
+              // } catch (e) {
+              //   // Ignore parsing errors
+              // }
+            }
           }
 
           if (streamPart.type === "tool-result") {
-            // Tool results are handled by the AI SDK and included in the response
-            // We don't need to store them separately
+            // Check if this is a git analysis tool result
+            if (streamPart.toolName === "git_analysis") {
+              // TODO: Enable computer status tracking once types are synced
+              // await ctx.runMutation(internal.messages.updateComputerStatus, {
+              //   threadId: args.threadId,
+              //   status: {
+              //     isRunning: false,
+              //   },
+              // })
+            }
           }
         }
       }
@@ -309,6 +343,7 @@ export const generateAIResponse = internalAction({
         args.modelId as ModelId,
         messages,
         messageId,
+        args.threadId,
         userApiKeys,
         args.webSearchEnabled,
         args.gitAnalysisEnabled,

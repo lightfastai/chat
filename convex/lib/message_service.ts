@@ -108,6 +108,7 @@ export async function streamAIResponse(
   modelId: ModelId,
   messages: CoreMessage[],
   messageId: Id<"messages">,
+  _threadId: Id<"threads">, // TODO: Remove underscore when computer status is enabled
   userApiKeys: {
     openai?: string
     anthropic?: string
@@ -180,11 +181,52 @@ export async function streamAIResponse(
     }
   }
 
-  // Process tool calls if web search is enabled
-  if (webSearchEnabled) {
+  // Process tool calls if any tools are enabled
+  if (webSearchEnabled || gitAnalysisEnabled) {
     for await (const streamPart of result.fullStream) {
       if (streamPart.type === "tool-call") {
         toolCallsInProgress++
+
+        // Check if this is a git analysis tool call
+        if (streamPart.toolName === "git_analysis") {
+          // TODO: Enable computer status tracking once types are synced
+          // await ctx.runMutation(internal.messages.updateComputerStatus, {
+          //   threadId,
+          //   status: {
+          //     isRunning: true,
+          //     instanceId: `instance_${Date.now()}`,
+          //     currentOperation: "Initializing git analysis",
+          //     startedAt: Date.now(),
+          //   },
+          // })
+          // Extract operation from args if available
+          // try {
+          //   const toolArgs = streamPart.args as any
+          //   if (toolArgs?.operation) {
+          //     await ctx.runMutation(internal.messages.updateComputerOperation, {
+          //       threadId,
+          //       operation: `${toolArgs.operation}: ${
+          //         toolArgs.repoUrl || toolArgs.path || "processing"
+          //       }`,
+          //     })
+          //   }
+          // } catch (e) {
+          //   // Ignore parsing errors
+          // }
+        }
+      }
+
+      if (streamPart.type === "tool-result") {
+        // Check if this is a git analysis tool result
+        if (streamPart.toolName === "git_analysis") {
+          // TODO: Enable computer status tracking once types are synced
+          // await ctx.runMutation(internal.messages.updateComputerStatus, {
+          //   threadId,
+          //   status: {
+          //     isRunning: false,
+          //   },
+          // })
+        }
       }
     }
   }

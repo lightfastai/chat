@@ -71,6 +71,16 @@ export default defineSchema({
     shareSettings: shareSettingsValidator,
     // Thread-level usage tracking (denormalized for performance)
     usage: threadUsageValidator,
+    // Computer status tracking - TODO: Enable once types are synced
+    // computerStatus: v.optional(
+    //   v.object({
+    //     isRunning: v.boolean(),
+    //     instanceId: v.optional(v.string()),
+    //     currentOperation: v.optional(v.string()),
+    //     startedAt: v.number(),
+    //     lastUpdateAt: v.optional(v.number()),
+    //   }),
+    // ),
   })
     .index("by_user", ["userId"])
     .index("by_client_id", ["clientId"])

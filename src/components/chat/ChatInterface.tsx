@@ -9,6 +9,7 @@ import type { Doc } from "../../../convex/_generated/dataModel"
 import { CenteredChatStart } from "./CenteredChatStart"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
+// import { ComputerStatus } from "./ComputerStatus" // TODO: Enable once types are synced
 
 type Message = Doc<"messages">
 
@@ -118,6 +119,7 @@ export function ChatInterface({
   return (
     <div className="flex flex-col h-full ">
       <ChatMessages messages={enhancedMessages} />
+      {/* <ComputerStatus computerStatus={currentThread?.computerStatus} /> */}
       <ChatInput
         onSendMessage={handleSendMessage}
         placeholder="Message AI assistant..."
