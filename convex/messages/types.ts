@@ -79,6 +79,7 @@ export const messageReturnValidator = v.object({
   lastChunkId: v.optional(chunkIdValidator),
   streamChunks: v.optional(v.array(streamChunkValidator)),
   streamVersion: v.optional(v.number()),
+  parts: v.optional(v.array(v.any())),
 })
 
 // Type for message usage updates
