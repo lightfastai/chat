@@ -23,23 +23,22 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
         .describe("The operation to perform"),
       repoUrl: z
         .string()
-        .optional()
-        .describe("Git repository URL (for clone operation)"),
+        .describe("Git repository URL (required for clone operation, optional for others)")
+        .default(""),
       path: z
         .string()
-        .optional()
-        .describe("File or directory path to analyze (relative to repo root)"),
+        .describe("File or directory path to analyze (relative to repo root)")
+        .default(""),
       pattern: z
         .string()
-        .optional()
-        .describe("Search pattern or file extension filter"),
+        .describe("Search pattern or file extension filter")
+        .default(""),
       depth: z
         .number()
         .min(1)
         .max(10)
-        .optional()
-        .default(3)
-        .describe("Directory traversal depth for analysis"),
+        .describe("Directory traversal depth for analysis")
+        .default(3),
     }),
     execute: async ({ operation, repoUrl, path, pattern, depth }) => {
       console.log(`Git analysis tool: ${operation}`, { repoUrl, path, pattern, depth })
@@ -81,7 +80,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
 
         switch (operation) {
           case "clone": {
-            if (!repoUrl) {
+            if (!repoUrl || repoUrl.trim() === "") {
               return {
                 success: false,
                 operation,
@@ -162,7 +161,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
           }
 
           case "analyze": {
-            const targetPath = path || "/home/repo"
+            const targetPath = (path && path.trim() !== "") ? path : "/home/repo"
 
             // Update status
             // TODO: Re-enable once types regenerate
@@ -218,7 +217,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
           }
 
           case "search": {
-            if (!pattern) {
+            if (!pattern || pattern.trim() === "") {
               return {
                 success: false,
                 operation,
@@ -226,7 +225,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               }
             }
 
-            const searchPath = path || "/home/repo"
+            const searchPath = (path && path.trim() !== "") ? path : "/home/repo"
 
             // Update status
             // TODO: Re-enable once types regenerate
