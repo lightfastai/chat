@@ -22,7 +22,6 @@ export function createGitAnalysisTool() {
         .describe("The operation to perform"),
       repoUrl: z
         .string()
-        .url()
         .optional()
         .describe("Git repository URL (for clone operation)"),
       path: z
@@ -86,6 +85,17 @@ export function createGitAnalysisTool() {
                 success: false,
                 operation,
                 error: "Repository URL is required for clone operation",
+              }
+            }
+
+            // Validate URL format
+            try {
+              new URL(repoUrl)
+            } catch {
+              return {
+                success: false,
+                operation,
+                error: "Invalid repository URL format",
               }
             }
 
