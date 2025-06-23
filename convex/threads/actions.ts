@@ -32,6 +32,52 @@ export const initializeComputer = internalAction({
       // Create the computer instance
       const instance = await instanceManager.getOrCreateInstance()
 
+      console.log("Instance created, performing health check...")
+
+      // Get SDK for health check
+      const sdk = await instanceManager.getSDK()
+
+      // Perform basic health check
+      try {
+        const healthCheck = await sdk.commands.execute({
+          instanceId: instance.id,
+          command: "echo",
+          args: ["Health check passed"],
+          timeout: 5000,
+        })
+
+        if (healthCheck.isErr()) {
+          console.error("Instance health check failed:", {
+            instanceId: instance.id,
+            error: healthCheck.error.message,
+          })
+        } else {
+          console.log("Instance health check passed:", {
+            instanceId: instance.id,
+            output: healthCheck.value.output.trim(),
+          })
+        }
+
+        // Check for git
+        const gitCheck = await sdk.commands.execute({
+          instanceId: instance.id,
+          command: "which",
+          args: ["git"],
+          timeout: 5000,
+        })
+
+        if (gitCheck.isErr()) {
+          console.warn("Git not found on instance:", {
+            instanceId: instance.id,
+            error: gitCheck.error.message,
+          })
+        } else {
+          console.log("Git available at:", gitCheck.value.output.trim())
+        }
+      } catch (error) {
+        console.error("Health check error:", error)
+      }
+
       // Update thread with computer status - show as idle (ready for commands)
       await ctx.runMutation(internal.threads.internals.updateComputerStatus, {
         threadId: args.threadId,

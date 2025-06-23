@@ -48,11 +48,15 @@ export function createGitAnalysisTool(
         .default(3),
     }),
     execute: async ({ operation, repoUrl, path, pattern, depth }) => {
-      console.log(`Git analysis tool: ${operation}`, {
+      console.log("Git analysis tool called:", {
+        operation,
         repoUrl,
         path,
         pattern,
         depth,
+        threadId,
+        existingInstanceId,
+        timestamp: new Date().toISOString(),
       })
 
       // Note: This is a mock implementation showing the interface
@@ -63,6 +67,13 @@ export function createGitAnalysisTool(
         const instance =
           await instanceManager.getOrCreateInstance(existingInstanceId)
         const sdk = await instanceManager.getSDK()
+
+        console.log("Git analysis tool - Instance acquired:", {
+          instanceId: instance.id,
+          instanceStatus: instance.status,
+          threadId,
+          existingInstanceId,
+        })
 
         switch (operation) {
           case "clone": {
@@ -92,37 +103,113 @@ export function createGitAnalysisTool(
             //   operation: `Cloning ${repoUrl}`,
             // })
 
-            // Prepare working directory and clone
-            const setupResult = await sdk.commands.execute({
+            // First, verify git is available
+            console.log("Checking git availability...")
+            const gitCheckResult = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "bash",
-              args: ["-c", "cd /home && rm -rf repo && mkdir -p repo"],
-              timeout: 10000,
+              command: "which",
+              args: ["git"],
+              timeout: 5000,
             })
 
-            if (setupResult.isErr()) {
+            if (gitCheckResult.isErr()) {
+              console.error("Git availability check failed:", {
+                error: gitCheckResult.error,
+                errorMessage: gitCheckResult.error.message,
+                instanceId: instance.id,
+              })
               return {
                 success: false,
                 operation,
-                error: `Failed to setup working directory: ${setupResult.error.message}`,
+                error: `Git is not available on the instance: ${gitCheckResult.error.message}`,
               }
             }
 
-            // Execute git clone
+            console.log("Git found at:", gitCheckResult.value.output.trim())
+
+            // Check current directory
+            console.log("Checking current directory...")
+            const pwdResult = await sdk.commands.execute({
+              instanceId: instance.id,
+              command: "pwd",
+              args: [],
+              timeout: 5000,
+            })
+
+            if (pwdResult.isOk()) {
+              console.log("Current directory:", pwdResult.value.output.trim())
+            }
+
+            // Execute git clone directly
+            console.log("Starting git clone:", {
+              repoUrl,
+              instanceId: instance.id,
+            })
+
+            // Extract repo name from URL for the destination
+            const repoName =
+              repoUrl.split("/").pop()?.replace(".git", "") || "repo"
+
             const result = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "bash",
-              args: ["-c", `cd /home && git clone --depth 1 "${repoUrl}" repo`],
+              command: "git",
+              args: ["clone", "--depth", "1", repoUrl, `/tmp/${repoName}`],
               timeout: 60000,
             })
 
             if (result.isErr()) {
+              console.error("Git clone failed:", {
+                repoUrl,
+                instanceId: instance.id,
+                error: result.error,
+                errorMessage: result.error.message,
+                errorType: result.error.constructor.name,
+                errorDetails: JSON.stringify(result.error),
+              })
+
+              // Try to get more info about the failure
+              const lsResult = await sdk.commands.execute({
+                instanceId: instance.id,
+                command: "ls",
+                args: ["-la", "/tmp"],
+                timeout: 5000,
+              })
+
+              const dfResult = await sdk.commands.execute({
+                instanceId: instance.id,
+                command: "df",
+                args: ["-h"],
+                timeout: 5000,
+              })
+
+              const whoamiResult = await sdk.commands.execute({
+                instanceId: instance.id,
+                command: "whoami",
+                args: [],
+                timeout: 5000,
+              })
+
+              if (lsResult.isOk()) {
+                console.log("Directory listing /tmp:", lsResult.value.output)
+              }
+              if (dfResult.isOk()) {
+                console.log("Disk space:", dfResult.value.output)
+              }
+              if (whoamiResult.isOk()) {
+                console.log("Current user:", whoamiResult.value.output.trim())
+              }
+
               return {
                 success: false,
                 operation,
                 error: `Failed to clone repository: ${result.error.message}`,
               }
             }
+
+            console.log("Git clone successful:", {
+              output: result.value.output?.substring(0, 500),
+              exitCode: result.value.exitCode,
+            })
 
             // Update status to show analysis
             // TODO: Re-enable once types regenerate
@@ -136,7 +223,7 @@ export function createGitAnalysisTool(
               operation,
               repoUrl,
               message: "Repository cloned successfully",
-              path: "/home/repo",
+              path: `/tmp/${repoName}`,
               // Include basic repo info
               stats: {
                 filesAnalyzed: 0,
@@ -147,7 +234,7 @@ export function createGitAnalysisTool(
           }
 
           case "analyze": {
-            const targetPath = path && path.trim() !== "" ? path : "/home/repo"
+            const targetPath = path && path.trim() !== "" ? path : "/tmp"
 
             // Update status
             // TODO: Re-enable once types regenerate
@@ -156,25 +243,19 @@ export function createGitAnalysisTool(
             //   operation: `Analyzing ${targetPath}`,
             // })
 
-            // Analyze directory structure using ls -la for better output
+            // Analyze directory structure using find
             const treeResult = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "bash",
-              args: [
-                "-c",
-                `cd "${targetPath}" && find . -type f -maxdepth ${depth} | head -100`,
-              ],
+              command: "find",
+              args: [targetPath, "-type", "f", "-maxdepth", String(depth)],
               timeout: 15000,
             })
 
             // Get file statistics
             const statsResult = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "bash",
-              args: [
-                "-c",
-                `cd "${targetPath}" && du -sh . 2>/dev/null || echo "Size unknown"`,
-              ],
+              command: "du",
+              args: ["-sh", targetPath],
               timeout: 10000,
             })
 
@@ -217,7 +298,7 @@ export function createGitAnalysisTool(
               }
             }
 
-            const searchPath = path && path.trim() !== "" ? path : "/home/repo"
+            const searchPath = path && path.trim() !== "" ? path : "/tmp"
 
             // Update status
             // TODO: Re-enable once types regenerate
@@ -229,11 +310,8 @@ export function createGitAnalysisTool(
             // Search for pattern in files or find files by name
             const searchResult = await sdk.commands.execute({
               instanceId: instance.id,
-              command: "bash",
-              args: [
-                "-c",
-                `cd "${searchPath}" && find . -name "*${pattern}*" -type f | head -50`,
-              ],
+              command: "find",
+              args: [searchPath, "-name", `*${pattern}*`, "-type", "f"],
               timeout: 30000,
             })
 

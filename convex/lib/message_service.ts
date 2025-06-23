@@ -212,7 +212,7 @@ export async function streamAIResponse(
           // })
           // Extract operation from args if available
           try {
-            const toolArgs = streamPart.args as any
+            const toolArgs = streamPart.args as Record<string, unknown>
             if (toolArgs?.operation) {
               // await ctx.runMutation(internal.messages.updateComputerOperation, {
               //   threadId,

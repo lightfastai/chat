@@ -86,18 +86,39 @@ export class ComputerInstanceManager {
 
     // If existingInstanceId is provided, try to get that specific instance
     if (existingInstanceId) {
+      console.log("Attempting to get existing instance:", existingInstanceId)
       const getResult = await sdk.instances.get(existingInstanceId)
-      if (getResult.isOk() && getResult.value.status === "running") {
+
+      if (getResult.isErr()) {
+        console.error("Failed to get existing instance:", {
+          instanceId: existingInstanceId,
+          error: getResult.error.message,
+        })
+      } else {
         const instance = getResult.value
-        console.log(`Using existing thread instance: ${instance.id}`)
-        instanceCache.set(this.threadId, instance)
-        return instance
+        console.log("Existing instance status:", {
+          instanceId: instance.id,
+          status: instance.status,
+          isRunning: instance.status === "running",
+        })
+
+        if (instance.status === "running") {
+          console.log(`Using existing thread instance: ${instance.id}`)
+          instanceCache.set(this.threadId, instance)
+          return instance
+        }
       }
     }
 
     // Check for existing thread-specific instances
+    console.log("Listing all instances to find thread-specific ones...")
     const listResult = await sdk.instances.list()
-    if (listResult.isOk()) {
+
+    if (listResult.isErr()) {
+      console.error("Failed to list instances:", listResult.error.message)
+    } else {
+      console.log("Total instances found:", listResult.value.length)
+
       // First, look for instances specifically tied to this thread
       const threadInstances = listResult.value.filter(
         (i) =>
@@ -105,6 +126,16 @@ export class ComputerInstanceManager {
           (i.name === `computer-${this.threadId}` ||
             i.metadata?.threadId === this.threadId),
       )
+
+      console.log("Thread-specific instances:", {
+        count: threadInstances.length,
+        instances: threadInstances.map((i) => ({
+          id: i.id,
+          name: i.name,
+          status: i.status,
+          metadata: i.metadata,
+        })),
+      })
 
       if (threadInstances.length > 0) {
         const instance = threadInstances[0]
@@ -145,6 +176,15 @@ export class ComputerInstanceManager {
       const getResult = await sdk.instances.get(instance.id)
       if (getResult.isOk()) {
         instance = getResult.value
+        console.log(`Instance status check ${attempts + 1}/30:`, {
+          instanceId: instance.id,
+          status: instance.status,
+        })
+      } else {
+        console.error(
+          `Failed to get instance status (attempt ${attempts + 1}):`,
+          getResult.error.message,
+        )
       }
       attempts++
     }

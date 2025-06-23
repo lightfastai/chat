@@ -4,15 +4,11 @@ import type { Doc } from "../_generated/dataModel.js"
 import { internalQuery, query } from "../_generated/server.js"
 import { threadObjectValidator } from "../threads.js"
 import {
-  branchInfoValidator,
   chunkIdValidator,
   clientIdValidator,
   messageTypeValidator,
-  shareIdValidator,
-  shareSettingsValidator,
   streamChunkValidator,
   streamIdValidator,
-  threadUsageValidator,
 } from "../validators.js"
 import { messageReturnValidator } from "./types.js"
 
