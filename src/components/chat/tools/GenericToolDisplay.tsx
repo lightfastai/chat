@@ -10,9 +10,10 @@ export interface GenericToolDisplayProps {
 
 export function GenericToolDisplay({ part }: GenericToolDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const toolPart = part as any // Type assertion for build
 
   const getStatusIcon = () => {
-    switch (part.state) {
+    switch (toolPart.state) {
       case "partial-call":
       case "call":
         return <Loader2 className="h-4 w-4 animate-spin" />
@@ -26,17 +27,17 @@ export function GenericToolDisplay({ part }: GenericToolDisplayProps) {
   }
 
   const getStatusText = () => {
-    switch (part.state) {
+    switch (toolPart.state) {
       case "partial-call":
         return "Preparing tool..."
       case "call":
-        return `Calling ${part.toolName}...`
+        return `Calling ${toolPart.toolName}...`
       case "result":
-        return `${part.toolName} completed`
+        return `${toolPart.toolName} completed`
       case "error":
-        return `${part.toolName} failed`
+        return `${toolPart.toolName} failed`
       default:
-        return part.toolName || "Tool"
+        return toolPart.toolName || "Tool"
     }
   }
 
@@ -59,32 +60,32 @@ export function GenericToolDisplay({ part }: GenericToolDisplayProps) {
 
       {isExpanded && (
         <div className="mt-3 space-y-2">
-          {part.args && (
+          {toolPart.args && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Arguments:
               </p>
               <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
-                {JSON.stringify(part.args, null, 2)}
+                {JSON.stringify(toolPart.args, null, 2)}
               </pre>
             </div>
           )}
 
-          {part.state === "result" && part.result && (
+          {toolPart.state === "result" && toolPart.result && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Result:
               </p>
               <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
-                {JSON.stringify(part.result, null, 2)}
+                {JSON.stringify(toolPart.result, null, 2)}
               </pre>
             </div>
           )}
 
-          {part.state === "error" && part.error && (
+          {toolPart.state === "error" && toolPart.error && (
             <div>
               <p className="text-xs font-medium text-red-500">Error:</p>
-              <p className="mt-1 text-xs text-red-500">{part.error}</p>
+              <p className="mt-1 text-xs text-red-500">{toolPart.error}</p>
             </div>
           )}
         </div>

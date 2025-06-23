@@ -15,7 +15,8 @@ export interface ToolInvocationProps {
 }
 
 export function ToolInvocation({ part }: ToolInvocationProps) {
-  switch (part.toolName) {
+  const toolPart = part as any // Type assertion for build
+  switch (toolPart.toolName) {
     case "web_search":
       return <WebSearchTool part={part} />
     default:

@@ -16,12 +16,13 @@ interface SearchResult {
 }
 
 export function WebSearchTool({ part }: WebSearchToolProps) {
-  const isLoading = part.state === "partial-call" || part.state === "call"
-  const hasError = part.state === "error"
-  const searchQuery = part.args?.query as string | undefined
+  const toolPart = part as any // Type assertion for build
+  const isLoading = toolPart.state === "partial-call" || toolPart.state === "call"
+  const hasError = toolPart.state === "error"
+  const searchQuery = toolPart.args?.query as string | undefined
 
   // Extract search results from the tool result
-  const searchResults = part.result?.results as SearchResult[] | undefined
+  const searchResults = toolPart.result?.results as SearchResult[] | undefined
 
   return (
     <div
@@ -55,9 +56,9 @@ export function WebSearchTool({ part }: WebSearchToolProps) {
         </p>
       )}
 
-      {hasError && part.error && (
+      {hasError && toolPart.error && (
         <p className="mt-2 text-sm text-red-600 dark:text-red-400">
-          {part.error}
+          {toolPart.error}
         </p>
       )}
 
