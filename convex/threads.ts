@@ -215,7 +215,7 @@ export const deleteThread = mutation({
     )
 
     // Schedule computer cleanup if thread has a computer instance
-    if (thread.computerStatus?.isRunning) {
+    if (thread.computerStatus?.instanceId) {
       await ctx.scheduler.runAfter(
         0,
         internal.threads.actions.cleanupComputer,
