@@ -25,6 +25,7 @@ export const send = mutation({
     modelId: v.optional(modelIdValidator), // Use the validated modelId
     attachments: v.optional(v.array(v.id("files"))), // Add attachments support
     webSearchEnabled: v.optional(v.boolean()),
+    gitAnalysisEnabled: v.optional(v.boolean()),
   },
   returns: v.object({
     messageId: v.id("messages"),
@@ -77,6 +78,7 @@ export const send = mutation({
       modelId: modelId,
       attachments: args.attachments,
       webSearchEnabled: args.webSearchEnabled,
+      gitAnalysisEnabled: args.gitAnalysisEnabled,
     })
 
     // Check if this is the first user message in the thread (for title generation)
@@ -107,6 +109,7 @@ export const createThreadAndSend = mutation({
     modelId: v.optional(modelIdValidator),
     attachments: v.optional(v.array(v.id("files"))), // Add attachments support
     webSearchEnabled: v.optional(v.boolean()),
+    gitAnalysisEnabled: v.optional(v.boolean()),
   },
   returns: v.object({
     threadId: v.id("threads"),
@@ -193,6 +196,7 @@ export const createThreadAndSend = mutation({
         modelId: modelId,
         attachments: args.attachments,
         webSearchEnabled: args.webSearchEnabled,
+        gitAnalysisEnabled: args.gitAnalysisEnabled,
         messageId: assistantMessageId,
         streamId: streamId,
       },

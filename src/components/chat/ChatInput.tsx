@@ -29,6 +29,7 @@ import {
   ChevronDown,
   FileIcon,
   FileText,
+  GitBranch,
   Globe,
   Image,
   Loader2,
@@ -47,6 +48,7 @@ interface ChatInputProps {
     modelId: string,
     attachments?: Id<"files">[],
     webSearchEnabled?: boolean,
+    gitAnalysisEnabled?: boolean,
   ) => Promise<void> | void
   isLoading?: boolean
   placeholder?: string
@@ -78,6 +80,7 @@ const ChatInputComponent = ({
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
+  const [gitAnalysisEnabled, setGitAnalysisEnabled] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -267,6 +270,7 @@ const ChatInputComponent = ({
         selectedModelId,
         attachmentIds.length > 0 ? attachmentIds : undefined,
         webSearchEnabled,
+        gitAnalysisEnabled,
       )
       setMessage("")
       setAttachments([])
@@ -300,6 +304,7 @@ const ChatInputComponent = ({
     selectedModelId,
     attachments,
     webSearchEnabled,
+    gitAnalysisEnabled,
   ])
 
   const handleKeyPress = useCallback(
@@ -328,6 +333,10 @@ const ChatInputComponent = ({
 
   const handleWebSearchToggle = useCallback(() => {
     setWebSearchEnabled((prev) => !prev)
+  }, [])
+
+  const handleGitAnalysisToggle = useCallback(() => {
+    setGitAnalysisEnabled((prev) => !prev)
   }, [])
 
   // Memoize computed values
@@ -484,6 +493,27 @@ const ChatInputComponent = ({
                         {webSearchEnabled
                           ? "Web search enabled - AI can search the web for current information"
                           : "Enable web search for current information"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleGitAnalysisToggle}
+                        variant={gitAnalysisEnabled ? "default" : "ghost"}
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        disabled={disabled}
+                      >
+                        <GitBranch className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {gitAnalysisEnabled
+                          ? "Git analysis enabled - AI can clone and analyze repositories"
+                          : "Enable git repository analysis"}
                       </p>
                     </TooltipContent>
                   </Tooltip>

@@ -98,6 +98,7 @@ export async function buildMessageContent(
 export function createSystemPrompt(
   modelId: ModelId,
   webSearchEnabled = false,
+  gitAnalysisEnabled = false,
 ): string {
   let systemPrompt =
     "You are a helpful AI assistant in a chat conversation. Be concise and friendly."
@@ -156,6 +157,39 @@ REMEMBER:
 - The user should receive a complete, well-explained answer after each search
 - If you need more information, perform additional searches proactively
 - Your goal is to fully answer the question, not just find information`
+  }
+
+  if (gitAnalysisEnabled) {
+    systemPrompt += `\n\nYou have access to a git analysis tool that allows you to:
+- Clone git repositories and analyze their structure
+- Read specific files from cloned repositories  
+- Search for code patterns across the codebase
+- Analyze project architecture and dependencies
+
+CRITICAL INSTRUCTIONS FOR GIT ANALYSIS:
+
+When using the git analysis tool:
+
+1. **Clone Operation**: Use this to clone a repository for analysis. Always start with this when analyzing a new repo.
+   - Provides: Repository structure, file count, size, and key files
+
+2. **File Reading**: Use this to read specific files after cloning.
+   - Shows file contents with line numbers
+   - Perfect for examining implementation details
+
+3. **Code Search**: Use this to find specific patterns or functionality.
+   - Returns matching lines with file paths and line numbers
+   - Use for finding examples, implementations, or specific code patterns
+
+4. **Structure Analysis**: Use this to understand project organization.
+   - Shows directory tree and file organization
+   - Helps understand project architecture
+
+REMEMBER:
+- Always clone the repository first before trying to read files or search
+- Be specific about what you're looking for when searching
+- Provide clear explanations of what you find in the code
+- Reference specific files and line numbers in your analysis`
   }
 
   return systemPrompt

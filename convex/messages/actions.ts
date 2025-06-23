@@ -8,7 +8,7 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import { internalAction } from "../_generated/server.js"
 import { createAIClient } from "../lib/ai_client.js"
-import { createWebSearchTool } from "../lib/ai_tools.js"
+import { createGitAnalysisTool, createWebSearchTool } from "../lib/ai_tools.js"
 import { requireResource } from "../lib/errors.js"
 import {
   buildMessageContent,
@@ -37,6 +37,7 @@ export const generateAIResponseWithMessage = internalAction({
     modelId: modelIdValidator,
     attachments: v.optional(v.array(v.id("files"))),
     webSearchEnabled: v.optional(v.boolean()),
+    gitAnalysisEnabled: v.optional(v.boolean()),
     messageId: v.id("messages"), // Pre-created message ID
     streamId: streamIdValidator, // Pre-generated stream ID
   },
@@ -81,6 +82,7 @@ export const generateAIResponseWithMessage = internalAction({
       const systemPrompt = createSystemPrompt(
         args.modelId,
         args.webSearchEnabled,
+        args.gitAnalysisEnabled,
       )
 
       // Prepare messages for AI SDK v5 with multimodal support
@@ -151,11 +153,23 @@ export const generateAIResponseWithMessage = internalAction({
         // Usage will be updated after streaming completes
       }
 
-      // Add web search tool if enabled
+      // Add tools if enabled
+      const tools: Record<
+        string,
+        | ReturnType<typeof createWebSearchTool>
+        | ReturnType<typeof createGitAnalysisTool>
+      > = {}
+
       if (args.webSearchEnabled) {
-        generationOptions.tools = {
-          web_search: createWebSearchTool(),
-        }
+        tools.web_search = createWebSearchTool()
+      }
+
+      if (args.gitAnalysisEnabled) {
+        tools.git_analysis = createGitAnalysisTool()
+      }
+
+      if (Object.keys(tools).length > 0) {
+        generationOptions.tools = tools
         // Enable iterative tool calling with stopWhen
         generationOptions.stopWhen = stepCountIs(5) // Allow up to 5 iterations
       }
@@ -237,6 +251,7 @@ export const generateAIResponse = internalAction({
     modelId: modelIdValidator, // Use validated modelId
     attachments: v.optional(v.array(v.id("files"))),
     webSearchEnabled: v.optional(v.boolean()),
+    gitAnalysisEnabled: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -278,6 +293,7 @@ export const generateAIResponse = internalAction({
         args.modelId as ModelId,
         args.attachments,
         args.webSearchEnabled,
+        args.gitAnalysisEnabled,
       )
 
       console.log(
@@ -285,6 +301,7 @@ export const generateAIResponse = internalAction({
       )
       console.log(`Schema fix timestamp: ${Date.now()}`)
       console.log(`Web search enabled: ${args.webSearchEnabled}`)
+      console.log(`Git analysis enabled: ${args.gitAnalysisEnabled}`)
 
       // Stream AI response using shared utility
       const { usage: finalUsage } = await streamAIResponse(
@@ -294,6 +311,7 @@ export const generateAIResponse = internalAction({
         messageId,
         userApiKeys,
         args.webSearchEnabled,
+        args.gitAnalysisEnabled,
       )
 
       // Update thread usage using shared utility

@@ -9,7 +9,7 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"
 import { createAIClient } from "./ai_client.js"
-import { createWebSearchTool } from "./ai_tools.js"
+import { createGitAnalysisTool, createWebSearchTool } from "./ai_tools.js"
 import { buildMessageContent, createSystemPrompt } from "./message_builder.js"
 
 /**
@@ -49,6 +49,7 @@ export async function buildConversationMessages(
   modelId: ModelId,
   attachments?: Id<"files">[],
   webSearchEnabled?: boolean,
+  gitAnalysisEnabled?: boolean,
 ): Promise<CoreMessage[]> {
   // Get recent conversation context
   const recentMessages = await ctx.runQuery(
@@ -57,7 +58,11 @@ export async function buildConversationMessages(
   )
 
   const provider = getProviderFromModelId(modelId)
-  const systemPrompt = createSystemPrompt(modelId, webSearchEnabled)
+  const systemPrompt = createSystemPrompt(
+    modelId,
+    webSearchEnabled,
+    gitAnalysisEnabled,
+  )
 
   // Prepare messages for AI SDK v5 with multimodal support
   const messages: CoreMessage[] = [
@@ -109,6 +114,7 @@ export async function streamAIResponse(
     openrouter?: string
   } | null,
   webSearchEnabled?: boolean,
+  gitAnalysisEnabled?: boolean,
 ) {
   const provider = getProviderFromModelId(modelId)
   const aiClient = createAIClient(modelId, userApiKeys)
@@ -120,11 +126,23 @@ export async function streamAIResponse(
     temperature: 0.7,
   }
 
-  // Add web search tool if enabled
+  // Add tools if enabled
+  const tools: Record<
+    string,
+    | ReturnType<typeof createWebSearchTool>
+    | ReturnType<typeof createGitAnalysisTool>
+  > = {}
+
   if (webSearchEnabled) {
-    generationOptions.tools = {
-      web_search: createWebSearchTool(),
-    }
+    tools.web_search = createWebSearchTool()
+  }
+
+  if (gitAnalysisEnabled) {
+    tools.git_analysis = createGitAnalysisTool()
+  }
+
+  if (Object.keys(tools).length > 0) {
+    generationOptions.tools = tools
     generationOptions.stopWhen = stepCountIs(5)
   }
 

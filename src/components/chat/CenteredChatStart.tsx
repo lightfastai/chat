@@ -15,6 +15,7 @@ interface CenteredChatStartProps {
     modelId: string,
     attachments?: Id<"files">[],
     webSearchEnabled?: boolean,
+    gitAnalysisEnabled?: boolean,
   ) => Promise<void> | void
   disabled?: boolean
   isLoading?: boolean
