@@ -35,6 +35,16 @@ const threadObjectValidator = v.object({
   shareSettings: shareSettingsValidator,
   // Thread-level usage tracking (denormalized for performance)
   usage: threadUsageValidator,
+  // Computer status tracking
+  computerStatus: v.optional(
+    v.object({
+      isRunning: v.boolean(),
+      instanceId: v.optional(v.string()),
+      currentOperation: v.optional(v.string()),
+      startedAt: v.number(),
+      lastUpdateAt: v.optional(v.number()),
+    }),
+  ),
 })
 
 // Create a new thread

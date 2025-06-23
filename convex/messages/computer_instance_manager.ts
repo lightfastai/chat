@@ -102,7 +102,7 @@ export class ComputerInstanceManager {
       const threadInstances = listResult.value.filter(
         (i) =>
           i.status === "running" &&
-          (i.name === `lightfast-computer-${this.threadId}` ||
+          (i.name === `computer-${this.threadId}` ||
             i.metadata?.threadId === this.threadId),
       )
 
@@ -118,7 +118,7 @@ export class ComputerInstanceManager {
     console.log(`Creating new Computer instance for thread ${this.threadId}...`)
 
     const createOptions: CreateInstanceOptions = {
-      name: `lightfast-computer-${this.threadId}`,
+      name: `computer-${this.threadId}`,
       region: "iad", // US East (Washington DC)
       size: "shared-cpu-2x",
       memoryMb: 512,
@@ -178,7 +178,7 @@ export class ComputerInstanceManager {
         return listResult.value.some(
           (i) =>
             i.status === "running" &&
-            (i.name === `lightfast-computer-${this.threadId}` ||
+            (i.name === `computer-${this.threadId}` ||
               i.metadata?.threadId === this.threadId),
         )
       }

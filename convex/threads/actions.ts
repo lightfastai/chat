@@ -36,9 +36,9 @@ export const initializeComputer = internalAction({
       await ctx.runMutation(internal.threads.internals.updateComputerStatus, {
         threadId: args.threadId,
         status: {
-          isRunning: true,
+          isRunning: false, // Not actively running a task
           instanceId: instance.id,
-          currentOperation: "Initialized",
+          currentOperation: "Ready",
           startedAt: Date.now(),
           lastUpdateAt: Date.now(),
         },
