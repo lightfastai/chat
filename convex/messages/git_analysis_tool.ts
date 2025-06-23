@@ -308,8 +308,20 @@ async function getOrCreateInstance(
   const listResult = await sdk.instances.list()
 
   if (listResult.isOk()) {
+    // First, look for instances specifically tied to this thread
+    const threadInstances = listResult.value.filter(
+      (i) => i.status === "running" && 
+      (i.name === `git-analysis-${_threadId}` || i.metadata?.threadId === _threadId)
+    )
+    
+    if (threadInstances.length > 0) {
+      console.log(`Using existing thread instance: ${threadInstances[0].id}`)
+      return threadInstances[0]
+    }
+    
+    // Fallback: look for any running git-analysis instances
     const runningInstances = listResult.value.filter(
-      (i) => i.status === "running",
+      (i) => i.status === "running" && i.name?.startsWith("git-analysis-")
     )
     if (runningInstances.length > 0) {
       console.log(`Using existing instance: ${runningInstances[0].id}`)
@@ -333,13 +345,14 @@ async function getOrCreateInstance(
   // })
 
   const createOptions: CreateInstanceOptions = {
-    name: `git-analysis-${Date.now()}`,
+    name: `git-analysis-${_threadId}`,
     region: "iad", // US East (Washington DC)
     size: "shared-cpu-2x",
     memoryMb: 512,
     metadata: {
       purpose: "git-analysis",
       createdBy: "chat-app",
+      threadId: _threadId,
     },
   }
 
