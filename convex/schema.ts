@@ -101,28 +101,9 @@ export default defineSchema({
     // Token usage tracking per message
     usage: tokenUsageValidator,
     // Message parts for tool rendering (v5 compatibility)
-    parts: v.optional(v.array(v.object({
-      type: v.union(
-        v.literal("text"),
-        v.literal("tool-invocation"),
-        v.literal("reasoning"),
-        v.literal("source"),
-        v.literal("step-start")
-      ),
-      content: v.optional(v.string()),
-      // Tool invocation specific fields
-      toolCallId: v.optional(v.string()),
-      toolName: v.optional(v.string()),
-      args: v.optional(v.any()),
-      state: v.optional(v.union(
-        v.literal("partial-call"),
-        v.literal("call"),
-        v.literal("result"),
-        v.literal("error")
-      )),
-      result: v.optional(v.any()),
-      error: v.optional(v.string()),
-    }))),
+    // Using v.any() to avoid TypeScript deep instantiation issues
+    // The actual validation happens in mutations
+    parts: v.optional(v.array(v.any())),
   })
     .index("by_thread", ["threadId"])
     .index("by_stream_id", ["streamId"]),

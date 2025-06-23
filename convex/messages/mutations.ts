@@ -502,28 +502,7 @@ export const clearGenerationFlag = internalMutation({
 export const addMessagePart = internalMutation({
   args: {
     messageId: v.id("messages"),
-    part: v.object({
-      type: v.union(
-        v.literal("text"),
-        v.literal("tool-invocation"),
-        v.literal("reasoning"),
-        v.literal("source"),
-        v.literal("step-start")
-      ),
-      content: v.optional(v.string()),
-      toolCallId: v.optional(v.string()),
-      toolName: v.optional(v.string()),
-      args: v.optional(v.any()),
-      state: v.optional(v.union(
-        v.literal("partial-call"),
-        v.literal("call"),
-        v.literal("result"),
-        v.literal("error")
-      )),
-      result: v.optional(v.any()),
-      error: v.optional(v.string()),
-    }),
-  },
+    part: v.any(), // Using v.any() to avoid deep instantiation
   returns: v.null(),
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId)
@@ -545,12 +524,7 @@ export const updateToolInvocation = internalMutation({
   args: {
     messageId: v.id("messages"),
     toolCallId: v.string(),
-    state: v.union(
-      v.literal("partial-call"),
-      v.literal("call"),
-      v.literal("result"),
-      v.literal("error")
-    ),
+    state: v.string(), // Simplified to avoid deep instantiation
     result: v.optional(v.any()),
     error: v.optional(v.string()),
   },
