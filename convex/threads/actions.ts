@@ -32,25 +32,13 @@ export const initializeComputer = internalAction({
       // Create the computer instance
       const instance = await instanceManager.getOrCreateInstance()
 
-      // Update thread with computer status - show as ready
-      await ctx.runMutation(internal.threads.internals.updateComputerStatus, {
-        threadId: args.threadId,
-        status: {
-          lifecycleState: "ready",
-          instanceId: instance.id,
-          currentOperation: "Computer instance ready",
-          startedAt: Date.now(),
-          lastUpdateAt: Date.now(),
-        },
-      })
-
-      // After a short delay, set to idle state
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      // Update thread with computer status - show as idle (ready for commands)
       await ctx.runMutation(internal.threads.internals.updateComputerStatus, {
         threadId: args.threadId,
         status: {
           lifecycleState: "idle",
           instanceId: instance.id,
+          currentOperation: "Ready for commands",
           startedAt: Date.now(),
           lastUpdateAt: Date.now(),
         },

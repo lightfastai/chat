@@ -38,12 +38,10 @@ export function ComputerStatus({
 }: ComputerStatusProps) {
   const [isVisible, setIsVisible] = useState(false)
 
-  // Show the accordion only when computer is in visible states
+  // Show the accordion when computer instance exists (hide only when stopped)
   const shouldShow =
     computerStatus &&
-    ["initializing", "ready", "running", "error"].includes(
-      computerStatus.lifecycleState,
-    )
+    computerStatus.lifecycleState !== "stopped"
 
   useEffect(() => {
     if (shouldShow) {
@@ -82,10 +80,12 @@ export function ComputerStatus({
         return status.currentOperation || "Computer instance ready"
       case "running":
         return status.currentOperation || "Processing..."
+      case "idle":
+        return status.currentOperation || "Ready for commands"
       case "error":
         return status.currentOperation || "Error occurred"
       default:
-        return status.currentOperation || "Idle"
+        return status.currentOperation || "Unknown state"
     }
   }
 
@@ -102,15 +102,29 @@ export function ComputerStatus({
               : "opacity-0 -translate-y-2",
             computerStatus.lifecycleState === "error"
               ? "border rounded-lg border-red-500/20 bg-red-50/50 dark:bg-red-950/20"
+              : computerStatus.lifecycleState === "idle"
+              ? "border rounded-lg border-gray-300/50 bg-gray-50/30 dark:bg-gray-950/20"
               : "border rounded-lg border-blue-500/20 bg-blue-50/50 dark:bg-blue-950/20",
             className,
           )}
         >
           <AccordionItem value="computer-status" className="border-none">
-            <AccordionTrigger className="hover:no-underline px-3 py-3 hover:bg-blue-100/50 dark:hover:bg-blue-900/20">
+            <AccordionTrigger className={cn(
+              "hover:no-underline px-3 py-3",
+              computerStatus.lifecycleState === "idle"
+                ? "hover:bg-gray-100/50 dark:hover:bg-gray-900/20"
+                : "hover:bg-blue-100/50 dark:hover:bg-blue-900/20"
+            )}>
               <div className="flex items-center gap-3 flex-1 text-left">
                 <div className="relative">
-                  <Cpu className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <Cpu className={cn(
+                    "h-5 w-5",
+                    computerStatus.lifecycleState === "idle"
+                      ? "text-gray-500 dark:text-gray-400"
+                      : computerStatus.lifecycleState === "error"
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-blue-600 dark:text-blue-400"
+                  )} />
                   {computerStatus.lifecycleState === "running" && (
                     <div className="absolute -bottom-1 -right-1">
                       <Loader2 className="h-3 w-3 animate-spin text-blue-600 dark:text-blue-400" />
