@@ -12,6 +12,7 @@ import { api } from "../../convex/_generated/api"
 export function useAuth() {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
+  // @ts-expect-error - TypeScript deep instantiation issue with complex Convex schema
   const currentUser = useQuery(api.users.current)
 
   const handleSignIn = useCallback(

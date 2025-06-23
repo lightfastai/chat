@@ -503,6 +503,7 @@ export const addMessagePart = internalMutation({
   args: {
     messageId: v.id("messages"),
     part: v.any(), // Using v.any() to avoid deep instantiation
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId)
