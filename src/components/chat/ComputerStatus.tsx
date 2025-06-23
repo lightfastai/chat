@@ -65,7 +65,7 @@ export function ComputerStatus({
   }
 
   return (
-    <div className="p-2 sm:p-4 flex-shrink-0">
+    <div className="px-2 sm:px-4 flex-shrink-0">
       <div className="max-w-3xl mx-auto">
         <Accordion
           type="single"
