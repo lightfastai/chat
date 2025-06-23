@@ -239,6 +239,7 @@ export const createStreamingMessage = internalMutation({
       lastChunkId: undefined, // Initialize last chunk ID
       modelId: args.modelId,
       usedUserApiKey: args.usedUserApiKey,
+      parts: [], // Initialize empty parts array
     })
   },
 })

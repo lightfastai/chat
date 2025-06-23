@@ -166,15 +166,6 @@ export const generateAIResponseWithMessage = internalAction({
       let fullText = ""
       let hasContent = false
 
-      // First, add initial text part to message parts
-      await ctx.runMutation(internal.messages.addMessagePart, {
-        messageId: args.messageId,
-        part: {
-          type: "text",
-          content: "",
-        },
-      })
-
       // Process the full stream to capture both text and tool invocations
       for await (const streamPart of result.fullStream) {
         const part = streamPart as any

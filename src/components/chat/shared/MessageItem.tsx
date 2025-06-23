@@ -101,29 +101,21 @@ export function MessageItem({
 
       {/* Message body - render parts if available, otherwise fallback to body */}
       <div className="text-sm leading-relaxed">
-        {message.parts && message.parts.length > 0 ? (
-          // Render message parts
+        {message.parts && Array.isArray(message.parts) && message.parts.some(p => p.type === "tool-invocation") ? (
+          // Render message parts including tool invocations
           <div className="space-y-2">
+            {/* Always render the message body text first if available */}
+            {displayText && (
+              <>
+                <Markdown className="text-sm">{displayText}</Markdown>
+                {isStreaming && !isComplete && (
+                  <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
+                )}
+              </>
+            )}
+            {/* Then render tool invocations */}
             {message.parts.map((part, index) => {
               switch (part.type) {
-                case "text":
-                  // For text parts, use the accumulated body text for backward compatibility
-                  // Only render the text part if it's the first one or if we're in streaming mode
-                  if (index === 0 || isStreaming) {
-                    return (
-                      <div key={index}>
-                        {displayText ? (
-                          <>
-                            <Markdown className="text-sm">{displayText}</Markdown>
-                            {isStreaming && !isComplete && (
-                              <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-                            )}
-                          </>
-                        ) : null}
-                      </div>
-                    )
-                  }
-                  return null
                 case "tool-invocation":
                   return <ToolInvocation key={index} part={part as Extract<typeof part, { type: "tool-invocation" }>} />
                 case "reasoning":
