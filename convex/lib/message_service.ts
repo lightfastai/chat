@@ -150,10 +150,10 @@ export async function streamAIResponse(
   if (Object.keys(tools).length > 0) {
     generationOptions.tools = tools
     generationOptions.stopWhen = stepCountIs(5)
-    
+
     // Add prepareStep if provided
     if (prepareStep) {
-      generationOptions.experimental_prepareStep = prepareStep
+      generationOptions.prepareStep = prepareStep
     }
   }
 

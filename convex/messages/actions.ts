@@ -169,15 +169,15 @@ export const generateAIResponseWithMessage = internalAction({
         generationOptions.tools = tools
         // Enable iterative tool calling with stopWhen
         generationOptions.stopWhen = stepCountIs(5) // Allow up to 5 iterations
-        
+
         // Add prepareStep for Computer instance management
         if (args.gitAnalysisEnabled) {
-          generationOptions.experimental_prepareStep = async ({ steps, stepNumber }) => {
+          generationOptions.prepareStep = async ({ steps, stepNumber }) => {
             // Check if any previous step used git_analysis tool
-            const hasGitAnalysisCall = steps.some(step => 
+            const hasGitAnalysisCall = steps.some(step =>
               step.toolCalls?.some(tc => tc.toolName === 'git_analysis')
             )
-            
+
             // If git analysis was called, ensure Computer instance is ready
             if (hasGitAnalysisCall && stepNumber > 0) {
               // TODO: Re-enable once types regenerate
@@ -186,7 +186,7 @@ export const generateAIResponseWithMessage = internalAction({
               //   operation: "Preparing for next operation",
               // })
             }
-            
+
             // Could return different settings per step if needed
             return undefined // Use default settings
           }
