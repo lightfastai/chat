@@ -8,7 +8,7 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import { internalAction } from "../_generated/server.js"
 import { createAIClient } from "../lib/ai_client.js"
-import { createGitAnalysisTool, createWebSearchTool } from "../lib/ai_tools.js"
+import { createGitAnalysisTool, createGitHubAPITool, createWebSearchTool } from "../lib/ai_tools.js"
 import { requireResource } from "../lib/errors.js"
 import {
   buildMessageContent,
@@ -154,18 +154,15 @@ export const generateAIResponseWithMessage = internalAction({
       }
 
       // Add tools if enabled
-      const tools: Record<
-        string,
-        | ReturnType<typeof createWebSearchTool>
-        | ReturnType<typeof createGitAnalysisTool>
-      > = {}
+      const tools: any = {}
 
       if (args.webSearchEnabled) {
         tools.web_search = createWebSearchTool()
       }
 
       if (args.gitAnalysisEnabled) {
-        tools.git_analysis = createGitAnalysisTool()
+        tools.git_analysis = createGitAnalysisTool(ctx, args.threadId)
+        tools.github_api = createGitHubAPITool()
       }
 
       if (Object.keys(tools).length > 0) {

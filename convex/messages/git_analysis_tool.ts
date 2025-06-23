@@ -6,7 +6,7 @@ import {
 } from "@lightfastai/computer"
 import { tool } from "ai"
 import { z } from "zod"
-import { api } from "../_generated/api.js"
+// import { internal } from "../_generated/api.js" // TODO: Re-enable for computer status tracking
 import { env } from "../env.js"
 
 /**
@@ -42,7 +42,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
         .describe("Directory traversal depth for analysis"),
     }),
     execute: async ({ operation, repoUrl, path, pattern, depth }) => {
-      console.log(`Git analysis tool: ${operation}`, { repoUrl, path, pattern })
+      console.log(`Git analysis tool: ${operation}`, { repoUrl, path, pattern, depth })
 
       // Note: This is a mock implementation showing the interface
       // The actual implementation would use the Computer SDK
@@ -101,10 +101,11 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
             }
 
             // Update status to show cloning
-            await ctx.runMutation(api.messages.updateComputerOperation, {
-              threadId: threadId as any,
-              operation: `Cloning ${repoUrl}`,
-            })
+            // TODO: Re-enable once types regenerate
+            // await ctx.runMutation(internal.messages.updateComputerOperation, {
+            //   threadId: threadId as any,
+            //   operation: `Cloning ${repoUrl}`,
+            // })
 
             // Prepare working directory and clone
             const setupResult = await sdk.commands.execute({
@@ -112,7 +113,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", "cd /home && rm -rf repo && mkdir -p repo"],
               timeout: 10000,
-            })
+            // })
 
             if (setupResult.isErr()) {
               return {
@@ -128,7 +129,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", `cd /home && git clone --depth 1 "${repoUrl}" repo`],
               timeout: 60000,
-            })
+            // })
 
             if (result.isErr()) {
               return {
@@ -139,10 +140,11 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
             }
 
             // Update status to show analysis
-            await ctx.runMutation(api.messages.updateComputerOperation, {
-              threadId: threadId as any,
-              operation: "Analyzing repository structure",
-            })
+            // TODO: Re-enable once types regenerate
+            // await ctx.runMutation(internal.messages.updateComputerOperation, {
+            //   threadId: threadId as any,
+            //   operation: "Analyzing repository structure",
+            // })
 
             return {
               success: true,
@@ -163,10 +165,11 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
             const targetPath = path || "/home/repo"
 
             // Update status
-            await ctx.runMutation(api.messages.updateComputerOperation, {
-              threadId: threadId as any,
-              operation: `Analyzing ${targetPath}`,
-            })
+            // TODO: Re-enable once types regenerate
+            // await ctx.runMutation(internal.messages.updateComputerOperation, {
+            //   threadId: threadId as any,
+            //   operation: `Analyzing ${targetPath}`,
+            // })
 
             // Analyze directory structure using ls -la for better output
             const treeResult = await sdk.commands.execute({
@@ -174,7 +177,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", `cd "${targetPath}" && find . -type f -maxdepth ${depth} | head -100`],
               timeout: 15000,
-            })
+            // })
 
             // Get file statistics
             const statsResult = await sdk.commands.execute({
@@ -182,7 +185,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", `cd "${targetPath}" && du -sh . 2>/dev/null || echo "Size unknown"`],
               timeout: 10000,
-            })
+            // })
 
             if (treeResult.isErr() || statsResult.isErr()) {
               return {
@@ -226,10 +229,11 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
             const searchPath = path || "/home/repo"
 
             // Update status
-            await ctx.runMutation(api.messages.updateComputerOperation, {
-              threadId: threadId as any,
-              operation: `Searching for "${pattern}"`,
-            })
+            // TODO: Re-enable once types regenerate
+            // await ctx.runMutation(internal.messages.updateComputerOperation, {
+            //   threadId: threadId as any,
+            //   operation: `Searching for "${pattern}"`,
+            // })
 
             // Search for pattern in files or find files by name
             const searchResult = await sdk.commands.execute({
@@ -237,7 +241,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
               command: "bash",
               args: ["-c", `cd "${searchPath}" && find . -name "*${pattern}*" -type f | head -50`],
               timeout: 30000,
-            })
+            // })
 
             if (searchResult.isErr()) {
               return {
@@ -265,7 +269,7 @@ export function createGitAnalysisTool(ctx: any, threadId: string) {
                     }
                   }
                   return null
-                })
+                // })
                 .filter(Boolean)
                 .slice(0, 50), // Limit to first 50 matches
               totalMatches: searchResult.value.output
@@ -318,15 +322,16 @@ async function getOrCreateInstance(
   console.log("Creating new Computer instance...")
   
   // Update computer status to show creation
-  await ctx.runMutation(api.messages.updateComputerStatus, {
-    threadId: threadId as any,
-    status: {
-      isRunning: true,
-      instanceId: undefined,
-      currentOperation: "Creating instance",
-      startedAt: Date.now(),
-    },
-  })
+  // TODO: Re-enable once types regenerate
+  // await ctx.runMutation(internal.messages.updateComputerStatus, {
+  //   threadId: threadId as any,
+  //   status: {
+  //     isRunning: true,
+  //     instanceId: undefined,
+  //     currentOperation: "Creating instance",
+  //     startedAt: Date.now(),
+  //   },
+  // })
 
   const createOptions: CreateInstanceOptions = {
     name: `git-analysis-${Date.now()}`,
@@ -350,15 +355,16 @@ async function getOrCreateInstance(
   let attempts = 0
   
   // Update status with instance ID
-  await ctx.runMutation(api.messages.updateComputerStatus, {
-    threadId: threadId as any,
-    status: {
-      isRunning: true,
-      instanceId: instance.id,
-      currentOperation: "Starting instance",
-      startedAt: Date.now(),
-    },
-  })
+  // TODO: Re-enable once types regenerate
+  // await ctx.runMutation(internal.messages.updateComputerStatus, {
+  //   threadId: threadId as any,
+  //   status: {
+  //     isRunning: true,
+  //     instanceId: instance.id,
+  //     currentOperation: "Starting instance",
+  //     startedAt: Date.now(),
+  //   },
+  // })
 
   while (instance.status !== "running" && attempts < 30) {
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -374,10 +380,11 @@ async function getOrCreateInstance(
   }
 
   // Update status to show instance is ready
-  await ctx.runMutation(api.messages.updateComputerOperation, {
-    threadId: threadId as any,
-    operation: "Instance ready",
-  })
+  // TODO: Re-enable once types regenerate
+  // await ctx.runMutation(internal.messages.updateComputerOperation, {
+  //   threadId: threadId as any,
+  //   operation: "Instance ready",
+  // })
 
   console.log(`Created new instance: ${instance.id}`)
   return instance
