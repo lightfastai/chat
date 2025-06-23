@@ -28,6 +28,8 @@ const CONVEX_OPTIONAL_VARS = [
   "ENCRYPTION_KEY",
   "CONVEX_SITE_URL",
   "NODE_ENV",
+  "FLY_API_TOKEN",
+  "FLY_APP_NAME",
 ] as const
 
 // Next.js requires these but they don't need to be synced to Convex
