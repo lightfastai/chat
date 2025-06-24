@@ -52,8 +52,20 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
 		});
 	}
 
+	// Calculate thinking duration
+	const thinkingDuration =
+		message.thinkingStartedAt && message.thinkingCompletedAt
+			? message.thinkingCompletedAt - message.thinkingStartedAt
+			: null;
+
 	// Actions component
-	const actions = <MessageActions message={message} />;
+	const actions = (
+		<MessageActions
+			message={message}
+			modelName={modelName}
+			thinkingDuration={thinkingDuration}
+		/>
+	);
 
 	return (
 		<>
