@@ -107,8 +107,6 @@ export default defineSchema({
     // Message parts array following Vercel AI SDK v5 structure
     // Stores text, tool calls, and tool results in chronological order
     parts: v.optional(messagePartsValidator),
-    // Sequence tracking for chronological ordering of text and tool parts
-    nextSequenceNumber: v.optional(v.number()),
   })
     .index("by_thread", ["threadId"])
     .index("by_stream_id", ["streamId"]),
