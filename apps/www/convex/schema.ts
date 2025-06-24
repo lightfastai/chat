@@ -102,8 +102,9 @@ export default defineSchema({
 		usage: tokenUsageValidator,
 		// Message parts array following Vercel AI SDK v5 structure
 		// Stores text, tool calls, and tool results in chronological order
-		// Using simple object validator to avoid TypeScript deep instantiation issues
-		// The actual validation happens in mutations
+		// IMPORTANT: Using v.object({}) due to TypeScript deep instantiation limits
+		// The staging environment's schema complexity prevents using proper validators
+		// Actual validation happens at runtime in mutations
 		parts: v.optional(v.array(v.object({}))),
 	})
 		.index("by_thread", ["threadId"])
