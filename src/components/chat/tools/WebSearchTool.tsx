@@ -42,8 +42,8 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
 
   return (
     <div className="my-3">
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value={accordionValue}>
+      <Accordion type="single" collapsible className="w-full border rounded-lg">
+        <AccordionItem value={accordionValue} className="border-0">
           <AccordionTrigger>
             <div className="flex items-center gap-2">
               {isLoading ? (
