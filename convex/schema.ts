@@ -11,6 +11,7 @@ import {
   fileMetadataValidator,
   fileNameValidator,
   ipHashValidator,
+  messagePartsValidator,
   messageTypeValidator,
   mimeTypeValidator,
   modelIdValidator,
@@ -100,9 +101,12 @@ export default defineSchema({
     hasThinkingContent: v.optional(v.boolean()),
     // Token usage tracking per message
     usage: tokenUsageValidator,
-    // Tool invocations array for Vercel AI SDK v5 compatibility
-    // Stores tool calls and results made during message generation
+    // DEPRECATED: Tool invocations array (for backward compatibility)
+    // Use 'parts' field for new implementations following Vercel AI SDK v5
     toolInvocations: v.optional(v.array(v.any())),
+    // Message parts array following Vercel AI SDK v5 structure
+    // Stores text, tool calls, and tool results in chronological order
+    parts: v.optional(messagePartsValidator),
     // Sequence tracking for chronological ordering of text and tool parts
     nextSequenceNumber: v.optional(v.number()),
   })

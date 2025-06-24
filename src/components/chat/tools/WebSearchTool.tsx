@@ -1,12 +1,12 @@
 "use client"
 
-import { ExternalLink, Loader2, Search } from "lucide-react"
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { ExternalLink, Loader2, Search } from "lucide-react"
 export interface WebSearchToolProps {
   toolInvocation: {
     state: "partial-call" | "call" | "result" | "error"
@@ -117,4 +117,3 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
     </div>
   )
 }
-

@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 import {
   chunkIdValidator,
+  messagePartsValidator,
   messageTypeValidator,
   modelIdValidator,
   modelProviderValidator,
@@ -9,53 +10,8 @@ import {
   tokenUsageValidator,
 } from "../validators.js"
 
-// Define message part types separately to reduce schema complexity
-export const textPartValidator = v.object({
-  type: v.literal("text"),
-  content: v.optional(v.string()),
-})
-
-export const toolInvocationPartValidator = v.object({
-  type: v.literal("tool-invocation"),
-  content: v.optional(v.string()),
-  toolCallId: v.optional(v.string()),
-  toolName: v.optional(v.string()),
-  args: v.optional(v.any()),
-  state: v.optional(
-    v.union(
-      v.literal("partial-call"),
-      v.literal("call"),
-      v.literal("result"),
-      v.literal("error"),
-    ),
-  ),
-  result: v.optional(v.any()),
-  error: v.optional(v.string()),
-})
-
-export const reasoningPartValidator = v.object({
-  type: v.literal("reasoning"),
-  content: v.optional(v.string()),
-})
-
-export const sourcePartValidator = v.object({
-  type: v.literal("source"),
-  content: v.optional(v.string()),
-})
-
-export const stepStartPartValidator = v.object({
-  type: v.literal("step-start"),
-  content: v.optional(v.string()),
-})
-
-// Simplified message part validator
-export const messagePartValidator = v.union(
-  textPartValidator,
-  toolInvocationPartValidator,
-  reasoningPartValidator,
-  sourcePartValidator,
-  stepStartPartValidator,
-)
+// Note: Message part validators have been moved to ../validators.js
+// to follow Vercel AI SDK v5 patterns and maintain consistency
 
 // Shared message return type for queries
 export const messageReturnValidator = v.object({
@@ -81,7 +37,8 @@ export const messageReturnValidator = v.object({
   lastChunkId: v.optional(chunkIdValidator),
   streamChunks: v.optional(v.array(streamChunkValidator)),
   streamVersion: v.optional(v.number()),
-  toolInvocations: v.optional(v.array(v.any())),
+  toolInvocations: v.optional(v.array(v.any())), // DEPRECATED: for backward compatibility
+  parts: v.optional(messagePartsValidator),
 })
 
 // Type for message usage updates

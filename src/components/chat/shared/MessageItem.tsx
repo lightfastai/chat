@@ -111,10 +111,18 @@ export function MessageItem({
             return (
               <div className="space-y-2">
                 {parts.map((part, index) => {
+                  // Create a unique key based on part content
+                  const partKey =
+                    part.type === "tool-call"
+                      ? `tool-call-${(part as any).toolCallId}`
+                      : part.type === "tool-invocation"
+                        ? `tool-invocation-${(part as any).toolInvocation.toolCallId}`
+                        : `text-${index}`
+
                   switch (part.type) {
                     case "text":
                       return (
-                        <div key={index}>
+                        <div key={partKey}>
                           <Markdown className="text-sm">{part.text}</Markdown>
                           {isStreaming &&
                             !isComplete &&
@@ -123,8 +131,11 @@ export function MessageItem({
                             )}
                         </div>
                       )
+                    case "tool-call":
+                      return <ToolInvocation key={partKey} part={part} />
                     case "tool-invocation":
-                      return <ToolInvocation key={index} part={part} />
+                      // Legacy support - convert to new format
+                      return <ToolInvocation key={partKey} part={part} />
                     default:
                       return null
                   }

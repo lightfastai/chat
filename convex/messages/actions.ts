@@ -166,31 +166,6 @@ export const generateAIResponseWithMessage = internalAction({
       let fullText = ""
       let hasContent = false
 
-      // Track accumulated tool call arguments for parsing
-      const accumulatedToolArgs: Record<string, string> = {}
-
-      // Simple JSON parser for partial tool arguments
-      const parsePartialJson = (text: string) => {
-        try {
-          return JSON.parse(text)
-        } catch {
-          // If parsing fails, try to parse as much as possible
-          try {
-            // Add closing braces/brackets to make it valid JSON
-            const trimmed = text.trim()
-            if (trimmed.endsWith(',')) {
-              return JSON.parse(trimmed.slice(0, -1) + '}')
-            }
-            if (!trimmed.endsWith('}') && trimmed.startsWith('{')) {
-              return JSON.parse(trimmed + '}')
-            }
-            return JSON.parse(trimmed)
-          } catch {
-            return {} // Return empty object if parsing completely fails
-          }
-        }
-      }
-
       // Use fullStream as the unified interface (works with or without tools)
       for await (const streamPart of result.fullStream) {
         const part = streamPart as any
@@ -225,7 +200,7 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-call":
-            // Add tool invocation in "call" state
+            // Add tool invocation in "call" state (TEMP: using deprecated API)
             await ctx.runMutation(internal.messages.addToolInvocation, {
               messageId: args.messageId,
               toolInvocation: {
@@ -238,27 +213,19 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-call-delta":
-            // Handle streaming tool call arguments (accumulate and parse)
+            // Update tool invocation with streaming arguments (TEMP: using deprecated API)
             if (part.toolCallId && part.argsTextDelta) {
-              // Accumulate the text delta
-              accumulatedToolArgs[part.toolCallId] = 
-                (accumulatedToolArgs[part.toolCallId] || "") + part.argsTextDelta
-
-              // Parse the accumulated text as partial JSON
-              const partialArgs = parsePartialJson(accumulatedToolArgs[part.toolCallId])
-
-              // Update tool invocation with parsed partial arguments
               await ctx.runMutation(internal.messages.updateToolInvocation, {
                 messageId: args.messageId,
                 toolCallId: part.toolCallId,
+                args: part.args, // Use the parsed args from the SDK
                 state: "partial-call",
-                args: partialArgs,
               })
             }
             break
 
           case "tool-result":
-            // Update tool invocation with result
+            // Update tool invocation with result (TEMP: using deprecated API)
             await ctx.runMutation(internal.messages.updateToolInvocation, {
               messageId: args.messageId,
               toolCallId: part.toolCallId,
@@ -268,7 +235,7 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-call-streaming-start":
-            // Add tool invocation in "partial-call" state
+            // Add tool invocation in "partial-call" state (TEMP: using deprecated API)
             if (part.toolCallId && part.toolName) {
               await ctx.runMutation(internal.messages.addToolInvocation, {
                 messageId: args.messageId,
@@ -306,7 +273,6 @@ export const generateAIResponseWithMessage = internalAction({
             // Handle stream errors explicitly
             console.error("Stream error:", part.error)
             throw new Error(`Stream error: ${part.error}`)
-            break
 
           // Handle other event types that might be added in future SDK versions
           default:

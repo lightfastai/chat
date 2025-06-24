@@ -182,6 +182,7 @@ export const createThreadAndSend = mutation({
       thinkingStartedAt: now,
       streamChunks: [], // Initialize empty chunks array
       streamVersion: 0, // Initialize version counter
+      parts: [], // Initialize empty parts array
       usage: undefined, // Will be updated when streaming completes
       lastChunkId: undefined, // Initialize last chunk ID
     })
@@ -239,6 +240,7 @@ export const createStreamingMessage = internalMutation({
       thinkingStartedAt: now,
       streamChunks: [], // Initialize empty chunks array
       streamVersion: 0, // Initialize version counter
+      parts: [], // Initialize empty parts array
       lastChunkId: undefined, // Initialize last chunk ID
       modelId: args.modelId,
       usedUserApiKey: args.usedUserApiKey,
@@ -279,9 +281,20 @@ export const appendStreamChunk = internalMutation({
     const updatedChunks = [...currentChunks, newChunk]
     const updatedBody = message.body + args.chunk
 
+    // Also add as text part to the parts array
+    const currentParts = message.parts || []
+    const updatedParts = [
+      ...currentParts,
+      {
+        type: "text" as const,
+        text: args.chunk,
+      },
+    ]
+
     await ctx.db.patch(args.messageId, {
       body: updatedBody,
       streamChunks: updatedChunks,
+      parts: updatedParts,
       lastChunkId: args.chunkId,
       streamVersion: (message.streamVersion || 0) + 1,
     })
@@ -503,7 +516,149 @@ export const clearGenerationFlag = internalMutation({
   },
 })
 
-// Internal mutation to add a tool invocation
+// Internal mutation to add a text part
+export const addTextPart = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    text: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId)
+    if (!message) return null
+
+    const currentParts = message.parts || []
+    const updatedParts = [
+      ...currentParts,
+      {
+        type: "text" as const,
+        text: args.text,
+      },
+    ]
+
+    await ctx.db.patch(args.messageId, {
+      parts: updatedParts,
+    })
+
+    return null
+  },
+})
+
+// Internal mutation to add a tool call part
+export const addToolCallPart = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    toolCallId: v.string(),
+    toolName: v.string(),
+    args: v.optional(v.any()),
+    state: v.optional(
+      v.union(
+        v.literal("partial-call"),
+        v.literal("call"),
+        v.literal("result"),
+        v.literal("error"),
+      ),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId)
+    if (!message) return null
+
+    const currentParts = message.parts || []
+    const updatedParts = [
+      ...currentParts,
+      {
+        type: "tool-call" as const,
+        toolCallId: args.toolCallId,
+        toolName: args.toolName,
+        args: args.args,
+        state: args.state || "call",
+      },
+    ]
+
+    await ctx.db.patch(args.messageId, {
+      parts: updatedParts,
+    })
+
+    return null
+  },
+})
+
+// Internal mutation to add a tool result part
+export const addToolResultPart = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    toolCallId: v.string(),
+    result: v.any(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId)
+    if (!message) return null
+
+    const currentParts = message.parts || []
+    const updatedParts = [
+      ...currentParts,
+      {
+        type: "tool-result" as const,
+        toolCallId: args.toolCallId,
+        result: args.result,
+      },
+    ]
+
+    await ctx.db.patch(args.messageId, {
+      parts: updatedParts,
+    })
+
+    return null
+  },
+})
+
+// Internal mutation to update a tool call part (updates args and/or state in-place)
+export const updateToolCallPart = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    toolCallId: v.string(),
+    args: v.optional(v.any()),
+    state: v.optional(
+      v.union(
+        v.literal("partial-call"),
+        v.literal("call"),
+        v.literal("result"),
+        v.literal("error"),
+      ),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId)
+    if (!message) return null
+
+    const currentParts = message.parts || []
+
+    // Find the tool call part and update its args and/or state
+    const updatedParts = currentParts.map((part) => {
+      if (part.type === "tool-call" && part.toolCallId === args.toolCallId) {
+        return {
+          ...part,
+          ...(args.args !== undefined && { args: args.args }),
+          ...(args.state !== undefined && { state: args.state }),
+        }
+      }
+      return part
+    })
+
+    await ctx.db.patch(args.messageId, {
+      parts: updatedParts,
+    })
+
+    return null
+  },
+})
+
+// DEPRECATED: Legacy tool invocation mutations for backward compatibility
+// Internal mutation to add a tool invocation (DEPRECATED - use addToolCallPart instead)
 export const addToolInvocation = internalMutation({
   args: {
     messageId: v.id("messages"),
@@ -523,24 +678,27 @@ export const addToolInvocation = internalMutation({
 
     const currentInvocations = message.toolInvocations || []
     const currentChunks = message.streamChunks || []
-    
+
     // Check if tool invocation already exists
     const existingIndex = currentInvocations.findIndex(
-      (invocation: any) => invocation.toolCallId === args.toolInvocation.toolCallId
+      (invocation: any) =>
+        invocation.toolCallId === args.toolInvocation.toolCallId,
     )
-    
+
     if (existingIndex >= 0) {
       // Update existing invocation with the new information
-      const updatedInvocations = currentInvocations.map((invocation: any, index) => {
-        if (index === existingIndex) {
-          return {
-            ...invocation,
-            ...args.toolInvocation, // Merge new data
-            toolName: args.toolInvocation.toolName || invocation.toolName, // Preserve tool name if available
+      const updatedInvocations = currentInvocations.map(
+        (invocation: any, index) => {
+          if (index === existingIndex) {
+            return {
+              ...invocation,
+              ...args.toolInvocation, // Merge new data
+              toolName: args.toolInvocation.toolName || invocation.toolName, // Preserve tool name if available
+            }
           }
-        }
-        return invocation
-      })
+          return invocation
+        },
+      )
 
       await ctx.db.patch(args.messageId, {
         toolInvocations: updatedInvocations,
@@ -548,13 +706,16 @@ export const addToolInvocation = internalMutation({
     } else {
       // Add new tool invocation
       const totalPartsCount = currentChunks.length + currentInvocations.length
-      
+
       const toolInvocationWithSequence = {
         ...args.toolInvocation,
         sequence: totalPartsCount,
       }
-      
-      const updatedInvocations = [...currentInvocations, toolInvocationWithSequence]
+
+      const updatedInvocations = [
+        ...currentInvocations,
+        toolInvocationWithSequence,
+      ]
 
       await ctx.db.patch(args.messageId, {
         toolInvocations: updatedInvocations,
@@ -565,7 +726,7 @@ export const addToolInvocation = internalMutation({
   },
 })
 
-// Internal mutation to update a tool invocation
+// Internal mutation to update a tool invocation (DEPRECATED - use updateToolCallPart instead)
 export const updateToolInvocation = internalMutation({
   args: {
     messageId: v.id("messages"),
@@ -581,12 +742,12 @@ export const updateToolInvocation = internalMutation({
     if (!message) return null
 
     const invocations = (message.toolInvocations || []) as any[]
-    
+
     // Find existing invocation
     const existingIndex = invocations.findIndex(
-      (invocation) => invocation.toolCallId === args.toolCallId
+      (invocation) => invocation.toolCallId === args.toolCallId,
     )
-    
+
     if (existingIndex >= 0) {
       // Update existing invocation
       const updatedInvocations = invocations.map((invocation, index) => {
@@ -609,7 +770,7 @@ export const updateToolInvocation = internalMutation({
       // If tool invocation doesn't exist yet, create it
       const currentChunks = message.streamChunks || []
       const totalPartsCount = currentChunks.length + invocations.length
-      
+
       const newToolInvocation = {
         state: args.state,
         toolCallId: args.toolCallId,
@@ -619,7 +780,7 @@ export const updateToolInvocation = internalMutation({
         error: args.error,
         sequence: totalPartsCount,
       }
-      
+
       const updatedInvocations = [...invocations, newToolInvocation]
 
       await ctx.db.patch(args.messageId, {
