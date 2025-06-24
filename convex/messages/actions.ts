@@ -194,11 +194,10 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-call":
-            // Add tool call part in "call" state
-            await ctx.runMutation(internal.messages.addToolCallPart, {
+            // Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
+            await ctx.runMutation(internal.messages.updateToolCallPart, {
               messageId: args.messageId,
               toolCallId: part.toolCallId,
-              toolName: part.toolName,
               args: part.args,
               state: "call",
             })
