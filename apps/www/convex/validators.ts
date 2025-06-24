@@ -209,6 +209,37 @@ export const userPreferencesValidator = v.optional(
 	}),
 );
 
+// ===== Message Parts Validators (Vercel AI SDK v5) =====
+// Text part validator - represents a text segment in a message
+export const textPartValidator = v.object({
+	type: v.literal("text"),
+	text: v.string(),
+});
+
+// Tool call part validator - Official Vercel AI SDK v5 compliant
+export const toolCallPartValidator = v.object({
+	type: v.literal("tool-call"),
+	toolCallId: v.string(),
+	toolName: v.string(),
+	args: v.optional(v.any()),
+	result: v.optional(v.any()),
+	state: v.union(
+		v.literal("partial-call"), // Tool call in progress (streaming args)
+		v.literal("call"), // Completed tool call (ready for execution)
+		v.literal("result"), // Tool execution completed with results
+	),
+	step: v.optional(v.number()), // Official SDK step tracking for multi-step calls
+});
+
+// Message part union validator - represents any type of message part
+export const messagePartValidator = v.union(
+	textPartValidator,
+	toolCallPartValidator,
+);
+
+// Array of message parts validator
+export const messagePartsValidator = v.array(messagePartValidator);
+
 // ===== Validation Functions =====
 // Title validation function
 export function validateTitle(title: string): boolean {
