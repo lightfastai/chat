@@ -86,14 +86,11 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
             )}
 
             {searchResults && searchResults.length > 0 && (
-              <div className="space-y-3">
+              <div className="divide-y">
                 {searchResults.map((result, index) => {
                   if (!result) return null
                   return (
-                    <div
-                      key={index}
-                      className="rounded-md border border-border/50 bg-background/50 p-3"
-                    >
+                    <div key={index} className="py-3 first:pt-0 last:pb-0">
                       <a
                         href={result.url}
                         target="_blank"
