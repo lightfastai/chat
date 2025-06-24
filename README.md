@@ -191,7 +191,7 @@ SKIP_ENV_VALIDATION=true bun run build
 
 4. Sync environment variables to Convex:
    ```bash
-   bun run env:sync
+   pnpm run env:sync
    ```
    
    This command will:
@@ -199,17 +199,23 @@ SKIP_ENV_VALIDATION=true bun run build
    - Sync API keys and authentication settings to Convex
    - Automatically set NODE_ENV=development for local development
 
-5. Start the Convex development server:
+5. Start the development servers (Next.js + Convex concurrently):
    ```bash
-   bun run convex:dev
+   pnpm run dev
+   ```
+   
+   This command will start both the Next.js development server and Convex dev server concurrently with color-coded output.
+   
+   **Alternative**: If you prefer separate terminals:
+   ```bash
+   # Terminal 1: Start Convex development server
+   pnpm run convex:dev
+   
+   # Terminal 2: Start Next.js development server only
+   pnpm run dev:next
    ```
 
-6. In a new terminal, start the Next.js development server:
-   ```bash
-   bun run dev
-   ```
-
-7. Open [http://localhost:3000](http://localhost:3000) and sign in with GitHub
+6. Open [http://localhost:3000](http://localhost:3000) and sign in with GitHub
 
 ## ✨ Features
 
@@ -291,13 +297,15 @@ SKIP_ENV_VALIDATION=true bun run build
 
 ## Available Scripts
 
-- `bun run dev` - Start the Next.js development server
-- `bun run build` - Build the application for production
-- `bun run start` - Start the production server
-- `bun run lint` - Run Biome linter and fix issues
-- `bun run format` - Format code with Biome
-- `bun run convex:dev` - Start Convex development server
-- `bun run convex:deploy` - Deploy to Convex
+- `pnpm run dev` - Start Next.js + Convex development servers concurrently
+- `pnpm run dev:next` - Start the Next.js development server only
+- `pnpm run build` - Build the application for production
+- `pnpm run start` - Start the production server
+- `pnpm run lint` - Run Biome linter and fix issues
+- `pnpm run format` - Format code with Biome
+- `pnpm run convex:dev` - Start Convex development server only
+- `pnpm run convex:deploy` - Deploy to Convex
+- `pnpm run env:sync` - Sync environment variables to Convex
 
 ## Project Structure
 
