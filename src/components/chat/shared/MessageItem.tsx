@@ -99,9 +99,9 @@ export function MessageItem({
           />
         )}
 
-      {/* Message body - render parts if available, otherwise fallback to body */}
+      {/* Message body - temporarily disable parts rendering to debug */}
       <div className="text-sm leading-relaxed">
-        {message.parts && Array.isArray(message.parts) && message.parts.some(p => p.type === "tool-invocation") ? (
+        {false && message.parts && Array.isArray(message.parts) && message.parts.some(p => p.type === "tool-invocation") ? (
           // Render message parts including tool invocations
           <div className="space-y-2">
             {/* Always render the message body text first if available */}

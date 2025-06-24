@@ -186,7 +186,8 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-call":
-            // Add tool invocation part in "call" state
+            // Temporarily disable tool parts to debug
+            /*
             await ctx.runMutation(internal.messages.addMessagePart, {
               messageId: args.messageId,
               part: {
@@ -197,45 +198,19 @@ export const generateAIResponseWithMessage = internalAction({
                 state: "call",
               },
             })
+            */
             break
 
           case "tool-result":
-            // Update tool invocation with result
-            await ctx.runMutation(internal.messages.updateToolInvocation, {
-              messageId: args.messageId,
-              toolCallId: part.toolCallId,
-              state: "result",
-              result: part.result,
-            })
+            // Temporarily disabled
             break
 
           case "tool-call-streaming-start":
-            // Add tool invocation part in "partial-call" state
-            if (part.toolCallId && part.toolName) {
-              await ctx.runMutation(internal.messages.addMessagePart, {
-                messageId: args.messageId,
-                part: {
-                  type: "tool-invocation",
-                  toolCallId: part.toolCallId,
-                  toolName: part.toolName,
-                  args: {},
-                  state: "partial-call",
-                },
-              })
-            }
+            // Temporarily disabled
             break
 
           case "reasoning-delta":
-            // Handle reasoning content if available
-            if (part.reasoningDelta) {
-              await ctx.runMutation(internal.messages.addMessagePart, {
-                messageId: args.messageId,
-                part: {
-                  type: "reasoning",
-                  content: part.reasoningDelta,
-                },
-              })
-            }
+            // Temporarily disabled
             break
         }
       }
