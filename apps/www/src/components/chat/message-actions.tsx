@@ -4,18 +4,13 @@ import type { ModelId } from "@/lib/ai";
 import { nanoid } from "@/lib/nanoid";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { Button } from "@lightfast/ui/components/ui/button";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@lightfast/ui/components/ui/tooltip";
+import { Badge } from "@lightfast/ui/components/ui/badge";
 import { cn } from "@lightfast/ui/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import {
 	CheckIcon,
 	ClipboardIcon,
-	Info,
+	Key,
 	ThumbsDown,
 	ThumbsUp,
 } from "lucide-react";
@@ -24,6 +19,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { FeedbackModal } from "./feedback-modal";
 import { ModelBranchDropdown } from "./model-branch-dropdown";
+import { MessageUsageChip } from "./message-usage-chip";
 import { formatDuration } from "./shared/thinking-content";
 
 interface MessageActionsProps {
@@ -232,91 +228,41 @@ export function MessageActions({
 		}
 	};
 
-	// Helper function to format token counts
-	const formatTokenCount = (count: number): string => {
-		if (count === 0) return "0";
-		if (count < 1000) return count.toString();
-		if (count < 1000000) {
-			const k = count / 1000;
-			return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
-		}
-		const m = count / 1000000;
-		return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
-	};
-
-	// Check if we have any metadata to display
-	const hasMetadata =
-		modelName || thinkingDuration || message.usage || message.usedUserApiKey;
-
 	return (
 		<>
 			<div className={cn("flex items-center gap-1", className)}>
-				{hasMetadata && (
-					<TooltipProvider>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-7 w-7"
-									aria-label="Message information"
-								>
-									<Info className="h-3.5 w-3.5" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="top" align="end">
-								<div className="text-xs space-y-1.5">
-									{modelName && <div className="font-medium">{modelName}</div>}
-									{message.usedUserApiKey && (
-										<div className="flex items-center gap-1">
-											<span className="text-muted-foreground">
-												Using your API key
-											</span>
-										</div>
-									)}
-									{thinkingDuration && (
-										<div className="text-muted-foreground">
-											Thought for {formatDuration(thinkingDuration)}
-										</div>
-									)}
-									{message.usage?.outputTokens && (
-										<div className="border-t pt-1.5 mt-1.5">
-											<div className="font-medium mb-1">Token Usage</div>
-											<div className="space-y-0.5 text-muted-foreground">
-												<div>
-													Input:{" "}
-													{formatTokenCount(message.usage.inputTokens || 0)}
-												</div>
-												<div>
-													Output:{" "}
-													{formatTokenCount(message.usage.outputTokens || 0)}
-												</div>
-												<div>
-													Total:{" "}
-													{formatTokenCount(message.usage.totalTokens || 0)}
-												</div>
-												{(message.usage.reasoningTokens || 0) > 0 && (
-													<div>
-														Reasoning:{" "}
-														{formatTokenCount(message.usage.reasoningTokens || 0)}
-													</div>
-												)}
-												{(message.usage.cachedInputTokens || 0) > 0 && (
-													<div>
-														Cached:{" "}
-														{formatTokenCount(
-															message.usage.cachedInputTokens || 0,
-														)}
-													</div>
-												)}
-											</div>
-										</div>
-									)}
-								</div>
-							</TooltipContent>
-						</Tooltip>
-					</TooltipProvider>
-				)}
+				{/* Metadata displayed inline on hover */}
+				<div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-200 flex items-center gap-2 text-xs text-muted-foreground mr-1">
+					{/* Model name */}
+					{modelName && <span>{modelName}</span>}
+
+					{/* API Key badge */}
+					{message.usedUserApiKey && (
+						<Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+							<Key className="w-3 h-3 mr-1" />
+							Your API Key
+						</Badge>
+					)}
+
+					{/* Thinking duration */}
+					{thinkingDuration && (
+						<>
+							{(modelName || message.usedUserApiKey) && <span>•</span>}
+							<span className="font-mono">
+								Thought for {formatDuration(thinkingDuration)}
+							</span>
+						</>
+					)}
+
+					{/* Usage chip */}
+					{message.usage && (
+						<>
+							{(modelName || message.usedUserApiKey || thinkingDuration) && <span>•</span>}
+							<MessageUsageChip usage={message.usage} />
+						</>
+					)}
+				</div>
+
 				<Button
 					variant="ghost"
 					size="icon"
