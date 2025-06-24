@@ -537,7 +537,8 @@ export const updateToolInvocation = internalMutation({
   args: {
     messageId: v.id("messages"),
     toolCallId: v.string(),
-    state: v.string(), // 'result' | 'error'
+    state: v.string(), // 'partial-call' | 'result' | 'error'
+    args: v.optional(v.any()),
     result: v.optional(v.any()),
     error: v.optional(v.string()),
   },
@@ -552,6 +553,7 @@ export const updateToolInvocation = internalMutation({
         return {
           ...invocation,
           state: args.state,
+          args: args.args !== undefined ? args.args : invocation.args,
           result: args.result,
           error: args.error,
         }

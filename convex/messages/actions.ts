@@ -166,6 +166,31 @@ export const generateAIResponseWithMessage = internalAction({
       let fullText = ""
       let hasContent = false
 
+      // Track accumulated tool call arguments for parsing
+      const accumulatedToolArgs: Record<string, string> = {}
+
+      // Simple JSON parser for partial tool arguments
+      const parsePartialJson = (text: string) => {
+        try {
+          return JSON.parse(text)
+        } catch {
+          // If parsing fails, try to parse as much as possible
+          try {
+            // Add closing braces/brackets to make it valid JSON
+            const trimmed = text.trim()
+            if (trimmed.endsWith(',')) {
+              return JSON.parse(trimmed.slice(0, -1) + '}')
+            }
+            if (!trimmed.endsWith('}') && trimmed.startsWith('{')) {
+              return JSON.parse(trimmed + '}')
+            }
+            return JSON.parse(trimmed)
+          } catch {
+            return {} // Return empty object if parsing completely fails
+          }
+        }
+      }
+
       // Use fullStream as the unified interface (works with or without tools)
       for await (const streamPart of result.fullStream) {
         const part = streamPart as any
@@ -213,13 +238,21 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-call-delta":
-            // Handle streaming tool call arguments (partial updates)
-            if (part.toolCallId) {
+            // Handle streaming tool call arguments (accumulate and parse)
+            if (part.toolCallId && part.argsTextDelta) {
+              // Accumulate the text delta
+              accumulatedToolArgs[part.toolCallId] = 
+                (accumulatedToolArgs[part.toolCallId] || "") + part.argsTextDelta
+
+              // Parse the accumulated text as partial JSON
+              const partialArgs = parsePartialJson(accumulatedToolArgs[part.toolCallId])
+
+              // Update tool invocation with parsed partial arguments
               await ctx.runMutation(internal.messages.updateToolInvocation, {
                 messageId: args.messageId,
                 toolCallId: part.toolCallId,
                 state: "partial-call",
-                args: part.argsTextDelta ? { ...part.args } : part.args,
+                args: partialArgs,
               })
             }
             break
