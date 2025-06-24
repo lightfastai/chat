@@ -47,11 +47,11 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
           <AccordionTrigger>
             <div className="flex items-center gap-2">
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               ) : hasError ? (
                 <Search className="h-4 w-4 text-red-500" />
               ) : (
-                <Search className="h-4 w-4 text-green-500" />
+                <Search className="h-4 w-4 text-muted-foreground" />
               )}
               <div className="text-left">
                 <div className="font-medium">
