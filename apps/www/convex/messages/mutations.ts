@@ -183,6 +183,8 @@ export const createThreadAndSend = mutation({
 			streamChunks: [], // Initialize empty chunks array
 			streamVersion: 0, // Initialize version counter
 			lastChunkId: undefined, // Initialize last chunk ID
+			parts: [], // Initialize empty parts array for tool calls
+			usage: undefined, // Initialize usage tracking
 		});
 
 		// Schedule AI response with the pre-created message ID
@@ -241,6 +243,8 @@ export const createStreamingMessage = internalMutation({
 			lastChunkId: undefined, // Initialize last chunk ID
 			modelId: args.modelId,
 			usedUserApiKey: args.usedUserApiKey,
+			parts: [], // Initialize empty parts array for tool calls
+			usage: undefined, // Initialize usage tracking
 		});
 	},
 });
@@ -449,6 +453,8 @@ export const createErrorMessage = internalMutation({
 			isComplete: true,
 			thinkingStartedAt: now,
 			thinkingCompletedAt: now,
+			parts: [], // Initialize empty parts array for tool calls
+			usage: undefined, // Initialize usage tracking
 		});
 
 		return null;
@@ -497,5 +503,118 @@ export const clearGenerationFlag = internalMutation({
 		await ctx.db.patch(args.threadId, {
 			isGenerating: false,
 		});
+	},
+});
+
+// ===== Message Parts Mutations (Vercel AI SDK v5) =====
+
+// Internal mutation to add a text part to a message
+export const addTextPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		text: v.string(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "text" as const,
+				text: args.text,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add a tool call part to a message
+export const addToolCallPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		toolCallId: v.string(),
+		toolName: v.string(),
+		args: v.optional(v.any()),
+		state: v.optional(
+			v.union(
+				v.literal("partial-call"),
+				v.literal("call"), 
+				v.literal("result"),
+			),
+		),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "tool-call" as const,
+				toolCallId: args.toolCallId,
+				toolName: args.toolName,
+				args: args.args,
+				state: args.state || "call",
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to update a tool call part in a message
+export const updateToolCallPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		toolCallId: v.string(),
+		args: v.optional(v.any()),
+		result: v.optional(v.any()),
+		state: v.optional(
+			v.union(
+				v.literal("partial-call"),
+				v.literal("call"),
+				v.literal("result"),
+			),
+		),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+
+		// Find the tool call part and update its args, result, and/or state
+		const updatedParts = currentParts.map((part) => {
+			if (part.type === "tool-call" && part.toolCallId === args.toolCallId) {
+				return {
+					...part,
+					...(args.args !== undefined && { args: args.args }),
+					...(args.result !== undefined && { result: args.result }),
+					...(args.state !== undefined && { state: args.state }),
+				};
+			}
+			return part;
+		});
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
 	},
 });
