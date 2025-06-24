@@ -1,9 +1,9 @@
 "use node"
 
-import { action } from "../_generated/server"
 import { v } from "convex/values"
-import { POLAR_CONFIG } from "./config"
 import { internal } from "../_generated/api"
+import { action } from "../_generated/server"
+import { POLAR_CONFIG } from "./config"
 
 // Polar API types
 interface PolarCustomer {
@@ -40,7 +40,7 @@ interface PolarCheckoutSession {
 // Helper to make Polar API requests
 async function polarRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const accessToken = process.env.POLAR_ACCESS_TOKEN
   if (!accessToken) {
@@ -50,7 +50,7 @@ async function polarRequest<T>(
   const response = await fetch(`${POLAR_CONFIG.apiUrl}${endpoint}`, {
     ...options,
     headers: {
-      "Authorization": `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
       ...options.headers,
     },
@@ -76,10 +76,10 @@ export const createOrUpdateCustomer = action({
     email: v.string(),
   }),
   handler: async (ctx, args) => {
-    // Check if customer already exists  
+    // Check if customer already exists
     const existingCustomer = await ctx.runQuery(
       internal.polar.mutations.internalGetCustomerByUserId,
-      { userId: args.userId }
+      { userId: args.userId },
     )
 
     let customer: PolarCustomer
@@ -97,7 +97,7 @@ export const createOrUpdateCustomer = action({
               userId: args.userId,
             },
           }),
-        }
+        },
       )
     } else {
       // Create new customer
@@ -143,9 +143,9 @@ export const createCheckoutSession = action({
     // Get or create customer
     const existingCustomer = await ctx.runQuery(
       internal.polar.mutations.internalGetCustomerByUserId,
-      { userId: args.userId }
+      { userId: args.userId },
     )
-    
+
     if (!existingCustomer) {
       throw new Error("Customer not found. Please create customer first.")
     }
@@ -166,13 +166,12 @@ export const createCheckoutSession = action({
       },
     }
 
-
     const session = await polarRequest<PolarCheckoutSession>(
       "/checkout/sessions",
       {
         method: "POST",
         body: JSON.stringify(sessionData),
-      }
+      },
     )
 
     return {
@@ -195,12 +194,12 @@ export const getSubscription = action({
       currentPeriodEnd: v.string(),
       cancelAtPeriodEnd: v.boolean(),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (_ctx, args) => {
     try {
       const subscription = await polarRequest<PolarSubscription>(
-        `/subscriptions/${args.subscriptionId}`
+        `/subscriptions/${args.subscriptionId}`,
       )
 
       return {
@@ -236,7 +235,7 @@ export const cancelSubscription = action({
           body: JSON.stringify({
             cancel_immediately: args.immediate ?? false,
           }),
-        }
+        },
       )
 
       return {
@@ -271,7 +270,7 @@ export const getCustomerPortalUrl = action({
         body: JSON.stringify({
           return_url: args.returnUrl,
         }),
-      }
+      },
     )
 
     return {
@@ -279,4 +278,3 @@ export const getCustomerPortalUrl = action({
     }
   },
 })
-

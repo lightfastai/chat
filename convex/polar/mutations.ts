@@ -1,5 +1,5 @@
-import { internalMutation, mutation, internalQuery } from "../_generated/server"
 import { v } from "convex/values"
+import { internalMutation, internalQuery, mutation } from "../_generated/server"
 import { getCreditCost, getCreditsForPlan } from "./config"
 
 // Internal query to get customer by user ID
@@ -14,7 +14,7 @@ export const internalGetCustomerByUserId = internalQuery({
       polarCustomerId: v.string(),
       email: v.string(),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     return await ctx.db
@@ -71,7 +71,7 @@ export const upsertSubscription = internalMutation({
       v.literal("canceled"),
       v.literal("past_due"),
       v.literal("incomplete"),
-      v.literal("trialing")
+      v.literal("trialing"),
     ),
     currentPeriodStart: v.number(),
     currentPeriodEnd: v.number(),
@@ -83,7 +83,7 @@ export const upsertSubscription = internalMutation({
     const existing = await ctx.db
       .query("polarSubscriptions")
       .withIndex("by_polar_subscription", (q) =>
-        q.eq("polarSubscriptionId", args.polarSubscriptionId)
+        q.eq("polarSubscriptionId", args.polarSubscriptionId),
       )
       .unique()
 
@@ -102,7 +102,7 @@ export const upsertSubscription = internalMutation({
 
     if (existing) {
       await ctx.db.patch(existing._id, subscriptionData)
-      
+
       // If subscription became active, allocate credits
       if (existing.status !== "active" && args.status === "active") {
         // Allocate credits directly here
@@ -148,7 +148,7 @@ export const upsertSubscription = internalMutation({
           createdAt: now,
         })
       }
-      
+
       return existing._id
     }
 
@@ -255,8 +255,8 @@ export const consumeCredits = mutation({
         v.literal("chat"),
         v.literal("computer_use"),
         v.literal("image_generation"),
-        v.literal("file_analysis")
-      )
+        v.literal("file_analysis"),
+      ),
     ),
   },
   returns: v.object({
@@ -321,7 +321,7 @@ export const consumeCredits = mutation({
     const analytics = await ctx.db
       .query("usageAnalytics")
       .withIndex("by_user_and_date", (q) =>
-        q.eq("userId", args.userId).eq("date", today)
+        q.eq("userId", args.userId).eq("date", today),
       )
       .unique()
 
@@ -348,10 +348,14 @@ export const consumeCredits = mutation({
     if (analytics) {
       await ctx.db.patch(analytics._id, {
         gpt4oCredits: analytics.gpt4oCredits + modelCredits.gpt4oCredits,
-        gpt4oMiniCredits: analytics.gpt4oMiniCredits + modelCredits.gpt4oMiniCredits,
-        claudeSonnetCredits: analytics.claudeSonnetCredits + modelCredits.claudeSonnetCredits,
-        claudeHaikuCredits: analytics.claudeHaikuCredits + modelCredits.claudeHaikuCredits,
-        computerUseCredits: analytics.computerUseCredits + modelCredits.computerUseCredits,
+        gpt4oMiniCredits:
+          analytics.gpt4oMiniCredits + modelCredits.gpt4oMiniCredits,
+        claudeSonnetCredits:
+          analytics.claudeSonnetCredits + modelCredits.claudeSonnetCredits,
+        claudeHaikuCredits:
+          analytics.claudeHaikuCredits + modelCredits.claudeHaikuCredits,
+        computerUseCredits:
+          analytics.computerUseCredits + modelCredits.computerUseCredits,
         totalMessages: analytics.totalMessages + 1,
       })
     } else {
@@ -373,7 +377,6 @@ export const consumeCredits = mutation({
   },
 })
 
-
 // Update usage analytics (internal)
 export const updateUsageAnalytics = internalMutation({
   args: {
@@ -389,7 +392,7 @@ export const updateUsageAnalytics = internalMutation({
     const analytics = await ctx.db
       .query("usageAnalytics")
       .withIndex("by_user_and_date", (q) =>
-        q.eq("userId", args.userId).eq("date", today)
+        q.eq("userId", args.userId).eq("date", today),
       )
       .unique()
 
@@ -437,4 +440,3 @@ export const updateUsageAnalytics = internalMutation({
     }
   },
 })
-

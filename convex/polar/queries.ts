@@ -1,5 +1,5 @@
-import { internalQuery, query } from "../_generated/server"
 import { v } from "convex/values"
+import { internalQuery, query } from "../_generated/server"
 import { getCreditCost } from "./config"
 
 // Get customer by user ID
@@ -14,7 +14,7 @@ export const getCustomerByUserId = internalQuery({
       polarCustomerId: v.string(),
       email: v.string(),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     return await ctx.db
@@ -37,7 +37,7 @@ export const getActiveSubscription = query({
       currentPeriodEnd: v.number(),
       cancelAtPeriodEnd: v.boolean(),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     const subscription = await ctx.db
@@ -107,11 +107,11 @@ export const getRecentTransactions = query({
       balance: v.number(),
       description: v.string(),
       createdAt: v.number(),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const limit = args.limit ?? 10
-    
+
     const transactions = await ctx.db
       .query("creditTransactions")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -139,8 +139,8 @@ export const canSendMessage = query({
         v.literal("chat"),
         v.literal("computer_use"),
         v.literal("image_generation"),
-        v.literal("file_analysis")
-      )
+        v.literal("file_analysis"),
+      ),
     ),
   },
   returns: v.object({
@@ -198,7 +198,7 @@ export const getUsageAnalytics = query({
       totalCredits: v.number(),
       messageCount: v.number(),
       threadCount: v.number(),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const analytics = await ctx.db
@@ -207,7 +207,7 @@ export const getUsageAnalytics = query({
         q
           .eq("userId", args.userId)
           .gte("date", args.startDate)
-          .lte("date", args.endDate)
+          .lte("date", args.endDate),
       )
       .collect()
 
@@ -224,4 +224,3 @@ export const getUsageAnalytics = query({
     }))
   },
 })
-

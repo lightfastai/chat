@@ -6,5 +6,6 @@ export default function Pricing() {
 
 export const metadata = {
   title: "Pricing - Chat with AI",
-  description: "Simple, transparent pricing for AI chat. $8/month for 800 credits.",
+  description:
+    "Simple, transparent pricing for AI chat. $8/month for 800 credits.",
 }

@@ -3,14 +3,14 @@
 export const CREDIT_COSTS = {
   "gpt-4o": 1, // $0.0075 actual cost
   "gpt-4o-mini": 1, // $0.00045 actual cost (minimum 1 credit)
-  "o1": 2, // Estimated higher cost
+  o1: 2, // Estimated higher cost
   "o1-mini": 1, // Estimated
   "claude-3-5-sonnet-latest": 2, // $0.0108 actual cost
   "claude-3-5-haiku-latest": 1, // $0.00288 actual cost
   // Special actions (estimated based on complexity)
-  "computer_use": 5,
-  "image_generation": 3,
-  "file_analysis": 2,
+  computer_use: 5,
+  image_generation: 3,
+  file_analysis: 2,
 } as const
 
 // Plan configurations
@@ -19,11 +19,7 @@ export const PLANS = {
     name: "Starter",
     price: 8, // $8/month
     credits: 800, // Monthly credits
-    features: [
-      "800 credits/month",
-      "All AI models",
-      "Email support",
-    ],
+    features: ["800 credits/month", "All AI models", "Email support"],
   },
 } as const
 
@@ -46,7 +42,7 @@ export function getCreditsForPlan(planType: PlanType): number {
 
 export function getCreditCost(
   model: string,
-  action?: "chat" | "computer_use" | "image_generation" | "file_analysis"
+  action?: "chat" | "computer_use" | "image_generation" | "file_analysis",
 ): number {
   if (action && action !== "chat") {
     return CREDIT_COSTS[action] ?? 0
@@ -57,7 +53,7 @@ export function getCreditCost(
 export function canUseFeature(_planType: PlanType, feature: string): boolean {
   // Starter plan has access to all models
   if (feature === "all_models") return true
-  
+
   // All other features available with starter
   return true
 }

@@ -1,10 +1,16 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ArrowUpCircle, ArrowDownCircle, History, Plus, Minus } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  History,
+  Minus,
+  Plus,
+} from "lucide-react"
 import type { Id } from "../../../convex/_generated/dataModel"
 
 interface Transaction {
@@ -45,7 +51,7 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
       refund: { variant: "outline" as const, label: "Refund" },
       adjustment: { variant: "outline" as const, label: "Adjustment" },
     }
-    
+
     const config = variants[type as keyof typeof variants] || variants.usage
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
@@ -56,11 +62,11 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
   }
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Date(timestamp).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     })
   }
 
@@ -72,7 +78,7 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
           Recent Transactions
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent>
         <ScrollArea className="h-64">
           <div className="space-y-3">
@@ -95,7 +101,7 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="text-right">
                   <div className="flex items-center gap-1">
                     {transaction.amount > 0 ? (
@@ -105,7 +111,9 @@ export function TransactionHistory({ transactions }: TransactionHistoryProps) {
                     )}
                     <span
                       className={`text-sm font-medium ${
-                        transaction.amount > 0 ? "text-green-600" : "text-red-600"
+                        transaction.amount > 0
+                          ? "text-green-600"
+                          : "text-red-600"
                       }`}
                     >
                       {formatAmount(transaction.amount)}
@@ -133,13 +141,14 @@ function NoTransactionsCard() {
           Recent Transactions
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent>
         <div className="text-center py-8">
           <History className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground mb-2">No transactions yet</p>
           <p className="text-sm text-muted-foreground">
-            Your credit transactions will appear here once you start using the service.
+            Your credit transactions will appear here once you start using the
+            service.
           </p>
         </div>
       </CardContent>
@@ -156,11 +165,14 @@ function TransactionHistorySkeleton() {
           <Skeleton className="h-5 w-32" />
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+            <div
+              key={i}
+              className="flex items-center justify-between p-3 border rounded-lg"
+            >
               <div className="flex items-center gap-3">
                 <Skeleton className="h-4 w-4" />
                 <div className="space-y-2">
