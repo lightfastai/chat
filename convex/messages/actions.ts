@@ -44,6 +44,8 @@ export const generateAIResponseWithMessage = internalAction({
     gitAnalysisEnabled: v.optional(v.boolean()),
     messageId: v.id("messages"), // Pre-created message ID
     streamId: streamIdValidator, // Pre-generated stream ID
+    retryCount: v.optional(v.number()), // Track retry attempts
+    initialScheduledAt: v.optional(v.number()), // Track when first scheduled
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -55,64 +57,63 @@ export const generateAIResponseWithMessage = internalAction({
       })
       requireResource(thread, "Thread")
 
-      // If git analysis is enabled, wait for computer instance to be ready
+      // If git analysis is enabled, check if computer instance is ready
       if (args.gitAnalysisEnabled) {
-        console.log(
-          "Git analysis enabled, checking computer instance status...",
-        )
+        const isReady =
+          thread.computerStatus?.lifecycleState === "idle" ||
+          thread.computerStatus?.lifecycleState === "ready"
 
-        // Wait up to 60 seconds for computer instance to be ready
-        const maxWaitTime = 60000 // 60 seconds
-        const checkInterval = 2000 // Check every 2 seconds
-        const startTime = Date.now()
+        if (!isReady) {
+          // Calculate retry details
+          const retryCount = args.retryCount ?? 0
+          const maxRetries = 30 // Max 30 retries (~60 seconds with backoff)
+          const initialScheduledAt = args.initialScheduledAt ?? Date.now()
+          const elapsedTime = Date.now() - initialScheduledAt
 
-        while (Date.now() - startTime < maxWaitTime) {
-          const currentThread = await ctx.runQuery(
-            internal.messages.getThreadById,
-            {
-              threadId: args.threadId,
-            },
-          )
+          // Check if we've exceeded max retries or time
+          if (retryCount >= maxRetries || elapsedTime > 60000) {
+            console.warn(
+              "Computer instance not ready after maximum retries, proceeding anyway:",
+              {
+                lifecycleState: thread.computerStatus?.lifecycleState,
+                retryCount,
+                elapsedTime,
+              },
+            )
+            // Continue with execution despite instance not being ready
+          } else {
+            // Calculate backoff delay: min(2^retryCount * 1000, 10000) milliseconds
+            const delay = Math.min(Math.pow(2, retryCount) * 1000, 10000)
+            
+            console.log(
+              "Computer instance not ready, rescheduling:",
+              {
+                lifecycleState: thread.computerStatus?.lifecycleState,
+                retryCount,
+                delay,
+                elapsedTime,
+              },
+            )
 
-          if (
-            currentThread?.computerStatus?.lifecycleState === "idle" ||
-            currentThread?.computerStatus?.lifecycleState === "ready"
-          ) {
-            console.log("Computer instance is ready:", {
-              instanceId: currentThread.computerStatus.instanceId,
-              lifecycleState: currentThread.computerStatus.lifecycleState,
-            })
-            break
+            // Reschedule this action with incremented retry count
+            await ctx.scheduler.runAfter(
+              delay,
+              internal.messages.generateAIResponseWithMessage,
+              {
+                ...args,
+                retryCount: retryCount + 1,
+                initialScheduledAt,
+              },
+            )
+            
+            // Exit early - we'll retry later
+            return null
           }
-
-          console.log("Waiting for computer instance...", {
-            currentState: currentThread?.computerStatus?.lifecycleState,
-            elapsed: Date.now() - startTime,
+        } else {
+          console.log("Computer instance is ready:", {
+            instanceId: thread.computerStatus?.instanceId,
+            lifecycleState: thread.computerStatus?.lifecycleState,
           })
-
-          // Wait before checking again
-          await new Promise((resolve) => setTimeout(resolve, checkInterval))
-        }
-
-        // Final check - if still not ready, log warning but continue
-        const finalThread = await ctx.runQuery(
-          internal.messages.getThreadById,
-          {
-            threadId: args.threadId,
-          },
-        )
-
-        if (
-          finalThread?.computerStatus?.lifecycleState !== "idle" &&
-          finalThread?.computerStatus?.lifecycleState !== "ready"
-        ) {
-          console.warn(
-            "Computer instance not ready after waiting, proceeding anyway:",
-            {
-              finalState: finalThread?.computerStatus?.lifecycleState,
-              waitedFor: Date.now() - startTime,
-            },
-          )
         }
       }
 
@@ -375,6 +376,8 @@ export const generateAIResponse = internalAction({
     attachments: v.optional(v.array(v.id("files"))),
     webSearchEnabled: v.optional(v.boolean()),
     gitAnalysisEnabled: v.optional(v.boolean()),
+    retryCount: v.optional(v.number()), // Track retry attempts
+    initialScheduledAt: v.optional(v.number()), // Track when first scheduled
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -386,64 +389,63 @@ export const generateAIResponse = internalAction({
       })
       requireResource(thread, "Thread")
 
-      // If git analysis is enabled, wait for computer instance to be ready
+      // If git analysis is enabled, check if computer instance is ready
       if (args.gitAnalysisEnabled) {
-        console.log(
-          "Git analysis enabled, checking computer instance status...",
-        )
+        const isReady =
+          thread.computerStatus?.lifecycleState === "idle" ||
+          thread.computerStatus?.lifecycleState === "ready"
 
-        // Wait up to 60 seconds for computer instance to be ready
-        const maxWaitTime = 60000 // 60 seconds
-        const checkInterval = 2000 // Check every 2 seconds
-        const startTime = Date.now()
+        if (!isReady) {
+          // Calculate retry details
+          const retryCount = args.retryCount ?? 0
+          const maxRetries = 30 // Max 30 retries (~60 seconds with backoff)
+          const initialScheduledAt = args.initialScheduledAt ?? Date.now()
+          const elapsedTime = Date.now() - initialScheduledAt
 
-        while (Date.now() - startTime < maxWaitTime) {
-          const currentThread = await ctx.runQuery(
-            internal.messages.getThreadById,
-            {
-              threadId: args.threadId,
-            },
-          )
+          // Check if we've exceeded max retries or time
+          if (retryCount >= maxRetries || elapsedTime > 60000) {
+            console.warn(
+              "Computer instance not ready after maximum retries, proceeding anyway:",
+              {
+                lifecycleState: thread.computerStatus?.lifecycleState,
+                retryCount,
+                elapsedTime,
+              },
+            )
+            // Continue with execution despite instance not being ready
+          } else {
+            // Calculate backoff delay: min(2^retryCount * 1000, 10000) milliseconds
+            const delay = Math.min(Math.pow(2, retryCount) * 1000, 10000)
+            
+            console.log(
+              "Computer instance not ready, rescheduling:",
+              {
+                lifecycleState: thread.computerStatus?.lifecycleState,
+                retryCount,
+                delay,
+                elapsedTime,
+              },
+            )
 
-          if (
-            currentThread?.computerStatus?.lifecycleState === "idle" ||
-            currentThread?.computerStatus?.lifecycleState === "ready"
-          ) {
-            console.log("Computer instance is ready:", {
-              instanceId: currentThread.computerStatus.instanceId,
-              lifecycleState: currentThread.computerStatus.lifecycleState,
-            })
-            break
+            // Reschedule this action with incremented retry count
+            await ctx.scheduler.runAfter(
+              delay,
+              internal.messages.generateAIResponse,
+              {
+                ...args,
+                retryCount: retryCount + 1,
+                initialScheduledAt,
+              },
+            )
+            
+            // Exit early - we'll retry later
+            return null
           }
-
-          console.log("Waiting for computer instance...", {
-            currentState: currentThread?.computerStatus?.lifecycleState,
-            elapsed: Date.now() - startTime,
+        } else {
+          console.log("Computer instance is ready:", {
+            instanceId: thread.computerStatus?.instanceId,
+            lifecycleState: thread.computerStatus?.lifecycleState,
           })
-
-          // Wait before checking again
-          await new Promise((resolve) => setTimeout(resolve, checkInterval))
-        }
-
-        // Final check - if still not ready, log warning but continue
-        const finalThread = await ctx.runQuery(
-          internal.messages.getThreadById,
-          {
-            threadId: args.threadId,
-          },
-        )
-
-        if (
-          finalThread?.computerStatus?.lifecycleState !== "idle" &&
-          finalThread?.computerStatus?.lifecycleState !== "ready"
-        ) {
-          console.warn(
-            "Computer instance not ready after waiting, proceeding anyway:",
-            {
-              finalState: finalThread?.computerStatus?.lifecycleState,
-              waitedFor: Date.now() - startTime,
-            },
-          )
         }
       }
 
