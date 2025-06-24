@@ -9,6 +9,7 @@ import type { Doc } from "../../../convex/_generated/dataModel"
 import { CenteredChatStart } from "./CenteredChatStart"
 import { ChatInput } from "./ChatInput"
 import { ChatMessages } from "./ChatMessages"
+import { ComputerStatus } from "./ComputerStatus"
 
 type Message = Doc<"messages">
 
@@ -111,6 +112,7 @@ export function ChatInterface({
         disabled={isDisabled}
         isLoading={isAIGenerating}
         preloadedUser={preloadedUser}
+        computerStatus={currentThread?.computerStatus}
       />
     )
   }
@@ -118,11 +120,13 @@ export function ChatInterface({
   return (
     <div className="flex flex-col h-full ">
       <ChatMessages messages={enhancedMessages} />
+      <ComputerStatus computerStatus={currentThread?.computerStatus} />
       <ChatInput
         onSendMessage={handleSendMessage}
         placeholder="Message AI assistant..."
         disabled={isDisabled}
         isLoading={isAIGenerating}
+        computerStatus={currentThread?.computerStatus}
       />
     </div>
   )

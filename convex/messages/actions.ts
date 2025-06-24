@@ -1,4 +1,4 @@
-import { type CoreMessage, stepCountIs, streamText } from "ai"
+import { type CoreMessage, type ToolSet, stepCountIs, streamText } from "ai"
 import { v } from "convex/values"
 import {
   type ModelId,
@@ -8,7 +8,11 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import { internalAction } from "../_generated/server.js"
 import { createAIClient } from "../lib/ai_client.js"
-import { createWebSearchTool } from "../lib/ai_tools.js"
+import {
+  createGitAnalysisTool,
+  createGitHubAPITool,
+  createWebSearchTool,
+} from "../lib/ai_tools.js"
 import { requireResource } from "../lib/errors.js"
 import {
   buildMessageContent,
@@ -21,6 +25,7 @@ import {
   streamAIResponse,
   updateThreadUsage as updateThreadUsageUtil,
 } from "../lib/message_service.js"
+import { computerRetrier } from "../lib/retrier.js"
 import { modelIdValidator, streamIdValidator } from "../validators.js"
 import {
   generateChunkId,
@@ -37,6 +42,7 @@ export const generateAIResponseWithMessage = internalAction({
     modelId: modelIdValidator,
     attachments: v.optional(v.array(v.id("files"))),
     webSearchEnabled: v.optional(v.boolean()),
+    gitAnalysisEnabled: v.optional(v.boolean()),
     messageId: v.id("messages"), // Pre-created message ID
     streamId: streamIdValidator, // Pre-generated stream ID
   },
@@ -49,6 +55,27 @@ export const generateAIResponseWithMessage = internalAction({
         threadId: args.threadId,
       })
       requireResource(thread, "Thread")
+
+      // If git analysis is enabled, ensure computer instance is ready
+      if (args.gitAnalysisEnabled) {
+        try {
+          // Use Action Retrier to check computer readiness with automatic exponential backoff
+          const readiness = await computerRetrier.run(
+            ctx,
+            internal.messages.checkComputerReadiness.checkComputerReadiness,
+            {
+              threadId: args.threadId,
+            },
+          )
+          console.log("Computer instance ready via retrier:", readiness)
+        } catch (error) {
+          // If retrier exhausted all retries, log and continue
+          console.warn(
+            "Computer instance readiness check failed after retries, proceeding anyway:",
+            error,
+          )
+        }
+      }
 
       // Derive provider from modelId
       const provider = getProviderFromModelId(args.modelId as ModelId)
@@ -81,6 +108,7 @@ export const generateAIResponseWithMessage = internalAction({
       const systemPrompt = createSystemPrompt(
         args.modelId,
         args.webSearchEnabled,
+        args.gitAnalysisEnabled,
       )
 
       // Prepare messages for AI SDK v5 with multimodal support
@@ -151,13 +179,49 @@ export const generateAIResponseWithMessage = internalAction({
         // Usage will be updated after streaming completes
       }
 
-      // Add web search tool if enabled
+      // Add tools if enabled
+      const tools: ToolSet = {}
+
       if (args.webSearchEnabled) {
-        generationOptions.tools = {
-          web_search: createWebSearchTool(),
-        }
+        tools.web_search = createWebSearchTool()
+      }
+
+      if (args.gitAnalysisEnabled) {
+        // Pass the thread's existing computer instance ID if available
+        const threadComputerInstanceId = thread.computerStatus?.instanceId
+        tools.git_analysis = createGitAnalysisTool(
+          args.threadId,
+          threadComputerInstanceId,
+        )
+        tools.github_api = createGitHubAPITool()
+      }
+
+      if (Object.keys(tools).length > 0) {
+        generationOptions.tools = tools
         // Enable iterative tool calling with stopWhen
         generationOptions.stopWhen = stepCountIs(5) // Allow up to 5 iterations
+
+        // Add prepareStep for Computer instance management
+        if (args.gitAnalysisEnabled) {
+          generationOptions.prepareStep = async ({ steps, stepNumber }) => {
+            // Check if any previous step used git_analysis tool
+            const hasGitAnalysisCall = steps.some((step) =>
+              step.toolCalls?.some((tc) => tc.toolName === "git_analysis"),
+            )
+
+            // If git analysis was called, ensure Computer instance is ready
+            if (hasGitAnalysisCall && stepNumber > 0) {
+              // TODO: Re-enable once types regenerate
+              // await ctx.runMutation(internal.messages.updateComputerOperation, {
+              //   threadId: args.threadId,
+              //   operation: "Preparing for next operation",
+              // })
+            }
+
+            // Could return different settings per step if needed
+            return undefined // Use default settings
+          }
+        }
       }
 
       // Use the AI SDK v5 streamText
@@ -181,16 +245,50 @@ export const generateAIResponseWithMessage = internalAction({
         }
       }
 
-      // Process tool calls if web search is enabled
-      if (args.webSearchEnabled) {
+      // Process tool calls if any tools are enabled
+      if (args.webSearchEnabled || args.gitAnalysisEnabled) {
         for await (const streamPart of result.fullStream) {
           if (streamPart.type === "tool-call") {
-            // Tool calls are handled by the AI SDK
+            // Check if this is a git analysis tool call
+            if (streamPart.toolName === "git_analysis") {
+              // TODO: Enable computer status tracking once types are synced
+              // await ctx.runMutation(internal.messages.updateComputerStatus, {
+              //   threadId: args.threadId,
+              //   status: {
+              //     isRunning: true,
+              //     instanceId: `instance_${Date.now()}`,
+              //     currentOperation: "Initializing git analysis",
+              //     startedAt: Date.now(),
+              //   },
+              // })
+              // Extract operation from args if available
+              // try {
+              //   const toolArgs = streamPart.args as any
+              //   if (toolArgs?.operation) {
+              //     await ctx.runMutation(internal.messages.updateComputerOperation, {
+              //       threadId: args.threadId,
+              //       operation: `${toolArgs.operation}: ${
+              //         toolArgs.repoUrl || toolArgs.path || "processing"
+              //       }`,
+              //     })
+              //   }
+              // } catch (e) {
+              //   // Ignore parsing errors
+              // }
+            }
           }
 
           if (streamPart.type === "tool-result") {
-            // Tool results are handled by the AI SDK and included in the response
-            // We don't need to store them separately
+            // Check if this is a git analysis tool result
+            if (streamPart.toolName === "git_analysis") {
+              // TODO: Enable computer status tracking once types are synced
+              // await ctx.runMutation(internal.messages.updateComputerStatus, {
+              //   threadId: args.threadId,
+              //   status: {
+              //     isRunning: false,
+              //   },
+              // })
+            }
           }
         }
       }
@@ -237,6 +335,7 @@ export const generateAIResponse = internalAction({
     modelId: modelIdValidator, // Use validated modelId
     attachments: v.optional(v.array(v.id("files"))),
     webSearchEnabled: v.optional(v.boolean()),
+    gitAnalysisEnabled: v.optional(v.boolean())
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -247,6 +346,27 @@ export const generateAIResponse = internalAction({
         threadId: args.threadId,
       })
       requireResource(thread, "Thread")
+
+      // If git analysis is enabled, ensure computer instance is ready
+      if (args.gitAnalysisEnabled) {
+        try {
+          // Use Action Retrier to check computer readiness with automatic exponential backoff
+          const readiness = await computerRetrier.run(
+            ctx,
+            internal.messages.checkComputerReadiness.checkComputerReadiness,
+            {
+              threadId: args.threadId,
+            },
+          )
+          console.log("Computer instance ready via retrier:", readiness)
+        } catch (error) {
+          // If retrier exhausted all retries, log and continue
+          console.warn(
+            "Computer instance readiness check failed after retries, proceeding anyway:",
+            error,
+          )
+        }
+      }
 
       // Derive provider from modelId
       const provider = getProviderFromModelId(args.modelId as ModelId)
@@ -278,6 +398,7 @@ export const generateAIResponse = internalAction({
         args.modelId as ModelId,
         args.attachments,
         args.webSearchEnabled,
+        args.gitAnalysisEnabled,
       )
 
       console.log(
@@ -285,6 +406,7 @@ export const generateAIResponse = internalAction({
       )
       console.log(`Schema fix timestamp: ${Date.now()}`)
       console.log(`Web search enabled: ${args.webSearchEnabled}`)
+      console.log(`Git analysis enabled: ${args.gitAnalysisEnabled}`)
 
       // Stream AI response using shared utility
       const { usage: finalUsage } = await streamAIResponse(
@@ -292,8 +414,12 @@ export const generateAIResponse = internalAction({
         args.modelId as ModelId,
         messages,
         messageId,
+        args.threadId,
         userApiKeys,
         args.webSearchEnabled,
+        args.gitAnalysisEnabled,
+        undefined, // prepareStep - not used in legacy generateAIResponse
+        thread.computerStatus?.instanceId, // Pass thread's computer instance ID
       )
 
       // Update thread usage using shared utility

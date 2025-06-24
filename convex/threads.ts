@@ -7,6 +7,7 @@ import { requireResource, throwConflictError } from "./lib/errors.js"
 import {
   branchInfoValidator,
   clientIdValidator,
+  computerStatusValidator,
   modelIdValidator,
   shareIdValidator,
   shareSettingsValidator,
@@ -15,7 +16,7 @@ import {
 } from "./validators.js"
 
 // Thread object validator used in returns
-const threadObjectValidator = v.object({
+export const threadObjectValidator = v.object({
   _id: v.id("threads"),
   _creationTime: v.number(),
   clientId: v.optional(clientIdValidator),
@@ -35,6 +36,8 @@ const threadObjectValidator = v.object({
   shareSettings: shareSettingsValidator,
   // Thread-level usage tracking (denormalized for performance)
   usage: threadUsageValidator,
+  // Computer status tracking
+  computerStatus: v.optional(computerStatusValidator),
 })
 
 // Create a new thread
@@ -62,7 +65,7 @@ export const create = mutation({
     }
 
     const now = Date.now()
-    return await ctx.db.insert("threads", {
+    const threadId = await ctx.db.insert("threads", {
       clientId: args.clientId,
       title: args.title,
       userId: userId,
@@ -79,7 +82,24 @@ export const create = mutation({
         messageCount: 0,
         modelStats: {},
       },
+      // Initialize computer status to show initialization
+      computerStatus: {
+        lifecycleState: "initializing",
+        currentOperation: "Setting up Lightfast Computer instance...",
+        startedAt: now,
+      },
     })
+
+    // Schedule computer initialization for this thread
+    await ctx.scheduler.runAfter(
+      0,
+      internal.threads.actions.initializeComputer,
+      {
+        threadId,
+      },
+    )
+
+    return threadId
   },
 })
 
@@ -193,6 +213,17 @@ export const deleteThread = mutation({
       args.threadId,
       userId,
     )
+
+    // Schedule computer cleanup if thread has a computer instance
+    if (thread.computerStatus?.instanceId) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.threads.actions.cleanupComputer,
+        {
+          threadId: args.threadId,
+        },
+      )
+    }
 
     // First delete all messages in the thread
     const messages = await ctx.db
@@ -337,7 +368,22 @@ export const branchFromMessage = mutation({
         messageCount: 0,
         modelStats: {},
       },
+      // Initialize computer status to show initialization
+      computerStatus: {
+        lifecycleState: "initializing",
+        currentOperation: "Setting up Lightfast Computer instance...",
+        startedAt: now,
+      },
     })
+
+    // Schedule computer initialization for this thread
+    await ctx.scheduler.runAfter(
+      0,
+      internal.threads.actions.initializeComputer,
+      {
+        threadId: newThreadId,
+      },
+    )
 
     // Copy messages to new thread and accumulate usage
     let lastUserMessage = ""

@@ -1,4 +1,4 @@
-import type { CoreMessage } from "ai"
+import type { CoreMessage, PrepareStepFunction, ToolSet } from "ai"
 import { stepCountIs, streamText } from "ai"
 import type { ModelId } from "../../src/lib/ai/schemas.js"
 import {
@@ -9,7 +9,11 @@ import { internal } from "../_generated/api.js"
 import type { Id } from "../_generated/dataModel.js"
 import type { ActionCtx } from "../_generated/server.js"
 import { createAIClient } from "./ai_client.js"
-import { createWebSearchTool } from "./ai_tools.js"
+import {
+  createGitAnalysisTool,
+  createGitHubAPITool,
+  createWebSearchTool,
+} from "./ai_tools.js"
 import { buildMessageContent, createSystemPrompt } from "./message_builder.js"
 
 /**
@@ -49,6 +53,7 @@ export async function buildConversationMessages(
   modelId: ModelId,
   attachments?: Id<"files">[],
   webSearchEnabled?: boolean,
+  gitAnalysisEnabled?: boolean,
 ): Promise<CoreMessage[]> {
   // Get recent conversation context
   const recentMessages = await ctx.runQuery(
@@ -57,7 +62,11 @@ export async function buildConversationMessages(
   )
 
   const provider = getProviderFromModelId(modelId)
-  const systemPrompt = createSystemPrompt(modelId, webSearchEnabled)
+  const systemPrompt = createSystemPrompt(
+    modelId,
+    webSearchEnabled,
+    gitAnalysisEnabled,
+  )
 
   // Prepare messages for AI SDK v5 with multimodal support
   const messages: CoreMessage[] = [
@@ -103,12 +112,16 @@ export async function streamAIResponse(
   modelId: ModelId,
   messages: CoreMessage[],
   messageId: Id<"messages">,
+  threadId: Id<"threads">,
   userApiKeys: {
     openai?: string
     anthropic?: string
     openrouter?: string
   } | null,
   webSearchEnabled?: boolean,
+  gitAnalysisEnabled?: boolean,
+  prepareStep?: PrepareStepFunction<NoInfer<ToolSet>> | undefined,
+  threadComputerInstanceId?: string,
 ) {
   const provider = getProviderFromModelId(modelId)
   const aiClient = createAIClient(modelId, userApiKeys)
@@ -120,12 +133,29 @@ export async function streamAIResponse(
     temperature: 0.7,
   }
 
-  // Add web search tool if enabled
+  // Add tools if enabled
+  const tools: ToolSet = {}
+
   if (webSearchEnabled) {
-    generationOptions.tools = {
-      web_search: createWebSearchTool(),
-    }
+    tools.web_search = createWebSearchTool()
+  }
+
+  if (gitAnalysisEnabled) {
+    tools.git_analysis = createGitAnalysisTool(
+      threadId,
+      threadComputerInstanceId,
+    )
+    tools.github_api = createGitHubAPITool()
+  }
+
+  if (Object.keys(tools).length > 0) {
+    generationOptions.tools = tools
     generationOptions.stopWhen = stepCountIs(5)
+
+    // Add prepareStep if provided
+    if (prepareStep) {
+      generationOptions.prepareStep = prepareStep
+    }
   }
 
   // For Claude 4.0 thinking mode, enable thinking/reasoning
@@ -162,11 +192,52 @@ export async function streamAIResponse(
     }
   }
 
-  // Process tool calls if web search is enabled
-  if (webSearchEnabled) {
+  // Process tool calls if any tools are enabled
+  if (webSearchEnabled || gitAnalysisEnabled) {
     for await (const streamPart of result.fullStream) {
       if (streamPart.type === "tool-call") {
         toolCallsInProgress++
+
+        // Check if this is a git analysis tool call
+        if (streamPart.toolName === "git_analysis") {
+          // TODO: Re-enable computer status tracking once types regenerate
+          // await ctx.runMutation(internal.messages.updateComputerStatus, {
+          //   threadId,
+          //   status: {
+          //     isRunning: true,
+          //     instanceId: `instance_${Date.now()}`,
+          //     currentOperation: "Initializing git analysis",
+          //     startedAt: Date.now(),
+          //   },
+          // })
+          // Extract operation from args if available
+          try {
+            const toolArgs = streamPart.args as Record<string, unknown>
+            if (toolArgs?.operation) {
+              // await ctx.runMutation(internal.messages.updateComputerOperation, {
+              //   threadId,
+              //   operation: `${toolArgs.operation}: ${
+              //     toolArgs.repoUrl || toolArgs.path || "processing"
+              //   }`,
+              // })
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
+        }
+      }
+
+      if (streamPart.type === "tool-result") {
+        // Check if this is a git analysis tool result
+        if (streamPart.toolName === "git_analysis") {
+          // TODO: Re-enable computer status tracking once types regenerate
+          // await ctx.runMutation(internal.messages.updateComputerStatus, {
+          //   threadId,
+          //   status: {
+          //     isRunning: false,
+          //   },
+          // })
+        }
       }
     }
   }

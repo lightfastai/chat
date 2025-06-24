@@ -29,6 +29,7 @@ import {
   ChevronDown,
   FileIcon,
   FileText,
+  GitBranch,
   Globe,
   Image,
   Loader2,
@@ -41,18 +42,36 @@ import { toast } from "sonner"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 
+type ComputerLifecycleState =
+  | "initializing"
+  | "ready"
+  | "running"
+  | "idle"
+  | "error"
+  | "stopped"
+
+interface ComputerStatus {
+  lifecycleState: ComputerLifecycleState
+  instanceId?: string
+  currentOperation?: string
+  startedAt: number
+  lastUpdateAt?: number
+}
+
 interface ChatInputProps {
   onSendMessage: (
     message: string,
     modelId: string,
     attachments?: Id<"files">[],
     webSearchEnabled?: boolean,
+    gitAnalysisEnabled?: boolean,
   ) => Promise<void> | void
   isLoading?: boolean
   placeholder?: string
   disabled?: boolean
   maxLength?: number
   className?: string
+  computerStatus?: ComputerStatus
 }
 
 interface FileAttachment {
@@ -70,6 +89,7 @@ const ChatInputComponent = ({
   disabled = false,
   maxLength = 4000,
   className = "",
+  computerStatus,
 }: ChatInputProps) => {
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
@@ -78,17 +98,35 @@ const ChatInputComponent = ({
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
+  const [gitAnalysisEnabled, setGitAnalysisEnabled] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const generateUploadUrl = useMutation(api.files.generateUploadUrl)
   const createFile = useMutation(api.files.createFile)
 
+  // Check if computer is initializing (when git analysis is enabled)
+  const isComputerInitializing = useMemo(() => {
+    return (
+      gitAnalysisEnabled &&
+      computerStatus &&
+      computerStatus.lifecycleState === "initializing"
+    )
+  }, [gitAnalysisEnabled, computerStatus])
+
   // Determine if submission should be disabled (but allow typing)
   const isSubmitDisabled = useMemo(
-    () => disabled || isLoading || isSending,
-    [disabled, isLoading, isSending],
+    () => disabled || isLoading || isSending || isComputerInitializing,
+    [disabled, isLoading, isSending, isComputerInitializing],
   )
+
+  // Get dynamic placeholder based on state
+  const dynamicPlaceholder = useMemo(() => {
+    if (isComputerInitializing) {
+      return "Waiting for computer instance to be ready..."
+    }
+    return placeholder
+  }, [isComputerInitializing, placeholder])
 
   // Memoize expensive computations
   const allModels = useMemo(() => getVisibleModels(), [])
@@ -267,6 +305,7 @@ const ChatInputComponent = ({
         selectedModelId,
         attachmentIds.length > 0 ? attachmentIds : undefined,
         webSearchEnabled,
+        gitAnalysisEnabled,
       )
       setMessage("")
       setAttachments([])
@@ -300,6 +339,7 @@ const ChatInputComponent = ({
     selectedModelId,
     attachments,
     webSearchEnabled,
+    gitAnalysisEnabled,
   ])
 
   const handleKeyPress = useCallback(
@@ -328,6 +368,10 @@ const ChatInputComponent = ({
 
   const handleWebSearchToggle = useCallback(() => {
     setWebSearchEnabled((prev) => !prev)
+  }, [])
+
+  const handleGitAnalysisToggle = useCallback(() => {
+    setGitAnalysisEnabled((prev) => !prev)
   }, [])
 
   // Memoize computed values
@@ -374,7 +418,7 @@ const ChatInputComponent = ({
                   value={message}
                   onChange={handleMessageChange}
                   onKeyPress={handleKeyPress}
-                  placeholder={placeholder}
+                  placeholder={dynamicPlaceholder}
                   className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3"
                   maxLength={maxLength}
                   disabled={disabled}
@@ -484,6 +528,27 @@ const ChatInputComponent = ({
                         {webSearchEnabled
                           ? "Web search enabled - AI can search the web for current information"
                           : "Enable web search for current information"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleGitAnalysisToggle}
+                        variant={gitAnalysisEnabled ? "default" : "ghost"}
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        disabled={disabled}
+                      >
+                        <GitBranch className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {gitAnalysisEnabled
+                          ? "Git analysis enabled - AI can clone and analyze repositories"
+                          : "Enable git repository analysis"}
                       </p>
                     </TooltipContent>
                   </Tooltip>

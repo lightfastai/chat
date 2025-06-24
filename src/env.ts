@@ -22,6 +22,10 @@ export const env = createEnv({
     OPENROUTER_API_KEY: z.string().min(1, "OpenRouter API key is required"),
     EXA_API_KEY: z.string().min(1, "Exa API key is required for web search"),
 
+    // Computer SDK (Fly.io)
+    FLY_API_TOKEN: z.string().optional(),
+    FLY_APP_NAME: z.string().optional(),
+
     // GitHub OAuth for Convex Auth
     AUTH_GITHUB_ID: z.string().optional(),
     AUTH_GITHUB_SECRET: z.string().optional(),
@@ -64,6 +68,8 @@ export const env = createEnv({
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     EXA_API_KEY: process.env.EXA_API_KEY,
+    FLY_API_TOKEN: process.env.FLY_API_TOKEN,
+    FLY_APP_NAME: process.env.FLY_APP_NAME,
     AUTH_GITHUB_ID: process.env.AUTH_GITHUB_ID,
     AUTH_GITHUB_SECRET: process.env.AUTH_GITHUB_SECRET,
     SITE_URL: process.env.SITE_URL,

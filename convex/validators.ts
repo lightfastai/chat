@@ -209,6 +209,25 @@ export const userPreferencesValidator = v.optional(
   }),
 )
 
+// Computer lifecycle states
+export const computerLifecycleStateValidator = v.union(
+  v.literal("initializing"),
+  v.literal("ready"),
+  v.literal("running"),
+  v.literal("idle"),
+  v.literal("error"),
+  v.literal("stopped"),
+)
+
+// Computer status validator
+export const computerStatusValidator = v.object({
+  lifecycleState: computerLifecycleStateValidator,
+  instanceId: v.optional(v.string()),
+  currentOperation: v.optional(v.string()),
+  startedAt: v.number(),
+  lastUpdateAt: v.optional(v.number()),
+})
+
 // ===== Validation Functions =====
 // Title validation function
 export function validateTitle(title: string): boolean {

@@ -2,16 +2,13 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import type { Doc } from "../_generated/dataModel.js"
 import { internalQuery, query } from "../_generated/server.js"
+import { threadObjectValidator } from "../threads.js"
 import {
-  branchInfoValidator,
   chunkIdValidator,
   clientIdValidator,
   messageTypeValidator,
-  shareIdValidator,
-  shareSettingsValidator,
   streamChunkValidator,
   streamIdValidator,
-  threadUsageValidator,
 } from "../validators.js"
 import { messageReturnValidator } from "./types.js"
 
@@ -269,29 +266,7 @@ export const getThreadById = internalQuery({
   args: {
     threadId: v.id("threads"),
   },
-  returns: v.union(
-    v.object({
-      _id: v.id("threads"),
-      _creationTime: v.number(),
-      userId: v.id("users"),
-      clientId: v.optional(clientIdValidator),
-      title: v.string(),
-      createdAt: v.number(),
-      lastMessageAt: v.number(),
-      isGenerating: v.optional(v.boolean()),
-      isTitleGenerating: v.optional(v.boolean()),
-      pinned: v.optional(v.boolean()),
-      // Branch information
-      branchedFrom: branchInfoValidator,
-      // Share functionality
-      isPublic: v.optional(v.boolean()),
-      shareId: v.optional(shareIdValidator),
-      sharedAt: v.optional(v.number()),
-      shareSettings: shareSettingsValidator,
-      usage: threadUsageValidator,
-    }),
-    v.null(),
-  ),
+  returns: v.union(threadObjectValidator, v.null()),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.threadId)
   },

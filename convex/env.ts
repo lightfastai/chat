@@ -14,6 +14,15 @@ export const env = createEnv({
       .min(1)
       .describe("Anthropic API key for AI models"),
     OPENAI_API_KEY: z.string().min(1).describe("OpenAI API key for AI models"),
+    // Computer SDK
+    FLY_API_TOKEN: z
+      .string()
+      .min(1)
+      .describe("Fly.io API token for Computer SDK instances"),
+    FLY_APP_NAME: z
+      .string()
+      .min(1)
+      .describe("Fly.io app name for Computer SDK instances"),
     // Authentication & Encryption
     ENCRYPTION_KEY: z
       .string()

@@ -6,6 +6,7 @@ import {
   chunkIdValidator,
   clientIdValidator,
   commentValidator,
+  computerStatusValidator,
   feedbackRatingValidator,
   feedbackReasonsValidator,
   fileMetadataValidator,
@@ -71,6 +72,8 @@ export default defineSchema({
     shareSettings: shareSettingsValidator,
     // Thread-level usage tracking (denormalized for performance)
     usage: threadUsageValidator,
+    // Computer status tracking - tracks Lightfast Computer instance state
+    computerStatus: v.optional(computerStatusValidator),
   })
     .index("by_user", ["userId"])
     .index("by_client_id", ["clientId"])
