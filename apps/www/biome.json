@@ -1,0 +1,6 @@
+{
+	"extends": ["../../biome.json"],
+	"files": {
+		"ignore": [".next/**/*", "next-env.d.ts"]
+	}
+}

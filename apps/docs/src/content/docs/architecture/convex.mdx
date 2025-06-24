@@ -1,0 +1,195 @@
+---
+title: Convex Integration
+description: How Lightfast Chat uses Convex for real-time data
+---
+
+# Convex Integration
+
+Convex is the backbone of Lightfast Chat, providing real-time data synchronization, serverless functions, and file storage.
+
+## Why Convex?
+
+### Real-time by Default
+Every query in Convex is reactive. When data changes, all connected clients receive updates instantly without polling or manual subscriptions.
+
+### Type Safety
+Convex provides end-to-end type safety from your database schema to your React components, catching errors at compile time.
+
+### Serverless Scale
+Automatically scales with your usage, from zero to millions of users without infrastructure management.
+
+## Core Concepts
+
+### Schema Definition
+```typescript
+// convex/schema.ts
+import { defineSchema, defineTable } from "convex/server"
+import { v } from "convex/values"
+
+export default defineSchema({
+  messages: defineTable({
+    content: v.string(),
+    threadId: v.id("threads"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    createdAt: v.number(),
+  }).index("by_thread", ["threadId"]),
+  
+  threads: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    lastMessageAt: v.number(),
+  }).index("by_user", ["userId"]),
+})
+```
+
+### Queries
+```typescript
+// convex/messages.ts
+export const list = query({
+  args: { threadId: v.id("threads") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .order("asc")
+      .collect()
+  },
+})
+```
+
+### Mutations
+```typescript
+export const send = mutation({
+  args: { 
+    content: v.string(),
+    threadId: v.id("threads"),
+  },
+  handler: async (ctx, args) => {
+    const messageId = await ctx.db.insert("messages", {
+      content: args.content,
+      threadId: args.threadId,
+      role: "user",
+      createdAt: Date.now(),
+    })
+    
+    // Trigger AI response
+    await ctx.scheduler.runAfter(0, api.ai.generateResponse, {
+      messageId,
+      threadId: args.threadId,
+    })
+    
+    return messageId
+  },
+})
+```
+
+## Real-time Features
+
+### Streaming Responses
+Convex enables streaming AI responses character by character:
+
+```typescript
+// Real-time streaming updates
+export const streamToken = internalMutation({
+  args: { 
+    messageId: v.id("messages"),
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId)
+    await ctx.db.patch(args.messageId, {
+      content: message.content + args.token,
+    })
+  },
+})
+```
+
+### Optimistic Updates
+The UI updates immediately while the server processes:
+
+```typescript
+// React component
+const sendMessage = useMutation(api.messages.send)
+
+const handleSend = async (content: string) => {
+  // Optimistic update
+  setMessages([...messages, { content, role: "user", pending: true }])
+  
+  // Server mutation
+  await sendMessage({ content, threadId })
+}
+```
+
+## File Storage
+
+Convex provides integrated file storage for images and documents:
+
+```typescript
+// Upload file
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl()
+})
+
+// Store file reference
+export const saveFile = mutation({
+  args: { 
+    storageId: v.id("_storage"),
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      fileId: args.storageId,
+    })
+  },
+})
+```
+
+## Best Practices
+
+### 1. Index Design
+Create indexes for common query patterns to ensure fast data retrieval.
+
+### 2. Data Modeling
+Structure your data to minimize the number of queries needed for common operations.
+
+### 3. Security Rules
+Use Convex's built-in authentication to secure your data:
+
+```typescript
+export const list = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Unauthenticated")
+    
+    return await ctx.db
+      .query("threads")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect()
+  },
+})
+```
+
+### 4. Error Handling
+Implement proper error handling for better user experience:
+
+```typescript
+export const send = mutation({
+  handler: async (ctx, args) => {
+    try {
+      // ... mutation logic
+    } catch (error) {
+      console.error("Failed to send message:", error)
+      throw new ConvexError("Failed to send message")
+    }
+  },
+})
+```
+
+## Performance Optimization
+
+- **Pagination**: Use `.paginate()` for large datasets
+- **Selective Queries**: Only fetch fields you need
+- **Caching**: Leverage Convex's built-in caching
+- **Batch Operations**: Group related mutations
+
+Learn more in the [official Convex documentation](https://docs.convex.dev).

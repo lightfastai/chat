@@ -1,0 +1,502 @@
+---
+title: Configuration
+description: Complete guide to configuring Lightfast Chat
+---
+
+# Configuration
+
+This guide covers all configuration options for Lightfast Chat, from basic setup to advanced customization.
+
+## Configuration Overview
+
+Lightfast Chat uses a layered configuration approach:
+
+1. **Environment Variables**: Runtime configuration
+2. **Site Configuration**: Application settings
+3. **Build Configuration**: Compile-time options
+4. **Feature Flags**: Toggle features on/off
+
+## Environment Variables
+
+### Core Requirements
+
+These environment variables are required for basic operation:
+
+```bash
+# Convex Backend
+NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
+CONVEX_DEPLOY_KEY=your-convex-deploy-key
+
+# Authentication
+JWT_PRIVATE_KEY=base64-encoded-private-key
+JWKS={"keys":[{"kty":"RSA",...}]}
+
+# Site URL
+SITE_URL=https://your-domain.com
+```
+
+### AI Providers
+
+Configure at least one AI provider:
+
+```bash
+# Anthropic Claude
+ANTHROPIC_API_KEY=sk-ant-api03-...
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+
+# OpenRouter (access to 100+ models)
+OPENROUTER_API_KEY=sk-or-v1-...
+
+# Exa (for web search)
+EXA_API_KEY=exa_...
+```
+
+### Authentication Providers
+
+```bash
+# GitHub OAuth
+AUTH_GITHUB_ID=Iv1.your-client-id
+AUTH_GITHUB_SECRET=your-client-secret
+
+# Google OAuth (coming soon)
+AUTH_GOOGLE_ID=your-client-id
+AUTH_GOOGLE_SECRET=your-client-secret
+```
+
+### Optional Services
+
+```bash
+# Analytics
+NEXT_PUBLIC_POSTHOG_KEY=phc_...
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+
+# Error Tracking
+SENTRY_DSN=https://...@sentry.io/...
+SENTRY_AUTH_TOKEN=...
+
+# File Uploads
+UPLOADTHING_SECRET=sk_live_...
+UPLOADTHING_APP_ID=...
+```
+
+## Site Configuration
+
+Edit `apps/www/src/lib/site-config.ts`:
+
+```typescript
+export const siteConfig = {
+  // Basic Information
+  name: "Lightfast Chat",
+  description: "AI-powered chat application",
+  url: "https://chat.lightfast.ai",
+  
+  // SEO & Social
+  ogImage: "https://chat.lightfast.ai/og.jpg",
+  creator: "@lightfastai",
+  keywords: ["ai chat", "claude", "gpt-4"],
+  
+  // Links
+  links: {
+    github: "https://github.com/lightfastai/chat",
+    discord: "https://discord.gg/lightfast",
+    twitter: "https://twitter.com/lightfastai",
+  },
+  
+  // Features
+  features: {
+    auth: true,
+    fileUpload: true,
+    sharing: true,
+    analytics: true,
+  },
+  
+  // Limits
+  limits: {
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    maxFilesPerMessage: 5,
+    maxMessageLength: 4000,
+  },
+}
+```
+
+## Model Configuration
+
+### Available Models
+
+Configure AI models in `apps/www/src/lib/models.ts`:
+
+```typescript
+export const models = {
+  // Anthropic Models
+  "claude-3-5-sonnet": {
+    id: "claude-3-5-sonnet-20241022",
+    name: "Claude 3.5 Sonnet",
+    provider: "anthropic",
+    contextWindow: 200000,
+    maxOutput: 8192,
+    costPer1kInput: 0.003,
+    costPer1kOutput: 0.015,
+  },
+  
+  // OpenAI Models
+  "gpt-4o": {
+    id: "gpt-4o",
+    name: "GPT-4o",
+    provider: "openai",
+    contextWindow: 128000,
+    maxOutput: 4096,
+    costPer1kInput: 0.005,
+    costPer1kOutput: 0.015,
+  },
+  
+  // Custom Models
+  "custom-model": {
+    id: "custom-model-id",
+    name: "Custom Model",
+    provider: "openrouter",
+    contextWindow: 32000,
+    maxOutput: 2048,
+  },
+}
+```
+
+### Default Model
+
+Set the default model:
+
+```typescript
+export const defaultModel = "claude-3-5-sonnet"
+```
+
+## Feature Configuration
+
+### Authentication
+
+```typescript
+// apps/www/src/lib/auth-config.ts
+export const authConfig = {
+  // Session settings
+  session: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60,    // 24 hours
+  },
+  
+  // OAuth providers
+  providers: ["github", "google"],
+  
+  // Allowed email domains (optional)
+  allowedDomains: ["company.com"],
+  
+  // Admin emails
+  admins: ["admin@company.com"],
+}
+```
+
+### File Upload
+
+```typescript
+// apps/www/src/lib/upload-config.ts
+export const uploadConfig = {
+  // Accepted file types
+  accept: {
+    "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+    "application/pdf": [".pdf"],
+    "text/*": [".txt", ".md", ".csv"],
+  },
+  
+  // Size limits
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+  maxFiles: 5,
+  
+  // Processing
+  imageCompression: {
+    maxWidth: 2048,
+    maxHeight: 2048,
+    quality: 0.9,
+  },
+}
+```
+
+### Rate Limiting
+
+```typescript
+// apps/www/convex/rateLimit.ts
+export const rateLimits = {
+  // Messages per user
+  messages: {
+    window: 60 * 1000,      // 1 minute
+    max: 20,                // 20 messages
+  },
+  
+  // API calls per user
+  api: {
+    window: 60 * 60 * 1000, // 1 hour
+    max: 1000,              // 1000 calls
+  },
+  
+  // File uploads
+  uploads: {
+    window: 24 * 60 * 60 * 1000, // 24 hours
+    max: 100,                     // 100 files
+    maxSize: 100 * 1024 * 1024,   // 100MB total
+  },
+}
+```
+
+## Build Configuration
+
+### Next.js Configuration
+
+Edit `apps/www/next.config.ts`:
+
+```typescript
+export default {
+  // Enable experimental features
+  experimental: {
+    ppr: true,  // Partial Prerendering
+  },
+  
+  // Image optimization
+  images: {
+    domains: ["convex.cloud", "github.com"],
+    formats: ["image/avif", "image/webp"],
+  },
+  
+  // Redirects
+  redirects: async () => [
+    {
+      source: "/chat",
+      destination: "/",
+      permanent: true,
+    },
+  ],
+  
+  // Headers
+  headers: async () => [
+    {
+      source: "/:path*",
+      headers: [
+        {
+          key: "X-Frame-Options",
+          value: "DENY",
+        },
+      ],
+    },
+  ],
+}
+```
+
+### Turbo Configuration
+
+Edit `turbo.json`:
+
+```json
+{
+  "pipeline": {
+    "build": {
+      "outputs": [".next/**", "dist/**"],
+      "env": ["NEXT_PUBLIC_*", "CONVEX_*"],
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+    },
+  },
+}
+```
+
+## Security Configuration
+
+### Content Security Policy
+
+```typescript
+// apps/www/src/middleware.ts
+export const cspHeader = `
+  default-src 'self';
+  script-src 'self' 'unsafe-eval' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' blob: data: https:;
+  font-src 'self';
+  connect-src 'self' https://*.convex.cloud wss://*.convex.cloud;
+`
+```
+
+### CORS Settings
+
+```typescript
+// apps/www/src/app/api/[...route]/route.ts
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": process.env.SITE_URL,
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+}
+```
+
+## Performance Configuration
+
+### Caching
+
+```typescript
+// apps/www/src/lib/cache-config.ts
+export const cacheConfig = {
+  // Static assets
+  static: {
+    maxAge: 31536000, // 1 year
+  },
+  
+  // API responses
+  api: {
+    conversations: 60,    // 1 minute
+    messages: 300,        // 5 minutes
+    user: 3600,          // 1 hour
+  },
+  
+  // Revalidation
+  revalidate: {
+    home: 3600,          // 1 hour
+    conversation: 60,    // 1 minute
+  },
+}
+```
+
+### Database Indexes
+
+Configure Convex indexes in `apps/www/convex/schema.ts`:
+
+```typescript
+export default defineSchema({
+  conversations: defineTable({
+    // ... fields
+  }).index("by_user", ["userId", "updatedAt"])
+    .index("by_updated", ["updatedAt"]),
+  
+  messages: defineTable({
+    // ... fields
+  }).index("by_conversation", ["conversationId", "createdAt"])
+    .searchIndex("search_content", {
+      searchField: "content",
+      filterFields: ["conversationId"],
+    }),
+})
+```
+
+## Development Configuration
+
+### Local Development
+
+```bash
+# .env.local for development
+NEXT_PUBLIC_CONVEX_URL=https://dev.convex.cloud
+SKIP_ENV_VALIDATION=true
+NODE_ENV=development
+```
+
+### VS Code Settings
+
+`.vscode/settings.json`:
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.codeActionsOnSave": {
+    "quickfix.biome": "explicit"
+  },
+  "typescript.tsdk": "node_modules/typescript/lib"
+}
+```
+
+## Deployment Configuration
+
+### Vercel
+
+`vercel.json`:
+```json
+{
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "apps/www/.next",
+  "installCommand": "pnpm install",
+  "framework": "nextjs"
+}
+```
+
+### Docker
+
+`docker-compose.yml`:
+```yaml
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env.production
+```
+
+## Monitoring Configuration
+
+### Logging
+
+```typescript
+// apps/www/src/lib/logger.ts
+export const logConfig = {
+  level: process.env.LOG_LEVEL || "info",
+  format: process.env.NODE_ENV === "production" ? "json" : "pretty",
+  destination: process.env.LOG_DESTINATION || "console",
+}
+```
+
+### Analytics
+
+```typescript
+// apps/www/src/lib/analytics.ts
+export const analyticsConfig = {
+  enabled: process.env.NODE_ENV === "production",
+  debug: process.env.ANALYTICS_DEBUG === "true",
+  events: {
+    pageView: true,
+    conversation: true,
+    message: true,
+    error: true,
+  },
+}
+```
+
+## Troubleshooting Configuration
+
+### Debug Mode
+
+Enable debug logging:
+```bash
+DEBUG=* pnpm run dev
+```
+
+### Verbose Convex Logs
+
+```bash
+CONVEX_LOG_LEVEL=debug npx convex dev
+```
+
+### Performance Profiling
+
+```bash
+NEXT_PROFILE=true pnpm run build
+```
+
+## Configuration Best Practices
+
+1. **Use Environment Variables**: Keep secrets out of code
+2. **Validate Early**: Check configuration at startup
+3. **Provide Defaults**: Have sensible defaults for all settings
+4. **Document Changes**: Update this guide when adding options
+5. **Test Configurations**: Have tests for different configurations
+
+## Next Steps
+
+- Review [Configuration Reference](/docs/configuration-reference) for all options
+- Set up [Deployment](/docs/deployment) with your configuration
+- Configure [Self-Hosting](/docs/self-hosting) for full control
