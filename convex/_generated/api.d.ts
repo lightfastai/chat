@@ -8,11 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
 import type * as auth from "../auth.js";
 import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
@@ -26,7 +21,9 @@ import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_message_builder from "../lib/message_builder.js";
 import type * as lib_message_service from "../lib/message_service.js";
+import type * as lib_retrier from "../lib/retrier.js";
 import type * as messages_actions from "../messages/actions.js";
+import type * as messages_checkComputerReadiness from "../messages/checkComputerReadiness.js";
 import type * as messages_computer_instance_manager from "../messages/computer_instance_manager.js";
 import type * as messages_git_analysis_tool from "../messages/git_analysis_tool.js";
 import type * as messages_git_analysis_tool_stream from "../messages/git_analysis_tool_stream.js";
@@ -46,6 +43,12 @@ import type * as titles from "../titles.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -69,7 +72,9 @@ declare const fullApi: ApiFromModules<{
   "lib/errors": typeof lib_errors;
   "lib/message_builder": typeof lib_message_builder;
   "lib/message_service": typeof lib_message_service;
+  "lib/retrier": typeof lib_retrier;
   "messages/actions": typeof messages_actions;
+  "messages/checkComputerReadiness": typeof messages_checkComputerReadiness;
   "messages/computer_instance_manager": typeof messages_computer_instance_manager;
   "messages/git_analysis_tool": typeof messages_git_analysis_tool;
   "messages/git_analysis_tool_stream": typeof messages_git_analysis_tool_stream;
@@ -90,11 +95,63 @@ declare const fullApi: ApiFromModules<{
   users: typeof users;
   validators: typeof validators;
 }>;
+declare const fullApiWithMounts: typeof fullApi;
+
 export declare const api: FilterApi<
-  typeof fullApi,
+  typeof fullApiWithMounts,
   FunctionReference<any, "public">
 >;
 export declare const internal: FilterApi<
-  typeof fullApi,
+  typeof fullApiWithMounts,
   FunctionReference<any, "internal">
 >;
+
+export declare const components: {
+  actionRetrier: {
+    public: {
+      cancel: FunctionReference<
+        "mutation",
+        "internal",
+        { runId: string },
+        boolean
+      >;
+      cleanup: FunctionReference<
+        "mutation",
+        "internal",
+        { runId: string },
+        any
+      >;
+      start: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          functionArgs: any;
+          functionHandle: string;
+          options: {
+            base: number;
+            initialBackoffMs: number;
+            logLevel: "DEBUG" | "INFO" | "WARN" | "ERROR";
+            maxFailures: number;
+            onComplete?: string;
+            runAfter?: number;
+            runAt?: number;
+          };
+        },
+        string
+      >;
+      status: FunctionReference<
+        "query",
+        "internal",
+        { runId: string },
+        | { type: "inProgress" }
+        | {
+            result:
+              | { returnValue: any; type: "success" }
+              | { error: string; type: "failed" }
+              | { type: "canceled" };
+            type: "completed";
+          }
+      >;
+    };
+  };
+};

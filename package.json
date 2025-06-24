@@ -40,6 +40,7 @@
     "@ai-sdk/openai": "alpha",
     "@ai-sdk/react": "alpha",
     "@auth/core": "^0.39.1",
+    "@convex-dev/action-retrier": "^0.2.1",
     "@convex-dev/auth": "^0.0.87",
     "@hookform/resolvers": "^5.1.1",
     "@lightfastai/computer": "0.4.0",
