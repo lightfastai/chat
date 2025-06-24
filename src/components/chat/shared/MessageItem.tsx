@@ -1,7 +1,7 @@
 "use client"
 
 import { Markdown } from "@/components/ui/markdown"
-import { getMessageParts, type MessagePart } from "@/lib/message-parts"
+import { getMessageParts } from "@/lib/message-parts"
 import { cn } from "@/lib/utils"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
@@ -108,11 +108,9 @@ export function MessageItem({
         {(() => {
           // If message has parts, use parts-based rendering (new system)
           if (hasParts) {
-            // For streaming messages, render parts individually for real-time updates
-            // For completed messages, use grouped parts to prevent line breaks
-            const parts = isStreaming && !isComplete 
-              ? (message.parts as MessagePart[]) // Raw parts for streaming
-              : getMessageParts(message) // Grouped parts for final display
+            // Always use grouped parts to prevent line breaks between text chunks
+            // The grouping function handles both streaming and completed states
+            const parts = getMessageParts(message)
 
             return (
               <div className="space-y-2">
