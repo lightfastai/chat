@@ -5,6 +5,7 @@ import type { Preloaded } from "convex/react"
 import type { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
 import { ApiKeysSection } from "./ApiKeysSection"
+import { BillingSection } from "./BillingSection"
 import { ProfileSection } from "./ProfileSection"
 
 interface SettingsContentProps {
@@ -61,6 +62,7 @@ export function SettingsContent({
   return (
     <div className="space-y-8 sm:space-y-12">
       <ProfileSection user={user} userSettings={userSettings} />
+      <BillingSection userId={user._id} />
       <ApiKeysSection userSettings={userSettings} />
     </div>
   )

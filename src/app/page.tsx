@@ -90,6 +90,12 @@ function LandingHeader() {
           >
             GitHub
           </Link>
+          <Link
+            href="/pricing"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Pricing
+          </Link>
           <Link href="/signin">
             <Button variant="outline">Sign In</Button>
           </Link>
