@@ -24,7 +24,18 @@ export type MessagePart = TextPart | ToolInvocationPart
 export function getMessageParts(message: Doc<"messages">): MessagePart[] {
   const parts: MessagePart[] = []
 
-  // Add tool invocations if present
+  // For a more natural flow, we want to show tool invocations after text content
+  // This way the conversation flows: text -> tools used -> final response
+  
+  // Add text content first if present
+  if (message.body) {
+    parts.push({
+      type: "text",
+      text: message.body,
+    })
+  }
+
+  // Add tool invocations after text content
   if (message.toolInvocations && message.toolInvocations.length > 0) {
     for (const invocation of message.toolInvocations) {
       parts.push({
@@ -32,14 +43,6 @@ export function getMessageParts(message: Doc<"messages">): MessagePart[] {
         toolInvocation: invocation,
       })
     }
-  }
-
-  // Add text content if present
-  if (message.body) {
-    parts.push({
-      type: "text",
-      text: message.body,
-    })
   }
 
   return parts
