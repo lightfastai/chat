@@ -23,6 +23,7 @@ export function ToolInvocation({ part }: ToolInvocationProps) {
       toolCallId: toolCallPart.toolCallId,
       toolName: toolCallPart.toolName,
       args: toolCallPart.args,
+      result: (toolCallPart as any).result, // Include result for completed tool calls
     }
 
     switch (toolCallPart.toolName) {

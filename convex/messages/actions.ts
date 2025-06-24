@@ -217,10 +217,11 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-result":
-            // Add tool result part
-            await ctx.runMutation(internal.messages.addToolResultPart, {
+            // Update the tool call part with the result instead of creating separate part
+            await ctx.runMutation(internal.messages.updateToolCallPart, {
               messageId: args.messageId,
               toolCallId: part.toolCallId,
+              state: "result",
               result: part.result,
             })
             break

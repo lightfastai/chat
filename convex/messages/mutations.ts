@@ -621,6 +621,7 @@ export const updateToolCallPart = internalMutation({
     messageId: v.id("messages"),
     toolCallId: v.string(),
     args: v.optional(v.any()),
+    result: v.optional(v.any()),
     state: v.optional(
       v.union(
         v.literal("partial-call"),
@@ -637,12 +638,13 @@ export const updateToolCallPart = internalMutation({
 
     const currentParts = message.parts || []
 
-    // Find the tool call part and update its args and/or state
+    // Find the tool call part and update its args, result, and/or state
     const updatedParts = currentParts.map((part) => {
       if (part.type === "tool-call" && part.toolCallId === args.toolCallId) {
         return {
           ...part,
           ...(args.args !== undefined && { args: args.args }),
+          ...(args.result !== undefined && { result: args.result }),
           ...(args.state !== undefined && { state: args.state }),
         }
       }
