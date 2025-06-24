@@ -524,19 +524,42 @@ export const addToolInvocation = internalMutation({
     const currentInvocations = message.toolInvocations || []
     const currentChunks = message.streamChunks || []
     
-    // Calculate sequence number based on total parts created so far
-    const totalPartsCount = currentChunks.length + currentInvocations.length
+    // Check if tool invocation already exists
+    const existingIndex = currentInvocations.findIndex(
+      (invocation: any) => invocation.toolCallId === args.toolInvocation.toolCallId
+    )
     
-    const toolInvocationWithSequence = {
-      ...args.toolInvocation,
-      sequence: totalPartsCount,
-    }
-    
-    const updatedInvocations = [...currentInvocations, toolInvocationWithSequence]
+    if (existingIndex >= 0) {
+      // Update existing invocation with the new information
+      const updatedInvocations = currentInvocations.map((invocation: any, index) => {
+        if (index === existingIndex) {
+          return {
+            ...invocation,
+            ...args.toolInvocation, // Merge new data
+            toolName: args.toolInvocation.toolName || invocation.toolName, // Preserve tool name if available
+          }
+        }
+        return invocation
+      })
 
-    await ctx.db.patch(args.messageId, {
-      toolInvocations: updatedInvocations,
-    })
+      await ctx.db.patch(args.messageId, {
+        toolInvocations: updatedInvocations,
+      })
+    } else {
+      // Add new tool invocation
+      const totalPartsCount = currentChunks.length + currentInvocations.length
+      
+      const toolInvocationWithSequence = {
+        ...args.toolInvocation,
+        sequence: totalPartsCount,
+      }
+      
+      const updatedInvocations = [...currentInvocations, toolInvocationWithSequence]
+
+      await ctx.db.patch(args.messageId, {
+        toolInvocations: updatedInvocations,
+      })
+    }
 
     return null
   },
@@ -555,25 +578,54 @@ export const updateToolInvocation = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId)
-    if (!message || !message.toolInvocations) return null
+    if (!message) return null
 
     const invocations = (message.toolInvocations || []) as any[]
-    const updatedInvocations = invocations.map((invocation) => {
-      if (invocation.toolCallId === args.toolCallId) {
-        return {
-          ...invocation,
-          state: args.state,
-          args: args.args !== undefined ? args.args : invocation.args,
-          result: args.result,
-          error: args.error,
+    
+    // Find existing invocation
+    const existingIndex = invocations.findIndex(
+      (invocation) => invocation.toolCallId === args.toolCallId
+    )
+    
+    if (existingIndex >= 0) {
+      // Update existing invocation
+      const updatedInvocations = invocations.map((invocation, index) => {
+        if (index === existingIndex) {
+          return {
+            ...invocation,
+            state: args.state,
+            args: args.args !== undefined ? args.args : invocation.args,
+            result: args.result,
+            error: args.error,
+          }
         }
-      }
-      return invocation
-    })
+        return invocation
+      })
 
-    await ctx.db.patch(args.messageId, {
-      toolInvocations: updatedInvocations,
-    })
+      await ctx.db.patch(args.messageId, {
+        toolInvocations: updatedInvocations,
+      })
+    } else {
+      // If tool invocation doesn't exist yet, create it
+      const currentChunks = message.streamChunks || []
+      const totalPartsCount = currentChunks.length + invocations.length
+      
+      const newToolInvocation = {
+        state: args.state,
+        toolCallId: args.toolCallId,
+        toolName: "unknown", // Will be updated when we get the tool name
+        args: args.args,
+        result: args.result,
+        error: args.error,
+        sequence: totalPartsCount,
+      }
+      
+      const updatedInvocations = [...invocations, newToolInvocation]
+
+      await ctx.db.patch(args.messageId, {
+        toolInvocations: updatedInvocations,
+      })
+    }
 
     return null
   },
