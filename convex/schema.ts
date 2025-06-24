@@ -103,6 +103,8 @@ export default defineSchema({
     // Tool invocations array for Vercel AI SDK v5 compatibility
     // Stores tool calls and results made during message generation
     toolInvocations: v.optional(v.array(v.any())),
+    // Sequence tracking for chronological ordering of text and tool parts
+    nextSequenceNumber: v.optional(v.number()),
   })
     .index("by_thread", ["threadId"])
     .index("by_stream_id", ["streamId"]),

@@ -522,7 +522,17 @@ export const addToolInvocation = internalMutation({
     if (!message) return null
 
     const currentInvocations = message.toolInvocations || []
-    const updatedInvocations = [...currentInvocations, args.toolInvocation]
+    const currentChunks = message.streamChunks || []
+    
+    // Calculate sequence number based on total parts created so far
+    const totalPartsCount = currentChunks.length + currentInvocations.length
+    
+    const toolInvocationWithSequence = {
+      ...args.toolInvocation,
+      sequence: totalPartsCount,
+    }
+    
+    const updatedInvocations = [...currentInvocations, toolInvocationWithSequence]
 
     await ctx.db.patch(args.messageId, {
       toolInvocations: updatedInvocations,
