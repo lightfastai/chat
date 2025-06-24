@@ -282,6 +282,11 @@ export const generateAIResponseWithMessage = internalAction({
             }
             break
 
+          case "start":
+            // Handle generation start event
+            console.log("Generation started")
+            break
+
           case "start-step":
             // Handle multi-step generation start
             console.log("Starting step:", part.stepNumber || "unknown")
