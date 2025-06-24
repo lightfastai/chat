@@ -289,17 +289,17 @@ export const generateAIResponseWithMessage = internalAction({
 
           case "start-step":
             // Handle multi-step generation start (step boundary marker)
-            console.log("Starting new step, messageId:", part.messageId || "N/A")
+            console.log("Starting new step event:", JSON.stringify(part))
             break
 
           case "finish-step":
             // Handle multi-step generation completion
-            console.log("Finished step, continued:", part.isContinued, "reason:", part.finishReason)
+            console.log("Finished step event:", JSON.stringify(part))
             break
 
           case "finish":
             // Handle completion events (provides usage stats, finish reason, etc.)
-            console.log("Stream finished:", part.finishReason, "Usage:", part.usage)
+            console.log("Stream finished event:", JSON.stringify(part))
             break
 
           case "error":
