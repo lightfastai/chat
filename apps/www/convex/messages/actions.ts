@@ -23,7 +23,6 @@ import {
 } from "../lib/message_service.js";
 import { modelIdValidator, streamIdValidator } from "../validators.js";
 import {
-	generateChunkId,
 	generateStreamId,
 	handleAIResponseError,
 } from "./helpers.js";
@@ -166,32 +165,67 @@ export const generateAIResponseWithMessage = internalAction({
 			let fullText = "";
 			let hasContent = false;
 
-			// Process the stream
-			for await (const chunk of result.textStream) {
-				if (chunk) {
-					fullText += chunk;
-					hasContent = true;
-					const chunkId = generateChunkId();
+			// Process the full stream to handle both text and tool calls
+			for await (const streamPart of result.fullStream) {
+				const part = streamPart;
 
-					await ctx.runMutation(internal.messages.appendStreamChunk, {
+				// Handle different stream part types
+				if (part.type === "text" && "text" in part) {
+					// Handle complete text blocks
+					if (part.text) {
+						fullText += part.text;
+						hasContent = true;
+
+						// Add text part to the parts array
+						await ctx.runMutation(internal.messages.addTextPart, {
+							messageId: args.messageId,
+							text: part.text,
+						});
+					}
+				} else if (part.type === "tool-call" && "toolCallId" in part) {
+					// Handle tool calls
+					await ctx.runMutation(internal.messages.updateToolCallPart, {
 						messageId: args.messageId,
-						chunk,
-						chunkId,
+						toolCallId: part.toolCallId,
+						args: part.args,
+						state: "call",
+					});
+				} else if (part.type === "tool-call-streaming-start" && "toolCallId" in part) {
+					// Add tool call part with "partial-call" state
+					await ctx.runMutation(internal.messages.addToolCallPart, {
+						messageId: args.messageId,
+						toolCallId: part.toolCallId,
+						toolName: part.toolName,
+						args: part.args || {},
+						state: "partial-call",
+					});
+				} else if (part.type === "tool-call-delta" && "toolCallId" in part) {
+					// Update tool call args with streaming delta
+					await ctx.runMutation(internal.messages.updateToolCallPart, {
+						messageId: args.messageId,
+						toolCallId: part.toolCallId,
+						state: "partial-call",
+					});
+				} else if (part.type === "tool-result" && "toolCallId" in part) {
+					// Update tool call part with result and mark as completed
+					await ctx.runMutation(internal.messages.updateToolCallPart, {
+						messageId: args.messageId,
+						toolCallId: part.toolCallId,
+						result: part.result,
+						state: "result",
 					});
 				}
-			}
+				
+				// Handle text deltas from other stream parts that contain text content
+				if ("textDelta" in part && part.textDelta) {
+					fullText += part.textDelta;
+					hasContent = true;
 
-			// Process tool calls if web search is enabled
-			if (args.webSearchEnabled) {
-				for await (const streamPart of result.fullStream) {
-					if (streamPart.type === "tool-call") {
-						// Tool calls are handled by the AI SDK
-					}
-
-					if (streamPart.type === "tool-result") {
-						// Tool results are handled by the AI SDK and included in the response
-						// We don't need to store them separately
-					}
+					// Add text part to the parts array
+					await ctx.runMutation(internal.messages.addTextPart, {
+						messageId: args.messageId,
+						text: part.textDelta,
+					});
 				}
 			}
 
