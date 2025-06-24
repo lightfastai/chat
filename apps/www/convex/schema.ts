@@ -102,10 +102,11 @@ export default defineSchema({
 		usage: tokenUsageValidator,
 		// DEPRECATED: Tool invocations array (for backward compatibility)
 		// Use 'parts' field for new implementations following Vercel AI SDK v5
-		// toolInvocations: v.optional(v.array(v.any())),
+		toolInvocations: v.optional(v.array(v.any())),
 		// Message parts array following Vercel AI SDK v5 structure
 		// Stores text, tool calls, and tool results in chronological order
-		// parts: v.optional(v.array(v.any())),
+		// Using v.any() to avoid TypeScript deep instantiation issues
+		parts: v.optional(v.array(v.any())),
 	})
 		.index("by_thread", ["threadId"])
 		.index("by_stream_id", ["streamId"]),
