@@ -128,4 +128,137 @@ export default defineSchema({
     .index("by_share_id", ["shareId"])
     .index("by_share_time", ["shareId", "accessedAt"])
     .index("by_ip_time", ["ipHash", "accessedAt"]),
+
+  // === POLAR INTEGRATION TABLES ===
+
+  // Polar customer records
+  polarCustomers: defineTable({
+    userId: v.id("users"),
+    polarCustomerId: v.string(), // Polar's customer ID
+    email: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_polar_id", ["polarCustomerId"]),
+
+  // Polar subscriptions
+  polarSubscriptions: defineTable({
+    userId: v.id("users"),
+    polarCustomerId: v.string(),
+    polarSubscriptionId: v.string(),
+    polarProductId: v.string(),
+    
+    // Plan details
+    planType: v.literal("starter"), // $8/month - 800 credits
+    
+    // Subscription status
+    status: v.union(
+      v.literal("active"),
+      v.literal("canceled"),
+      v.literal("past_due"),
+      v.literal("incomplete"),
+      v.literal("trialing"),
+    ),
+    
+    // Billing details
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    cancelAtPeriodEnd: v.boolean(),
+    
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_polar_subscription", ["polarSubscriptionId"])
+    .index("by_status", ["status"]),
+
+  // Credit balances and tracking
+  creditBalances: defineTable({
+    userId: v.id("users"),
+    
+    // Current balance
+    balance: v.number(), // Current credit balance
+    
+    // Monthly allocation tracking
+    monthlyAllocation: v.number(), // Credits allocated this month
+    allocatedAt: v.number(), // When credits were last allocated
+    
+    // Usage tracking for current period
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    periodUsage: v.number(), // Credits used in current period
+    
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
+
+  // Credit transactions (purchases, usage, refunds)
+  creditTransactions: defineTable({
+    userId: v.id("users"),
+    
+    type: v.union(
+      v.literal("allocation"),    // Monthly credit allocation
+      v.literal("purchase"),      // One-time credit purchase
+      v.literal("usage"),         // Credit consumption
+      v.literal("refund"),        // Credit refund
+      v.literal("adjustment"),    // Manual adjustment
+    ),
+    
+    amount: v.number(), // Positive for credits, negative for usage
+    balance: v.number(), // Balance after transaction
+    
+    // Usage details
+    threadId: v.optional(v.id("threads")),
+    messageId: v.optional(v.id("messages")),
+    model: v.optional(v.string()),
+    action: v.optional(v.string()), // e.g., "chat", "computer_use"
+    
+    // Purchase/allocation details
+    polarPaymentId: v.optional(v.string()),
+    description: v.string(),
+    
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_type", ["userId", "type"])
+    .index("by_thread", ["threadId"]),
+
+
+  // Usage analytics (aggregated daily)
+  usageAnalytics: defineTable({
+    userId: v.id("users"),
+    
+    date: v.string(), // YYYY-MM-DD format
+    
+    // Credit usage by model
+    gpt4oCredits: v.number(),
+    gpt4oMiniCredits: v.number(),
+    claudeSonnetCredits: v.number(),
+    claudeHaikuCredits: v.number(),
+    computerUseCredits: v.number(),
+    
+    // Message counts
+    totalMessages: v.number(),
+    totalThreads: v.number(),
+    
+    createdAt: v.number(),
+  })
+    .index("by_user_and_date", ["userId", "date"]),
+
+  // Webhook events from Polar
+  polarWebhookEvents: defineTable({
+    polarEventId: v.string(),
+    eventType: v.string(),
+    processed: v.boolean(),
+    payload: v.any(), // JSON payload from Polar
+    
+    // Processing details
+    processedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    
+    createdAt: v.number(),
+  })
+    .index("by_polar_event", ["polarEventId"])
+    .index("by_processed", ["processed"]),
 })
