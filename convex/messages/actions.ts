@@ -184,6 +184,21 @@ export const generateAIResponseWithMessage = internalAction({
             }
             break
 
+          case "text":
+            // Handle complete text blocks (in addition to text-delta)
+            if (part.text) {
+              fullText += part.text
+              hasContent = true
+              const chunkId = generateChunkId()
+
+              await ctx.runMutation(internal.messages.appendStreamChunk, {
+                messageId: args.messageId,
+                chunk: part.text,
+                chunkId,
+              })
+            }
+            break
+
           case "tool-call":
             // Add tool invocation in "call" state
             await ctx.runMutation(internal.messages.addToolInvocation, {
@@ -195,6 +210,18 @@ export const generateAIResponseWithMessage = internalAction({
                 args: part.args,
               },
             })
+            break
+
+          case "tool-call-delta":
+            // Handle streaming tool call arguments (partial updates)
+            if (part.toolCallId) {
+              await ctx.runMutation(internal.messages.updateToolInvocation, {
+                messageId: args.messageId,
+                toolCallId: part.toolCallId,
+                state: "partial-call",
+                args: part.argsTextDelta ? { ...part.args } : part.args,
+              })
+            }
             break
 
           case "tool-result":
@@ -220,6 +247,16 @@ export const generateAIResponseWithMessage = internalAction({
                 },
               })
             }
+            break
+
+          case "start-step":
+            // Handle multi-step generation start
+            console.log("Starting step:", part.stepNumber || "unknown")
+            break
+
+          case "finish-step":
+            // Handle multi-step generation completion
+            console.log("Finished step:", part.stepNumber || "unknown")
             break
 
           case "finish":
