@@ -1,5 +1,4 @@
 import { v } from "convex/values";
-import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
 
 /**
  * Shared validators for type safety across Convex functions
@@ -9,14 +8,54 @@ import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
  */
 
 // ===== Model Validators =====
-// Model ID validator for all supported AI models (auto-synced from schemas)
+// Model ID validator for all supported AI models
+// NOTE: Keep these in sync with src/lib/ai/schemas.ts
 export const modelIdValidator = v.union(
-	...ALL_MODEL_IDS.map((id) => v.literal(id)),
+	// OpenAI models
+	v.literal("gpt-4o-mini"),
+	v.literal("gpt-4o"),
+	v.literal("gpt-4.1"),
+	v.literal("o3"),
+	v.literal("gpt-4.1-mini"),
+	v.literal("gpt-4.1-nano"),
+	v.literal("o3-mini"),
+	v.literal("o4-mini"),
+	v.literal("gpt-3.5-turbo"),
+	// Anthropic models
+	v.literal("claude-4-opus-20250514"),
+	v.literal("claude-4-sonnet-20250514"),
+	v.literal("claude-3-7-sonnet-20250219"),
+	v.literal("claude-3-5-sonnet-20241022"),
+	v.literal("claude-3-5-sonnet-20240620"),
+	v.literal("claude-3-5-haiku-20241022"),
+	// Thinking mode variants
+	v.literal("claude-4-opus-20250514-thinking"),
+	v.literal("claude-4-sonnet-20250514-thinking"),
+	v.literal("claude-3-7-sonnet-20250219-thinking"),
+	v.literal("claude-3-5-sonnet-20241022-thinking"),
+	v.literal("claude-3-5-sonnet-20240620-thinking"),
+	v.literal("claude-3-5-haiku-20241022-thinking"),
+	// Legacy model IDs
+	v.literal("claude-sonnet-4-20250514"),
+	v.literal("claude-sonnet-4-20250514-thinking"),
+	v.literal("claude-3-haiku-20240307"),
+	// OpenRouter models
+	v.literal("meta-llama/llama-3.3-70b-instruct"),
+	v.literal("anthropic/claude-3.5-sonnet"),
+	v.literal("openai/gpt-4o"),
+	v.literal("google/gemini-pro-1.5"),
+	v.literal("mistralai/mistral-large"),
+	v.literal("x-ai/grok-3-beta"),
+	v.literal("x-ai/grok-3-mini-beta"),
+	v.literal("google/gemini-2.5-pro-preview"),
+	v.literal("google/gemini-2.5-flash-preview"),
 );
 
-// Model provider validator (auto-synced from schemas)
+// Model provider validator
 export const modelProviderValidator = v.union(
-	...ModelProviderSchema.options.map((provider) => v.literal(provider)),
+	v.literal("openai"),
+	v.literal("anthropic"),
+	v.literal("openrouter"),
 );
 
 // ===== ID Validators =====

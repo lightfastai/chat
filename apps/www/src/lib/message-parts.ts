@@ -68,5 +68,5 @@ function groupConsecutiveTextParts(parts: MessagePart[]): MessagePart[] {
 export function hasToolInvocations(message: Doc<"messages">): boolean {
 	if (!message.parts || message.parts.length === 0) return false;
 
-	return message.parts.some((part) => part.type === "tool-call");
+	return message.parts.some((part: any) => part.type === "tool-call");
 }

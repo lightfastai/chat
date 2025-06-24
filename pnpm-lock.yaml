@@ -5,6 +5,10 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
+  default:
+    convex:
+      specifier: ^1.24.8
+      version: 1.24.8
   tailwind4:
     '@tailwindcss/postcss':
       specifier: ^4.1.10
@@ -148,7 +152,7 @@ importers:
         specifier: alpha
         version: 5.0.0-alpha.15(zod@3.25.67)
       convex:
-        specifier: ^1.24.8
+        specifier: 'catalog:'
         version: 1.24.8(react@19.1.0)
       convex-helpers:
         specifier: ^0.1.93
