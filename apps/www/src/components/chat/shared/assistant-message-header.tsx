@@ -17,13 +17,8 @@ interface AssistantMessageHeaderProps {
 }
 
 export function AssistantMessageHeader({
-	modelName,
-	usedUserApiKey,
 	isStreaming,
 	isComplete,
-	thinkingStartedAt,
-	thinkingCompletedAt,
-	usage,
 }: AssistantMessageHeaderProps) {
 	// Only show "Thinking" status during streaming, all other info moved to hover tooltip
 	if (isStreaming && !isComplete) {
