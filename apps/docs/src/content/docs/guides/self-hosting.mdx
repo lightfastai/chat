@@ -35,7 +35,7 @@ This comprehensive guide covers everything you need to self-host Lightfast Chat 
 ### Software Requirements
 
 - **OS**: Ubuntu 22.04 LTS (recommended) or any modern Linux
-- **Runtime**: Node.js 18+ or Bun 1.2+
+- **Runtime**: Node.js 18+ or pnpm 8.0+
 - **Database**: Convex (managed) or PostgreSQL (self-managed)
 - **Reverse Proxy**: Nginx or Caddy
 - **SSL**: Let's Encrypt or your certificates
@@ -64,9 +64,9 @@ sudo apt install -y \
   python3-certbot-nginx \
   ufw
 
-# Install Bun
-curl -fsSL https://bun.sh/install | bash
-source ~/.bashrc
+# Install pnpm
+npm install -g pnpm
+# pnpm is now available globally
 ```
 
 #### Step 2: PostgreSQL Setup (Optional)
@@ -105,7 +105,7 @@ git clone https://github.com/lightfastai/chat.git
 cd chat
 
 # Install dependencies
-bun install
+pnpm install
 
 # Setup environment
 cp .env.example .env.production
@@ -141,10 +141,10 @@ SITE_URL=https://chat.yourdomain.com
 
 ```bash
 # Build application
-NODE_ENV=production bun run build
+NODE_ENV=production pnpm run build
 
 # Test the build
-PORT=3000 bun run start
+PORT=3000 pnpm run start
 
 # Check if it's running
 curl http://localhost:3000
@@ -235,17 +235,17 @@ Create `Dockerfile.production`:
 
 ```dockerfile
 # Build stage
-FROM oven/bun:1.2.10-alpine AS builder
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
 # Copy dependency files
-COPY package.json bun.lockb ./
+COPY package.json pnpm-lock.yaml ./
 COPY apps/www/package.json ./apps/www/
 COPY packages/*/package.json ./packages/*/
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -253,17 +253,17 @@ COPY . .
 # Build application
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_ENV_VALIDATION=true
-RUN bun run build
+RUN pnpm run build
 
 # Production stage
-FROM oven/bun:1.2.10-alpine
+FROM node:18-alpine
 
 WORKDIR /app
 
 # Install production dependencies
-COPY package.json bun.lockb ./
+COPY package.json pnpm-lock.yaml ./
 COPY apps/www/package.json ./apps/www/
-RUN bun install --production
+RUN npm install -g pnpm && pnpm install --production
 
 # Copy built application
 COPY --from=builder /app/apps/www/.next ./apps/www/.next
@@ -283,7 +283,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
 
 # Start application
-CMD ["bun", "run", "start"]
+CMD ["pnpm", "run", "start"]
 ```
 
 #### Deploy with Docker
@@ -678,13 +678,13 @@ git tag backup-$(date +%Y%m%d_%H%M%S)
 git pull origin main
 
 # Install dependencies
-bun install
+pnpm install
 
 # Build application
-NODE_ENV=production bun run build
+NODE_ENV=production pnpm run build
 
 # Run migrations if needed
-bun run migrate:prod
+pnpm run migrate:prod
 
 # Restart services
 sudo systemctl restart lightfast-chat
@@ -715,7 +715,7 @@ journalctl -u lightfast-chat -n 100
 # Check permissions
 ls -la /opt/lightfast/chat
 # Verify environment
-bun run env:check
+pnpm run env:check
 ```
 
 **Database connection issues**
@@ -731,7 +731,7 @@ sudo tail -f /var/log/postgresql/*.log
 # Check Node.js memory
 node -e "console.log(process.memoryUsage())"
 # Increase memory limit
-NODE_OPTIONS="--max-old-space-size=4096" bun run start
+NODE_OPTIONS="--max-old-space-size=4096" pnpm run start
 ```
 
 **SSL certificate issues**

@@ -39,10 +39,10 @@ Initial stable release with:
 3. **Update Dependencies**
    ```bash
    # Update to latest versions
-   bun update
+   pnpm update
    
    # Or update specific packages
-   bun update @convex-dev/server@latest
+   pnpm update @convex-dev/server@latest
    ```
 
 ## Future Migration Guides
@@ -61,7 +61,7 @@ If you're using a pre-release version:
 
 1. **Update Dependencies**
    ```bash
-   bun update --latest
+   pnpm update --latest
    ```
 
 2. **Environment Variables**
@@ -312,7 +312,7 @@ When Vercel config changes:
 1. **Update `vercel.json`**
    ```json
    {
-     "buildCommand": "bun run build",
+     "buildCommand": "pnpm run build",
      "functions": {
        // New function configuration
        "app/api/ai/chat/route.ts": {
@@ -341,11 +341,11 @@ For Docker deployments:
    FROM node:18 AS legacy-builder
    # Old build process
    
-   FROM oven/bun:1 AS modern-builder
+   FROM node:18-alpine AS modern-builder
    # New build process
    
    # Runtime uses modern build
-   FROM oven/bun:1-slim
+   FROM node:18-alpine
    COPY --from=modern-builder /app/dist ./dist
    ```
 
@@ -407,7 +407,7 @@ For complex migrations:
 
 ```typescript
 // tests/migrations/v1_0_0.test.ts
-import { test, expect } from "bun:test"
+import { test, expect } from "vitest"
 import { runMigration } from "./test-utils"
 
 test("v1.0.0 migration", async () => {

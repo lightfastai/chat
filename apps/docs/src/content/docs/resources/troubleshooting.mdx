@@ -13,15 +13,15 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
 
 #### Dependencies Fail to Install
 
-**Problem**: `bun install` or `npm install` fails with errors.
+**Problem**: `pnpm install` or `npm install` fails with errors.
 
 **Solutions**:
 
 1. **Clear cache and retry**:
    ```bash
-   # For Bun
-   rm -rf node_modules bun.lockb
-   bun install
+   # For pnpm
+   rm -rf node_modules pnpm-lock.yaml
+   pnpm install
    
    # For npm
    rm -rf node_modules package-lock.json
@@ -36,7 +36,7 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
 
 3. **Try different package manager**:
    ```bash
-   # If Bun fails, try npm
+   # If pnpm fails, try npm
    npm install
    
    # Or pnpm
@@ -51,19 +51,19 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
 
 1. **Skip environment validation**:
    ```bash
-   SKIP_ENV_VALIDATION=true bun run build
+   SKIP_ENV_VALIDATION=true pnpm run build
    ```
 
 2. **Clear build cache**:
    ```bash
    rm -rf .next
    rm -rf apps/www/.next
-   bun run build
+   pnpm run build
    ```
 
 3. **Check for missing dependencies**:
    ```bash
-   bun install
+   pnpm install
    npx convex codegen
    ```
 
@@ -86,7 +86,7 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
 
 2. **Use different port**:
    ```bash
-   PORT=3001 bun dev
+   PORT=3001 pnpm run dev
    ```
 
 #### Hot Reload Not Working
@@ -108,13 +108,13 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
    pkill -f node
    
    # Restart
-   bun dev
+   pnpm run dev
    ```
 
 3. **Clear Next.js cache**:
    ```bash
    rm -rf .next
-   bun dev
+   pnpm run dev
    ```
 
 ### Convex Issues
@@ -265,7 +265,7 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
 
 1. **Analyze bundle size**:
    ```bash
-   ANALYZE=true bun run build
+   ANALYZE=true pnpm run build
    ```
 
 2. **Enable caching headers**:
@@ -285,7 +285,7 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
 3. **Check for memory leaks**:
    ```bash
    # Monitor memory usage
-   node --inspect bun run dev
+   node --inspect pnpm run dev
    # Open chrome://inspect
    ```
 
@@ -297,7 +297,7 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
 
 1. **Increase Node memory limit**:
    ```bash
-   NODE_OPTIONS="--max-old-space-size=4096" bun run dev
+   NODE_OPTIONS="--max-old-space-size=4096" pnpm run dev
    ```
 
 2. **Profile memory usage**:
@@ -326,7 +326,7 @@ This guide helps you resolve common issues with Lightfast Chat and provides debu
 
 3. **Build locally with production env**:
    ```bash
-   NODE_ENV=production bun run build
+   NODE_ENV=production pnpm run build
    ```
 
 #### Docker Container Crashes
@@ -389,7 +389,7 @@ if (process.env.NODE_ENV === 'development') {
 
 ```bash
 # Start with inspector
-NODE_OPTIONS='--inspect' bun dev
+NODE_OPTIONS='--inspect' pnpm run dev
 
 # Open chrome://inspect
 # Click "inspect" on your process
@@ -437,7 +437,7 @@ export const myFunction = mutation({
 |-------|---------|----------|
 | `ECONNREFUSED` | Connection refused | Check if service is running |
 | `EADDRINUSE` | Port in use | Kill process or use different port |
-| `MODULE_NOT_FOUND` | Missing dependency | Run `bun install` |
+| `MODULE_NOT_FOUND` | Missing dependency | Run `pnpm install` |
 | `CONVEX_CLIENT_ERROR` | Convex API error | Check function implementation |
 | `UNAUTHORIZED` | Auth required | Check authentication |
 | `RATE_LIMITED` | Too many requests | Wait and retry |
@@ -447,7 +447,7 @@ export const myFunction = mutation({
 **Cannot find module '@/...'**
 ```bash
 # Regenerate path mappings
-bun run build
+pnpm run build
 ```
 
 **Type 'X' is not assignable to type 'Y'**
@@ -564,11 +564,11 @@ Create a bug report with:
 ## Environment
 - OS: macOS 14.0
 - Node: 20.10.0
-- Bun: 1.2.10
+- pnpm: 8.15.0
 - Browser: Chrome 120
 
 ## Steps to Reproduce
-1. Start the app with `bun dev`
+1. Start the app with `pnpm run dev`
 2. Click on "New Chat"
 3. Type a message
 4. See error

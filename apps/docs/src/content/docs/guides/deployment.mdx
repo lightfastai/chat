@@ -81,9 +81,9 @@ vercel alias your-domain.com
 
 ```json
 {
-  "buildCommand": "bun run build",
+  "buildCommand": "pnpm run build",
   "outputDirectory": "apps/www/.next",
-  "installCommand": "bun install",
+  "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["iad1"],
   "functions": {
@@ -106,7 +106,7 @@ In Vercel Dashboard:
 ### Prerequisites
 
 - Ubuntu 22.04+ or similar Linux distribution
-- Node.js 18+ or Bun runtime
+- Node.js 18+ runtime
 - PostgreSQL 14+ (optional, for analytics)
 - Nginx or Caddy for reverse proxy
 - SSL certificate (Let's Encrypt recommended)
@@ -122,8 +122,8 @@ sudo apt update && sudo apt upgrade -y
 # Install dependencies
 sudo apt install -y curl git build-essential nginx certbot python3-certbot-nginx
 
-# Install Bun
-curl -fsSL https://bun.sh/install | bash
+# Install pnpm
+npm install -g pnpm
 
 # Install Node.js (alternative)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -142,7 +142,7 @@ cd /opt/lightfast-chat
 git clone https://github.com/lightfastai/chat.git .
 
 # Install dependencies
-bun install
+pnpm install
 
 # Copy environment file
 cp .env.example .env.production
@@ -154,10 +154,10 @@ nano .env.production
 
 ```bash
 # Build for production
-NODE_ENV=production bun run build
+NODE_ENV=production pnpm run build
 
 # Test the build
-PORT=3000 bun run start
+PORT=3000 pnpm run start
 ```
 
 #### 4. Process Management
@@ -173,7 +173,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/opt/lightfast-chat
-ExecStart=/usr/bin/bun run start
+ExecStart=/usr/bin/pnpm run start
 Restart=on-failure
 Environment=NODE_ENV=production
 Environment=PORT=3000
@@ -281,17 +281,17 @@ Create `Dockerfile`:
 
 ```dockerfile
 # Build stage
-FROM oven/bun:1.2.10 AS builder
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lockb ./
+COPY package.json pnpm-lock.yaml ./
 COPY apps/www/package.json ./apps/www/
 COPY packages/ui/package.json ./packages/ui/
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 # Copy source
 COPY . .
@@ -299,10 +299,10 @@ COPY . .
 # Build application
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_ENV_VALIDATION=true
-RUN bun run build
+RUN pnpm run build
 
 # Runtime stage
-FROM oven/bun:1.2.10-slim
+FROM node:18-alpine
 
 WORKDIR /app
 
@@ -311,16 +311,16 @@ COPY --from=builder /app/apps/www/.next ./apps/www/.next
 COPY --from=builder /app/apps/www/public ./apps/www/public
 COPY --from=builder /app/apps/www/package.json ./apps/www/
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/bun.lockb ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
 # Install production dependencies only
-RUN bun install --production
+RUN pnpm install --production
 
 # Expose port
 EXPOSE 3000
 
 # Start application
-CMD ["bun", "run", "start"]
+CMD ["pnpm", "run", "start"]
 ```
 
 ### Deploy with Docker
@@ -399,7 +399,7 @@ export async function GET() {
 
 ```typescript
 // Install Sentry
-bun add @sentry/nextjs
+pnpm add @sentry/nextjs
 
 // Configure in next.config.ts
 const { withSentryConfig } = require("@sentry/nextjs")
@@ -539,14 +539,14 @@ export function middleware(request: NextRequest) {
 ```bash
 # Clear caches
 rm -rf .next node_modules
-bun install
-SKIP_ENV_VALIDATION=true bun run build
+pnpm install
+SKIP_ENV_VALIDATION=true pnpm run build
 ```
 
 **Memory Issues**
 ```bash
 # Increase Node memory
-NODE_OPTIONS="--max-old-space-size=4096" bun run build
+NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 ```
 
 **Connection Errors**

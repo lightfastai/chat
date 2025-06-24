@@ -261,7 +261,7 @@ import { Tabs, Tab } from 'fumadocs-ui/components/tabs'
 4. **Images**: Place in `public/` directory
 5. **Components**: Leverage Fumadocs UI components
 6. **SEO**: Add descriptions to all pages
-7. **Testing**: Preview with `bun dev:docs` before deploying
+7. **Testing**: Preview with `pnpm run dev:docs` before deploying
 
 ## Common Patterns Across Apps
 

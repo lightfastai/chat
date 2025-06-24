@@ -56,7 +56,7 @@ First stable release of Lightfast Chat with production-ready features.
 - **Frontend**: Next.js 15, React 19, Tailwind CSS v4
 - **Backend**: Convex real-time database
 - **Styling**: shadcn/ui components
-- **Runtime**: Bun 1.2.10 support
+- **Runtime**: pnpm package management support
 - **Deployment**: Vercel-optimized
 
 ### 📚 Documentation
@@ -121,13 +121,13 @@ We follow Semantic Versioning (MAJOR.MINOR.PATCH):
 git pull origin main
 
 # Update dependencies
-bun install
+pnpm install
 
 # Run migrations if needed
 npx convex run migrations:latest
 
 # Rebuild
-bun run build
+pnpm run build
 ```
 
 ### Check Current Version

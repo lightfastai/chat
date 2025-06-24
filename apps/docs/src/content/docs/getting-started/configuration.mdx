@@ -414,9 +414,9 @@ NODE_ENV=development
 `vercel.json`:
 ```json
 {
-  "buildCommand": "bun run build",
+  "buildCommand": "pnpm run build",
   "outputDirectory": "apps/www/.next",
-  "installCommand": "bun install",
+  "installCommand": "pnpm install",
   "framework": "nextjs"
 }
 ```
@@ -472,7 +472,7 @@ export const analyticsConfig = {
 
 Enable debug logging:
 ```bash
-DEBUG=* bun dev
+DEBUG=* pnpm run dev
 ```
 
 ### Verbose Convex Logs
@@ -484,7 +484,7 @@ CONVEX_LOG_LEVEL=debug npx convex dev
 ### Performance Profiling
 
 ```bash
-NEXT_PROFILE=true bun build
+NEXT_PROFILE=true pnpm run build
 ```
 
 ## Configuration Best Practices

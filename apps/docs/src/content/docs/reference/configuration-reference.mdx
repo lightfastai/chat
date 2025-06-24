@@ -145,13 +145,13 @@ At least one AI provider must be configured.
 - **Type**: `boolean`
 - **Default**: `false`
 - **Description**: Skip environment validation at build time
-- **Usage**: `SKIP_ENV_VALIDATION=true bun run build`
+- **Usage**: `SKIP_ENV_VALIDATION=true pnpm run build`
 
 ##### `ANALYZE`
 - **Type**: `boolean`
 - **Default**: `false`
 - **Description**: Enable bundle analysis
-- **Usage**: `ANALYZE=true bun run build`
+- **Usage**: `ANALYZE=true pnpm run build`
 
 ##### `NODE_ENV`
 - **Type**: `development | production | test`
@@ -161,7 +161,7 @@ At least one AI provider must be configured.
 ##### `DEBUG`
 - **Type**: `string`
 - **Description**: Enable debug logging
-- **Example**: `DEBUG=* bun dev`
+- **Example**: `DEBUG=* pnpm run dev`
 
 ## Site Configuration File
 
@@ -606,9 +606,9 @@ Located at `vercel.json`
 
 ```json
 {
-  "buildCommand": "bun run build",
+  "buildCommand": "pnpm run build",
   "outputDirectory": "apps/www/.next",
-  "installCommand": "bun install",
+  "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["iad1"],
   "functions": {
@@ -634,17 +634,17 @@ Located at `Dockerfile`
 
 ```dockerfile
 # Build stage
-FROM oven/bun:1.2.10-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 # Copy lockfile and package files
-COPY bun.lockb package.json ./
+COPY pnpm-lock.yaml package.json ./
 COPY apps/www/package.json ./apps/www/
 COPY packages/*/package.json ./packages/*/
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN corepack enable && pnpm install --frozen-lockfile
 
 # Copy source
 COPY . .
@@ -652,10 +652,10 @@ COPY . .
 # Build application
 ARG SKIP_ENV_VALIDATION=true
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN bun run build
+RUN pnpm run build
 
 # Runtime stage
-FROM oven/bun:1.2.10-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -667,10 +667,10 @@ COPY --from=builder /app/apps/www/.next ./apps/www/.next
 COPY --from=builder /app/apps/www/public ./apps/www/public
 COPY --from=builder /app/apps/www/package.json ./apps/www/
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/bun.lockb ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
 # Install production dependencies
-RUN bun install --production
+RUN corepack enable && pnpm install --production
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -680,7 +680,7 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 
-CMD ["bun", "run", "start"]
+CMD ["pnpm", "run", "start"]
 ```
 
 ## Security Configuration

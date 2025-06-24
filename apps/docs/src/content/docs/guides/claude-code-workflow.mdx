@@ -35,14 +35,14 @@ The recommended mode where Claude handles the complete development lifecycle:
 
 ### Local Dev Mode
 
-For rapid prototyping when you're running `bun dev:all`:
+For rapid prototyping when you're running `pnpm run dev:all`:
 
 ```bash
 # Start local development first
-bun dev:all
+pnpm run dev:all
 
 # Tell Claude to use Local Dev Mode
-"Use Local Dev Mode - I'm running bun dev:all"
+"Use Local Dev Mode - I'm running pnpm run dev:all"
 
 # Claude acts as code generator only
 # You handle commits and testing
@@ -76,7 +76,7 @@ cd worktrees/dark-mode
 # Manual setup if needed
 git worktree add worktrees/dark-mode -b jeevanpillay/dark-mode
 cd worktrees/dark-mode
-bun install
+pnpm install
 ```
 
 ### 3. Context Management
@@ -116,9 +116,9 @@ Claude follows this iterative cycle:
 # ... implement feature ...
 
 # 2. Validate changes
-SKIP_ENV_VALIDATION=true bun run build
-bun run lint
-bun run format
+SKIP_ENV_VALIDATION=true pnpm run build
+pnpm run lint
+pnpm run format
 
 # 3. Update context
 echo "✅ Completed theme context" >> "$CONTEXT_FILE"
@@ -278,10 +278,10 @@ gh pr view $PR_NUM --comments
 
 ```bash
 # Debug build issues
-SKIP_ENV_VALIDATION=true bun run build --debug
+SKIP_ENV_VALIDATION=true pnpm run build --debug
 
 # Check for type errors
-bun run typecheck
+pnpm run typecheck
 ```
 
 ### Merge Conflicts
@@ -322,12 +322,12 @@ gh pr create --body "Part of #200: Implements presence indicators"
 ./scripts/setup-worktree.sh jeevanpillay/deps-update
 
 # Update dependencies
-bun update --latest
+pnpm update --latest
 
 # Test thoroughly
-bun run build
-bun run test
-bun run lint
+pnpm run build
+pnpm run test
+pnpm run lint
 
 # Create PR with changelog
 gh pr create --title "chore: update dependencies" \

@@ -10,7 +10,7 @@ Get Lightfast Chat running in under 5 minutes with this quickstart guide.
 ## Prerequisites
 
 Before starting, ensure you have:
-- **Bun 1.2.10+** installed ([install here](https://bun.sh))
+- **pnpm 8.0+** installed ([install here](https://pnpm.io/installation))
 - A terminal/command prompt
 - API keys from at least one AI provider
 
@@ -21,8 +21,8 @@ Before starting, ensure you have:
 git clone https://github.com/lightfastai/chat.git
 cd chat
 
-# Install dependencies with Bun
-bun install
+# Install dependencies with pnpm
+pnpm install
 ```
 
 ## 2. Quick Configuration
@@ -54,7 +54,7 @@ EOF
 
 ```bash
 # From the root directory
-bun run convex:dev
+pnpm run convex:dev
 ```
 
 This will:
@@ -66,10 +66,10 @@ This will:
 
 ```bash
 # In a new terminal, from root directory
-bun dev:www
+pnpm run dev:www
 
 # Or run everything together
-bun dev:all
+pnpm run dev:all
 ```
 
 ## 5. Access the Application
@@ -151,22 +151,22 @@ Changes to your code automatically reload the browser. Try editing:
 ### View Logs
 ```bash
 # Convex function logs
-bun run convex logs
+pnpm run convex logs
 
 # Application logs
-# Check your terminal running bun dev:www
+# Check your terminal running pnpm run dev:www
 ```
 
 ### Reset Database
 ```bash
 # Clear all data (development only)
-bun run convex run --no-push setup:clearAll
+pnpm run convex run --no-push setup:clearAll
 ```
 
 ## Common Quickstart Issues
 
 ### "Convex connection failed"
-- Ensure `bun run convex:dev` is running
+- Ensure `pnpm run convex:dev` is running
 - Check `NEXT_PUBLIC_CONVEX_URL` is set to `http://127.0.0.1:3210`
 
 ### "No AI response"
@@ -176,7 +176,7 @@ bun run convex run --no-push setup:clearAll
 ### "Build errors"
 ```bash
 # Quick fix for most build issues
-SKIP_ENV_VALIDATION=true bun run build
+SKIP_ENV_VALIDATION=true pnpm run build
 ```
 
 ## What's Next?
@@ -192,21 +192,21 @@ Now that you have Lightfast Chat running:
 
 ```bash
 # Development (from root)
-bun dev:www          # Start Next.js dev server
-bun dev:all          # Start Next.js + Convex together
-bun run build:www    # Build for production
-bun run lint         # Run linter
-bun run format       # Format code
+pnpm run dev:www          # Start Next.js dev server
+pnpm run dev:all          # Start Next.js + Convex together
+pnpm run build:www    # Build for production
+pnpm run lint         # Run linter
+pnpm run format       # Format code
 
 # Convex
-bun run convex:dev   # Start Convex dev
-bun run convex:deploy # Deploy to production
-bun run convex logs  # View function logs
+pnpm run convex:dev   # Start Convex dev
+pnpm run convex:deploy # Deploy to production
+pnpm run convex logs  # View function logs
 
 # Monorepo
-bun dev              # Run all apps
-bun run build        # Build all apps
-bun run typecheck    # Type check all packages
+pnpm run dev              # Run all apps
+pnpm run build        # Build all apps
+pnpm run typecheck    # Type check all packages
 ```
 
 ## Get Help

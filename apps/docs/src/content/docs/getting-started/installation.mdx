@@ -11,7 +11,7 @@ This guide will walk you through installing Lightfast Chat, a monorepo applicati
 
 ### System Requirements
 - **Node.js**: Version 18.17 or higher
-- **Bun**: Version 1.2.10 or higher (required)
+- **pnpm**: Version 10.5.2 or higher (required)
 - **Memory**: 4GB RAM minimum (8GB recommended)
 - **Storage**: 2GB free disk space
 - **OS**: macOS, Linux, or Windows with WSL2
@@ -26,15 +26,15 @@ You'll need API keys from at least one AI provider:
 ## Quick Install
 
 ```bash
-# Install Bun if you haven't already
-curl -fsSL https://bun.sh/install | bash
+# Install pnpm if you haven't already
+npm install -g pnpm@10.5.2
 
 # Clone the repository
 git clone https://github.com/lightfastai/chat.git
 cd chat
 
 # Install dependencies
-bun install
+pnpm install
 
 # Copy environment template
 cp apps/www/.env.example apps/www/.env.local
@@ -43,7 +43,7 @@ cp apps/www/.env.example apps/www/.env.local
 cd apps/www
 
 # Sync environment variables to Convex
-bun run env:sync
+pnpm run env:sync
 ```
 
 ## Environment Configuration
@@ -88,11 +88,11 @@ Start the Convex development server:
 
 ```bash
 # From the root directory
-bun run convex:dev
+pnpm run convex:dev
 
 # Or from apps/www
 cd apps/www
-bun run convex:dev
+pnpm run convex:dev
 ```
 
 This will:
@@ -138,7 +138,7 @@ After configuring all environment variables:
 
 ```bash
 # From apps/www directory
-bun run env:sync
+pnpm run env:sync
 
 # This syncs your environment variables to Convex
 ```
@@ -152,7 +152,7 @@ You have two options for running the development environment:
 #### Option 1: Run Everything Together
 ```bash
 # From the root directory
-bun dev:all
+pnpm run dev:all
 
 # This starts both Next.js and Convex concurrently
 ```
@@ -160,10 +160,10 @@ bun dev:all
 #### Option 2: Run Separately
 ```bash
 # Terminal 1: Start Convex
-bun run convex:dev
+pnpm run convex:dev
 
 # Terminal 2: Start Next.js
-bun dev:www
+pnpm run dev:www
 ```
 
 ### Access the Application
@@ -193,7 +193,7 @@ Once running, access:
 **Convex Connection Failed**
 ```bash
 # Ensure Convex is running
-bun run convex:dev
+pnpm run convex:dev
 
 # Check NEXT_PUBLIC_CONVEX_URL is correct
 # For local dev: http://127.0.0.1:3210
@@ -202,7 +202,7 @@ bun run convex:dev
 **Build Errors**
 ```bash
 # Skip validation for testing
-SKIP_ENV_VALIDATION=true bun run build:www
+SKIP_ENV_VALIDATION=true pnpm run build:www
 
 # Fix any TypeScript errors shown
 ```
@@ -210,17 +210,17 @@ SKIP_ENV_VALIDATION=true bun run build:www
 **Port Already in Use**
 ```bash
 # Use different ports
-PORT=3001 bun dev:www
+PORT=3001 pnpm run dev:www
 ```
 
 **Monorepo Dependencies**
 ```bash
 # If packages aren't found
-bun install
+pnpm install
 
 # Clean and reinstall
-rm -rf node_modules bun.lockb
-bun install
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 ```
 
 ## Next Steps

@@ -190,23 +190,23 @@ git checkout -b chore/update-dependencies
 
 ```bash
 # Run all tests
-bun test
+pnpm test
 
 # Run specific test file
-bun test button.test.tsx
+pnpm test button.test.tsx
 
 # Run tests in watch mode
-bun test:watch
+pnpm run test:watch
 
 # Generate coverage report
-bun test:coverage
+pnpm run test:coverage
 ```
 
 #### Writing Tests
 
 ```typescript
 // Example unit test
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { formatMessageTime } from "./format"
 
 describe("formatMessageTime", () => {
@@ -225,7 +225,7 @@ describe("formatMessageTime", () => {
 
 1. **Test locally**
    ```bash
-   bun dev
+   pnpm run dev
    # Visit http://localhost:3000
    ```
 

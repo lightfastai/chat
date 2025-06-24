@@ -12,14 +12,14 @@ This guide walks you through setting up a complete development environment for c
 ### Required Tools
 
 - **Git**: Version control
-- **Node.js**: 18.17+ or Bun 1.2.10+
+- **Node.js**: 18.17+ with pnpm
 - **Code Editor**: VS Code recommended
 - **Terminal**: Modern terminal with UTF-8 support
 
 ### Recommended Tools
 
 - **GitHub CLI**: For PR/issue management (`gh`)
-- **Bun**: Faster alternative to npm
+- **pnpm**: Fast, disk-efficient package manager
 - **Docker**: For testing deployments
 - **Postman/Insomnia**: API testing
 
@@ -39,14 +39,14 @@ git remote add upstream https://github.com/lightfastai/chat.git
 ### 2. Install Dependencies
 
 ```bash
-# Using Bun (recommended for speed)
-bun install
+# Using pnpm (recommended)
+pnpm install
 
 # Using npm
 npm install
 
-# Using pnpm
-pnpm install
+# Using yarn
+yarn install
 ```
 
 ### 3. Environment Configuration
@@ -104,14 +104,14 @@ npx convex dev
 
 ```bash
 # Start all services (recommended)
-bun dev:all
+pnpm run dev:all
 
 # Or start individually:
 # Terminal 1: Convex
 npx convex dev
 
 # Terminal 2: Next.js
-bun dev
+pnpm run dev
 ```
 
 ## VS Code Setup
@@ -174,7 +174,7 @@ Create `.vscode/launch.json`:
       "name": "Next.js: debug server-side",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "bun",
+      "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "dev"],
       "env": {
         "NODE_OPTIONS": "--inspect"
@@ -222,24 +222,24 @@ chat/
 
 ```bash
 # Development
-bun dev              # Start all dev servers
-bun dev:www          # Start only www app
-bun dev:docs         # Start only docs app
+pnpm run dev              # Start all dev servers
+pnpm run dev:www          # Start only www app
+pnpm run dev:docs         # Start only docs app
 
 # Building
-bun run build        # Build all apps
-bun run build:www    # Build only www
-bun run build:docs   # Build only docs
+pnpm run build        # Build all apps
+pnpm run build:www    # Build only www
+pnpm run build:docs   # Build only docs
 
 # Testing
-bun test            # Run all tests
-bun test:watch      # Watch mode
-bun test:coverage   # Coverage report
+pnpm test            # Run all tests
+pnpm run test:watch      # Watch mode
+pnpm run test:coverage   # Coverage report
 
 # Code Quality
-bun run lint        # Lint all code
-bun run format      # Format all code
-bun run typecheck   # Type checking
+pnpm run lint        # Lint all code
+pnpm run format      # Format all code
+pnpm run typecheck   # Type checking
 
 # Convex
 npx convex dev      # Start Convex dev
@@ -248,8 +248,8 @@ npx convex logs     # View function logs
 npx convex dashboard # Open dashboard
 
 # UI Components
-bun run ui:add button      # Add component
-bun run ui:diff            # Check for updates
+pnpm run ui:add button      # Add component
+pnpm run ui:diff            # Check for updates
 ```
 
 ### Git Workflow
@@ -394,7 +394,7 @@ import type { Message } from "@/types"
 
 ```typescript
 // lib/utils.test.ts
-import { describe, it, expect } from "bun:test"
+import { describe, it, expect } from "vitest"
 import { cn } from "./utils"
 
 describe("cn", () => {
@@ -447,7 +447,7 @@ test("can send a message", async ({ page }) => {
 
 ```bash
 # Enable Node.js debugging
-NODE_OPTIONS='--inspect' bun dev
+NODE_OPTIONS='--inspect' pnpm run dev
 
 # Attach VS Code debugger
 # Use "Next.js: debug server-side" launch config
@@ -469,10 +469,10 @@ npx convex run myFunction --args '{"arg": "value"}'
 
 ```bash
 # Use Turbo cache
-bun run build --filter=www...
+pnpm run build --filter=www...
 
 # Skip type checking for faster builds
-SKIP_ENV_VALIDATION=true bun run build
+SKIP_ENV_VALIDATION=true pnpm run build
 
 # Use SWC instead of Babel
 # Already configured in Next.js
@@ -482,7 +482,7 @@ SKIP_ENV_VALIDATION=true bun run build
 
 ```bash
 # Analyze bundle size
-ANALYZE=true bun run build
+ANALYZE=true pnpm run build
 
 # Opens bundle analyzer in browser
 ```
@@ -509,7 +509,7 @@ npx convex dev
 **Type errors**
 ```bash
 # Regenerate types
-bun run typecheck
+pnpm run typecheck
 npx convex codegen
 ```
 
@@ -517,8 +517,8 @@ npx convex codegen
 ```bash
 # Clear all caches
 rm -rf node_modules .next
-rm bun.lockb  # or package-lock.json
-bun install
+rm pnpm-lock.yaml  # or package-lock.json
+pnpm install
 ```
 
 ## Advanced Setup
@@ -533,7 +533,7 @@ cp .env.local .env.development.local
 cp .env.local .env.staging.local
 
 # Use different environments
-NODE_ENV=staging bun run build
+NODE_ENV=staging pnpm run build
 ```
 
 ### Custom Scripts
@@ -546,7 +546,7 @@ Add to `package.json`:
     "dev:debug": "NODE_OPTIONS='--inspect' next dev",
     "dev:turbo": "turbo dev --filter=www",
     "clean": "rm -rf .next node_modules",
-    "fresh": "bun run clean && bun install && bun dev"
+    "fresh": "pnpm run clean && pnpm install && pnpm run dev"
   }
 }
 ```
@@ -557,11 +557,11 @@ Using Husky for pre-commit checks:
 
 ```bash
 # Install Husky
-bun add -d husky
-bunx husky init
+pnpm add -D husky
+pnpx husky init
 
 # Add pre-commit hook
-echo "bun run lint && bun run typecheck" > .husky/pre-commit
+echo "pnpm run lint && pnpm run typecheck" > .husky/pre-commit
 ```
 
 ## Resources

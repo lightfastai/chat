@@ -9,7 +9,7 @@ Get your local development environment ready for contributing to Lightfast Chat.
 
 ## Required Tools
 
-- **Node.js 18+** or **Bun 1.0+**
+- **Node.js 18+** with **pnpm**
 - **Git** for version control
 - **VS Code** (recommended) or your preferred editor
 
@@ -27,7 +27,7 @@ cd chat
 ### 2. Install Dependencies
 
 ```bash
-bun install
+pnpm install
 ```
 
 ### 3. Environment Configuration
@@ -43,7 +43,7 @@ Configure the required environment variables in `.env.local`.
 Initialize Convex:
 
 ```bash
-bun convex dev
+pnpm convex dev
 ```
 
 Keep this terminal running during development.
@@ -53,7 +53,7 @@ Keep this terminal running during development.
 In a new terminal:
 
 ```bash
-bun dev
+pnpm run dev
 ```
 
 Visit http://localhost:3000 to see the app.
@@ -94,10 +94,10 @@ Edit files and test locally.
 ### 3. Run Quality Checks
 
 ```bash
-bun run lint
-bun run format
-bun run typecheck
-bun run build
+pnpm run lint
+pnpm run format
+pnpm run typecheck
+pnpm run build
 ```
 
 ### 4. Commit Changes
@@ -122,7 +122,7 @@ Then create a pull request on GitHub.
 If port 3000 is taken:
 
 ```bash
-bun dev -- --port 3001
+pnpm run dev -- --port 3001
 ```
 
 ### Convex Connection Issues
@@ -134,5 +134,5 @@ Ensure the Convex dev server is running and check your `NEXT_PUBLIC_CONVEX_URL`.
 For environment validation errors:
 
 ```bash
-SKIP_ENV_VALIDATION=true bun run build
+SKIP_ENV_VALIDATION=true pnpm run build
 ```

@@ -59,7 +59,7 @@ graph TB
 
 - **Vercel**: Hosting and deployment
 - **Turborepo**: Monorepo management
-- **Bun**: Fast JavaScript runtime
+- **pnpm**: Efficient package manager
 - **GitHub Actions**: CI/CD pipeline
 
 ## Project Structure
@@ -312,10 +312,10 @@ on: [push, pull_request]
 
 jobs:
   test:
-    - run: bun install
-    - run: bun run typecheck
-    - run: bun run lint
-    - run: bun test
+    - run: pnpm install
+    - run: pnpm run typecheck
+    - run: pnpm run lint
+    - run: pnpm test
     
   deploy:
     - run: vercel deploy --prod
