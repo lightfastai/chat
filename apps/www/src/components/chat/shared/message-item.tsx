@@ -59,14 +59,8 @@ export function MessageItem({
 	// Determine display user based on context
 	const displayUser = isReadOnly ? owner : currentUser;
 
-	// Avatar component
-	const avatar = (
-		<MessageAvatar
-			messageType={message.messageType}
-			userImage={displayUser?.image || undefined}
-			userName={displayUser?.name || undefined}
-		/>
-	);
+	// Avatar component - removed to clean up UI
+	const avatar = null;
 
 	// Determine what text to show
 	const displayText =
@@ -84,6 +78,7 @@ export function MessageItem({
 					isComplete={isComplete}
 					thinkingStartedAt={message.thinkingStartedAt}
 					thinkingCompletedAt={message.thinkingCompletedAt}
+					streamingText={streamingText}
 					usage={message.usage}
 				/>
 			)}

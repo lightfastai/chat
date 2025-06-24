@@ -24,12 +24,11 @@ export function MessageLayout({
 	return (
 		<div
 			className={cn(
-				"flex gap-3 group/message",
+				"group/message",
 				isAssistant ? "mt-6" : isSystem ? "mt-2" : "mt-4",
 				className,
 			)}
 		>
-			{avatar}
 			<div className="flex-1 relative">
 				{content}
 				{timestamp && (
