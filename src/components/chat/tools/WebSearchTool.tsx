@@ -41,7 +41,7 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
   const accordionValue = `search-${toolInvocation.toolCallId}`
 
   return (
-    <div className="my-3">
+    <div className="my-3 border rounded-lg p-4">
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value={accordionValue}>
           <AccordionTrigger>
