@@ -1,49 +1,38 @@
 "use client"
 
+import type { ToolCallPart } from "@/lib/message-parts"
 import { ChevronDown, ChevronRight, Loader2, Wrench } from "lucide-react"
 import { useState } from "react"
+
 export interface GenericToolDisplayProps {
-  toolInvocation: {
-    state: "partial-call" | "call" | "result" | "error"
-    toolCallId: string
-    toolName: string
-    args?: any
-    result?: any
-    error?: string
-  }
+  toolCall: ToolCallPart
 }
 
-export function GenericToolDisplay({
-  toolInvocation,
-}: GenericToolDisplayProps) {
+export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   const getStatusIcon = () => {
-    switch (toolInvocation.state) {
+    switch (toolCall.state) {
       case "partial-call":
       case "call":
         return <Loader2 className="h-4 w-4 animate-spin" />
       case "result":
         return <Wrench className="h-4 w-4 text-green-500" />
-      case "error":
-        return <Wrench className="h-4 w-4 text-red-500" />
       default:
         return <Wrench className="h-4 w-4" />
     }
   }
 
   const getStatusText = () => {
-    switch (toolInvocation.state) {
+    switch (toolCall.state) {
       case "partial-call":
         return "Preparing tool..."
       case "call":
-        return `Calling ${toolInvocation.toolName}...`
+        return `Calling ${toolCall.toolName}...`
       case "result":
-        return `${toolInvocation.toolName} completed`
-      case "error":
-        return `${toolInvocation.toolName} failed`
+        return `${toolCall.toolName} completed`
       default:
-        return toolInvocation.toolName || "Tool"
+        return toolCall.toolName || "Tool"
     }
   }
 
@@ -66,34 +55,25 @@ export function GenericToolDisplay({
 
       {isExpanded && (
         <div className="mt-3 space-y-2">
-          {toolInvocation.args && (
+          {toolCall.args && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Arguments:
               </p>
               <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
-                {JSON.stringify(toolInvocation.args, null, 2)}
+                {JSON.stringify(toolCall.args, null, 2)}
               </pre>
             </div>
           )}
 
-          {toolInvocation.state === "result" && toolInvocation.result && (
+          {toolCall.state === "result" && toolCall.result && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Result:
               </p>
               <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
-                {JSON.stringify(toolInvocation.result, null, 2)}
+                {JSON.stringify(toolCall.result, null, 2)}
               </pre>
-            </div>
-          )}
-
-          {toolInvocation.state === "error" && toolInvocation.error && (
-            <div>
-              <p className="text-xs font-medium text-red-500">Error:</p>
-              <p className="mt-1 text-xs text-red-500">
-                {toolInvocation.error}
-              </p>
             </div>
           )}
         </div>

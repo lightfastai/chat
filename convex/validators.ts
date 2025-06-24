@@ -216,32 +216,25 @@ export const textPartValidator = v.object({
   text: v.string(),
 })
 
-// Tool call part validator - represents a tool invocation
+// Tool call part validator - Official Vercel AI SDK v5 compliant
 export const toolCallPartValidator = v.object({
   type: v.literal("tool-call"),
   toolCallId: v.string(),
   toolName: v.string(),
   args: v.optional(v.any()),
+  result: v.optional(v.any()),
   state: v.union(
-    v.literal("partial-call"),
-    v.literal("call"),
-    v.literal("result"),
-    v.literal("error"),
+    v.literal("partial-call"), // Tool call in progress (streaming args)
+    v.literal("call"), // Completed tool call (ready for execution)
+    v.literal("result"), // Tool execution completed with results
   ),
-})
-
-// Tool result part validator - represents a tool execution result
-export const toolResultPartValidator = v.object({
-  type: v.literal("tool-result"),
-  toolCallId: v.string(),
-  result: v.any(),
+  step: v.optional(v.number()), // Official SDK step tracking for multi-step calls
 })
 
 // Message part union validator - represents any type of message part
 export const messagePartValidator = v.union(
   textPartValidator,
   toolCallPartValidator,
-  toolResultPartValidator,
 )
 
 // Array of message parts validator

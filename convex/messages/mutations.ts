@@ -556,7 +556,6 @@ export const addToolCallPart = internalMutation({
         v.literal("partial-call"),
         v.literal("call"),
         v.literal("result"),
-        v.literal("error"),
       ),
     ),
   },
@@ -585,36 +584,6 @@ export const addToolCallPart = internalMutation({
   },
 })
 
-// Internal mutation to add a tool result part
-export const addToolResultPart = internalMutation({
-  args: {
-    messageId: v.id("messages"),
-    toolCallId: v.string(),
-    result: v.any(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
-
-    const currentParts = message.parts || []
-    const updatedParts = [
-      ...currentParts,
-      {
-        type: "tool-result" as const,
-        toolCallId: args.toolCallId,
-        result: args.result,
-      },
-    ]
-
-    await ctx.db.patch(args.messageId, {
-      parts: updatedParts,
-    })
-
-    return null
-  },
-})
-
 // Internal mutation to update a tool call part (updates args and/or state in-place)
 export const updateToolCallPart = internalMutation({
   args: {
@@ -627,7 +596,6 @@ export const updateToolCallPart = internalMutation({
         v.literal("partial-call"),
         v.literal("call"),
         v.literal("result"),
-        v.literal("error"),
       ),
     ),
   },

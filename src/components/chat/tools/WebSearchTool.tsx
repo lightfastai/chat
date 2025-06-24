@@ -6,16 +6,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import type { ToolCallPart } from "@/lib/message-parts"
 import { ExternalLink, Loader2, Search } from "lucide-react"
+
 export interface WebSearchToolProps {
-  toolInvocation: {
-    state: "partial-call" | "call" | "result" | "error"
-    toolCallId: string
-    toolName: string
-    args?: any
-    result?: any
-    error?: string
-  }
+  toolCall: ToolCallPart
 }
 
 interface SearchResult {
@@ -25,19 +20,16 @@ interface SearchResult {
   score?: number
 }
 
-export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
+export function WebSearchTool({ toolCall }: WebSearchToolProps) {
   const isLoading =
-    toolInvocation.state === "partial-call" || toolInvocation.state === "call"
-  const hasError = toolInvocation.state === "error"
-  const searchQuery = toolInvocation.args?.query as string | undefined
+    toolCall.state === "partial-call" || toolCall.state === "call"
+  const searchQuery = toolCall.args?.query as string | undefined
 
   // Extract search results from the tool result
-  const searchResults = toolInvocation.result?.results as
-    | SearchResult[]
-    | undefined
+  const searchResults = toolCall.result?.results as SearchResult[] | undefined
 
   const resultCount = searchResults?.length || 0
-  const accordionValue = `search-${toolInvocation.toolCallId}`
+  const accordionValue = `search-${toolCall.toolCallId}`
 
   return (
     <div className="my-2 border rounded-lg px-4 py-1">
@@ -47,8 +39,6 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
             <div className="flex items-center gap-2">
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              ) : hasError ? (
-                <Search className="h-4 w-4 text-red-500" />
               ) : (
                 <Search className="h-4 w-4 text-muted-foreground" />
               )}
@@ -56,9 +46,7 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
                 <div className="font-medium">
                   {isLoading
                     ? "Searching the web..."
-                    : hasError
-                      ? "Search failed"
-                      : `Web Search Results (${resultCount})`}
+                    : `Web Search Results (${resultCount})`}
                 </div>
                 {searchQuery && (
                   <p className="text-xs text-muted-foreground mt-1">
@@ -69,12 +57,6 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            {hasError && toolInvocation.error && (
-              <p className="text-sm text-red-600 dark:text-red-400 mb-3">
-                {toolInvocation.error}
-              </p>
-            )}
-
             {searchResults && searchResults.length > 0 && (
               <div className="divide-y">
                 {searchResults.map((result, index) => {

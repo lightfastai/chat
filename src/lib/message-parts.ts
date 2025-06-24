@@ -6,50 +6,23 @@ export type TextPart = {
   text: string
 }
 
+// Official Vercel AI SDK v5 compliant ToolCallPart
 export type ToolCallPart = {
   type: "tool-call"
   toolCallId: string
   toolName: string
   args?: any
-  state: "partial-call" | "call" | "result" | "error"
+  result?: any
+  state: "partial-call" | "call" | "result" // Official SDK states only
+  step?: number // Official SDK step tracking for multi-step calls
 }
 
-export type ToolResultPart = {
-  type: "tool-result"
-  toolCallId: string
-  result: any
-}
+export type MessagePart = TextPart | ToolCallPart
 
-// Legacy type for backward compatibility
-export type ToolInvocationPart = {
-  type: "tool-invocation"
-  toolInvocation: {
-    state: "partial-call" | "call" | "result" | "error"
-    toolCallId: string
-    toolName: string
-    args?: any
-    result?: any
-    error?: string
-  }
-}
-
-export type MessagePart =
-  | TextPart
-  | ToolCallPart
-  | ToolResultPart
-  | ToolInvocationPart
-
-// Get message parts with backward compatibility and text grouping
+// Get message parts with text grouping (parts-based architecture only)
 export function getMessageParts(message: Doc<"messages">): MessagePart[] {
-  let parts: MessagePart[]
-
-  // If the message has the new parts array, use it
-  if (message.parts && message.parts.length > 0) {
-    parts = message.parts as MessagePart[]
-  } else {
-    // Backward compatibility: convert legacy toolInvocations to parts
-    parts = convertLegacyToModernParts(message)
-  }
+  // Use the parts array directly (no legacy conversion needed)
+  const parts = (message.parts || []) as MessagePart[]
 
   // Group consecutive text parts together to prevent line breaks
   return groupConsecutiveTextParts(parts)
@@ -89,97 +62,11 @@ function groupConsecutiveTextParts(parts: MessagePart[]): MessagePart[] {
   return groupedParts
 }
 
-// Convert legacy message structure to modern parts format
-function convertLegacyToModernParts(message: Doc<"messages">): MessagePart[] {
-  // Create text parts from stream chunks if available (for streaming messages)
-  const textParts: Array<{ type: "text"; text: string; sequence: number }> = []
-  if (message.streamChunks && message.streamChunks.length > 0) {
-    // Use individual chunks to preserve chronological order
-    for (const chunk of message.streamChunks) {
-      textParts.push({
-        type: "text",
-        text: chunk.content,
-        sequence: chunk.sequence || 0,
-      })
-    }
-  } else if (message.body) {
-    // Fallback for non-streaming messages - assign sequence 0
-    textParts.push({
-      type: "text",
-      text: message.body,
-      sequence: 0,
-    })
-  }
+// Note: Legacy conversion removed - we only support parts-based architecture now
 
-  // Create tool call parts from legacy toolInvocations
-  const toolParts: Array<{
-    type: "tool-call"
-    toolCallId: string
-    toolName: string
-    args?: any
-    state: "partial-call" | "call" | "result" | "error"
-    sequence: number
-  }> = []
-  if (message.toolInvocations && message.toolInvocations.length > 0) {
-    for (const invocation of message.toolInvocations) {
-      toolParts.push({
-        type: "tool-call",
-        toolCallId: invocation.toolCallId,
-        toolName: invocation.toolName,
-        args: invocation.args,
-        state: invocation.state,
-        sequence: invocation.sequence || 0,
-      })
-    }
-  }
-
-  // Combine and sort all parts by sequence number
-  const allParts = [...textParts, ...toolParts]
-  allParts.sort((a, b) => a.sequence - b.sequence)
-
-  // Convert to MessagePart format (grouping will be handled by caller)
-  return allParts.map((part): MessagePart => {
-    if (part.type === "text") {
-      return {
-        type: "text",
-        text: part.text,
-      }
-    } else {
-      return {
-        type: "tool-call",
-        toolCallId: part.toolCallId,
-        toolName: part.toolName,
-        args: part.args,
-        state: part.state,
-      }
-    }
-  })
-}
-
-// Helper to check if message has tool invocations (supports both new and legacy)
+// Helper to check if message has tool calls (parts-based architecture only)
 export function hasToolInvocations(message: Doc<"messages">): boolean {
-  // Check new parts array first
-  if (message.parts && message.parts.length > 0) {
-    return message.parts.some(
-      (part) => part.type === "tool-call" || part.type === "tool-result",
-    )
-  }
+  if (!message.parts || message.parts.length === 0) return false
 
-  // Fallback to legacy toolInvocations
-  return !!(message.toolInvocations && message.toolInvocations.length > 0)
-}
-
-// Helper to convert a tool-call part to legacy format for backward compatibility
-export function convertToolCallToLegacy(
-  toolCallPart: ToolCallPart,
-): ToolInvocationPart {
-  return {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: toolCallPart.state,
-      toolCallId: toolCallPart.toolCallId,
-      toolName: toolCallPart.toolName,
-      args: toolCallPart.args,
-    },
-  }
+  return message.parts.some((part) => part.type === "tool-call")
 }

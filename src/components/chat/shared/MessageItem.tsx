@@ -5,7 +5,7 @@ import { getMessageParts } from "@/lib/message-parts"
 import { cn } from "@/lib/utils"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
-import { ToolInvocation } from "../tools/ToolInvocation"
+import { ToolCallRenderer } from "../tools/ToolCallRenderer"
 import { AssistantMessageHeader } from "./AssistantMessageHeader"
 import { MessageAvatar } from "./MessageAvatar"
 import { MessageLayout } from "./MessageLayout"
@@ -119,9 +119,7 @@ export function MessageItem({
                   const partKey =
                     part.type === "tool-call"
                       ? `tool-call-${(part as any).toolCallId}`
-                      : part.type === "tool-invocation"
-                        ? `tool-invocation-${(part as any).toolInvocation.toolCallId}`
-                        : `text-${index}`
+                      : `text-${index}`
 
                   switch (part.type) {
                     case "text":
@@ -136,10 +134,7 @@ export function MessageItem({
                         </div>
                       )
                     case "tool-call":
-                      return <ToolInvocation key={partKey} part={part} />
-                    case "tool-invocation":
-                      // Legacy support - convert to new format
-                      return <ToolInvocation key={partKey} part={part} />
+                      return <ToolCallRenderer key={partKey} toolCall={part} />
                     default:
                       return null
                   }

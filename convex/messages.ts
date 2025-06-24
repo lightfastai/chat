@@ -44,7 +44,6 @@ export {
   addTextPart,
   addToolCallPart,
   updateToolCallPart,
-  addToolResultPart,
   // Deprecated mutations (kept for compatibility)
   addToolInvocation,
   updateToolInvocation,
