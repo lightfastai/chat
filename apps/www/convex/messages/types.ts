@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import {
 	chunkIdValidator,
+	messagePartsValidator,
 	messageTypeValidator,
 	modelIdValidator,
 	modelProviderValidator,
@@ -33,6 +34,8 @@ export const messageReturnValidator = v.object({
 	lastChunkId: v.optional(chunkIdValidator),
 	streamChunks: v.optional(v.array(streamChunkValidator)),
 	streamVersion: v.optional(v.number()),
+	// Message parts array following Vercel AI SDK v5 structure
+	parts: v.optional(messagePartsValidator),
 });
 
 // Type for message usage updates

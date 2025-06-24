@@ -4,7 +4,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "pnpm run with-env next dev",
+		"dev": "concurrently \"pnpm run with-env next dev\" \"pnpm run convex:dev\" --names \"next,convex\" --prefix-colors \"blue,green\"",
+		"dev:next": "pnpm run with-env next dev",
 		"build": "next build",
 		"start": "next start",
 		"lint": "biome check --write .",
