@@ -1,7 +1,7 @@
 "use client"
 
 import { Markdown } from "@/components/ui/markdown"
-import { getMessageParts, hasToolInvocations } from "@/lib/message-parts"
+import { getMessageParts, type MessagePart } from "@/lib/message-parts"
 import { cn } from "@/lib/utils"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
@@ -74,6 +74,9 @@ export function MessageItem({
   const displayText =
     isStreaming && streamingText ? streamingText : message.body
 
+  // Check if message has parts (new system) vs legacy body-only
+  const hasParts = message.parts && message.parts.length > 0
+
   // Content component
   const content = (
     <div className={cn("space-y-1", className)}>
@@ -100,14 +103,17 @@ export function MessageItem({
           />
         )}
 
-      {/* Message body with computed parts */}
+      {/* Message body - use parts-based rendering for streaming or final display */}
       <div className="text-sm leading-relaxed">
         {(() => {
-          const parts = getMessageParts(message)
-          const hasTools = hasToolInvocations(message)
+          // If message has parts, use parts-based rendering (new system)
+          if (hasParts) {
+            // For streaming messages, render parts individually for real-time updates
+            // For completed messages, use grouped parts to prevent line breaks
+            const parts = isStreaming && !isComplete 
+              ? (message.parts as MessagePart[]) // Raw parts for streaming
+              : getMessageParts(message) // Grouped parts for final display
 
-          if (hasTools) {
-            // Render with tool invocations
             return (
               <div className="space-y-2">
                 {parts.map((part, index) => {
@@ -143,7 +149,7 @@ export function MessageItem({
               </div>
             )
           } else {
-            // Simple text rendering
+            // Legacy text rendering for messages without parts
             return displayText ? (
               <>
                 <Markdown className="text-sm">{displayText}</Markdown>
