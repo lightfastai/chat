@@ -121,7 +121,7 @@ export function MessageItem({
 							
 							// Tool call parts - render with ToolCallRenderer
 							if (part.type === "tool-call") {
-								return <ToolCallRenderer key={index} toolCall={part} />;
+								return <ToolCallRenderer key={part.toolCallId as string} toolCall={part} />;
 							}
 							
 							return null;
