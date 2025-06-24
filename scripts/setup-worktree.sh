@@ -129,13 +129,13 @@ fi
 # Set up Convex if npx convex is available
 log_info "Setting up Convex configuration..."
 if command -v npx > /dev/null 2>&1; then
-    # Check if convex.json exists in project root
-    if [ -f "$PROJECT_ROOT/convex.json" ]; then
+    # Check if convex directory exists in apps/www
+    if [ -d "$WORKTREE_PATH/apps/www/convex" ]; then
         log_info "Convex configuration found, syncing environment variables..."
         
-        # Run the environment sync script
+        # Run the environment sync script from apps/www
         if [ -f "$PROJECT_ROOT/scripts/sync-env.ts" ]; then
-            cd "$PROJECT_ROOT" && pnpm run env:sync
+            cd "$WORKTREE_PATH/apps/www" && pnpm run env:sync
             log_success "Environment variables synced to Convex"
         elif [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
             bash "$PROJECT_ROOT/scripts/sync-env.sh"
@@ -155,8 +155,8 @@ log_info ""
 log_info "Next steps:"
 log_info "1. cd $WORKTREE_PATH"
 log_info "2. Start development servers:"
-log_info "   - Run 'pnpm run dev' for concurrent Next.js + Convex development"
-log_info "   - Or run 'pnpm run dev:www' and 'pnpm run convex:dev' in separate terminals"
+log_info "   - Run 'pnpm run dev:www' for concurrent Next.js + Convex development"
+log_info "   - Or run 'pnpm run dev:next' and 'pnpm run convex:dev' in separate terminals"
 log_info "3. Make your changes and commit"
 log_info "4. Push with: git push -u origin $BRANCH_NAME"
 log_info ""

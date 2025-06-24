@@ -300,17 +300,48 @@ function validateEnvironmentVariables(envVars: Record<string, string>): {
 }
 
 /**
+ * Find the .env.local file in possible locations
+ */
+function findEnvFile(): string {
+  const possiblePaths = [
+    // Current working directory
+    path.resolve(process.cwd(), ENV_FILE),
+    // apps/www directory (if running from root)
+    path.resolve(process.cwd(), "apps", "www", ENV_FILE),
+    // Parent directory (if running from apps/www)
+    path.resolve(process.cwd(), "..", ENV_FILE),
+    // Two levels up (if running from apps/www/convex)
+    path.resolve(process.cwd(), "..", "..", ENV_FILE),
+  ]
+
+  for (const envPath of possiblePaths) {
+    try {
+      readFileSync(envPath, "utf8")
+      log.info(`Found environment file at: ${envPath}`)
+      return envPath
+    } catch {
+      // Continue to next path
+    }
+  }
+
+  return ""
+}
+
+/**
  * Main sync function
  */
 async function syncEnvironment(): Promise<void> {
   try {
-    // Check if .env.local exists
-    const envPath = path.resolve(process.cwd(), ENV_FILE)
+    // Find .env.local file
+    const envPath = findEnvFile()
 
-    try {
-      readFileSync(envPath, "utf8")
-    } catch {
-      log.error(`${ENV_FILE} file not found`)
+    if (!envPath) {
+      log.error(`${ENV_FILE} file not found in any of the expected locations`)
+      console.log("Expected locations:")
+      console.log("  - Current directory")
+      console.log("  - apps/www directory (if running from root)")
+      console.log("  - Parent directory (if running from apps/www)")
+      console.log("")
       console.log(`Create ${ENV_FILE} with your environment variables`)
       console.log("Example:")
       console.log("NEXT_PUBLIC_CONVEX_URL=http://127.0.0.1:3210")
@@ -325,7 +356,7 @@ async function syncEnvironment(): Promise<void> {
       process.exit(1)
     }
 
-    log.info(`Loading environment variables from ${ENV_FILE}`)
+    log.info(`Loading environment variables from ${envPath}`)
 
     // Parse environment variables
     const envVars = parseEnvFile(envPath)
