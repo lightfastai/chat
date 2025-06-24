@@ -21,12 +21,14 @@ export const toolInvocationPartValidator = v.object({
   toolCallId: v.optional(v.string()),
   toolName: v.optional(v.string()),
   args: v.optional(v.any()),
-  state: v.optional(v.union(
-    v.literal("partial-call"),
-    v.literal("call"),
-    v.literal("result"),
-    v.literal("error")
-  )),
+  state: v.optional(
+    v.union(
+      v.literal("partial-call"),
+      v.literal("call"),
+      v.literal("result"),
+      v.literal("error"),
+    ),
+  ),
   result: v.optional(v.any()),
   error: v.optional(v.string()),
 })
@@ -52,7 +54,7 @@ export const messagePartValidator = v.union(
   toolInvocationPartValidator,
   reasoningPartValidator,
   sourcePartValidator,
-  stepStartPartValidator
+  stepStartPartValidator,
 )
 
 // Shared message return type for queries
@@ -79,7 +81,7 @@ export const messageReturnValidator = v.object({
   lastChunkId: v.optional(chunkIdValidator),
   streamChunks: v.optional(v.array(streamChunkValidator)),
   streamVersion: v.optional(v.number()),
-  parts: v.optional(v.array(v.any())),
+  toolInvocations: v.optional(v.array(v.any())),
 })
 
 // Type for message usage updates

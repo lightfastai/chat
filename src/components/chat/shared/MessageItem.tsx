@@ -1,6 +1,7 @@
 "use client"
 
 import { Markdown } from "@/components/ui/markdown"
+import { getMessageParts, hasToolInvocations } from "@/lib/message-parts"
 import { cn } from "@/lib/utils"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
@@ -99,44 +100,49 @@ export function MessageItem({
           />
         )}
 
-      {/* Message body - temporarily disable parts rendering to debug */}
+      {/* Message body with computed parts */}
       <div className="text-sm leading-relaxed">
-        {false && message.parts && Array.isArray(message.parts) && message.parts.some(p => p.type === "tool-invocation") ? (
-          // Render message parts including tool invocations
-          <div className="space-y-2">
-            {/* Always render the message body text first if available */}
-            {displayText && (
+        {(() => {
+          const parts = getMessageParts(message)
+          const hasTools = hasToolInvocations(message)
+
+          if (hasTools) {
+            // Render with tool invocations
+            return (
+              <div className="space-y-2">
+                {parts.map((part, index) => {
+                  switch (part.type) {
+                    case "text":
+                      return (
+                        <div key={index}>
+                          <Markdown className="text-sm">{part.text}</Markdown>
+                          {isStreaming &&
+                            !isComplete &&
+                            index === parts.length - 1 && (
+                              <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
+                            )}
+                        </div>
+                      )
+                    case "tool-invocation":
+                      return <ToolInvocation key={index} part={part} />
+                    default:
+                      return null
+                  }
+                })}
+              </div>
+            )
+          } else {
+            // Simple text rendering
+            return displayText ? (
               <>
                 <Markdown className="text-sm">{displayText}</Markdown>
                 {isStreaming && !isComplete && (
                   <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
                 )}
               </>
-            )}
-            {/* Then render tool invocations */}
-            {message.parts.map((part, index) => {
-              switch (part.type) {
-                case "tool-invocation":
-                  return <ToolInvocation key={index} part={part as Extract<typeof part, { type: "tool-invocation" }>} />
-                case "reasoning":
-                  // Reasoning content is already handled by ThinkingContent above
-                  return null
-                default:
-                  return null
-              }
-            })}
-          </div>
-        ) : (
-          // Fallback to original rendering for backward compatibility
-          displayText ? (
-            <>
-              <Markdown className="text-sm">{displayText}</Markdown>
-              {isStreaming && !isComplete && (
-                <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-              )}
-            </>
-          ) : null
-        )}
+            ) : null
+          }
+        })()}
       </div>
     </div>
   )

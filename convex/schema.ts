@@ -100,10 +100,9 @@ export default defineSchema({
     hasThinkingContent: v.optional(v.boolean()),
     // Token usage tracking per message
     usage: tokenUsageValidator,
-    // Message parts for tool rendering (v5 compatibility)
-    // Using v.any() to avoid TypeScript deep instantiation issues
-    // The actual validation happens in mutations
-    parts: v.optional(v.array(v.any())),
+    // Tool invocations array for Vercel AI SDK v5 compatibility
+    // Stores tool calls and results made during message generation
+    toolInvocations: v.optional(v.array(v.any())),
   })
     .index("by_thread", ["threadId"])
     .index("by_stream_id", ["streamId"]),

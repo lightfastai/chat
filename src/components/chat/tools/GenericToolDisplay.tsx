@@ -2,17 +2,24 @@
 
 import { ChevronDown, ChevronRight, Loader2, Wrench } from "lucide-react"
 import { useState } from "react"
-import type { ToolInvocationPart } from "./ToolInvocation"
-
 export interface GenericToolDisplayProps {
-  part: ToolInvocationPart
+  toolInvocation: {
+    state: "partial-call" | "call" | "result" | "error"
+    toolCallId: string
+    toolName: string
+    args?: any
+    result?: any
+    error?: string
+  }
 }
 
-export function GenericToolDisplay({ part }: GenericToolDisplayProps) {
+export function GenericToolDisplay({
+  toolInvocation,
+}: GenericToolDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   const getStatusIcon = () => {
-    switch (part.state) {
+    switch (toolInvocation.state) {
       case "partial-call":
       case "call":
         return <Loader2 className="h-4 w-4 animate-spin" />
@@ -26,17 +33,17 @@ export function GenericToolDisplay({ part }: GenericToolDisplayProps) {
   }
 
   const getStatusText = () => {
-    switch (part.state) {
+    switch (toolInvocation.state) {
       case "partial-call":
         return "Preparing tool..."
       case "call":
-        return `Calling ${part.toolName}...`
+        return `Calling ${toolInvocation.toolName}...`
       case "result":
-        return `${part.toolName} completed`
+        return `${toolInvocation.toolName} completed`
       case "error":
-        return `${part.toolName} failed`
+        return `${toolInvocation.toolName} failed`
       default:
-        return part.toolName || "Tool"
+        return toolInvocation.toolName || "Tool"
     }
   }
 
@@ -59,32 +66,34 @@ export function GenericToolDisplay({ part }: GenericToolDisplayProps) {
 
       {isExpanded && (
         <div className="mt-3 space-y-2">
-          {part.args && (
+          {toolInvocation.args && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Arguments:
               </p>
               <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
-                {JSON.stringify(part.args, null, 2)}
+                {JSON.stringify(toolInvocation.args, null, 2)}
               </pre>
             </div>
           )}
 
-          {part.state === "result" && part.result && (
+          {toolInvocation.state === "result" && toolInvocation.result && (
             <div>
               <p className="text-xs font-medium text-muted-foreground">
                 Result:
               </p>
               <pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
-                {JSON.stringify(part.result, null, 2)}
+                {JSON.stringify(toolInvocation.result, null, 2)}
               </pre>
             </div>
           )}
 
-          {part.state === "error" && part.error && (
+          {toolInvocation.state === "error" && toolInvocation.error && (
             <div>
               <p className="text-xs font-medium text-red-500">Error:</p>
-              <p className="mt-1 text-xs text-red-500">{part.error}</p>
+              <p className="mt-1 text-xs text-red-500">
+                {toolInvocation.error}
+              </p>
             </div>
           )}
         </div>
@@ -92,3 +101,4 @@ export function GenericToolDisplay({ part }: GenericToolDisplayProps) {
     </div>
   )
 }
+

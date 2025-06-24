@@ -60,7 +60,9 @@ export async function buildMessageContent(
     // This occurs when accessing Convex's generated API types which have deeply nested generics.
     // See: https://github.com/microsoft/TypeScript/issues/34933
     // @ts-expect-error - Deep instantiation issue with Convex generated types
-    const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId }) as FileWithUrl | null
+    const file = (await ctx.runQuery(internal.files.getFileWithUrl, {
+      fileId,
+    })) as FileWithUrl | null
     if (!file || !file.url) continue
 
     // Handle images

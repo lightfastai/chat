@@ -1,11 +1,16 @@
 "use client"
 
-import { ExternalLink, Loader2, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { ToolInvocationPart } from "./ToolInvocation"
-
+import { ExternalLink, Loader2, Search } from "lucide-react"
 export interface WebSearchToolProps {
-  part: ToolInvocationPart
+  toolInvocation: {
+    state: "partial-call" | "call" | "result" | "error"
+    toolCallId: string
+    toolName: string
+    args?: any
+    result?: any
+    error?: string
+  }
 }
 
 interface SearchResult {
@@ -15,21 +20,26 @@ interface SearchResult {
   score?: number
 }
 
-export function WebSearchTool({ part }: WebSearchToolProps) {
-  const isLoading = part.state === "partial-call" || part.state === "call"
-  const hasError = part.state === "error"
-  const searchQuery = part.args?.query as string | undefined
+export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
+  const isLoading =
+    toolInvocation.state === "partial-call" || toolInvocation.state === "call"
+  const hasError = toolInvocation.state === "error"
+  const searchQuery = toolInvocation.args?.query as string | undefined
 
   // Extract search results from the tool result
-  const searchResults = part.result?.results as SearchResult[] | undefined
+  const searchResults = toolInvocation.result?.results as
+    | SearchResult[]
+    | undefined
 
   return (
     <div
       className={cn(
         "my-3 rounded-lg border p-4",
-        isLoading && "border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20",
-        hasError && "border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20",
-        !isLoading && !hasError && "border-border bg-muted/30"
+        isLoading &&
+          "border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20",
+        hasError &&
+          "border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20",
+        !isLoading && !hasError && "border-border bg-muted/30",
       )}
     >
       <div className="flex items-center gap-2">
@@ -44,8 +54,8 @@ export function WebSearchTool({ part }: WebSearchToolProps) {
           {isLoading
             ? "Searching the web..."
             : hasError
-            ? "Search failed"
-            : "Web Search Results"}
+              ? "Search failed"
+              : "Web Search Results"}
         </span>
       </div>
 
@@ -55,9 +65,9 @@ export function WebSearchTool({ part }: WebSearchToolProps) {
         </p>
       )}
 
-      {hasError && part.error && (
+      {hasError && toolInvocation.error && (
         <p className="mt-2 text-sm text-red-600 dark:text-red-400">
-          {part.error}
+          {toolInvocation.error}
         </p>
       )}
 
@@ -98,10 +108,9 @@ export function WebSearchTool({ part }: WebSearchToolProps) {
       )}
 
       {searchResults && searchResults.length === 0 && (
-        <p className="mt-3 text-sm text-muted-foreground">
-          No results found.
-        </p>
+        <p className="mt-3 text-sm text-muted-foreground">No results found.</p>
       )}
     </div>
   )
 }
+

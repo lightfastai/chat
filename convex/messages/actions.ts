@@ -186,31 +186,41 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-call":
-            // Temporarily disable tool parts to debug
-            /*
-            await ctx.runMutation(internal.messages.addMessagePart, {
+            // Add tool invocation in "call" state
+            await ctx.runMutation(internal.messages.addToolInvocation, {
               messageId: args.messageId,
-              part: {
-                type: "tool-invocation",
+              toolInvocation: {
+                state: "call",
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 args: part.args,
-                state: "call",
               },
             })
-            */
             break
 
           case "tool-result":
-            // Temporarily disabled
+            // Update tool invocation with result
+            await ctx.runMutation(internal.messages.updateToolInvocation, {
+              messageId: args.messageId,
+              toolCallId: part.toolCallId,
+              state: "result",
+              result: part.result,
+            })
             break
 
           case "tool-call-streaming-start":
-            // Temporarily disabled
-            break
-
-          case "reasoning-delta":
-            // Temporarily disabled
+            // Add tool invocation in "partial-call" state
+            if (part.toolCallId && part.toolName) {
+              await ctx.runMutation(internal.messages.addToolInvocation, {
+                messageId: args.messageId,
+                toolInvocation: {
+                  state: "partial-call",
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  args: part.args || {},
+                },
+              })
+            }
             break
         }
       }

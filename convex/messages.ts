@@ -40,7 +40,7 @@ export {
   updateThinkingState,
   updateThinkingContent,
   clearGenerationFlag,
-  addMessagePart,
+  addToolInvocation,
   updateToolInvocation,
 } from "./messages/mutations.js"
 

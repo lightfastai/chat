@@ -1,31 +1,21 @@
 "use client"
 
-import type { Doc } from "../../../../convex/_generated/dataModel"
+import type { ToolInvocationPart } from "@/lib/message-parts"
 import { GenericToolDisplay } from "./GenericToolDisplay"
 import { WebSearchTool } from "./WebSearchTool"
-
-export type MessagePart = NonNullable<Doc<"messages">["parts"]>[number]
-
-// Define a concrete interface for tool invocation parts
-export interface ToolInvocationPart {
-  type: "tool-invocation"
-  toolCallId?: string
-  toolName?: string
-  args?: any
-  state?: "partial-call" | "call" | "result" | "error"
-  result?: any
-  error?: string
-}
 
 export interface ToolInvocationProps {
   part: ToolInvocationPart
 }
 
 export function ToolInvocation({ part }: ToolInvocationProps) {
-  switch (part.toolName) {
+  const { toolInvocation } = part
+
+  switch (toolInvocation.toolName) {
     case "web_search":
-      return <WebSearchTool part={part} />
+      return <WebSearchTool toolInvocation={toolInvocation} />
     default:
-      return <GenericToolDisplay part={part} />
+      return <GenericToolDisplay toolInvocation={toolInvocation} />
   }
 }
+

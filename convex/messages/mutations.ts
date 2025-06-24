@@ -68,7 +68,6 @@ export const send = mutation({
       model: provider,
       modelId: modelId,
       attachments: args.attachments,
-      parts: [], // User messages don't have parts
       usage: undefined, // User messages don't have usage
     })
 
@@ -163,7 +162,6 @@ export const createThreadAndSend = mutation({
       model: provider,
       modelId: modelId,
       attachments: args.attachments,
-      parts: [], // User messages don't have parts
       usage: undefined, // User messages don't have usage
     })
 
@@ -184,7 +182,6 @@ export const createThreadAndSend = mutation({
       thinkingStartedAt: now,
       streamChunks: [], // Initialize empty chunks array
       streamVersion: 0, // Initialize version counter
-      parts: [], // Initialize empty parts array
       usage: undefined, // Will be updated when streaming completes
       lastChunkId: undefined, // Initialize last chunk ID
     })
@@ -245,7 +242,6 @@ export const createStreamingMessage = internalMutation({
       lastChunkId: undefined, // Initialize last chunk ID
       modelId: args.modelId,
       usedUserApiKey: args.usedUserApiKey,
-      parts: [], // Initialize empty parts array
       usage: undefined, // Will be updated when streaming completes
     })
   },
@@ -455,7 +451,6 @@ export const createErrorMessage = internalMutation({
       isComplete: true,
       thinkingStartedAt: now,
       thinkingCompletedAt: now,
-      parts: [], // Initialize empty parts array
       usage: undefined, // No usage data for error messages
     })
 
@@ -508,56 +503,64 @@ export const clearGenerationFlag = internalMutation({
   },
 })
 
-// Internal mutation to add a message part
-export const addMessagePart = internalMutation({
+// Internal mutation to add a tool invocation
+export const addToolInvocation = internalMutation({
   args: {
     messageId: v.id("messages"),
-    part: v.any(), // Using v.any() to avoid deep instantiation
+    toolInvocation: v.object({
+      state: v.string(), // 'partial-call' | 'call' | 'result'
+      toolCallId: v.string(),
+      toolName: v.string(),
+      args: v.optional(v.any()),
+      result: v.optional(v.any()),
+      error: v.optional(v.string()),
+    }),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId)
     if (!message) return null
 
-    const currentParts = message.parts || []
-    const updatedParts = [...currentParts, args.part]
+    const currentInvocations = message.toolInvocations || []
+    const updatedInvocations = [...currentInvocations, args.toolInvocation]
 
     await ctx.db.patch(args.messageId, {
-      parts: updatedParts,
+      toolInvocations: updatedInvocations,
     })
 
     return null
   },
 })
 
-// Internal mutation to update a tool invocation part
+// Internal mutation to update a tool invocation
 export const updateToolInvocation = internalMutation({
   args: {
     messageId: v.id("messages"),
     toolCallId: v.string(),
-    state: v.string(), // Simplified to avoid deep instantiation
+    state: v.string(), // 'result' | 'error'
     result: v.optional(v.any()),
     error: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId)
-    if (!message || !message.parts) return null
+    if (!message || !message.toolInvocations) return null
 
-    const updatedParts = message.parts.map(part => {
-      if (part.type === "tool-invocation" && part.toolCallId === args.toolCallId) {
+    const invocations = (message.toolInvocations || []) as any[]
+    const updatedInvocations = invocations.map((invocation) => {
+      if (invocation.toolCallId === args.toolCallId) {
         return {
-          ...part,
+          ...invocation,
           state: args.state,
           result: args.result,
           error: args.error,
         }
       }
-      return part
+      return invocation
     })
 
     await ctx.db.patch(args.messageId, {
-      parts: updatedParts,
+      toolInvocations: updatedInvocations,
     })
 
     return null
