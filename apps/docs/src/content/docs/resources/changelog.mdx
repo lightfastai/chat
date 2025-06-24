@@ -1,0 +1,252 @@
+---
+title: Changelog
+description: Release notes and version history for Lightfast Chat
+---
+
+# Changelog
+
+All notable changes to Lightfast Chat will be documented here. This project adheres to [Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### 🚀 Features
+- Multi-language UI support (coming soon)
+- Voice input for messages
+- Native mobile apps (iOS/Android)
+- Plugin system for extensibility
+
+### 🔧 Improvements
+- Performance optimizations for large conversations
+- Enhanced file preview capabilities
+- Better error messages and recovery
+
+## [1.0.0] - 2024-12-20
+
+### 🎉 Initial Release
+
+First stable release of Lightfast Chat with production-ready features.
+
+### ✨ Features
+
+#### AI Integration
+- **Multi-Model Support**: Claude 3.5 Sonnet, Claude 3 Opus/Haiku, GPT-4o, GPT-3.5 Turbo
+- **Real-time Streaming**: Smooth token-by-token response streaming
+- **Model Switching**: Change models mid-conversation
+- **Context Management**: Smart context window handling
+
+#### Chat Interface
+- **Conversation Management**: Create, rename, delete conversations
+- **Message Features**: Send, edit (within 5 minutes), copy, delete
+- **File Uploads**: Support for images and documents
+- **Search**: Full-text search across conversations
+- **Sharing**: Public links for conversation sharing
+
+#### Authentication
+- **OAuth Support**: GitHub authentication (Google coming soon)
+- **Session Management**: Secure JWT-based sessions
+- **Guest Mode**: Try without signing in (limited features)
+
+#### Developer Experience
+- **TypeScript**: Full type safety across the stack
+- **Monorepo**: Turborepo for efficient builds
+- **Hot Reload**: Fast development experience
+- **Documentation**: Comprehensive docs with Fumadocs
+
+### 🏗️ Technical Stack
+- **Frontend**: Next.js 15, React 19, Tailwind CSS v4
+- **Backend**: Convex real-time database
+- **Styling**: shadcn/ui components
+- **Runtime**: pnpm package management support
+- **Deployment**: Vercel-optimized
+
+### 📚 Documentation
+- Getting Started guide
+- API reference
+- Self-hosting instructions
+- Contributing guidelines
+
+### 🔒 Security
+- Environment variable validation
+- Input sanitization
+- Rate limiting
+- CORS protection
+
+### ⚡ Performance
+- Partial Prerendering (PPR)
+- Optimized bundle size
+- Lazy loading
+- Image optimization
+
+## [0.9.0-beta] - 2024-12-01
+
+### Pre-release Features
+- Basic chat functionality
+- Claude integration only
+- Simple authentication
+- File upload prototype
+
+### Known Issues
+- Streaming occasionally stutters
+- Search not implemented
+- No conversation sharing
+
+## Version Guidelines
+
+### Version Numbers
+
+We follow Semantic Versioning (MAJOR.MINOR.PATCH):
+
+- **MAJOR**: Breaking changes requiring migration
+- **MINOR**: New features, backward compatible
+- **PATCH**: Bug fixes and minor improvements
+
+### Release Cycle
+
+- **Patch releases**: As needed for critical fixes
+- **Minor releases**: Monthly feature updates
+- **Major releases**: Quarterly or as needed
+
+### Deprecation Policy
+
+- Features are deprecated with one minor version notice
+- Deprecated features are removed in next major version
+- Migration guides provided for all breaking changes
+
+## How to Update
+
+### Quick Update
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Update dependencies
+pnpm install
+
+# Run migrations if needed
+npx convex run migrations:latest
+
+# Rebuild
+pnpm run build
+```
+
+### Check Current Version
+
+```bash
+# In package.json
+cat package.json | grep version
+
+# Or via command
+npm version
+```
+
+### Update Notifications
+
+Stay informed about updates:
+
+1. **GitHub Releases**: Watch the repository
+2. **Discord**: Join #announcements channel
+3. **Twitter**: Follow @lightfastai
+4. **RSS**: Subscribe to changelog feed
+
+## Breaking Changes
+
+### Future Breaking Changes
+
+When we introduce breaking changes:
+
+1. **Deprecation Warning**: One version advance notice
+2. **Migration Guide**: Step-by-step instructions
+3. **Compatibility Mode**: Temporary backward compatibility
+4. **Support Period**: 3 months for migration
+
+### Handling Breaking Changes
+
+```typescript
+// Example: API change with compatibility
+export const getMessage = query({
+  args: {
+    // New parameter name
+    messageId: v.optional(v.id("messages")),
+    // Old parameter (deprecated)
+    id: v.optional(v.id("messages")),
+  },
+  handler: async (ctx, args) => {
+    const id = args.messageId ?? args.id
+    if (args.id) {
+      console.warn("Parameter 'id' is deprecated, use 'messageId'")
+    }
+    // Implementation
+  },
+})
+```
+
+## Contributing to Changelog
+
+### Format for Contributors
+
+When contributing, add entries in this format:
+
+```markdown
+### [Type of Change]
+- **Feature**: Description of what was added
+- **Fix**: Description of what was fixed (#issue)
+- **Breaking**: Description of breaking change
+```
+
+Types:
+- 🚀 Features
+- 🐛 Bug Fixes
+- 💔 Breaking Changes
+- 🔧 Improvements
+- 📚 Documentation
+- 🔒 Security
+- ⚡ Performance
+
+### Commit Messages
+
+Use conventional commits for automatic changelog generation:
+
+```bash
+feat: add voice input support
+fix: resolve streaming lag issue (#123)
+docs: update installation guide
+BREAKING CHANGE: rename API endpoint
+```
+
+## Security Updates
+
+Security fixes are released as soon as possible:
+
+1. **Critical**: Immediate patch release
+2. **High**: Within 24 hours
+3. **Medium**: Within 1 week
+4. **Low**: Next regular release
+
+Report security issues to: security@lightfast.ai
+
+## Archive
+
+Older versions and their documentation:
+
+- [v0.9.x Documentation](https://v0-9.docs.lightfast.ai)
+- [v0.8.x Documentation](https://v0-8.docs.lightfast.ai)
+
+## Feedback
+
+We value your feedback on releases:
+
+- **Feature Requests**: Open a GitHub issue
+- **Bug Reports**: Use bug report template
+- **Discussion**: Join our Discord
+- **Surveys**: Participate in release surveys
+
+## License
+
+Lightfast Chat is released under the MIT License. See [LICENSE](https://github.com/lightfastai/chat/blob/main/LICENSE) for details.
+
+---
+
+[Unreleased]: https://github.com/lightfastai/chat/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/lightfastai/chat/releases/tag/v1.0.0
+[0.9.0-beta]: https://github.com/lightfastai/chat/releases/tag/v0.9.0-beta

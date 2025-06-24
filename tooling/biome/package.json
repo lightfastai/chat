@@ -1,0 +1,16 @@
+{
+  "name": "@repo/biome",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Biome configuration for the monorepo",
+  "exports": {
+    "./config": "./biome.json"
+  },
+  "files": [
+    "biome.json"
+  ],
+  "dependencies": {
+    "@biomejs/biome": "1.9.4"
+  }
+}

@@ -40,7 +40,8 @@ We are committed to providing a welcoming and inspiring community for all. Pleas
 
 ### Prerequisites
 
-- **Bun v1.2.10+** - Our JavaScript runtime and package manager
+- **pnpm v9+** - Our package manager
+- **Node.js 20+** - JavaScript runtime
 - **Node.js 18+** - Required for some tooling
 - **Git** - Version control
 - **GitHub Account** - For authentication and contributing
@@ -66,7 +67,7 @@ cd chat
 ### 2. Install Dependencies
 
 ```bash
-bun install
+pnpm install
 ```
 
 ### 3. Environment Setup
@@ -79,17 +80,17 @@ cp .env.example .env.local
 # Required: ANTHROPIC_API_KEY, OPENAI_API_KEY, AUTH_GITHUB_ID, AUTH_GITHUB_SECRET
 
 # Sync environment variables to Convex
-bun run env:sync
+pnpm run env:sync
 ```
 
 ### 4. Start Development Servers
 
 ```bash
 # Terminal 1: Start Convex dev server
-bun run convex:dev
+pnpm run convex:dev
 
 # Terminal 2: Start Next.js dev server
-bun run dev
+pnpm run dev
 ```
 
 Visit [http://localhost:3000](http://localhost:3000) to see your local instance.
@@ -149,7 +150,7 @@ Our project includes a comprehensive `CLAUDE.md` file that provides Claude Code 
 - Best for production-ready features
 
 **Local Dev Mode**:
-- You run `bun dev:all` locally
+- You run `pnpm run dev` locally
 - Claude Code acts as code generator
 - Real-time local testing
 - Best for rapid prototyping
@@ -198,14 +199,14 @@ Before committing, ensure your code passes all checks:
 
 ```bash
 # Build validation (MUST pass)
-SKIP_ENV_VALIDATION=true bun run build
+SKIP_ENV_VALIDATION=true pnpm run build
 
 # Linting and formatting (MUST pass)
-bun run lint
-bun run format
+pnpm run lint
+pnpm run format
 
 # Type checking
-bun run typecheck
+pnpm run typecheck
 ```
 
 ### 5. Commit Your Changes
@@ -369,13 +370,13 @@ convex/
 
 ```bash
 # Run all tests
-bun test
+pnpm test
 
 # Run tests in watch mode
-bun test --watch
+pnpm test --watch
 
 # Run specific test file
-bun test src/components/Button.test.tsx
+pnpm test src/components/Button.test.tsx
 ```
 
 ### Writing Tests

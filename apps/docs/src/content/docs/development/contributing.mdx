@@ -1,0 +1,560 @@
+---
+title: Contributing
+description: How to contribute to Lightfast Chat
+---
+
+# Contributing to Lightfast Chat
+
+Thank you for your interest in contributing to Lightfast Chat! This guide will help you get started with contributing to our open-source project.
+
+## Ways to Contribute
+
+### 1. Report Bugs
+Found a bug? Help us improve by reporting it:
+- Check if the bug is already reported in [Issues](https://github.com/lightfastai/chat/issues)
+- Create a new issue using the Bug Report template
+- Include steps to reproduce, expected vs actual behavior
+
+### 2. Suggest Features
+Have an idea? We'd love to hear it:
+- Check existing [feature requests](https://github.com/lightfastai/chat/issues?q=is%3Aissue+label%3Aenhancement)
+- Create a new issue using the Feature Request template
+- Explain the use case and proposed solution
+
+### 3. Improve Documentation
+Documentation is crucial:
+- Fix typos or clarify existing docs
+- Add examples or guides
+- Translate documentation
+
+### 4. Submit Code
+Ready to code? Follow our workflow:
+- Fix bugs or implement features
+- Add tests for your changes
+- Follow our code style guidelines
+
+## Getting Started
+
+### Prerequisites
+
+1. Fork the repository on GitHub
+2. Set up your [development environment](/docs/setup)
+3. Read the [architecture overview](/docs/architecture)
+4. Familiarize yourself with our [tech stack](/docs/architecture/tech-stack)
+
+### First-Time Contributors
+
+Look for issues labeled `good first issue`:
+
+```bash
+# Find good first issues
+gh issue list --repo lightfastai/chat --label "good first issue"
+```
+
+These issues are:
+- Well-defined and scoped
+- Have clear acceptance criteria
+- Don't require deep system knowledge
+
+## Development Process
+
+### 1. Find or Create an Issue
+
+```bash
+# Search existing issues
+gh issue list --repo lightfastai/chat --search "your topic"
+
+# Create new issue
+gh issue create --repo lightfastai/chat
+```
+
+### 2. Set Up Your Branch
+
+Follow our branch naming convention:
+
+```bash
+# Feature branches
+git checkout -b feature/add-dark-mode
+
+# Bug fix branches
+git checkout -b fix/message-ordering
+
+# Documentation branches
+git checkout -b docs/update-api-guide
+
+# Chore branches
+git checkout -b chore/update-dependencies
+```
+
+### 3. Make Your Changes
+
+#### Code Changes
+
+1. **Write Clean Code**
+   ```typescript
+   // ✅ Good: Clear, typed, documented
+   /**
+    * Formats a message timestamp for display
+    * @param timestamp - Unix timestamp in milliseconds
+    * @returns Formatted time string (e.g., "2:30 PM")
+    */
+   export function formatMessageTime(timestamp: number): string {
+     return new Date(timestamp).toLocaleTimeString([], {
+       hour: "2-digit",
+       minute: "2-digit",
+     })
+   }
+
+   // ❌ Bad: Unclear, untyped, undocumented
+   export function fmt(t) {
+     return new Date(t).toLocaleTimeString()
+   }
+   ```
+
+2. **Follow Component Patterns**
+   ```typescript
+   // components/chat/typing-indicator.tsx
+   interface TypingIndicatorProps {
+     users: string[]
+     className?: string
+   }
+
+   export function TypingIndicator({ 
+     users, 
+     className 
+   }: TypingIndicatorProps) {
+     if (users.length === 0) return null
+
+     return (
+       <div className={cn("text-sm text-muted-foreground", className)}>
+         {formatTypingMessage(users)}
+       </div>
+     )
+   }
+   ```
+
+3. **Use Proper Types**
+   ```typescript
+   // ✅ Good: Specific types
+   interface Message {
+     id: string
+     content: string
+     userId: string
+     createdAt: number
+   }
+
+   // ❌ Bad: Generic types
+   interface Message {
+     id: any
+     content: any
+     userId: any
+     createdAt: any
+   }
+   ```
+
+#### Documentation Changes
+
+1. **Use Clear Language**
+   - Write for beginners
+   - Include examples
+   - Explain the "why" not just "how"
+
+2. **Follow MDX Format**
+   ```mdx
+   ---
+   title: Your Title
+   description: Brief description
+   ---
+
+   # Your Title
+
+   Introduction paragraph explaining the topic.
+
+   ## Main Section
+
+   Content with code examples:
+
+   ```typescript
+   // Example code
+   ```
+
+   ## Next Steps
+
+   - Link to [related guide](/docs/related)
+   - Suggest what to read next
+   ```
+
+### 4. Test Your Changes
+
+#### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run specific test file
+pnpm test button.test.tsx
+
+# Run tests in watch mode
+pnpm run test:watch
+
+# Generate coverage report
+pnpm run test:coverage
+```
+
+#### Writing Tests
+
+```typescript
+// Example unit test
+import { describe, it, expect } from "vitest"
+import { formatMessageTime } from "./format"
+
+describe("formatMessageTime", () => {
+  it("formats timestamp correctly", () => {
+    const timestamp = new Date("2024-01-01 14:30").getTime()
+    expect(formatMessageTime(timestamp)).toBe("2:30 PM")
+  })
+
+  it("handles invalid timestamps", () => {
+    expect(formatMessageTime(0)).toBe("Invalid Date")
+  })
+})
+```
+
+#### Manual Testing
+
+1. **Test locally**
+   ```bash
+   pnpm run dev
+   # Visit http://localhost:3000
+   ```
+
+2. **Test different scenarios**
+   - Different screen sizes
+   - Various browsers
+   - Error conditions
+   - Edge cases
+
+### 5. Commit Your Changes
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```bash
+# Format: <type>(<scope>): <subject>
+
+# Features
+git commit -m "feat(chat): add message reactions"
+
+# Bug fixes
+git commit -m "fix(auth): resolve login redirect issue"
+
+# Documentation
+git commit -m "docs: update installation guide"
+
+# Performance improvements
+git commit -m "perf(messages): optimize message rendering"
+
+# Code refactoring
+git commit -m "refactor(api): simplify error handling"
+
+# Tests
+git commit -m "test(chat): add message component tests"
+
+# Chores
+git commit -m "chore: update dependencies"
+```
+
+#### Commit Message Guidelines
+
+- **Type**: feat, fix, docs, style, refactor, perf, test, chore
+- **Scope**: Optional, indicates what is affected
+- **Subject**: Present tense, lowercase, no period
+- **Body**: Optional, explains "why" not "what"
+- **Footer**: Optional, references issues
+
+Example:
+```
+feat(chat): add message editing capability
+
+Allow users to edit their sent messages within 5 minutes.
+This improves user experience by allowing quick corrections.
+
+Closes #123
+```
+
+### 6. Submit Pull Request
+
+#### Pre-PR Checklist
+
+- [ ] Code follows project style
+- [ ] Tests pass locally
+- [ ] Documentation updated if needed
+- [ ] Commit messages follow convention
+- [ ] Branch is up to date with main
+
+#### Create PR
+
+```bash
+# Push your branch
+git push origin your-branch-name
+
+# Create PR using GitHub CLI
+gh pr create --repo lightfastai/chat \
+  --title "feat: add message editing" \
+  --body "Closes #123
+
+## Summary
+Adds ability to edit messages within 5 minutes of sending.
+
+## Changes
+- Add edit button to message component
+- Implement edit modal
+- Add server-side validation
+- Update message schema
+
+## Testing
+- Tested editing own messages
+- Verified 5-minute time limit
+- Checked permission validation"
+```
+
+#### PR Guidelines
+
+1. **Title**: Use conventional commit format
+2. **Description**: 
+   - Link related issues
+   - Summarize changes
+   - Include testing notes
+   - Add screenshots if UI changes
+
+3. **Keep PRs Focused**
+   - One feature/fix per PR
+   - Separate refactoring from features
+   - Split large changes into multiple PRs
+
+## Code Review Process
+
+### What We Look For
+
+1. **Code Quality**
+   - Follows project patterns
+   - Proper error handling
+   - No unnecessary complexity
+
+2. **Testing**
+   - Adequate test coverage
+   - Tests actually test the feature
+   - Edge cases considered
+
+3. **Performance**
+   - No obvious performance issues
+   - Efficient algorithms
+   - Proper memoization
+
+4. **Security**
+   - Input validation
+   - Proper authentication
+   - No sensitive data exposure
+
+### Responding to Feedback
+
+```typescript
+// Reviewer comment: "This could be more efficient"
+
+// Before
+const filtered = messages.filter(m => m.userId === userId)
+const sorted = filtered.sort((a, b) => b.timestamp - a.timestamp)
+const recent = sorted.slice(0, 10)
+
+// After addressing feedback
+const recent = messages
+  .filter(m => m.userId === userId)
+  .sort((a, b) => b.timestamp - a.timestamp)
+  .slice(0, 10)
+```
+
+Be respectful and open to suggestions. Ask questions if feedback is unclear.
+
+## Style Guidelines
+
+### TypeScript
+
+```typescript
+// Use explicit return types for public APIs
+export function getMessage(id: string): Message | null {
+  return messages.get(id) ?? null
+}
+
+// Use const assertions for literals
+const ROLES = ["user", "assistant", "system"] as const
+type Role = typeof ROLES[number]
+
+// Prefer interfaces over types for objects
+interface User {
+  id: string
+  name: string
+}
+
+// Use proper error handling
+try {
+  await saveMessage(message)
+} catch (error) {
+  console.error("Failed to save message:", error)
+  throw new Error("Message save failed")
+}
+```
+
+### React Components
+
+```typescript
+// Use function components
+export function ChatMessage({ message }: Props) {
+  return <div>{message.content}</div>
+}
+
+// Extract complex logic to hooks
+function useChatMessages(conversationId: string) {
+  const [messages, setMessages] = useState<Message[]>([])
+  
+  useEffect(() => {
+    // Fetch logic
+  }, [conversationId])
+  
+  return messages
+}
+
+// Memoize expensive computations
+const sortedMessages = useMemo(
+  () => messages.sort((a, b) => a.timestamp - b.timestamp),
+  [messages]
+)
+```
+
+### CSS and Styling
+
+```typescript
+// Use Tailwind classes
+<div className="flex items-center gap-4 p-4">
+
+// Use cn() for conditional classes
+<button
+  className={cn(
+    "px-4 py-2 rounded",
+    isActive && "bg-primary text-white",
+    disabled && "opacity-50 cursor-not-allowed"
+  )}
+>
+
+// Extract repeated styles to components
+export function Card({ children, className }: Props) {
+  return (
+    <div className={cn(
+      "rounded-lg border bg-card p-6",
+      className
+    )}>
+      {children}
+    </div>
+  )
+}
+```
+
+## Community Guidelines
+
+### Code of Conduct
+
+We are committed to providing a welcoming and inclusive environment:
+
+- **Be Respectful**: Treat everyone with respect
+- **Be Constructive**: Provide helpful feedback
+- **Be Inclusive**: Welcome newcomers
+- **Be Professional**: Keep discussions focused
+
+### Communication Channels
+
+- **GitHub Issues**: Bug reports and feature requests
+- **GitHub Discussions**: General questions and ideas
+- **Discord**: Real-time chat and support
+- **Twitter**: Updates and announcements
+
+### Getting Help
+
+Stuck? Here's how to get help:
+
+1. **Check Documentation**: Often has the answer
+2. **Search Issues**: Someone might have asked already
+3. **Ask in Discord**: Quick help from community
+4. **Create Discussion**: For complex questions
+
+## Recognition
+
+We value all contributions:
+
+- **Contributors Page**: All contributors are listed
+- **Release Notes**: Contributors mentioned in releases
+- **Special Thanks**: Major contributors highlighted
+- **Swag**: Active contributors receive Lightfast swag
+
+## Advanced Contributing
+
+### Becoming a Maintainer
+
+Active contributors may be invited to become maintainers:
+
+1. **Consistent Quality**: High-quality contributions
+2. **Community Involvement**: Helps others
+3. **Domain Knowledge**: Deep understanding
+4. **Time Commitment**: Available for reviews
+
+### Release Process
+
+We follow semantic versioning:
+
+```bash
+# Version format: MAJOR.MINOR.PATCH
+
+# Patch release (bug fixes)
+v1.2.3 -> v1.2.4
+
+# Minor release (new features)
+v1.2.3 -> v1.3.0
+
+# Major release (breaking changes)
+v1.2.3 -> v2.0.0
+```
+
+### Security Contributions
+
+Found a security issue? Please:
+
+1. **Don't** create a public issue
+2. **Do** email security@lightfast.ai
+3. **Include**: Description, impact, steps to reproduce
+4. **Wait**: For confirmation before disclosure
+
+## Resources
+
+### Templates
+
+- [Bug Report Template](.github/ISSUE_TEMPLATE/bug_report.md)
+- [Feature Request Template](.github/ISSUE_TEMPLATE/feature_request.md)
+- [Pull Request Template](.github/pull_request_template.md)
+
+### Guides
+
+- [Development Setup](/docs/setup)
+- [Architecture Overview](/docs/architecture)
+- [Testing Guide](/docs/setup#testing)
+- [Claude Code Workflow](/docs/claude-code-workflow)
+
+### External Resources
+
+- [Conventional Commits](https://www.conventionalcommits.org/)
+- [Semantic Versioning](https://semver.org/)
+- [GitHub Flow](https://guides.github.com/introduction/flow/)
+- [Code Review Best Practices](https://github.com/features/code-review)
+
+## Thank You!
+
+Your contributions make Lightfast Chat better for everyone. Whether it's fixing a typo, reporting a bug, or implementing a major feature, every contribution matters.
+
+Welcome to the Lightfast community! 🚀

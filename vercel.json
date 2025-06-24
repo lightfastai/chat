@@ -1,17 +1,7 @@
 {
-  "buildCommand": "bunx convex deploy --cmd 'bun run turbo:build' --preview-run 'setup:setupInitialData'",
-  "devCommand": "bun run with-env next dev",
-  "installCommand": "bun install",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd apps/www && pnpx convex deploy --cmd 'pnpm run build' --preview-run 'setup:setupInitialData'",
+  "installCommand": "pnpm install",
   "framework": "nextjs",
-  "functions": {
-    "app/api/**/*.ts": {
-      "maxDuration": 30
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    }
-  ]
+  "outputDirectory": "apps/www/.next"
 }

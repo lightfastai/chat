@@ -1,0 +1,590 @@
+---
+title: Development Setup
+description: Set up your development environment for Lightfast Chat
+---
+
+# Development Setup
+
+This guide walks you through setting up a complete development environment for contributing to Lightfast Chat.
+
+## Prerequisites
+
+### Required Tools
+
+- **Git**: Version control
+- **Node.js**: 18.17+ with pnpm
+- **Code Editor**: VS Code recommended
+- **Terminal**: Modern terminal with UTF-8 support
+
+### Recommended Tools
+
+- **GitHub CLI**: For PR/issue management (`gh`)
+- **pnpm**: Fast, disk-efficient package manager
+- **Docker**: For testing deployments
+- **Postman/Insomnia**: API testing
+
+## Initial Setup
+
+### 1. Fork and Clone
+
+```bash
+# Fork the repository on GitHub first, then:
+git clone https://github.com/YOUR_USERNAME/chat.git
+cd chat
+
+# Add upstream remote
+git remote add upstream https://github.com/lightfastai/chat.git
+```
+
+### 2. Install Dependencies
+
+```bash
+# Using pnpm (recommended)
+pnpm install
+
+# Using npm
+npm install
+
+# Using yarn
+yarn install
+```
+
+### 3. Environment Configuration
+
+```bash
+# Copy example environment
+cp .env.example .env.local
+
+# Generate JWT keys for development
+openssl genrsa -out private.pem 2048
+openssl rsa -in private.pem -pubout -out public.pem
+
+# Convert to base64 for .env.local
+JWT_PRIVATE_KEY=$(base64 -i private.pem | tr -d '\n')
+```
+
+Essential `.env.local` for development:
+
+```bash
+# Convex Development
+NEXT_PUBLIC_CONVEX_URL=https://your-dev-project.convex.cloud
+CONVEX_DEPLOY_KEY=your-dev-deploy-key
+
+# AI Providers (use test keys if available)
+ANTHROPIC_API_KEY=sk-ant-api03-test-...
+OPENAI_API_KEY=sk-test-...
+
+# Development Auth
+JWT_PRIVATE_KEY=your-base64-private-key
+JWKS={}  # Empty for development
+
+# Local URL
+SITE_URL=http://localhost:3000
+
+# Skip validations for faster builds
+SKIP_ENV_VALIDATION=true
+```
+
+### 4. Convex Setup
+
+```bash
+# Install Convex CLI
+npm install -g convex
+
+# Initialize Convex project
+npx convex dev
+
+# This will:
+# 1. Prompt to create a new project
+# 2. Deploy your functions
+# 3. Start the Convex dev server
+```
+
+### 5. Start Development
+
+```bash
+# Start all services (recommended)
+pnpm run dev:all
+
+# Or start individually:
+# Terminal 1: Convex
+npx convex dev
+
+# Terminal 2: Next.js
+pnpm run dev
+```
+
+## VS Code Setup
+
+### Recommended Extensions
+
+Create `.vscode/extensions.json`:
+
+```json
+{
+  "recommendations": [
+    "biomejs.biome",
+    "bradlc.vscode-tailwindcss",
+    "prisma.prisma",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "eamodio.gitlens",
+    "github.copilot",
+    "ms-vscode.vscode-typescript-next",
+    "unifiedjs.vscode-mdx"
+  ]
+}
+```
+
+### Workspace Settings
+
+Create `.vscode/settings.json`:
+
+```json
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "quickfix.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact"
+  }
+}
+```
+
+### Debug Configuration
+
+Create `.vscode/launch.json`:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Next.js: debug server-side",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "env": {
+        "NODE_OPTIONS": "--inspect"
+      },
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Next.js: debug client-side",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/apps/www"
+    }
+  ]
+}
+```
+
+## Development Workflow
+
+### Project Structure
+
+```
+chat/
+├── apps/
+│   ├── www/                 # Main Next.js application
+│   │   ├── src/
+│   │   │   ├── app/        # App Router pages
+│   │   │   ├── components/ # React components
+│   │   │   └── lib/        # Utilities
+│   │   ├── convex/         # Backend functions
+│   │   └── public/         # Static assets
+│   └── docs/               # Documentation site
+├── packages/
+│   └── ui/                 # Shared UI library
+│       ├── src/
+│       │   ├── components/ # shadcn/ui components
+│       │   └── lib/        # Shared utilities
+│       └── globals.css     # Global styles
+├── scripts/                # Development scripts
+└── turbo.json             # Turborepo config
+```
+
+### Common Commands
+
+```bash
+# Development
+pnpm run dev              # Start all dev servers
+pnpm run dev:www          # Start only www app
+pnpm run dev:docs         # Start only docs app
+
+# Building
+pnpm run build        # Build all apps
+pnpm run build:www    # Build only www
+pnpm run build:docs   # Build only docs
+
+# Testing
+pnpm test            # Run all tests
+pnpm run test:watch      # Watch mode
+pnpm run test:coverage   # Coverage report
+
+# Code Quality
+pnpm run lint        # Lint all code
+pnpm run format      # Format all code
+pnpm run typecheck   # Type checking
+
+# Convex
+npx convex dev      # Start Convex dev
+npx convex deploy   # Deploy to production
+npx convex logs     # View function logs
+npx convex dashboard # Open dashboard
+
+# UI Components
+pnpm run ui:add button      # Add component
+pnpm run ui:diff            # Check for updates
+```
+
+### Git Workflow
+
+#### 1. Create Feature Branch
+
+```bash
+# Always create from latest main
+git checkout main
+git pull upstream main
+git checkout -b feature/my-feature
+```
+
+#### 2. Make Changes
+
+```bash
+# Stage changes
+git add .
+
+# Commit with conventional format
+git commit -m "feat: add new feature"
+# Types: feat, fix, docs, style, refactor, test, chore
+```
+
+#### 3. Keep Updated
+
+```bash
+# Regularly sync with upstream
+git fetch upstream
+git rebase upstream/main
+```
+
+#### 4. Push and Create PR
+
+```bash
+# Push to your fork
+git push origin feature/my-feature
+
+# Create PR via GitHub CLI
+gh pr create --repo lightfastai/chat
+```
+
+## Development Guidelines
+
+### Code Style
+
+We use Biome for consistent formatting:
+
+```typescript
+// ✅ Good
+export function MyComponent({ title, children }: Props) {
+  const [state, setState] = useState(false)
+  
+  return (
+    <div className="flex flex-col gap-4">
+      <h1>{title}</h1>
+      {children}
+    </div>
+  )
+}
+
+// ❌ Bad
+export function MyComponent({title,children}:Props){
+  const [state,setState]=useState(false);
+  
+  return <div className='flex flex-col gap-4'>
+    <h1>{title}</h1>
+    {children}
+  </div>
+}
+```
+
+### Component Structure
+
+Follow consistent patterns:
+
+```typescript
+// components/chat/message-item.tsx
+import { useState } from "react"
+import { cn } from "@/lib/utils"
+import { Card } from "@/components/ui/card"
+
+interface MessageItemProps {
+  message: Message
+  className?: string
+}
+
+export function MessageItem({ 
+  message, 
+  className 
+}: MessageItemProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  
+  // Event handlers
+  const handleEdit = () => {
+    setIsEditing(true)
+  }
+  
+  // Render
+  return (
+    <Card className={cn("p-4", className)}>
+      {/* Component content */}
+    </Card>
+  )
+}
+```
+
+### File Naming
+
+- **Components**: `kebab-case.tsx` (e.g., `message-item.tsx`)
+- **Utilities**: `camelCase.ts` (e.g., `formatDate.ts`)
+- **Types**: `PascalCase.ts` (e.g., `Message.ts`)
+- **Tests**: `*.test.ts` or `*.spec.ts`
+
+### Import Order
+
+1. External imports
+2. Internal imports
+3. Component imports
+4. Type imports
+
+```typescript
+// External
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+
+// Internal
+import { cn } from "@/lib/utils"
+import { formatDate } from "@/lib/format"
+
+// Components
+import { Button } from "@/components/ui/button"
+import { MessageItem } from "@/components/chat/message-item"
+
+// Types
+import type { Message } from "@/types"
+```
+
+## Testing
+
+### Unit Tests
+
+```typescript
+// lib/utils.test.ts
+import { describe, it, expect } from "vitest"
+import { cn } from "./utils"
+
+describe("cn", () => {
+  it("merges class names correctly", () => {
+    expect(cn("foo", "bar")).toBe("foo bar")
+    expect(cn("foo", { bar: true })).toBe("foo bar")
+    expect(cn("foo", { bar: false })).toBe("foo")
+  })
+})
+```
+
+### Component Tests
+
+```typescript
+// components/button.test.tsx
+import { render, screen } from "@testing-library/react"
+import { Button } from "./button"
+
+describe("Button", () => {
+  it("renders children", () => {
+    render(<Button>Click me</Button>)
+    expect(screen.getByText("Click me")).toBeInTheDocument()
+  })
+})
+```
+
+### E2E Tests
+
+```typescript
+// e2e/chat.spec.ts
+import { test, expect } from "@playwright/test"
+
+test("can send a message", async ({ page }) => {
+  await page.goto("/")
+  await page.fill("[data-testid=message-input]", "Hello")
+  await page.click("[data-testid=send-button]")
+  await expect(page.locator("[data-testid=message]")).toContainText("Hello")
+})
+```
+
+## Debugging
+
+### Client-Side Debugging
+
+1. **Browser DevTools**: Use React DevTools extension
+2. **Console Logging**: Temporary debugging
+3. **VS Code Debugger**: Set breakpoints in code
+
+### Server-Side Debugging
+
+```bash
+# Enable Node.js debugging
+NODE_OPTIONS='--inspect' pnpm run dev
+
+# Attach VS Code debugger
+# Use "Next.js: debug server-side" launch config
+```
+
+### Convex Debugging
+
+```bash
+# View real-time logs
+npx convex logs --watch
+
+# Test functions directly
+npx convex run myFunction --args '{"arg": "value"}'
+```
+
+## Performance Optimization
+
+### Development Performance
+
+```bash
+# Use Turbo cache
+pnpm run build --filter=www...
+
+# Skip type checking for faster builds
+SKIP_ENV_VALIDATION=true pnpm run build
+
+# Use SWC instead of Babel
+# Already configured in Next.js
+```
+
+### Bundle Analysis
+
+```bash
+# Analyze bundle size
+ANALYZE=true pnpm run build
+
+# Opens bundle analyzer in browser
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Port already in use**
+```bash
+# Find process using port 3000
+lsof -i :3000
+# Kill process
+kill -9 <PID>
+```
+
+**Convex connection failed**
+```bash
+# Restart Convex dev server
+npx convex dev --once
+npx convex dev
+```
+
+**Type errors**
+```bash
+# Regenerate types
+pnpm run typecheck
+npx convex codegen
+```
+
+**Dependency issues**
+```bash
+# Clear all caches
+rm -rf node_modules .next
+rm pnpm-lock.yaml  # or package-lock.json
+pnpm install
+```
+
+## Advanced Setup
+
+### Multiple Environments
+
+```bash
+# Development
+cp .env.local .env.development.local
+
+# Staging
+cp .env.local .env.staging.local
+
+# Use different environments
+NODE_ENV=staging pnpm run build
+```
+
+### Custom Scripts
+
+Add to `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev:debug": "NODE_OPTIONS='--inspect' next dev",
+    "dev:turbo": "turbo dev --filter=www",
+    "clean": "rm -rf .next node_modules",
+    "fresh": "pnpm run clean && pnpm install && pnpm run dev"
+  }
+}
+```
+
+### Git Hooks
+
+Using Husky for pre-commit checks:
+
+```bash
+# Install Husky
+pnpm add -D husky
+pnpx husky init
+
+# Add pre-commit hook
+echo "pnpm run lint && pnpm run typecheck" > .husky/pre-commit
+```
+
+## Resources
+
+### Documentation
+- [Next.js Docs](https://nextjs.org/docs)
+- [Convex Docs](https://docs.convex.dev)
+- [Tailwind CSS](https://tailwindcss.com/docs)
+- [shadcn/ui](https://ui.shadcn.com)
+
+### Learning
+- [React Patterns](https://react-patterns.com)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs)
+- [Testing Best Practices](https://testingjavascript.com)
+
+### Community
+- [GitHub Discussions](https://github.com/lightfastai/chat/discussions)
+- [Discord Server](https://discord.gg/lightfast)
+- [Twitter](https://twitter.com/lightfastai)
+
+## Next Steps
+
+- Read [Contributing Guidelines](/docs/contributing)
+- Explore the [Architecture](/docs/architecture)
+- Try the [Claude Code Workflow](/docs/claude-code-workflow)
+- Deploy your changes with the [Deployment Guide](/docs/deployment)

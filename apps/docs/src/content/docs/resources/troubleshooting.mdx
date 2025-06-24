@@ -1,0 +1,614 @@
+---
+title: Troubleshooting
+description: Solutions to common issues and debugging guide
+---
+
+# Troubleshooting
+
+This guide helps you resolve common issues with Lightfast Chat and provides debugging strategies.
+
+## Common Issues
+
+### Installation Issues
+
+#### Dependencies Fail to Install
+
+**Problem**: `pnpm install` or `npm install` fails with errors.
+
+**Solutions**:
+
+1. **Clear cache and retry**:
+   ```bash
+   # For pnpm
+   rm -rf node_modules pnpm-lock.yaml
+   pnpm install
+   
+   # For npm
+   rm -rf node_modules package-lock.json
+   npm cache clean --force
+   npm install
+   ```
+
+2. **Check Node.js version**:
+   ```bash
+   node --version  # Should be 18.17 or higher
+   ```
+
+3. **Try different package manager**:
+   ```bash
+   # If pnpm fails, try npm
+   npm install
+   
+   # Or pnpm
+   pnpm install
+   ```
+
+#### Build Failures
+
+**Problem**: Build fails with TypeScript or module errors.
+
+**Solutions**:
+
+1. **Skip environment validation**:
+   ```bash
+   SKIP_ENV_VALIDATION=true pnpm run build
+   ```
+
+2. **Clear build cache**:
+   ```bash
+   rm -rf .next
+   rm -rf apps/www/.next
+   pnpm run build
+   ```
+
+3. **Check for missing dependencies**:
+   ```bash
+   pnpm install
+   npx convex codegen
+   ```
+
+### Development Issues
+
+#### Port Already in Use
+
+**Problem**: `Error: listen EADDRINUSE: address already in use :::3000`
+
+**Solutions**:
+
+1. **Find and kill process**:
+   ```bash
+   # Find process using port 3000
+   lsof -i :3000
+   
+   # Kill the process
+   kill -9 <PID>
+   ```
+
+2. **Use different port**:
+   ```bash
+   PORT=3001 pnpm run dev
+   ```
+
+#### Hot Reload Not Working
+
+**Problem**: Changes don't reflect in browser.
+
+**Solutions**:
+
+1. **Check file watchers limit**:
+   ```bash
+   # Linux: Increase file watchers
+   echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+   sudo sysctl -p
+   ```
+
+2. **Restart dev server**:
+   ```bash
+   # Kill all Node processes
+   pkill -f node
+   
+   # Restart
+   pnpm run dev
+   ```
+
+3. **Clear Next.js cache**:
+   ```bash
+   rm -rf .next
+   pnpm run dev
+   ```
+
+### Convex Issues
+
+#### Connection Failed
+
+**Problem**: `ConvexError: Failed to connect to Convex`
+
+**Solutions**:
+
+1. **Verify environment variables**:
+   ```bash
+   # Check if set correctly
+   echo $NEXT_PUBLIC_CONVEX_URL
+   echo $CONVEX_DEPLOY_KEY
+   ```
+
+2. **Restart Convex dev server**:
+   ```bash
+   # Stop existing process
+   pkill -f "convex dev"
+   
+   # Start fresh
+   npx convex dev
+   ```
+
+3. **Check Convex dashboard**:
+   - Visit [dashboard.convex.dev](https://dashboard.convex.dev)
+   - Verify project status
+   - Check for any alerts
+
+#### Function Errors
+
+**Problem**: Convex functions fail with errors.
+
+**Solutions**:
+
+1. **View function logs**:
+   ```bash
+   npx convex logs --watch
+   ```
+
+2. **Test function directly**:
+   ```bash
+   npx convex run messages:send --args '{"content": "test"}'
+   ```
+
+3. **Regenerate types**:
+   ```bash
+   npx convex codegen
+   ```
+
+### Authentication Issues
+
+#### Login Fails
+
+**Problem**: Can't sign in with GitHub/Google.
+
+**Solutions**:
+
+1. **Verify OAuth configuration**:
+   - Check `AUTH_GITHUB_ID` and `AUTH_GITHUB_SECRET`
+   - Ensure callback URL is correct: `http://localhost:3000/api/auth/callback/github`
+
+2. **Check JWT configuration**:
+   ```bash
+   # Verify JWT keys are set
+   echo $JWT_PRIVATE_KEY | base64 -d | openssl rsa -check
+   ```
+
+3. **Test authentication endpoint**:
+   ```bash
+   curl http://localhost:3000/api/auth/providers
+   ```
+
+#### Session Errors
+
+**Problem**: "Unauthorized" errors after login.
+
+**Solutions**:
+
+1. **Clear cookies**:
+   - Open DevTools → Application → Cookies
+   - Clear all cookies for localhost
+
+2. **Check session in Convex**:
+   ```typescript
+   // In Convex dashboard console
+   const sessions = await ctx.db.query("sessions").collect()
+   console.log(sessions)
+   ```
+
+### AI Provider Issues
+
+#### No AI Response
+
+**Problem**: Messages send but no AI response appears.
+
+**Solutions**:
+
+1. **Verify API keys**:
+   ```bash
+   # Test Anthropic
+   curl https://api.anthropic.com/v1/messages \
+     -H "x-api-key: $ANTHROPIC_API_KEY" \
+     -H "anthropic-version: 2023-06-01"
+   
+   # Test OpenAI
+   curl https://api.openai.com/v1/models \
+     -H "Authorization: Bearer $OPENAI_API_KEY"
+   ```
+
+2. **Check rate limits**:
+   - Anthropic: 1000 requests/minute
+   - OpenAI: Varies by tier
+   - May need to wait if exceeded
+
+3. **View AI logs**:
+   ```bash
+   npx convex logs --filter "generateResponse"
+   ```
+
+#### Streaming Issues
+
+**Problem**: Response appears all at once instead of streaming.
+
+**Solutions**:
+
+1. **Check WebSocket connection**:
+   - Open DevTools → Network → WS
+   - Look for active WebSocket connections
+
+2. **Verify streaming implementation**:
+   ```typescript
+   // Should use async generator
+   async function* streamResponse() {
+     // Implementation
+   }
+   ```
+
+### Performance Issues
+
+#### Slow Loading
+
+**Problem**: Application loads slowly.
+
+**Solutions**:
+
+1. **Analyze bundle size**:
+   ```bash
+   ANALYZE=true pnpm run build
+   ```
+
+2. **Enable caching headers**:
+   ```typescript
+   // next.config.ts
+   async headers() {
+     return [{
+       source: '/_next/static/:path*',
+       headers: [{
+         key: 'Cache-Control',
+         value: 'public, max-age=31536000, immutable',
+       }],
+     }]
+   }
+   ```
+
+3. **Check for memory leaks**:
+   ```bash
+   # Monitor memory usage
+   node --inspect pnpm run dev
+   # Open chrome://inspect
+   ```
+
+#### High Memory Usage
+
+**Problem**: Application uses excessive memory.
+
+**Solutions**:
+
+1. **Increase Node memory limit**:
+   ```bash
+   NODE_OPTIONS="--max-old-space-size=4096" pnpm run dev
+   ```
+
+2. **Profile memory usage**:
+   ```javascript
+   // Add to your code temporarily
+   setInterval(() => {
+     console.log(process.memoryUsage())
+   }, 10000)
+   ```
+
+### Deployment Issues
+
+#### Vercel Build Fails
+
+**Problem**: Deployment fails on Vercel.
+
+**Solutions**:
+
+1. **Check build logs**:
+   - Go to Vercel dashboard
+   - View build logs for specific errors
+
+2. **Environment variables**:
+   - Ensure all required vars are set in Vercel
+   - No quotes around values in Vercel UI
+
+3. **Build locally with production env**:
+   ```bash
+   NODE_ENV=production pnpm run build
+   ```
+
+#### Docker Container Crashes
+
+**Problem**: Docker container exits immediately.
+
+**Solutions**:
+
+1. **Check container logs**:
+   ```bash
+   docker logs <container-id>
+   ```
+
+2. **Run interactively**:
+   ```bash
+   docker run -it <image> /bin/sh
+   ```
+
+3. **Verify health check**:
+   ```bash
+   curl http://localhost:3000/api/health
+   ```
+
+## Debugging Strategies
+
+### Client-Side Debugging
+
+#### React DevTools
+
+1. Install React DevTools browser extension
+2. Open DevTools → React tab
+3. Inspect component props and state
+
+#### Console Debugging
+
+```typescript
+// Temporary debug logging
+console.log('🔍 Debug:', { 
+  conversationId, 
+  messages: messages.length,
+  user: user?.email 
+})
+
+// Conditional logging
+if (process.env.NODE_ENV === 'development') {
+  console.log('Dev only log')
+}
+```
+
+#### Network Debugging
+
+1. Open DevTools → Network tab
+2. Filter by Fetch/XHR
+3. Check request/response details
+4. Look for failed requests (red)
+
+### Server-Side Debugging
+
+#### Node.js Inspector
+
+```bash
+# Start with inspector
+NODE_OPTIONS='--inspect' pnpm run dev
+
+# Open chrome://inspect
+# Click "inspect" on your process
+```
+
+#### Convex Debugging
+
+```bash
+# Real-time logs
+npx convex logs --watch
+
+# Filter by function
+npx convex logs --filter "messages"
+
+# Test functions
+npx convex run <function> --args '{}'
+```
+
+#### Add Debug Points
+
+```typescript
+// In Convex functions
+export const myFunction = mutation({
+  handler: async (ctx, args) => {
+    console.log('🔍 Function called with:', args)
+    
+    try {
+      // Your code
+      const result = await doSomething()
+      console.log('✅ Success:', result)
+      return result
+    } catch (error) {
+      console.error('❌ Error:', error)
+      throw error
+    }
+  },
+})
+```
+
+## Error Messages
+
+### Common Error Codes
+
+| Error | Meaning | Solution |
+|-------|---------|----------|
+| `ECONNREFUSED` | Connection refused | Check if service is running |
+| `EADDRINUSE` | Port in use | Kill process or use different port |
+| `MODULE_NOT_FOUND` | Missing dependency | Run `pnpm install` |
+| `CONVEX_CLIENT_ERROR` | Convex API error | Check function implementation |
+| `UNAUTHORIZED` | Auth required | Check authentication |
+| `RATE_LIMITED` | Too many requests | Wait and retry |
+
+### TypeScript Errors
+
+**Cannot find module '@/...'**
+```bash
+# Regenerate path mappings
+pnpm run build
+```
+
+**Type 'X' is not assignable to type 'Y'**
+```typescript
+// Use type assertions carefully
+const value = data as ExpectedType
+
+// Or fix the actual type issue
+```
+
+## Performance Monitoring
+
+### Browser Performance
+
+```javascript
+// Measure page load time
+window.addEventListener('load', () => {
+  const perfData = window.performance.timing
+  const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart
+  console.log('Page load time:', pageLoadTime, 'ms')
+})
+```
+
+### React Performance
+
+```typescript
+// Use React Profiler
+import { Profiler } from 'react'
+
+function onRenderCallback(id, phase, actualDuration) {
+  console.log(`${id} (${phase}) took ${actualDuration}ms`)
+}
+
+<Profiler id="Chat" onRender={onRenderCallback}>
+  <ChatInterface />
+</Profiler>
+```
+
+## Logging Best Practices
+
+### Structured Logging
+
+```typescript
+// Use consistent log format
+const logger = {
+  info: (message: string, data?: any) => {
+    console.log(JSON.stringify({
+      level: 'info',
+      message,
+      data,
+      timestamp: new Date().toISOString(),
+    }))
+  },
+  error: (message: string, error: any) => {
+    console.error(JSON.stringify({
+      level: 'error',
+      message,
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+    }))
+  },
+}
+```
+
+### Debug Categories
+
+```typescript
+// Use debug namespaces
+const debug = {
+  auth: (msg: string, ...args: any[]) => 
+    console.log(`[AUTH] ${msg}`, ...args),
+  api: (msg: string, ...args: any[]) => 
+    console.log(`[API] ${msg}`, ...args),
+  db: (msg: string, ...args: any[]) => 
+    console.log(`[DB] ${msg}`, ...args),
+}
+
+// Usage
+debug.auth('User logged in', { userId: user.id })
+```
+
+## Getting Help
+
+### Before Asking for Help
+
+1. **Search existing issues**: Check if someone had the same problem
+2. **Read the docs**: Often the answer is in documentation
+3. **Minimal reproduction**: Create smallest example that shows the issue
+4. **Gather information**: Error messages, logs, environment details
+
+### Where to Get Help
+
+1. **GitHub Issues**: For bugs and feature requests
+   - Use issue templates
+   - Provide all requested information
+   - Be specific and detailed
+
+2. **Discord Community**: For quick questions
+   - Search before asking
+   - Post in appropriate channel
+   - Share code snippets properly
+
+3. **Stack Overflow**: For general programming questions
+   - Tag with `lightfast-chat`
+   - Include minimal example
+   - Describe what you tried
+
+### Reporting Bugs
+
+Create a bug report with:
+
+```markdown
+## Environment
+- OS: macOS 14.0
+- Node: 20.10.0
+- pnpm: 8.15.0
+- Browser: Chrome 120
+
+## Steps to Reproduce
+1. Start the app with `pnpm run dev`
+2. Click on "New Chat"
+3. Type a message
+4. See error
+
+## Expected Behavior
+Message should send successfully
+
+## Actual Behavior
+Error: "Failed to send message"
+
+## Error Logs
+```
+ConvexError: Unauthorized
+  at sendMessage (convex/messages.ts:15:3)
+```
+
+## Additional Context
+This started happening after updating to version X
+```
+
+## Preventive Measures
+
+### Development Best Practices
+
+1. **Regular Updates**: Keep dependencies updated
+2. **Type Safety**: Use TypeScript strictly
+3. **Error Boundaries**: Catch and handle errors gracefully
+4. **Monitoring**: Set up error tracking early
+5. **Testing**: Write tests to catch issues early
+
+### Production Monitoring
+
+1. **Health Checks**: Implement endpoint monitoring
+2. **Error Tracking**: Use Sentry or similar
+3. **Performance Monitoring**: Track Core Web Vitals
+4. **Logging**: Centralize and analyze logs
+5. **Alerts**: Set up notifications for issues
+
+## Next Steps
+
+- Review [Deployment Guide](/docs/deployment) for production issues
+- Check [Migration Guide](/docs/migration) when updating
+- Join [Discord Community](https://discord.gg/lightfast) for help
