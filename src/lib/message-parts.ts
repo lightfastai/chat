@@ -39,15 +39,54 @@ export type MessagePart =
   | ToolResultPart
   | ToolInvocationPart
 
-// Get message parts with backward compatibility
+// Get message parts with backward compatibility and text grouping
 export function getMessageParts(message: Doc<"messages">): MessagePart[] {
-  // If the message has the new parts array, use it directly
+  let parts: MessagePart[]
+
+  // If the message has the new parts array, use it
   if (message.parts && message.parts.length > 0) {
-    return message.parts as MessagePart[]
+    parts = message.parts as MessagePart[]
+  } else {
+    // Backward compatibility: convert legacy toolInvocations to parts
+    parts = convertLegacyToModernParts(message)
   }
 
-  // Backward compatibility: convert legacy toolInvocations to parts
-  return convertLegacyToModernParts(message)
+  // Group consecutive text parts together to prevent line breaks
+  return groupConsecutiveTextParts(parts)
+}
+
+// Group consecutive text parts together to prevent line breaks between chunks
+function groupConsecutiveTextParts(parts: MessagePart[]): MessagePart[] {
+  const groupedParts: MessagePart[] = []
+  let currentTextGroup = ""
+
+  for (const part of parts) {
+    if (part.type === "text") {
+      currentTextGroup += part.text
+    } else {
+      // Flush any accumulated text before adding non-text part
+      if (currentTextGroup) {
+        groupedParts.push({
+          type: "text",
+          text: currentTextGroup,
+        })
+        currentTextGroup = ""
+      }
+
+      // Add the non-text part
+      groupedParts.push(part)
+    }
+  }
+
+  // Don't forget to add any remaining text at the end
+  if (currentTextGroup) {
+    groupedParts.push({
+      type: "text",
+      text: currentTextGroup,
+    })
+  }
+
+  return groupedParts
 }
 
 // Convert legacy message structure to modern parts format
@@ -98,42 +137,23 @@ function convertLegacyToModernParts(message: Doc<"messages">): MessagePart[] {
   const allParts = [...textParts, ...toolParts]
   allParts.sort((a, b) => a.sequence - b.sequence)
 
-  // Group consecutive text parts together
-  const groupedParts: MessagePart[] = []
-  let currentTextGroup = ""
-
-  for (const part of allParts) {
+  // Convert to MessagePart format (grouping will be handled by caller)
+  return allParts.map((part): MessagePart => {
     if (part.type === "text") {
-      currentTextGroup += part.text
-    } else {
-      // Flush any accumulated text before adding tool call
-      if (currentTextGroup) {
-        groupedParts.push({
-          type: "text",
-          text: currentTextGroup,
-        })
-        currentTextGroup = ""
+      return {
+        type: "text",
+        text: part.text,
       }
-
-      groupedParts.push({
+    } else {
+      return {
         type: "tool-call",
         toolCallId: part.toolCallId,
         toolName: part.toolName,
         args: part.args,
         state: part.state,
-      })
+      }
     }
-  }
-
-  // Don't forget to add any remaining text at the end
-  if (currentTextGroup) {
-    groupedParts.push({
-      type: "text",
-      text: currentTextGroup,
-    })
-  }
-
-  return groupedParts
+  })
 }
 
 // Helper to check if message has tool invocations (supports both new and legacy)
