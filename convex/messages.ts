@@ -40,6 +40,12 @@ export {
   updateThinkingState,
   updateThinkingContent,
   clearGenerationFlag,
+  // Parts-based mutations (Vercel AI SDK v5)
+  addTextPart,
+  addToolCallPart,
+  updateToolCallPart,
+  addToolResultPart,
+  // Deprecated mutations (kept for compatibility)
   addToolInvocation,
   updateToolInvocation,
 } from "./messages/mutations.js"

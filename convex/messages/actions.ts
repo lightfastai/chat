@@ -22,11 +22,7 @@ import {
   updateThreadUsage as updateThreadUsageUtil,
 } from "../lib/message_service.js"
 import { modelIdValidator, streamIdValidator } from "../validators.js"
-import {
-  generateChunkId,
-  generateStreamId,
-  handleAIResponseError,
-} from "./helpers.js"
+import { generateStreamId, handleAIResponseError } from "./helpers.js"
 import { type AISDKUsage, formatUsageData } from "./types.js"
 
 // New action that uses pre-created message ID
@@ -174,12 +170,11 @@ export const generateAIResponseWithMessage = internalAction({
             if (part.textDelta) {
               fullText += part.textDelta
               hasContent = true
-              const chunkId = generateChunkId()
 
-              await ctx.runMutation(internal.messages.appendStreamChunk, {
+              // Add text part to the parts array
+              await ctx.runMutation(internal.messages.addTextPart, {
                 messageId: args.messageId,
-                chunk: part.textDelta,
-                chunkId,
+                text: part.textDelta,
               })
             }
             break
@@ -189,33 +184,30 @@ export const generateAIResponseWithMessage = internalAction({
             if (part.text) {
               fullText += part.text
               hasContent = true
-              const chunkId = generateChunkId()
 
-              await ctx.runMutation(internal.messages.appendStreamChunk, {
+              // Add text part to the parts array
+              await ctx.runMutation(internal.messages.addTextPart, {
                 messageId: args.messageId,
-                chunk: part.text,
-                chunkId,
+                text: part.text,
               })
             }
             break
 
           case "tool-call":
-            // Add tool invocation in "call" state (TEMP: using deprecated API)
-            await ctx.runMutation(internal.messages.addToolInvocation, {
+            // Add tool call part in "call" state
+            await ctx.runMutation(internal.messages.addToolCallPart, {
               messageId: args.messageId,
-              toolInvocation: {
-                state: "call",
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                args: part.args,
-              },
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              args: part.args,
+              state: "call",
             })
             break
 
           case "tool-call-delta":
-            // Update tool invocation with streaming arguments (TEMP: using deprecated API)
+            // Update tool call part with streaming arguments
             if (part.toolCallId && part.argsTextDelta) {
-              await ctx.runMutation(internal.messages.updateToolInvocation, {
+              await ctx.runMutation(internal.messages.updateToolCallPart, {
                 messageId: args.messageId,
                 toolCallId: part.toolCallId,
                 args: part.args, // Use the parsed args from the SDK
@@ -225,26 +217,23 @@ export const generateAIResponseWithMessage = internalAction({
             break
 
           case "tool-result":
-            // Update tool invocation with result (TEMP: using deprecated API)
-            await ctx.runMutation(internal.messages.updateToolInvocation, {
+            // Add tool result part
+            await ctx.runMutation(internal.messages.addToolResultPart, {
               messageId: args.messageId,
               toolCallId: part.toolCallId,
-              state: "result",
               result: part.result,
             })
             break
 
           case "tool-call-streaming-start":
-            // Add tool invocation in "partial-call" state (TEMP: using deprecated API)
+            // Add tool call part in "partial-call" state
             if (part.toolCallId && part.toolName) {
-              await ctx.runMutation(internal.messages.addToolInvocation, {
+              await ctx.runMutation(internal.messages.addToolCallPart, {
                 messageId: args.messageId,
-                toolInvocation: {
-                  state: "partial-call",
-                  toolCallId: part.toolCallId,
-                  toolName: part.toolName,
-                  args: part.args || {},
-                },
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                args: part.args || {},
+                state: "partial-call",
               })
             }
             break
