@@ -43,18 +43,9 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
   return (
     <div className="my-3">
       <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value={accordionValue} className="border rounded-lg">
-          <AccordionTrigger
-            className={cn(
-              "px-4 py-3 hover:no-underline",
-              isLoading &&
-                "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900",
-              hasError &&
-                "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900",
-              !isLoading && !hasError && "bg-muted/30",
-            )}
-          >
-            <div className="flex items-center gap-2 text-left">
+        <AccordionItem value={accordionValue}>
+          <AccordionTrigger>
+            <div className="flex items-center gap-2">
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
               ) : hasError ? (
@@ -62,14 +53,14 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
               ) : (
                 <Search className="h-4 w-4 text-green-500" />
               )}
-              <div className="flex-1">
-                <span className="text-sm font-medium">
+              <div className="text-left">
+                <div className="font-medium">
                   {isLoading
                     ? "Searching the web..."
                     : hasError
                       ? "Search failed"
                       : `Web Search Results (${resultCount})`}
-                </span>
+                </div>
                 {searchQuery && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Query: "{searchQuery}"
@@ -78,7 +69,7 @@ export function WebSearchTool({ toolInvocation }: WebSearchToolProps) {
               </div>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4">
+          <AccordionContent>
             {hasError && toolInvocation.error && (
               <p className="text-sm text-red-600 dark:text-red-400 mb-3">
                 {toolInvocation.error}
