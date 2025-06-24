@@ -5,6 +5,7 @@ import { cn } from "@lightfast/ui/lib/utils";
 import React from "react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
 import { getMessageParts } from "@/lib/message-parts";
+import { ToolCallRenderer } from "../tools/tool-call-renderer";
 import { AssistantMessageHeader } from "./assistant-message-header";
 import { MessageAvatar } from "./message-avatar";
 import { MessageLayout } from "./message-layout";
@@ -118,28 +119,9 @@ export function MessageItem({
 								);
 							}
 							
-							// Tool call parts - render as code block for now
+							// Tool call parts - render with ToolCallRenderer
 							if (part.type === "tool-call") {
-								return (
-									<div key={index} className="my-2">
-										<pre className="p-2 rounded bg-muted text-xs overflow-x-auto">
-											<code>
-												{JSON.stringify(
-													{
-														type: part.type,
-														toolName: part.toolName,
-														toolCallId: part.toolCallId,
-														state: part.state,
-														args: part.args,
-														result: part.result,
-													},
-													null,
-													2
-												)}
-											</code>
-										</pre>
-									</div>
-								);
+								return <ToolCallRenderer key={index} toolCall={part} />;
 							}
 							
 							return null;
