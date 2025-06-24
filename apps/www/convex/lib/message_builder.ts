@@ -42,6 +42,7 @@ export async function buildMessageContent(
 
 	// Fetch each file with its URL
 	for (const fileId of attachmentIds) {
+		// @ts-expect-error - TypeScript deep instantiation issue with Convex types
 		const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId });
 		if (!file || !file.url) continue;
 
