@@ -63,34 +63,37 @@ export function WebSearchTool({ part }: WebSearchToolProps) {
 
       {searchResults && searchResults.length > 0 && (
         <div className="mt-3 space-y-3">
-          {searchResults.map((result, index) => (
-            <div
-              key={index}
-              className="rounded-md border border-border/50 bg-background/50 p-3"
-            >
-              <a
-                href={result.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-start gap-2"
+          {searchResults.map((result, index) => {
+            if (!result) return null
+            return (
+              <div
+                key={index}
+                className="rounded-md border border-border/50 bg-background/50 p-3"
               >
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-blue-600 group-hover:underline dark:text-blue-400">
-                    {result.title}
-                  </h4>
-                  {result.snippet && (
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                      {result.snippet}
+                <a
+                  href={result.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start gap-2"
+                >
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-blue-600 group-hover:underline dark:text-blue-400">
+                      {result.title}
+                    </h4>
+                    {result.snippet && (
+                      <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                        {result.snippet}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-muted-foreground/70">
+                      {new URL(result.url).hostname}
                     </p>
-                  )}
-                  <p className="mt-1 text-xs text-muted-foreground/70">
-                    {new URL(result.url).hostname}
-                  </p>
-                </div>
-                <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/50" />
-              </a>
-            </div>
-          ))}
+                  </div>
+                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                </a>
+              </div>
+            )
+          })}
         </div>
       )}
 
