@@ -4,6 +4,10 @@ import { useAuthActions } from "@convex-dev/auth/react"
 import { useConvexAuth, useQuery } from "convex/react"
 import { useCallback } from "react"
 import { api } from "../../convex/_generated/api"
+import type { Doc } from "../../convex/_generated/dataModel"
+
+// Type alias to avoid deep instantiation
+type User = Doc<"users"> | null | undefined
 
 /**
  * Custom hook for auth functionality
@@ -12,8 +16,8 @@ import { api } from "../../convex/_generated/api"
 export function useAuth() {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
-  // @ts-expect-error - TypeScript deep instantiation issue with complex Convex schema
-  const currentUser = useQuery(api.users.current)
+  // Use explicit type annotation to avoid deep instantiation issue
+  const currentUser: User = useQuery(api.users.current)
 
   const handleSignIn = useCallback(
     async (provider: "github" = "github") => {
