@@ -157,3 +157,6 @@ tmp_context/
 
 # Claude Code context files
 .claude-context.md
+
+# Convex generated files in root (should only be in apps/www)
+/convex/

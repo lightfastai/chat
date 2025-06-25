@@ -133,9 +133,9 @@ if command -v npx > /dev/null 2>&1; then
     if [ -d "$WORKTREE_PATH/apps/www/convex" ]; then
         log_info "Convex configuration found, syncing environment variables..."
         
-        # Run the environment sync script from apps/www
+        # Run the environment sync script (auto-detects .env.local location)
         if [ -f "$PROJECT_ROOT/scripts/sync-env.ts" ]; then
-            cd "$WORKTREE_PATH/apps/www" && pnpm run env:sync
+            cd "$WORKTREE_PATH" && pnpm run env:sync
             log_success "Environment variables synced to Convex"
         elif [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
             bash "$PROJECT_ROOT/scripts/sync-env.sh"

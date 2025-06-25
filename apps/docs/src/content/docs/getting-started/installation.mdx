@@ -39,10 +39,7 @@ pnpm install
 # Copy environment template
 cp apps/www/.env.example apps/www/.env.local
 
-# Navigate to the main app
-cd apps/www
-
-# Sync environment variables to Convex
+# Sync environment variables to Convex (from root - auto-detects apps/www/.env.local)
 pnpm run env:sync
 ```
 

@@ -347,7 +347,7 @@ git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 cd worktrees/<feature_name>
 pnpm install
 cp ../../.env.local apps/www/.env.local
-pnpm run env:sync
+pnpm run env:sync  # Run from root - Vercel links apps/www env to root
 ```
 
 ### Step 4: Development Cycle
@@ -542,8 +542,11 @@ cd apps/www && SKIP_ENV_VALIDATION=true pnpm run build
 pnpm run lint
 pnpm run format
 
-# Environment sync (from apps/www - auto-detects .env.local location)
-cd apps/www && pnpm run env:sync
+# Environment sync (from root - auto-detects apps/www/.env.local)
+pnpm run env:sync
+
+# Convex development (from root)
+pnpm run convex:dev
 ```
 
 ### Context Management
@@ -624,6 +627,7 @@ This is a Turborepo monorepo with the following structure:
 pnpm run dev             # Run all apps in dev mode
 pnpm run dev:www        # Run www app (Next.js + Convex concurrently)
 pnpm run dev:docs       # Run only docs app
+pnpm run convex:dev     # Run Convex dev server (from root, executes in apps/www)
 
 # Building
 pnpm run build          # Build all apps
@@ -635,7 +639,7 @@ pnpm run ui:add <component>  # Add new shadcn component
 pnpm run ui:diff            # Check for component updates
 
 # Environment Management
-pnpm run env:sync       # Sync environment variables to Convex
+pnpm run env:sync       # Sync environment variables to Convex (from root - Vercel links apps/www/.env.local to root)
 pnpm run env:check      # Check environment variables in Convex
 
 # Quality

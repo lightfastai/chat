@@ -21,8 +21,9 @@
     "vercel-build": "cd apps/www && pnpx convex deploy --cmd 'turbo build --filter=@lightfast/www'",
     "ui:add": "pnpm --filter=@lightfast/ui ui:add",
     "ui:diff": "pnpm --filter=@lightfast/ui ui:diff",
-    "env:sync": "pnpm --filter=@lightfast/www env:sync",
-    "env:check": "cd apps/www && pnpm exec convex env list"
+    "env:sync": "tsx scripts/sync-env.ts",
+    "env:check": "pnpm exec convex env list",
+    "convex:dev": "pnpm exec convex dev"
   },
   "repository": {
     "type": "git",
@@ -39,6 +40,8 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@turbo/gen": "^2.5.0",
+    "convex": "^1.24.8",
+    "tsx": "^4.20.3",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3"
   },

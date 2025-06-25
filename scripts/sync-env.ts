@@ -207,7 +207,7 @@ async function syncVar(
         const escapedValue = JSON.stringify(value)
         execSync(`npx convex env set ${varName} ${escapedValue}`, {
           stdio: ["inherit", "pipe", "pipe"],
-          encoding: "utf8",
+          encoding: "utf8"
         })
       }
       log.success(`Synced ${varName}`)
@@ -304,14 +304,14 @@ function validateEnvironmentVariables(envVars: Record<string, string>): {
  */
 function findEnvFile(): string {
   const possiblePaths = [
-    // Current working directory
+    // Current working directory (root)
     path.resolve(process.cwd(), ENV_FILE),
-    // apps/www directory (if running from root)
-    path.resolve(process.cwd(), "apps", "www", ENV_FILE),
-    // Parent directory (if running from apps/www)
+    // Parent directory (if running from subdirectory)
     path.resolve(process.cwd(), "..", ENV_FILE),
-    // Two levels up (if running from apps/www/convex)
+    // Two levels up (if running from nested subdirectory)
     path.resolve(process.cwd(), "..", "..", ENV_FILE),
+    // apps/www directory (fallback for compatibility)
+    path.resolve(process.cwd(), "apps", "www", ENV_FILE),
   ]
 
   for (const envPath of possiblePaths) {

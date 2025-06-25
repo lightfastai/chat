@@ -79,7 +79,7 @@ cp .env.example .env.local
 # Edit .env.local with your API keys
 # Required: ANTHROPIC_API_KEY, OPENAI_API_KEY, AUTH_GITHUB_ID, AUTH_GITHUB_SECRET
 
-# Sync environment variables to Convex
+# Sync environment variables to Convex (run from root - auto-detects apps/www/.env.local)
 pnpm run env:sync
 ```
 

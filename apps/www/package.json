@@ -13,7 +13,6 @@
 		"typecheck": "tsc --noEmit",
 		"convex:dev": "convex dev",
 		"convex:deploy": "convex deploy",
-		"env:sync": "tsx ../../scripts/sync-env.ts",
 		"with-env": "dotenv -e ./.env.local --"
 	},
 	"dependencies": {
