@@ -19,6 +19,7 @@ export function MessageLayout({
 }: MessageLayoutProps) {
 	const isAssistant = messageType === "assistant";
 	const isSystem = messageType === "system";
+	const isUser = messageType === "user";
 
 	return (
 		<div
@@ -28,7 +29,10 @@ export function MessageLayout({
 				className,
 			)}
 		>
-			<div className="flex-1 relative">
+			<div className={cn(
+				"flex-1 relative",
+				isUser && "border rounded-lg p-4 bg-muted/50"
+			)}>
 				{content}
 				{timestamp && (
 					<div className="text-xs text-muted-foreground mt-1">{timestamp}</div>
