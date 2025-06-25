@@ -230,39 +230,7 @@ export function MessageActions({
 
 	return (
 		<>
-			<div className={cn("flex items-center gap-1", className)}>
-				{/* Metadata displayed inline on hover */}
-				<div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-200 flex items-center gap-2 text-xs text-muted-foreground mr-1">
-					{/* Model name */}
-					{modelName && <span>{modelName}</span>}
-
-					{/* API Key badge */}
-					{message.usedUserApiKey && (
-						<Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
-							<Key className="w-3 h-3 mr-1" />
-							Your API Key
-						</Badge>
-					)}
-
-					{/* Thinking duration */}
-					{thinkingDuration && (
-						<>
-							{(modelName || message.usedUserApiKey) && <span>•</span>}
-							<span className="font-mono">
-								Thought for {formatDuration(thinkingDuration)}
-							</span>
-						</>
-					)}
-
-					{/* Usage chip */}
-					{message.usage && (
-						<>
-							{(modelName || message.usedUserApiKey || thinkingDuration) && <span>•</span>}
-							<MessageUsageChip usage={message.usage} />
-						</>
-					)}
-				</div>
-
+			<div className={cn("flex items-center gap-1 h-8", className)}>
 				<Button
 					variant="ghost"
 					size="icon"
@@ -305,6 +273,38 @@ export function MessageActions({
 					</Button>
 				)}
 				<ModelBranchDropdown onBranch={handleBranch} />
+
+				{/* Metadata displayed inline on hover - moved to right side */}
+				<div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-200 flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+					{/* Model name */}
+					{modelName && <span>{modelName}</span>}
+
+					{/* API Key badge */}
+					{message.usedUserApiKey && (
+						<Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+							<Key className="w-3 h-3 mr-1" />
+							Your API Key
+						</Badge>
+					)}
+
+					{/* Thinking duration */}
+					{thinkingDuration && (
+						<>
+							{(modelName || message.usedUserApiKey) && <span>•</span>}
+							<span className="font-mono">
+								Thought for {formatDuration(thinkingDuration)}
+							</span>
+						</>
+					)}
+
+					{/* Usage chip */}
+					{message.usage && (
+						<>
+							{(modelName || message.usedUserApiKey || thinkingDuration) && <span>•</span>}
+							<MessageUsageChip usage={message.usage} />
+						</>
+					)}
+				</div>
 			</div>
 
 			{showFeedbackModal && (
