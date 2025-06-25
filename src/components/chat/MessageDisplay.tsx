@@ -1,6 +1,5 @@
 "use client"
 
-import { useResumableStream } from "@/hooks/useResumableStream"
 import { getModelDisplayName } from "@/lib/ai"
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
@@ -21,11 +20,10 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
   // Get current user for avatar display
   const currentUser = useQuery(api.users.current)
 
-  // Get streaming data if message is streaming
-  const { streamingText, isComplete } = useResumableStream({
-    streamId: message._streamId || null,
-    enabled: !!message._streamId && !!message.isStreaming,
-  })
+  // For streaming messages, use the body directly
+  // The body is updated as parts are added
+  const streamingText = message.body
+  const isComplete = message.isComplete !== false
 
   const isAI = message.messageType === "assistant"
 

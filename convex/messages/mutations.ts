@@ -9,7 +9,6 @@ import { getAuthenticatedUserId } from "../lib/auth.js"
 import { getOrThrow, getWithOwnership } from "../lib/database.js"
 import { throwConflictError } from "../lib/errors.js"
 import {
-  chunkIdValidator,
   modelIdValidator,
   modelProviderValidator,
   streamIdValidator,
@@ -180,7 +179,6 @@ export const createThreadAndSend = mutation({
       streamId: streamId,
       isComplete: false,
       thinkingStartedAt: now,
-      streamChunks: [], // Initialize empty chunks array
       streamVersion: 0, // Initialize version counter
       parts: [], // Initialize empty parts array
       usage: undefined, // Will be updated when streaming completes
@@ -238,7 +236,6 @@ export const createStreamingMessage = internalMutation({
       streamId: args.streamId,
       isComplete: false,
       thinkingStartedAt: now,
-      streamChunks: [], // Initialize empty chunks array
       streamVersion: 0, // Initialize version counter
       parts: [], // Initialize empty parts array
       lastChunkId: undefined, // Initialize last chunk ID
@@ -249,59 +246,6 @@ export const createStreamingMessage = internalMutation({
   },
 })
 
-// Internal mutation to append a chunk and update the message
-export const appendStreamChunk = internalMutation({
-  args: {
-    messageId: v.id("messages"),
-    chunk: v.string(),
-    chunkId: chunkIdValidator,
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
-
-    const currentChunks = message.streamChunks || []
-    const sequence = currentChunks.length // Use array length as sequence number
-
-    const newChunk = {
-      chunkId: args.chunkId,
-      content: args.chunk,
-      timestamp: Date.now(),
-      sequence: sequence, // Add sequence for ordering
-    }
-
-    // Check for duplicate chunks (race condition protection)
-    if (currentChunks.some((chunk) => chunk.chunkId === args.chunkId)) {
-      console.log(`Duplicate chunk detected: ${args.chunkId}`)
-      return null // Skip duplicate
-    }
-
-    // Append chunk to array and update body
-    const updatedChunks = [...currentChunks, newChunk]
-    const updatedBody = message.body + args.chunk
-
-    // Also add as text part to the parts array
-    const currentParts = message.parts || []
-    const updatedParts = [
-      ...currentParts,
-      {
-        type: "text" as const,
-        text: args.chunk,
-      },
-    ]
-
-    await ctx.db.patch(args.messageId, {
-      body: updatedBody,
-      streamChunks: updatedChunks,
-      parts: updatedParts,
-      lastChunkId: args.chunkId,
-      streamVersion: (message.streamVersion || 0) + 1,
-    })
-
-    return null
-  },
-})
 
 // Internal mutation to update streaming message content
 export const updateStreamingMessage = internalMutation({
@@ -647,7 +591,6 @@ export const addToolInvocation = internalMutation({
     if (!message) return null
 
     const currentInvocations = message.toolInvocations || []
-    const currentChunks = message.streamChunks || []
 
     // Check if tool invocation already exists
     const existingIndex = currentInvocations.findIndex(
@@ -675,7 +618,7 @@ export const addToolInvocation = internalMutation({
       })
     } else {
       // Add new tool invocation
-      const totalPartsCount = currentChunks.length + currentInvocations.length
+      const totalPartsCount = currentInvocations.length
 
       const toolInvocationWithSequence = {
         ...args.toolInvocation,
@@ -738,8 +681,7 @@ export const updateToolInvocation = internalMutation({
       })
     } else {
       // If tool invocation doesn't exist yet, create it
-      const currentChunks = message.streamChunks || []
-      const totalPartsCount = currentChunks.length + invocations.length
+      const totalPartsCount = invocations.length
 
       const newToolInvocation = {
         state: args.state,

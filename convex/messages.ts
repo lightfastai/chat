@@ -17,7 +17,6 @@ export {
   list,
   listByClientId,
   getThreadUsage,
-  getStreamChunks,
   // Internal queries
   getRecentContext,
   getThreadById,
@@ -29,7 +28,6 @@ export {
   createThreadAndSend,
   // Internal mutations
   createStreamingMessage,
-  appendStreamChunk,
   updateStreamingMessage,
   updateMessageApiKeyStatus,
   updateThreadUsageMutation,

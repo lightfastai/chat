@@ -5,7 +5,6 @@ import {
   messageTypeValidator,
   modelIdValidator,
   modelProviderValidator,
-  streamChunkValidator,
   streamIdValidator,
   tokenUsageValidator,
 } from "../validators.js"
@@ -35,7 +34,6 @@ export const messageReturnValidator = v.object({
   usedUserApiKey: v.optional(v.boolean()),
   usage: tokenUsageValidator,
   lastChunkId: v.optional(chunkIdValidator),
-  streamChunks: v.optional(v.array(streamChunkValidator)),
   streamVersion: v.optional(v.number()),
   toolInvocations: v.optional(v.array(v.any())), // DEPRECATED: for backward compatibility
   parts: v.optional(messagePartsValidator),
