@@ -19,7 +19,10 @@
     "dev:app": "turbo run dev --filter=@lightfast/chat",
     "typecheck": "turbo run typecheck",
     "vercel-build": "cd apps/www && pnpx convex deploy --cmd 'turbo build --filter=@lightfast/www'",
-    "ui": "pnpm --filter=@lightfast/ui ui:add"
+    "ui:add": "pnpm --filter=@lightfast/ui ui:add",
+    "ui:diff": "pnpm --filter=@lightfast/ui ui:diff",
+    "env:sync": "pnpm --filter=@lightfast/www env:sync",
+    "env:check": "cd apps/www && pnpm exec convex env list"
   },
   "repository": {
     "type": "git",

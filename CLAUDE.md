@@ -347,7 +347,7 @@ git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 cd worktrees/<feature_name>
 pnpm install
 cp ../../.env.local apps/www/.env.local
-cd apps/www && pnpm run env:sync
+pnpm run env:sync
 ```
 
 ### Step 4: Development Cycle
@@ -633,6 +633,10 @@ pnpm run build:docs     # Build only docs app
 # UI Components
 pnpm run ui:add <component>  # Add new shadcn component
 pnpm run ui:diff            # Check for component updates
+
+# Environment Management
+pnpm run env:sync       # Sync environment variables to Convex
+pnpm run env:check      # Check environment variables in Convex
 
 # Quality
 pnpm run lint           # Lint all packages
