@@ -549,33 +549,16 @@ export const updateToolCallPart = internalMutation({
 		if (!message) return null;
 
 		const currentParts = message.parts || [];
-		
-		console.log("[DEBUG] updateToolCallPart - Current parts:", {
-			messageId: args.messageId,
-			toolCallId: args.toolCallId,
-			numParts: currentParts.length,
-			targetState: args.state,
-			hasResult: !!args.result,
-		});
 
 		// Find the tool call part and update its args, result, and/or state
 		const updatedParts = currentParts.map((part) => {
 			if (part.type === "tool-call" && part.toolCallId === args.toolCallId) {
-				const updatedPart = {
+				return {
 					...part,
 					...(args.args !== undefined && { args: args.args }),
 					...(args.result !== undefined && { result: args.result }),
 					...(args.state !== undefined && { state: args.state }),
 				};
-				
-				console.log("[DEBUG] updateToolCallPart - Updating part:", {
-					oldState: part.state,
-					newState: updatedPart.state,
-					hasOldResult: !!part.result,
-					hasNewResult: !!updatedPart.result,
-				});
-				
-				return updatedPart;
 			}
 			return part;
 		});

@@ -162,19 +162,9 @@ export const generateAIResponseWithMessage = internalAction({
 			let fullText = "";
 			let hasContent = false;
 
-			// Track event sequence for debugging
-			const eventSequence: string[] = [];
-			
 			// Use fullStream as the unified interface (works with or without tools)
 			for await (const streamPart of result.fullStream) {
 				const part = streamPart as any;
-				eventSequence.push(part.type);
-				
-				// Log event sequence every 10 events
-				if (eventSequence.length % 10 === 0) {
-					console.log("[DEBUG] Event sequence so far:", eventSequence.join(" -> "));
-				}
-				
 				switch (part.type) {
 					case "text-delta":
 						if (part.textDelta) {
@@ -204,13 +194,6 @@ export const generateAIResponseWithMessage = internalAction({
 						break;
 
 					case "tool-call":
-						console.log("[DEBUG] Received tool-call event:", {
-							toolCallId: part.toolCallId,
-							toolName: part.toolName,
-							hasArgs: !!part.args,
-							argsSample: part.args ? JSON.stringify(part.args).slice(0, 100) : null,
-						});
-						
 						// Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
 						await ctx.runMutation(internal.messages.updateToolCallPart, {
 							messageId: args.messageId,
@@ -233,14 +216,6 @@ export const generateAIResponseWithMessage = internalAction({
 						break;
 
 					case "tool-result":
-						console.log("[DEBUG] tool-result event:", {
-							type: part.type,
-							toolCallId: part.toolCallId,
-							hasResult: !!part.result,
-							hasOutput: !!part.output,
-							allKeys: Object.keys(part),
-						});
-						
 						// The AI SDK uses 'output' field for tool results, not 'result'
 						const toolResult = part.output || part.result;
 						
@@ -251,19 +226,9 @@ export const generateAIResponseWithMessage = internalAction({
 							state: "result",
 							result: toolResult,
 						});
-						
-						if (!toolResult) {
-							console.warn("[WARNING] tool-result event has no output or result field");
-						}
 						break;
 
 					case "tool-call-streaming-start":
-						console.log("[DEBUG] Received tool-call-streaming-start event:", {
-							toolCallId: part.toolCallId,
-							toolName: part.toolName,
-							hasArgs: !!part.args,
-						});
-						
 						// Add tool call part in "partial-call" state
 						if (part.toolCallId && part.toolName) {
 							await ctx.runMutation(internal.messages.addToolCallPart, {
@@ -278,30 +243,20 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "start":
 						// Handle generation start event
-						console.log("Generation started");
 						break;
 
 					case "start-step":
 						// Handle multi-step generation start (step boundary marker)
-						console.log("Starting new step event:", JSON.stringify(part));
 						break;
 
 					case "finish-step":
 						// Handle multi-step generation completion
-						console.log("[DEBUG] Finished step event full structure:", JSON.stringify(part, null, 2));
-						
-						// Check if this event contains tool results
+						// Check if this event contains tool results (fallback for different SDK versions)
 						if ((part as any).toolResults) {
-							console.log("[DEBUG] Found toolResults in finish-step event");
 							const toolResults = (part as any).toolResults;
 							
 							// Process each tool result
 							for (const toolResult of toolResults) {
-								console.log("[DEBUG] Processing tool result from finish-step:", {
-									toolCallId: toolResult.toolCallId,
-									hasResult: !!toolResult.result,
-								});
-								
 								if (toolResult.toolCallId && toolResult.result) {
 									await ctx.runMutation(internal.messages.updateToolCallPart, {
 										messageId: args.messageId,
@@ -316,7 +271,6 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "finish":
 						// Handle completion events (provides usage stats, finish reason, etc.)
-						console.log("Stream finished event:", JSON.stringify(part));
 						break;
 
 					case "error":
@@ -326,19 +280,11 @@ export const generateAIResponseWithMessage = internalAction({
 
 					// Handle other event types that might be added in future SDK versions
 					default:
-						console.log("[DEBUG] Unknown/unhandled stream part:", {
-							type: part.type,
-							keys: Object.keys(part),
-							fullPart: JSON.stringify(part).slice(0, 500),
-						});
+						// Silently ignore unknown event types
 						break;
 				}
 			}
 
-			// Log final event sequence
-			console.log("[DEBUG] Complete event sequence:", eventSequence.join(" -> "));
-			console.log("[DEBUG] Total events processed:", eventSequence.length);
-			
 			// Get final usage with optional chaining
 			const finalUsage = await result.usage;
 			if (finalUsage) {
