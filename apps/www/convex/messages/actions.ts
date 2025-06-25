@@ -194,6 +194,13 @@ export const generateAIResponseWithMessage = internalAction({
 						break;
 
 					case "tool-call":
+						console.log("[DEBUG] Received tool-call event:", {
+							toolCallId: part.toolCallId,
+							toolName: part.toolName,
+							hasArgs: !!part.args,
+							argsSample: part.args ? JSON.stringify(part.args).slice(0, 100) : null,
+						});
+						
 						// Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
 						await ctx.runMutation(internal.messages.updateToolCallPart, {
 							messageId: args.messageId,
@@ -216,6 +223,13 @@ export const generateAIResponseWithMessage = internalAction({
 						break;
 
 					case "tool-result":
+						console.log("[DEBUG] Received tool-result event:", {
+							toolCallId: part.toolCallId,
+							hasResult: !!part.result,
+							resultKeys: part.result ? Object.keys(part.result) : [],
+							resultSample: part.result ? JSON.stringify(part.result).slice(0, 200) : null,
+						});
+						
 						// Update the tool call part with the result instead of creating separate part
 						await ctx.runMutation(internal.messages.updateToolCallPart, {
 							messageId: args.messageId,
@@ -223,9 +237,17 @@ export const generateAIResponseWithMessage = internalAction({
 							state: "result",
 							result: part.result,
 						});
+						
+						console.log("[DEBUG] Updated tool call part with result");
 						break;
 
 					case "tool-call-streaming-start":
+						console.log("[DEBUG] Received tool-call-streaming-start event:", {
+							toolCallId: part.toolCallId,
+							toolName: part.toolName,
+							hasArgs: !!part.args,
+						});
+						
 						// Add tool call part in "partial-call" state
 						if (part.toolCallId && part.toolName) {
 							await ctx.runMutation(internal.messages.addToolCallPart, {

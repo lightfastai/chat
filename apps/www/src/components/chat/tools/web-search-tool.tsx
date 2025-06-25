@@ -21,6 +21,15 @@ interface SearchResult {
 }
 
 export function WebSearchTool({ toolCall }: WebSearchToolProps) {
+	console.log("[DEBUG] WebSearchTool rendering:", {
+		toolCallId: toolCall.toolCallId,
+		state: toolCall.state,
+		hasArgs: !!toolCall.args,
+		hasResult: !!toolCall.result,
+		resultType: toolCall.result ? typeof toolCall.result : "undefined",
+		resultKeys: toolCall.result ? Object.keys(toolCall.result) : [],
+	});
+	
 	const isLoading =
 		toolCall.state === "partial-call" || toolCall.state === "call";
 	const searchQuery = toolCall.args?.query as string | undefined;
