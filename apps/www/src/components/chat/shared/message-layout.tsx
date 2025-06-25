@@ -25,7 +25,7 @@ export function MessageLayout({
 		<div
 			className={cn(
 				"group/message",
-				isAssistant ? "mt-6" : isSystem ? "mt-2" : "mt-4",
+				isAssistant ? "mt-12" : isSystem ? "mt-2" : "mt-4",
 				className,
 			)}
 		>
