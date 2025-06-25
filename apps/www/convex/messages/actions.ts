@@ -223,22 +223,30 @@ export const generateAIResponseWithMessage = internalAction({
 						break;
 
 					case "tool-result":
-						console.log("[DEBUG] Received tool-result event:", {
+						console.log("[DEBUG] Full tool-result event structure:", JSON.stringify(part, null, 2));
+						console.log("[DEBUG] Tool result event details:", {
 							toolCallId: part.toolCallId,
 							hasResult: !!part.result,
 							resultKeys: part.result ? Object.keys(part.result) : [],
 							resultSample: part.result ? JSON.stringify(part.result).slice(0, 200) : null,
+							// Check other possible fields
+							hasToolResult: !!(part as any).toolResult,
+							toolResultKeys: (part as any).toolResult ? Object.keys((part as any).toolResult) : [],
+							allPartKeys: Object.keys(part),
 						});
+						
+						// Try to get result from different possible locations
+						const result = part.result || (part as any).toolResult || (part as any).value;
 						
 						// Update the tool call part with the result instead of creating separate part
 						await ctx.runMutation(internal.messages.updateToolCallPart, {
 							messageId: args.messageId,
 							toolCallId: part.toolCallId,
 							state: "result",
-							result: part.result,
+							result: result,
 						});
 						
-						console.log("[DEBUG] Updated tool call part with result");
+						console.log("[DEBUG] Updated tool call part with result:", !!result);
 						break;
 
 					case "tool-call-streaming-start":
