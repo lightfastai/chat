@@ -237,16 +237,24 @@ export const generateAIResponseWithMessage = internalAction({
 							type: part.type,
 							toolCallId: part.toolCallId,
 							hasResult: !!part.result,
+							hasOutput: !!part.output,
 							allKeys: Object.keys(part),
 						});
+						
+						// The AI SDK uses 'output' field for tool results, not 'result'
+						const toolResult = part.output || part.result;
 						
 						// Update the tool call part with the result
 						await ctx.runMutation(internal.messages.updateToolCallPart, {
 							messageId: args.messageId,
 							toolCallId: part.toolCallId,
 							state: "result",
-							result: part.result,
+							result: toolResult,
 						});
+						
+						if (!toolResult) {
+							console.warn("[WARNING] tool-result event has no output or result field");
+						}
 						break;
 
 					case "tool-call-streaming-start":
