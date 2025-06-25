@@ -199,17 +199,23 @@ SKIP_ENV_VALIDATION=true pnpm run build
    - Sync API keys and authentication settings to Convex
    - Automatically set NODE_ENV=development for local development
 
-5. Start the Convex development server:
+5. Start the development servers (Next.js + Convex concurrently):
    ```bash
+   pnpm run dev:www
+   ```
+   
+   This command will start both the Next.js development server and Convex dev server concurrently with color-coded output.
+   
+   **Alternative**: If you prefer separate terminals:
+   ```bash
+   # Terminal 1: Start Convex development server
    pnpm run convex:dev
+   
+   # Terminal 2: Start Next.js development server only
+   pnpm run dev:next
    ```
 
-6. In a new terminal, start the Next.js development server:
-   ```bash
-   pnpm run dev
-   ```
-
-7. Open [http://localhost:3000](http://localhost:3000) and sign in with GitHub
+6. Open [http://localhost:3000](http://localhost:3000) and sign in with GitHub
 
 ## ✨ Features
 
@@ -293,7 +299,7 @@ SKIP_ENV_VALIDATION=true pnpm run build
 
 ### Monorepo Commands
 - `pnpm run dev` - Run all apps in development mode
-- `pnpm run dev:www` - Run only the chat application
+- `pnpm run dev:www` - Run chat app (Next.js + Convex concurrently)
 - `pnpm run dev:docs` - Run only the documentation site
 - `pnpm run build` - Build all applications
 - `pnpm run build:www` - Build only the chat application
@@ -304,8 +310,10 @@ SKIP_ENV_VALIDATION=true pnpm run build
 - `pnpm run format` - Format code with Biome
 - `pnpm run typecheck` - Run TypeScript type checking
 
-### Convex Backend
-- `pnpm run convex:dev` - Start Convex development server
+### Development Servers
+- `pnpm run dev:www` - Start Next.js + Convex concurrently
+- `pnpm run dev:next` - Start Next.js development server only
+- `pnpm run convex:dev` - Start Convex development server only
 - `pnpm run convex:deploy` - Deploy to Convex
 - `pnpm run env:sync` - Sync environment variables to Convex
 

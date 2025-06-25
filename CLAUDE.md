@@ -347,7 +347,7 @@ git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 cd worktrees/<feature_name>
 pnpm install
 cp ../../.env.local apps/www/.env.local
-cd apps/www && pnpm run env:sync
+pnpm run env:sync
 ```
 
 ### Step 4: Development Cycle
@@ -405,8 +405,8 @@ echo "🔗 Test on Vercel: https://<project>-<pr-number>-<org>.vercel.app"
 
 #### 🔧 Local Dev Mode
 ```bash
-# 1. User ensures dev server is running
-# Terminal 1: pnpm run dev
+# 1. User ensures dev servers are running
+# Terminal 1: pnpm run dev:www (runs both Next.js and Convex)
 
 # 2. Set up context tracking
 mkdir -p tmp_context
@@ -425,7 +425,7 @@ Development Mode: Local Dev Mode
 Working on: <current_task>
 
 ## Session Notes
-User is running pnpm run dev locally
+User is running pnpm run dev:www locally (concurrent Next.js + Convex)
 <notes>
 EOF
 
@@ -542,7 +542,7 @@ cd apps/www && SKIP_ENV_VALIDATION=true pnpm run build
 pnpm run lint
 pnpm run format
 
-# Environment sync (from apps/www)
+# Environment sync (from apps/www - auto-detects .env.local location)
 cd apps/www && pnpm run env:sync
 ```
 
@@ -622,7 +622,7 @@ This is a Turborepo monorepo with the following structure:
 ```bash
 # Development
 pnpm run dev             # Run all apps in dev mode
-pnpm run dev:www        # Run only www app
+pnpm run dev:www        # Run www app (Next.js + Convex concurrently)
 pnpm run dev:docs       # Run only docs app
 
 # Building
@@ -633,6 +633,10 @@ pnpm run build:docs     # Build only docs app
 # UI Components
 pnpm run ui:add <component>  # Add new shadcn component
 pnpm run ui:diff            # Check for component updates
+
+# Environment Management
+pnpm run env:sync       # Sync environment variables to Convex
+pnpm run env:check      # Check environment variables in Convex
 
 # Quality
 pnpm run lint           # Lint all packages

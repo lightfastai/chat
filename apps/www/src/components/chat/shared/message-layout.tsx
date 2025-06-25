@@ -11,7 +11,6 @@ export interface MessageLayoutProps {
 }
 
 export function MessageLayout({
-	avatar,
 	content,
 	timestamp,
 	actions,
@@ -20,17 +19,20 @@ export function MessageLayout({
 }: MessageLayoutProps) {
 	const isAssistant = messageType === "assistant";
 	const isSystem = messageType === "system";
+	const isUser = messageType === "user";
 
 	return (
 		<div
 			className={cn(
-				"flex gap-3 group/message",
-				isAssistant ? "mt-6" : isSystem ? "mt-2" : "mt-4",
+				"group/message",
+				isAssistant ? "mt-12" : isSystem ? "mt-2" : "mt-4",
 				className,
 			)}
 		>
-			{avatar}
-			<div className="flex-1 relative">
+			<div className={cn(
+				"flex-1 relative",
+				isUser && "border rounded-lg p-4 bg-muted/50"
+			)}>
 				{content}
 				{timestamp && (
 					<div className="text-xs text-muted-foreground mt-1">{timestamp}</div>

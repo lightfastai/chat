@@ -4,21 +4,37 @@ import type { ModelId } from "@/lib/ai";
 import { nanoid } from "@/lib/nanoid";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { Button } from "@lightfast/ui/components/ui/button";
+import { Badge } from "@lightfast/ui/components/ui/badge";
 import { cn } from "@lightfast/ui/lib/utils";
 import { useMutation, useQuery } from "convex/react";
-import { CheckIcon, ClipboardIcon, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+	CheckIcon,
+	ClipboardIcon,
+	Key,
+	ThumbsDown,
+	ThumbsUp,
+} from "lucide-react";
 import React from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { FeedbackModal } from "./feedback-modal";
 import { ModelBranchDropdown } from "./model-branch-dropdown";
+import { MessageUsageChip } from "./message-usage-chip";
+import { formatDuration } from "./shared/thinking-content";
 
 interface MessageActionsProps {
 	message: Doc<"messages">;
 	className?: string;
+	modelName?: string;
+	thinkingDuration?: number | null;
 }
 
-export function MessageActions({ message, className }: MessageActionsProps) {
+export function MessageActions({
+	message,
+	className,
+	modelName,
+	thinkingDuration,
+}: MessageActionsProps) {
 	const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
 	const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 });
 
@@ -214,7 +230,7 @@ export function MessageActions({ message, className }: MessageActionsProps) {
 
 	return (
 		<>
-			<div className={cn("flex items-center gap-1", className)}>
+			<div className={cn("flex items-center gap-1 h-8", className)}>
 				<Button
 					variant="ghost"
 					size="icon"
@@ -257,6 +273,38 @@ export function MessageActions({ message, className }: MessageActionsProps) {
 					</Button>
 				)}
 				<ModelBranchDropdown onBranch={handleBranch} />
+
+				{/* Metadata displayed inline on hover - moved to right side */}
+				<div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-200 flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+					{/* Model name */}
+					{modelName && <span>{modelName}</span>}
+
+					{/* API Key badge */}
+					{message.usedUserApiKey && (
+						<Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
+							<Key className="w-3 h-3 mr-1" />
+							Your API Key
+						</Badge>
+					)}
+
+					{/* Thinking duration */}
+					{thinkingDuration && (
+						<>
+							{(modelName || message.usedUserApiKey) && <span>•</span>}
+							<span className="font-mono">
+								Thought for {formatDuration(thinkingDuration)}
+							</span>
+						</>
+					)}
+
+					{/* Usage chip */}
+					{message.usage && (
+						<>
+							{(modelName || message.usedUserApiKey || thinkingDuration) && <span>•</span>}
+							<MessageUsageChip usage={message.usage} />
+						</>
+					)}
+				</div>
 			</div>
 
 			{showFeedbackModal && (
