@@ -34,6 +34,11 @@ export const env = createEnv({
       .string()
       .min(1)
       .describe("GitHub OAuth client secret"),
+    AUTH_GOOGLE_ID: z.string().min(1).describe("Google OAuth client ID"),
+    AUTH_GOOGLE_SECRET: z
+      .string()
+      .min(1)
+      .describe("Google OAuth client secret"),
     JWKS: z.string().min(1).describe("JWT verification keys"),
     // Environment
     NODE_ENV: z

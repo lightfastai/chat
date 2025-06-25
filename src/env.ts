@@ -25,6 +25,9 @@ export const env = createEnv({
     // GitHub OAuth for Convex Auth
     AUTH_GITHUB_ID: z.string().optional(),
     AUTH_GITHUB_SECRET: z.string().optional(),
+    // Google OAuth for Convex Auth
+    AUTH_GOOGLE_ID: z.string().optional(),
+    AUTH_GOOGLE_SECRET: z.string().optional(),
     // DEPRECATED: SITE_URL is no longer used - was previously for OpenRouter HTTP headers
     SITE_URL: z.string().url().optional(),
     // JWT private key for authentication tokens
@@ -66,6 +69,8 @@ export const env = createEnv({
     EXA_API_KEY: process.env.EXA_API_KEY,
     AUTH_GITHUB_ID: process.env.AUTH_GITHUB_ID,
     AUTH_GITHUB_SECRET: process.env.AUTH_GITHUB_SECRET,
+    AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
+    AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
     SITE_URL: process.env.SITE_URL,
     JWT_PRIVATE_KEY: process.env.JWT_PRIVATE_KEY,
     JWKS: process.env.JWKS,
