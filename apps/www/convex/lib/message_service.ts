@@ -152,12 +152,10 @@ export async function streamAIResponse(
 		if (chunk) {
 			fullText += chunk;
 			hasContent = true;
-			const chunkId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-			await ctx.runMutation(internal.messages.appendStreamChunk, {
+			await ctx.runMutation(internal.messages.addTextPart, {
 				messageId,
-				chunk,
-				chunkId,
+				text: chunk,
 			});
 		}
 	}

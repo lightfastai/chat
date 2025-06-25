@@ -1,6 +1,5 @@
 "use client";
 
-import { useResumableStream } from "@/hooks/use-resumable-stream";
 import { getModelDisplayName } from "@/lib/ai";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -9,7 +8,7 @@ import { AttachmentPreview } from "./attachment-preview";
 import { MessageActions } from "./message-actions";
 import { MessageItem } from "./shared";
 
-type Message = Doc<"messages"> & { _streamId?: string | null };
+type Message = Doc<"messages">;
 
 interface MessageDisplayProps {
 	message: Message;
@@ -20,12 +19,6 @@ interface MessageDisplayProps {
 export function MessageDisplay({ message }: MessageDisplayProps) {
 	// Get current user for avatar display
 	const currentUser = useQuery(api.users.current);
-
-	// Get streaming data if message is streaming
-	const { streamingText, isComplete } = useResumableStream({
-		streamId: message._streamId || null,
-		enabled: !!message._streamId && !!message.isStreaming,
-	});
 
 	const isAI = message.messageType === "assistant";
 
@@ -64,9 +57,9 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
 				showActions={true}
 				isReadOnly={false}
 				modelName={modelName}
-				streamingText={streamingText}
+				streamingText={message.body}
 				isStreaming={!!message.isStreaming}
-				isComplete={isComplete}
+				isComplete={message.isComplete !== false}
 				actions={actions}
 			/>
 			{/* Show attachments if present */}

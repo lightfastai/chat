@@ -98,17 +98,6 @@ export const tokenUsageValidator = v.optional(
 	}),
 );
 
-// Stream chunk validator - backward compatible with old "id" field
-export const streamChunkValidator = v.object({
-	// Support both old "id" field and new "chunkId" field for backward compatibility
-	chunkId: v.optional(chunkIdValidator),
-	id: v.optional(chunkIdValidator), // Legacy field from before PR #195
-	content: v.string(),
-	timestamp: v.number(),
-	sequence: v.optional(v.number()), // Legacy field from before PR #195
-	isThinking: v.optional(v.boolean()),
-});
-
 // ===== File Validators =====
 // File name validator
 export const fileNameValidator = v.string();

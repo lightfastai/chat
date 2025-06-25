@@ -22,10 +22,7 @@ import {
 	updateThreadUsage as updateThreadUsageUtil,
 } from "../lib/message_service.js";
 import { modelIdValidator, streamIdValidator } from "../validators.js";
-import {
-	generateStreamId,
-	handleAIResponseError,
-} from "./helpers.js";
+import { generateStreamId, handleAIResponseError } from "./helpers.js";
 import { type AISDKUsage, formatUsageData } from "./types.js";
 
 // New action that uses pre-created message ID
@@ -187,16 +184,19 @@ export const generateAIResponseWithMessage = internalAction({
 					await ctx.runMutation(internal.messages.updateToolCallPart, {
 						messageId: args.messageId,
 						toolCallId: part.toolCallId,
-						args: part.args,
+						args: part.input,
 						state: "call",
 					});
-				} else if (part.type === "tool-call-streaming-start" && "toolCallId" in part) {
+				} else if (
+					part.type === "tool-call-streaming-start" &&
+					"toolCallId" in part
+				) {
 					// Add tool call part with "partial-call" state
 					await ctx.runMutation(internal.messages.addToolCallPart, {
 						messageId: args.messageId,
 						toolCallId: part.toolCallId,
 						toolName: part.toolName,
-						args: part.args || {},
+						args: {},
 						state: "partial-call",
 					});
 				} else if (part.type === "tool-call-delta" && "toolCallId" in part) {
@@ -211,13 +211,17 @@ export const generateAIResponseWithMessage = internalAction({
 					await ctx.runMutation(internal.messages.updateToolCallPart, {
 						messageId: args.messageId,
 						toolCallId: part.toolCallId,
-						result: part.result,
+						result: part.output,
 						state: "result",
 					});
 				}
-				
+
 				// Handle text deltas from other stream parts that contain text content
-				if ("textDelta" in part && part.textDelta) {
+				if (
+					"textDelta" in part &&
+					part.textDelta &&
+					typeof part.textDelta === "string"
+				) {
 					fullText += part.textDelta;
 					hasContent = true;
 

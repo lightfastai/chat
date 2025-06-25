@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import { MessageDisplay } from "./message-display";
 
-type Message = Doc<"messages"> & { _streamId?: string | null };
+type Message = Doc<"messages">;
 
 interface ChatMessagesProps {
 	messages: Message[];

@@ -1,17 +1,17 @@
 "use client";
 
+import { getMessageParts } from "@/lib/message-parts";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import { cn } from "@lightfast/ui/lib/utils";
 import React from "react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
-import { getMessageParts } from "@/lib/message-parts";
 import { ToolCallRenderer } from "../tools/tool-call-renderer";
 import { AssistantMessageHeader } from "./assistant-message-header";
 import { MessageAvatar } from "./message-avatar";
 import { MessageLayout } from "./message-layout";
 import { ThinkingContent } from "./thinking-content";
 
-type Message = Doc<"messages"> & { _streamId?: string | null };
+type Message = Doc<"messages">;
 
 export interface MessageItemProps {
 	message: Message;
@@ -166,7 +166,7 @@ export function MessageItem({
 		showActions &&
 		isAssistant &&
 		message.isComplete !== false &&
-		!message._streamId
+		!message.isStreaming
 			? actions
 			: undefined;
 

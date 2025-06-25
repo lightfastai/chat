@@ -3,14 +3,12 @@ import { v } from "convex/values";
 import { nanoid } from "nanoid";
 import { mutation, query } from "./_generated/server";
 import {
-	chunkIdValidator,
 	ipHashValidator,
 	messageTypeValidator,
 	modelIdValidator,
 	modelProviderValidator,
 	shareIdValidator,
 	shareSettingsValidator,
-	streamChunkValidator,
 	streamIdValidator,
 	titleValidator,
 	tokenUsageValidator,
@@ -238,8 +236,6 @@ export const getSharedThread = query({
 					hasThinkingContent: v.optional(v.boolean()),
 					usedUserApiKey: v.optional(v.boolean()),
 					usage: tokenUsageValidator,
-					lastChunkId: v.optional(chunkIdValidator),
-					streamChunks: v.optional(v.array(streamChunkValidator)),
 					streamVersion: v.optional(v.number()),
 				}),
 			),

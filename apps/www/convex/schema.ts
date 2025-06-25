@@ -3,7 +3,6 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
 	branchInfoValidator,
-	chunkIdValidator,
 	clientIdValidator,
 	commentValidator,
 	feedbackRatingValidator,
@@ -19,7 +18,6 @@ import {
 	shareIdValidator,
 	shareSettingsValidator,
 	storageIdValidator,
-	streamChunkValidator,
 	streamIdValidator,
 	threadUsageValidator,
 	titleValidator,
@@ -93,8 +91,6 @@ export default defineSchema({
 		thinkingStartedAt: v.optional(v.number()),
 		thinkingCompletedAt: v.optional(v.number()),
 		usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
-		streamChunks: v.optional(v.array(streamChunkValidator)),
-		lastChunkId: v.optional(chunkIdValidator),
 		streamVersion: v.optional(v.number()),
 		thinkingContent: v.optional(v.string()),
 		isThinking: v.optional(v.boolean()),
