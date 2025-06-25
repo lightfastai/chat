@@ -17,6 +17,7 @@ export function useAuth() {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
   // Use explicit type annotation to avoid deep instantiation issue
+  // @ts-ignore - TS2589: Type instantiation is excessively deep
   const currentUser: User = useQuery(api.users.current)
 
   const handleSignIn = useCallback(

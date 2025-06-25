@@ -57,11 +57,11 @@ export async function buildMessageContent(
   // Fetch each file with its URL
   for (const fileId of attachmentIds) {
     // TypeScript has a known limitation with deep type instantiation in complex generic types.
-    // This occurs when accessing Convex's generated API types which have deeply nested generics.
-    // The issue is specific to the internal API reference, not the actual runtime behavior.
+    // This occurs when accessing Convex's generated internal API, specifically with nested
+    // module paths. The issue is at the type level only - runtime behavior is unaffected.
     // See: https://github.com/microsoft/TypeScript/issues/34933
-    // @ts-ignore - TS2589: Type instantiation is excessively deep and possibly infinite
     const file: FileWithUrl | null = await ctx.runQuery(
+      // @ts-ignore - TS2589: Type instantiation is excessively deep
       internal.files.getFileWithUrl,
       { fileId },
     )
