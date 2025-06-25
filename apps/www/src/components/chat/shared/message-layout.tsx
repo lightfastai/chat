@@ -11,7 +11,6 @@ export interface MessageLayoutProps {
 }
 
 export function MessageLayout({
-	avatar,
 	content,
 	timestamp,
 	actions,

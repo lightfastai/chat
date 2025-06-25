@@ -5,7 +5,6 @@ import { cn } from "@lightfast/ui/lib/utils";
 import React from "react";
 import type { Doc } from "../../../../convex/_generated/dataModel";
 import { AssistantMessageHeader } from "./assistant-message-header";
-import { MessageAvatar } from "./message-avatar";
 import { MessageLayout } from "./message-layout";
 import { ThinkingContent } from "./thinking-content";
 
@@ -34,8 +33,6 @@ export interface MessageItemProps {
 
 export function MessageItem({
 	message,
-	owner,
-	currentUser,
 	showThinking = true,
 	showActions = true,
 	isReadOnly = false,
@@ -55,9 +52,6 @@ export function MessageItem({
 		}
 		return null;
 	}, [message.thinkingStartedAt, message.thinkingCompletedAt]);
-
-	// Determine display user based on context
-	const displayUser = isReadOnly ? owner : currentUser;
 
 	// Avatar component - removed to clean up UI
 	const avatar = null;
