@@ -162,9 +162,19 @@ export const generateAIResponseWithMessage = internalAction({
 			let fullText = "";
 			let hasContent = false;
 
+			// Track event sequence for debugging
+			const eventSequence: string[] = [];
+			
 			// Use fullStream as the unified interface (works with or without tools)
 			for await (const streamPart of result.fullStream) {
 				const part = streamPart as any;
+				eventSequence.push(part.type);
+				
+				// Log event sequence every 10 events
+				if (eventSequence.length % 10 === 0) {
+					console.log("[DEBUG] Event sequence so far:", eventSequence.join(" -> "));
+				}
+				
 				switch (part.type) {
 					case "text-delta":
 						if (part.textDelta) {
@@ -223,30 +233,20 @@ export const generateAIResponseWithMessage = internalAction({
 						break;
 
 					case "tool-result":
-						console.log("[DEBUG] Full tool-result event structure:", JSON.stringify(part, null, 2));
-						console.log("[DEBUG] Tool result event details:", {
+						console.log("[DEBUG] tool-result event:", {
+							type: part.type,
 							toolCallId: part.toolCallId,
 							hasResult: !!part.result,
-							resultKeys: part.result ? Object.keys(part.result) : [],
-							resultSample: part.result ? JSON.stringify(part.result).slice(0, 200) : null,
-							// Check other possible fields
-							hasToolResult: !!(part as any).toolResult,
-							toolResultKeys: (part as any).toolResult ? Object.keys((part as any).toolResult) : [],
-							allPartKeys: Object.keys(part),
+							allKeys: Object.keys(part),
 						});
 						
-						// Try to get result from different possible locations
-						const result = part.result || (part as any).toolResult || (part as any).value;
-						
-						// Update the tool call part with the result instead of creating separate part
+						// Update the tool call part with the result
 						await ctx.runMutation(internal.messages.updateToolCallPart, {
 							messageId: args.messageId,
 							toolCallId: part.toolCallId,
 							state: "result",
-							result: result,
+							result: part.result,
 						});
-						
-						console.log("[DEBUG] Updated tool call part with result:", !!result);
 						break;
 
 					case "tool-call-streaming-start":
@@ -327,6 +327,10 @@ export const generateAIResponseWithMessage = internalAction({
 				}
 			}
 
+			// Log final event sequence
+			console.log("[DEBUG] Complete event sequence:", eventSequence.join(" -> "));
+			console.log("[DEBUG] Total events processed:", eventSequence.length);
+			
 			// Get final usage with optional chaining
 			const finalUsage = await result.usage;
 			if (finalUsage) {
