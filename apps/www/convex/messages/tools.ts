@@ -56,9 +56,8 @@ export function createWebSearchTool() {
 				}));
 
 				console.log(`Web search found ${results.length} results`);
-
-				// Return structured data that helps the AI understand and explain
-				return {
+				
+				const returnValue = {
 					success: true,
 					query,
 					searchIntent: `Web search for: "${query}"`,
@@ -83,6 +82,14 @@ export function createWebSearchTool() {
 					instructions:
 						"Analyze these search results thoroughly and provide a comprehensive explanation of the findings.",
 				};
+				
+				console.log("[DEBUG] Tool returning value:", {
+					hasResults: !!returnValue.results,
+					resultCount: returnValue.resultCount,
+					firstResultKeys: returnValue.results[0] ? Object.keys(returnValue.results[0]) : [],
+				});
+				
+				return returnValue;
 			} catch (error) {
 				console.error("Web search error:", error);
 				return {

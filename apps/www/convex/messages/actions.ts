@@ -280,7 +280,30 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "finish-step":
 						// Handle multi-step generation completion
-						console.log("Finished step event:", JSON.stringify(part));
+						console.log("[DEBUG] Finished step event full structure:", JSON.stringify(part, null, 2));
+						
+						// Check if this event contains tool results
+						if ((part as any).toolResults) {
+							console.log("[DEBUG] Found toolResults in finish-step event");
+							const toolResults = (part as any).toolResults;
+							
+							// Process each tool result
+							for (const toolResult of toolResults) {
+								console.log("[DEBUG] Processing tool result from finish-step:", {
+									toolCallId: toolResult.toolCallId,
+									hasResult: !!toolResult.result,
+								});
+								
+								if (toolResult.toolCallId && toolResult.result) {
+									await ctx.runMutation(internal.messages.updateToolCallPart, {
+										messageId: args.messageId,
+										toolCallId: toolResult.toolCallId,
+										state: "result",
+										result: toolResult.result,
+									});
+								}
+							}
+						}
 						break;
 
 					case "finish":
@@ -295,7 +318,11 @@ export const generateAIResponseWithMessage = internalAction({
 
 					// Handle other event types that might be added in future SDK versions
 					default:
-						console.log("Unknown stream part type:", part.type);
+						console.log("[DEBUG] Unknown/unhandled stream part:", {
+							type: part.type,
+							keys: Object.keys(part),
+							fullPart: JSON.stringify(part).slice(0, 500),
+						});
 						break;
 				}
 			}
