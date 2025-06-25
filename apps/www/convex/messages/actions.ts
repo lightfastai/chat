@@ -162,74 +162,111 @@ export const generateAIResponseWithMessage = internalAction({
 			let fullText = "";
 			let hasContent = false;
 
-			// Process the full stream to handle both text and tool calls
+			// Use fullStream as the unified interface (works with or without tools)
 			for await (const streamPart of result.fullStream) {
-				const part = streamPart;
+				const part = streamPart as any;
+				switch (part.type) {
+					case "text-delta":
+						if (part.textDelta) {
+							fullText += part.textDelta;
+							hasContent = true;
 
-				// Handle different stream part types
-				if (part.type === "text" && "text" in part) {
-					// Handle complete text blocks
-					if (part.text) {
-						fullText += part.text;
-						hasContent = true;
+							// Add text part to the parts array
+							await ctx.runMutation(internal.messages.addTextPart, {
+								messageId: args.messageId,
+								text: part.textDelta,
+							});
+						}
+						break;
 
-						// Add text part to the parts array
-						await ctx.runMutation(internal.messages.addTextPart, {
+					case "text":
+						// Handle complete text blocks (in addition to text-delta)
+						if (part.text) {
+							fullText += part.text;
+							hasContent = true;
+
+							// Add text part to the parts array
+							await ctx.runMutation(internal.messages.addTextPart, {
+								messageId: args.messageId,
+								text: part.text,
+							});
+						}
+						break;
+
+					case "tool-call":
+						// Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
+						await ctx.runMutation(internal.messages.updateToolCallPart, {
 							messageId: args.messageId,
-							text: part.text,
+							toolCallId: part.toolCallId,
+							args: part.args,
+							state: "call",
 						});
-					}
-				} else if (part.type === "tool-call" && "toolCallId" in part) {
-					// Handle tool calls
-					await ctx.runMutation(internal.messages.updateToolCallPart, {
-						messageId: args.messageId,
-						toolCallId: part.toolCallId,
-						args: part.input,
-						state: "call",
-					});
-				} else if (
-					part.type === "tool-call-streaming-start" &&
-					"toolCallId" in part
-				) {
-					// Add tool call part with "partial-call" state
-					await ctx.runMutation(internal.messages.addToolCallPart, {
-						messageId: args.messageId,
-						toolCallId: part.toolCallId,
-						toolName: part.toolName,
-						args: {},
-						state: "partial-call",
-					});
-				} else if (part.type === "tool-call-delta" && "toolCallId" in part) {
-					// Update tool call args with streaming delta
-					await ctx.runMutation(internal.messages.updateToolCallPart, {
-						messageId: args.messageId,
-						toolCallId: part.toolCallId,
-						state: "partial-call",
-					});
-				} else if (part.type === "tool-result" && "toolCallId" in part) {
-					// Update tool call part with result and mark as completed
-					await ctx.runMutation(internal.messages.updateToolCallPart, {
-						messageId: args.messageId,
-						toolCallId: part.toolCallId,
-						result: part.output,
-						state: "result",
-					});
-				}
+						break;
 
-				// Handle text deltas from other stream parts that contain text content
-				if (
-					"textDelta" in part &&
-					part.textDelta &&
-					typeof part.textDelta === "string"
-				) {
-					fullText += part.textDelta;
-					hasContent = true;
+					case "tool-call-delta":
+						// Update tool call part with streaming arguments
+						if (part.toolCallId && part.argsTextDelta) {
+							await ctx.runMutation(internal.messages.updateToolCallPart, {
+								messageId: args.messageId,
+								toolCallId: part.toolCallId,
+								args: part.args, // Use the parsed args from the SDK
+								state: "partial-call",
+							});
+						}
+						break;
 
-					// Add text part to the parts array
-					await ctx.runMutation(internal.messages.addTextPart, {
-						messageId: args.messageId,
-						text: part.textDelta,
-					});
+					case "tool-result":
+						// Update the tool call part with the result instead of creating separate part
+						await ctx.runMutation(internal.messages.updateToolCallPart, {
+							messageId: args.messageId,
+							toolCallId: part.toolCallId,
+							state: "result",
+							result: part.result,
+						});
+						break;
+
+					case "tool-call-streaming-start":
+						// Add tool call part in "partial-call" state
+						if (part.toolCallId && part.toolName) {
+							await ctx.runMutation(internal.messages.addToolCallPart, {
+								messageId: args.messageId,
+								toolCallId: part.toolCallId,
+								toolName: part.toolName,
+								args: part.args || {},
+								state: "partial-call",
+							});
+						}
+						break;
+
+					case "start":
+						// Handle generation start event
+						console.log("Generation started");
+						break;
+
+					case "start-step":
+						// Handle multi-step generation start (step boundary marker)
+						console.log("Starting new step event:", JSON.stringify(part));
+						break;
+
+					case "finish-step":
+						// Handle multi-step generation completion
+						console.log("Finished step event:", JSON.stringify(part));
+						break;
+
+					case "finish":
+						// Handle completion events (provides usage stats, finish reason, etc.)
+						console.log("Stream finished event:", JSON.stringify(part));
+						break;
+
+					case "error":
+						// Handle stream errors explicitly
+						console.error("Stream error:", part.error);
+						throw new Error(`Stream error: ${part.error}`);
+
+					// Handle other event types that might be added in future SDK versions
+					default:
+						console.log("Unknown stream part type:", part.type);
+						break;
 				}
 			}
 
