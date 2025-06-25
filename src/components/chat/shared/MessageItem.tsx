@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import React from "react"
 import type { Doc } from "../../../../convex/_generated/dataModel"
 import { AssistantMessageHeader } from "./AssistantMessageHeader"
+import { MessageAvatar } from "./MessageAvatar"
 import { MessageLayout } from "./MessageLayout"
 import { ThinkingContent } from "./ThinkingContent"
 
