@@ -864,6 +864,242 @@ export const addTextPart = internalMutation({
 	},
 });
 
+// Internal mutation to add a reasoning part to a message
+export const addReasoningPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		text: v.string(),
+		providerMetadata: v.optional(v.any()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "reasoning" as const,
+				text: args.text,
+				providerMetadata: args.providerMetadata,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add a file part to a message
+export const addFilePart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		url: v.optional(v.string()),
+		mediaType: v.string(),
+		data: v.optional(v.any()),
+		filename: v.optional(v.string()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "file" as const,
+				url: args.url,
+				mediaType: args.mediaType,
+				data: args.data,
+				filename: args.filename,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add a source part to a message
+export const addSourcePart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		sourceType: v.union(v.literal("url"), v.literal("document")),
+		sourceId: v.string(),
+		url: v.optional(v.string()),
+		title: v.optional(v.string()),
+		mediaType: v.optional(v.string()),
+		filename: v.optional(v.string()),
+		providerMetadata: v.optional(v.any()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "source" as const,
+				sourceType: args.sourceType,
+				sourceId: args.sourceId,
+				url: args.url,
+				title: args.title,
+				mediaType: args.mediaType,
+				filename: args.filename,
+				providerMetadata: args.providerMetadata,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add an error part to a message
+export const addErrorPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		errorMessage: v.string(),
+		errorDetails: v.optional(v.any()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "error" as const,
+				errorMessage: args.errorMessage,
+				errorDetails: args.errorDetails,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add a raw part to a message
+export const addRawPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		rawValue: v.any(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "raw" as const,
+				rawValue: args.rawValue,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add step metadata part
+export const addStepPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		stepType: v.union(v.literal("start-step"), v.literal("finish-step")),
+		metadata: v.optional(v.any()),
+		usage: v.optional(v.any()),
+		finishReason: v.optional(v.string()),
+		warnings: v.optional(v.array(v.any())),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "step" as const,
+				stepType: args.stepType,
+				...(args.metadata && { metadata: args.metadata }),
+				...(args.usage && { usage: args.usage }),
+				...(args.finishReason && { finishReason: args.finishReason }),
+				...(args.warnings && { warnings: args.warnings }),
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add stream control parts (start, finish, etc.)
+export const addStreamControlPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		controlType: v.union(
+			v.literal("start"),
+			v.literal("finish"),
+			v.literal("reasoning-part-finish")
+		),
+		finishReason: v.optional(v.string()),
+		totalUsage: v.optional(v.any()),
+		metadata: v.optional(v.any()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "control" as const,
+				controlType: args.controlType,
+				...(args.finishReason && { finishReason: args.finishReason }),
+				...(args.totalUsage && { totalUsage: args.totalUsage }),
+				...(args.metadata && { metadata: args.metadata }),
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
 // Internal mutation to add a tool call part to a message
 export const addToolCallPart = internalMutation({
 	args: {
@@ -1105,21 +1341,9 @@ export const generateAIResponseWithMessage = internalAction({
 
 			// Use fullStream as the unified interface (works with or without tools)
 			for await (const streamPart of result.fullStream) {
-				const part = streamPart;
+				// Cast to any for flexible type handling since AI SDK may have more types
+				const part = streamPart as any;
 				switch (part.type) {
-					case "text-delta":
-						if (part.textDelta) {
-							fullText += part.textDelta;
-							hasContent = true;
-
-							// Add text part to the parts array
-							await ctx.runMutation(internal.messages.addTextPart, {
-								messageId: args.messageId,
-								text: part.textDelta,
-							});
-						}
-						break;
-
 					case "text":
 						// Handle complete text blocks (in addition to text-delta)
 						if (part.text) {
@@ -1134,23 +1358,111 @@ export const generateAIResponseWithMessage = internalAction({
 						}
 						break;
 
+					case "reasoning":
+						// Handle Claude thinking/reasoning content
+						if (part.text) {
+							await ctx.runMutation(internal.messages.addReasoningPart, {
+								messageId: args.messageId,
+								text: part.text,
+								providerMetadata: (part as any).providerMetadata,
+							});
+						}
+						break;
+
+					case "reasoning-part-finish":
+						// Mark reasoning section as complete
+						await ctx.runMutation(internal.messages.addStreamControlPart, {
+							messageId: args.messageId,
+							controlType: "reasoning-part-finish",
+						});
+						break;
+
+					case "file":
+						// Handle generated file content
+						if ((part as any).file) {
+							const file = (part as any).file;
+							await ctx.runMutation(internal.messages.addFilePart, {
+								messageId: args.messageId,
+								url: (part as any).url || null,
+								mediaType: file.mediaType || (part as any).mediaType || "application/octet-stream",
+								data: file.base64 || file.uint8Array || file.data || null,
+								filename: file.filename || null,
+							});
+						}
+						break;
+
+					case "source":
+						// Handle citation/source references
+						if ((part as any).sourceType === "url" && (part as any).url) {
+							await ctx.runMutation(internal.messages.addSourcePart, {
+								messageId: args.messageId,
+								sourceType: "url",
+								sourceId: (part as any).id || (part as any).sourceId || `source_${Date.now()}`,
+								url: (part as any).url,
+								title: (part as any).title,
+								providerMetadata: (part as any).providerMetadata,
+							});
+						}
+						break;
+
+					case "source-url":
+						// Handle URL source references (UI stream format)
+						if ((part as any).url) {
+							await ctx.runMutation(internal.messages.addSourcePart, {
+								messageId: args.messageId,
+								sourceType: "url",
+								sourceId: (part as any).sourceId || `source_${Date.now()}`,
+								url: (part as any).url,
+								title: (part as any).title,
+								providerMetadata: (part as any).providerMetadata,
+							});
+						}
+						break;
+
+					case "source-document":
+						// Handle document source references (UI stream format)
+						if ((part as any).sourceId) {
+							await ctx.runMutation(internal.messages.addSourcePart, {
+								messageId: args.messageId,
+								sourceType: "document",
+								sourceId: (part as any).sourceId,
+								mediaType: (part as any).mediaType,
+								title: (part as any).title,
+								filename: (part as any).filename,
+								providerMetadata: (part as any).providerMetadata,
+							});
+						}
+						break;
+
 					case "tool-call":
 						// Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
 						await ctx.runMutation(internal.messages.updateToolCallPart, {
 							messageId: args.messageId,
 							toolCallId: part.toolCallId,
-							args: part.args,
+							args: part.input,
 							state: "call",
 						});
 						break;
 
 					case "tool-call-delta":
 						// Update tool call part with streaming arguments
-						if (part.toolCallId && part.argsTextDelta) {
+						if (part.toolCallId && part.inputTextDelta) {
 							await ctx.runMutation(internal.messages.updateToolCallPart, {
 								messageId: args.messageId,
 								toolCallId: part.toolCallId,
-								args: part.args, // Use the parsed args from the SDK
+								args: part.inputTextDelta,
+								state: "partial-call",
+							});
+						}
+						break;
+
+					case "tool-call-streaming-start":
+						// Add tool call part in "partial-call" state
+						if (part.toolCallId && part.toolName) {
+							await ctx.runMutation(internal.messages.addToolCallPart, {
+								messageId: args.messageId,
+								toolCallId: part.toolCallId,
+								toolName: part.toolName,
 								state: "partial-call",
 							});
 						}
@@ -1158,7 +1470,7 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "tool-result": {
 						// The AI SDK uses 'output' field for tool results, not 'result'
-						const toolResult = part.output || part.result;
+						const toolResult = part.output;
 
 						// Update the tool call part with the result
 						await ctx.runMutation(internal.messages.updateToolCallPart, {
@@ -1170,14 +1482,49 @@ export const generateAIResponseWithMessage = internalAction({
 						break;
 					}
 
-					case "tool-call-streaming-start":
-						// Add tool call part in "partial-call" state
-						if (part.toolCallId && part.toolName) {
+					case "tool-input-available":
+						// Handle tool input availability (UI stream)
+						if ((part as any).toolCallId && (part as any).toolName) {
+							await ctx.runMutation(internal.messages.updateToolCallPart, {
+								messageId: args.messageId,
+								toolCallId: (part as any).toolCallId,
+								args: (part as any).input,
+								state: "call",
+							});
+						}
+						break;
+
+					case "tool-output-available":
+						// Handle tool output availability (UI stream)
+						if ((part as any).toolCallId && (part as any).output) {
+							await ctx.runMutation(internal.messages.updateToolCallPart, {
+								messageId: args.messageId,
+								toolCallId: (part as any).toolCallId,
+								result: (part as any).output,
+								state: "result",
+							});
+						}
+						break;
+
+					case "tool-input-start":
+						// Handle tool input start (UI stream)
+						if ((part as any).toolCallId && (part as any).toolName) {
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId: args.messageId,
-								toolCallId: part.toolCallId,
-								toolName: part.toolName,
-								args: part.args || {},
+								toolCallId: (part as any).toolCallId,
+								toolName: (part as any).toolName,
+								state: "partial-call",
+							});
+						}
+						break;
+
+					case "tool-input-delta":
+						// Handle tool input delta (UI stream)
+						if ((part as any).toolCallId && (part as any).inputTextDelta) {
+							await ctx.runMutation(internal.messages.updateToolCallPart, {
+								messageId: args.messageId,
+								toolCallId: (part as any).toolCallId,
+								args: (part as any).inputTextDelta,
 								state: "partial-call",
 							});
 						}
@@ -1185,14 +1532,45 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "start":
 						// Handle generation start event
+						await ctx.runMutation(internal.messages.addStreamControlPart, {
+							messageId: args.messageId,
+							controlType: "start",
+							metadata: {
+								messageId: (part as any).messageId,
+								messageMetadata: (part as any).messageMetadata,
+							},
+						});
+						break;
+
+					case "finish":
+						// Handle generation completion event
+						await ctx.runMutation(internal.messages.addStreamControlPart, {
+							messageId: args.messageId,
+							controlType: "finish",
+							finishReason: (part as any).finishReason,
+							totalUsage: (part as any).usage,
+							metadata: {
+								messageMetadata: (part as any).messageMetadata,
+								providerMetadata: (part as any).providerMetadata,
+							},
+						});
 						break;
 
 					case "start-step":
 						// Handle multi-step generation start (step boundary marker)
+						await ctx.runMutation(internal.messages.addStepPart, {
+							messageId: args.messageId,
+							stepType: "start-step",
+						});
 						break;
 
 					case "finish-step":
 						// Handle multi-step generation completion
+						await ctx.runMutation(internal.messages.addStepPart, {
+							messageId: args.messageId,
+							stepType: "finish-step",
+						});
+
 						// Check if this event contains tool results (fallback for different SDK versions)
 						if ((part as any).toolResults) {
 							const toolResults = (part as any).toolResults;
@@ -1211,18 +1589,79 @@ export const generateAIResponseWithMessage = internalAction({
 						}
 						break;
 
-					case "finish":
-						// Handle completion events (provides usage stats, finish reason, etc.)
+					case "stream-start":
+						// Handle stream start with warnings
+						if ((part as any).warnings?.length > 0) {
+							await ctx.runMutation(internal.messages.addStreamControlPart, {
+								messageId: args.messageId,
+								controlType: "start",
+								metadata: {
+									warnings: (part as any).warnings,
+								},
+							});
+						}
+						break;
+
+					case "response-metadata":
+						// Handle response metadata (e.g., request ID, timestamp)
+						await ctx.runMutation(internal.messages.addStreamControlPart, {
+							messageId: args.messageId,
+							controlType: "start",
+							metadata: {
+								id: (part as any).id,
+								timestamp: (part as any).timestamp,
+								modelId: (part as any).modelId,
+							},
+						});
+						break;
+
+					case "message-metadata":
+						// Handle message metadata (UI stream)
+						await ctx.runMutation(internal.messages.addStreamControlPart, {
+							messageId: args.messageId,
+							controlType: "start",
+							metadata: (part as any).messageMetadata,
+						});
 						break;
 
 					case "error":
 						// Handle stream errors explicitly
-						console.error("Stream error:", part.error);
-						throw new Error(`Stream error: ${part.error}`);
+						const errorMessage = (part as any).error?.message || (part as any).errorText || String((part as any).error || "Unknown stream error");
+						console.error("Stream error:", errorMessage);
+						
+						// Save error as part for debugging
+						await ctx.runMutation(internal.messages.addErrorPart, {
+							messageId: args.messageId,
+							errorMessage: errorMessage,
+							errorDetails: (part as any).error,
+						});
+						
+						throw new Error(`Stream error: ${errorMessage}`);
 
-					// Handle other event types that might be added in future SDK versions
+					case "raw":
+						// Handle raw provider responses for debugging
+						await ctx.runMutation(internal.messages.addRawPart, {
+							messageId: args.messageId,
+							rawValue: (part as any).rawValue,
+						});
+						break;
+
+					// Handle dynamic data parts (e.g., data-* types)
 					default:
-						// Silently ignore unknown event types
+						// Check for dynamic data parts
+						if (part.type.startsWith("data-")) {
+							// Handle dynamic data parts from UI streams
+							await ctx.runMutation(internal.messages.addRawPart, {
+								messageId: args.messageId,
+								rawValue: {
+									type: part.type,
+									data: part,
+								},
+							});
+						} else {
+							// Log unknown part types for debugging but don't break the stream
+							console.warn("Unknown stream part type:", part.type, part);
+						}
 						break;
 				}
 			}

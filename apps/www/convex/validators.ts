@@ -205,6 +205,66 @@ export const textPartValidator = v.object({
 	text: v.string(),
 });
 
+// Reasoning part validator - for Claude thinking/reasoning content
+export const reasoningPartValidator = v.object({
+	type: v.literal("reasoning"),
+	text: v.string(),
+	providerMetadata: v.optional(v.any()),
+});
+
+// File part validator - for generated files
+export const filePartValidator = v.object({
+	type: v.literal("file"),
+	url: v.optional(v.string()),
+	mediaType: v.string(),
+	data: v.optional(v.any()), // Base64 or binary data
+	filename: v.optional(v.string()),
+});
+
+// Source part validator - for citations and references
+export const sourcePartValidator = v.object({
+	type: v.literal("source"),
+	sourceType: v.union(v.literal("url"), v.literal("document")),
+	sourceId: v.string(),
+	url: v.optional(v.string()),
+	title: v.optional(v.string()),
+	mediaType: v.optional(v.string()),
+	filename: v.optional(v.string()),
+	metadata: v.optional(v.any()),
+});
+
+// Error part validator - for stream errors
+export const errorPartValidator = v.object({
+	type: v.literal("error"),
+	errorMessage: v.string(),
+	errorDetails: v.optional(v.any()),
+});
+
+// Raw part validator - for debugging raw provider responses
+export const rawPartValidator = v.object({
+	type: v.literal("raw"),
+	rawValue: v.any(),
+});
+
+// Step part validator - for multi-step generation boundaries
+export const stepPartValidator = v.object({
+	type: v.literal("step"),
+	stepType: v.union(v.literal("start-step"), v.literal("finish-step")),
+});
+
+// Stream control part validator - for start/finish/metadata events
+export const streamControlPartValidator = v.object({
+	type: v.literal("control"),
+	controlType: v.union(
+		v.literal("start"),
+		v.literal("finish"),
+		v.literal("reasoning-part-finish")
+	),
+	finishReason: v.optional(v.string()),
+	totalUsage: v.optional(v.any()),
+	metadata: v.optional(v.any()),
+});
+
 // Tool call part validator - Official Vercel AI SDK v5 compliant
 export const toolCallPartValidator = v.object({
 	type: v.literal("tool-call"),
@@ -223,6 +283,13 @@ export const toolCallPartValidator = v.object({
 // Message part union validator - represents any type of message part
 export const messagePartValidator = v.union(
 	textPartValidator,
+	reasoningPartValidator,
+	filePartValidator,
+	sourcePartValidator,
+	errorPartValidator,
+	rawPartValidator,
+	stepPartValidator,
+	streamControlPartValidator,
 	toolCallPartValidator,
 );
 
