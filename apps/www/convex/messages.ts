@@ -10,26 +10,26 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
 	type CoreMessage,
-	stepCountIs,
-	streamText,
 	type TextStreamPart,
 	type ToolSet,
+	stepCountIs,
+	streamText,
 } from "ai";
 import { v } from "convex/values";
 import {
-  type ModelId,
-  getModelById,
-  getProviderFromModelId,
+	type ModelId,
+	getModelById,
+	getProviderFromModelId,
 } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import {
-  type ActionCtx,
-  internalAction,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
+	type ActionCtx,
+	internalAction,
+	internalMutation,
+	internalQuery,
+	mutation,
+	query,
 } from "./_generated/server.js";
 import { createAIClient } from "./lib/ai_client.js";
 import { createWebSearchTool } from "./lib/ai_tools.js";
@@ -38,33 +38,33 @@ import { getOrThrow, getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
 import {
-  branchInfoValidator,
-  clientIdValidator,
-  messageTypeValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  shareIdValidator,
-  shareSettingsValidator,
-  streamIdValidator,
-  threadUsageValidator,
-  tokenUsageValidator,
+	branchInfoValidator,
+	clientIdValidator,
+	messageTypeValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	shareIdValidator,
+	shareSettingsValidator,
+	streamIdValidator,
+	threadUsageValidator,
+	tokenUsageValidator,
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
 import {
-  clearGenerationFlagUtil,
-  createStreamingMessageUtil,
-  generateStreamId,
-  handleAIResponseError,
-  streamAIResponse,
-  updateThreadUsage,
-  updateThreadUsageUtil,
+	clearGenerationFlagUtil,
+	createStreamingMessageUtil,
+	generateStreamId,
+	handleAIResponseError,
+	streamAIResponse,
+	updateThreadUsage,
+	updateThreadUsageUtil,
 } from "./messages/helpers.js";
 import {
-  type AISDKUsage,
-  type MessageUsageUpdate,
-  formatUsageData,
-  messageReturnValidator,
+	type AISDKUsage,
+	type MessageUsageUpdate,
+	formatUsageData,
+	messageReturnValidator,
 } from "./messages/types.js";
 
 // Type definitions for multimodal content
@@ -1075,7 +1075,7 @@ export const addStreamControlPart = internalMutation({
 		controlType: v.union(
 			v.literal("start"),
 			v.literal("finish"),
-			v.literal("reasoning-part-finish")
+			v.literal("reasoning-part-finish"),
 		),
 		finishReason: v.optional(v.string()),
 		totalUsage: v.optional(v.any()),
@@ -1399,7 +1399,11 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "source":
 						// Handle citation/source references
-						if (part.type === "source" && part.sourceType === "url" && part.url) {
+						if (
+							part.type === "source" &&
+							part.sourceType === "url" &&
+							part.url
+						) {
 							await ctx.runMutation(internal.messages.addSourcePart, {
 								messageId: args.messageId,
 								sourceType: "url",
@@ -1410,7 +1414,6 @@ export const generateAIResponseWithMessage = internalAction({
 							});
 						}
 						break;
-
 
 					case "tool-call":
 						// Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
@@ -1424,7 +1427,11 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "tool-call-delta":
 						// Update tool call part with streaming arguments
-						if (part.type === "tool-call-delta" && part.toolCallId && part.inputTextDelta) {
+						if (
+							part.type === "tool-call-delta" &&
+							part.toolCallId &&
+							part.inputTextDelta
+						) {
 							await ctx.runMutation(internal.messages.updateToolCallPart, {
 								messageId: args.messageId,
 								toolCallId: part.toolCallId,
@@ -1436,7 +1443,11 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "tool-call-streaming-start":
 						// Add tool call part in "partial-call" state
-						if (part.type === "tool-call-streaming-start" && part.toolCallId && part.toolName) {
+						if (
+							part.type === "tool-call-streaming-start" &&
+							part.toolCallId &&
+							part.toolName
+						) {
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId: args.messageId,
 								toolCallId: part.toolCallId,
@@ -1459,7 +1470,6 @@ export const generateAIResponseWithMessage = internalAction({
 						});
 						break;
 					}
-
 
 					case "start":
 						// Handle generation start event
@@ -1493,20 +1503,22 @@ export const generateAIResponseWithMessage = internalAction({
 						});
 						break;
 
-
 					case "error":
 						// Handle stream errors explicitly
 						if (part.type === "error") {
-							const errorMessage = part.error instanceof Error ? part.error.message : String(part.error || "Unknown stream error");
+							const errorMessage =
+								part.error instanceof Error
+									? part.error.message
+									: String(part.error || "Unknown stream error");
 							console.error("Stream error:", errorMessage);
-							
+
 							// Save error as part for debugging
 							await ctx.runMutation(internal.messages.addErrorPart, {
 								messageId: args.messageId,
 								errorMessage: errorMessage,
 								errorDetails: part.error,
 							});
-							
+
 							throw new Error(`Stream error: ${errorMessage}`);
 						}
 						break;
@@ -1525,7 +1537,11 @@ export const generateAIResponseWithMessage = internalAction({
 					default:
 						// This should be unreachable with proper TextStreamPart typing
 						const _exhaustiveCheck: never = part;
-						console.warn("Unknown stream part type:", (_exhaustiveCheck as { type: string }).type, _exhaustiveCheck);
+						console.warn(
+							"Unknown stream part type:",
+							(_exhaustiveCheck as { type: string }).type,
+							_exhaustiveCheck,
+						);
 						break;
 				}
 			}

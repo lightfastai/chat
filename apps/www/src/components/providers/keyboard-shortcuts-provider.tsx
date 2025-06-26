@@ -2,6 +2,25 @@
 
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { useRouter } from "next/navigation";
+import { createContext, useContext, useRef } from "react";
+
+interface KeyboardShortcutsContextValue {
+	registerModelSelectorToggle: (callback: () => void) => void;
+	unregisterModelSelectorToggle: () => void;
+}
+
+const KeyboardShortcutsContext =
+	createContext<KeyboardShortcutsContextValue | null>(null);
+
+export function useKeyboardShortcutsContext() {
+	const context = useContext(KeyboardShortcutsContext);
+	if (!context) {
+		throw new Error(
+			"useKeyboardShortcutsContext must be used within KeyboardShortcutsProvider",
+		);
+	}
+	return context;
+}
 
 export function KeyboardShortcutsProvider({
 	children,
@@ -9,6 +28,7 @@ export function KeyboardShortcutsProvider({
 	children: React.ReactNode;
 }) {
 	const router = useRouter();
+	const modelSelectorToggleRef = useRef<(() => void) | null>(null);
 
 	// Add keyboard shortcut for new chat (Cmd/Ctrl+Shift+O)
 	useKeyboardShortcut({
@@ -37,5 +57,30 @@ export function KeyboardShortcutsProvider({
 		},
 	});
 
-	return <>{children}</>;
+	// Add keyboard shortcut for model selector (Cmd/Ctrl+.)
+	useKeyboardShortcut({
+		key: ".",
+		ctrlKey: true,
+		metaKey: true,
+		callback: () => {
+			if (modelSelectorToggleRef.current) {
+				modelSelectorToggleRef.current();
+			}
+		},
+	});
+
+	const contextValue: KeyboardShortcutsContextValue = {
+		registerModelSelectorToggle: (callback: () => void) => {
+			modelSelectorToggleRef.current = callback;
+		},
+		unregisterModelSelectorToggle: () => {
+			modelSelectorToggleRef.current = null;
+		},
+	};
+
+	return (
+		<KeyboardShortcutsContext.Provider value={contextValue}>
+			{children}
+		</KeyboardShortcutsContext.Provider>
+	);
 }

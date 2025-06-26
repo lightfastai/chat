@@ -79,4 +79,3 @@ export class ThreadsErrorBoundary extends Component<
 		return this.props.children;
 	}
 }
-

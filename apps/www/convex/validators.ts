@@ -258,7 +258,7 @@ export const streamControlPartValidator = v.object({
 	controlType: v.union(
 		v.literal("start"),
 		v.literal("finish"),
-		v.literal("reasoning-part-finish")
+		v.literal("reasoning-part-finish"),
 	),
 	finishReason: v.optional(v.string()),
 	totalUsage: v.optional(v.any()),
