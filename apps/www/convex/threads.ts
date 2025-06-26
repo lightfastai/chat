@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import { mutation, query } from "./_generated/server.js";
@@ -98,6 +99,121 @@ export const list = query({
 		} catch {
 			// Return empty array for unauthenticated users
 			return [];
+		}
+	},
+});
+
+// List paginated threads for a user (for infinite scroll)
+export const listPaginated = query({
+	args: {
+		paginationOpts: paginationOptsValidator,
+	},
+	returns: v.object({
+		page: v.array(threadObjectValidator),
+		isDone: v.boolean(),
+		continueCursor: v.union(v.string(), v.null()),
+	}),
+	handler: async (ctx, args) => {
+		try {
+			const userId = await getAuthenticatedUserId(ctx);
+			return await ctx.db
+				.query("threads")
+				.withIndex("by_user", (q) => q.eq("userId", userId))
+				.filter((q) => q.eq(q.field("pinned"), undefined)) // Exclude pinned threads
+				.order("desc")
+				.paginate(args.paginationOpts);
+		} catch {
+			// Return empty page for unauthenticated users
+			return {
+				page: [],
+				isDone: true,
+				continueCursor: null,
+			};
+		}
+	},
+});
+
+// List pinned threads for a user (always loaded, not paginated)
+export const listPinned = query({
+	args: {},
+	returns: v.array(threadObjectValidator),
+	handler: async (ctx, _args) => {
+		try {
+			const userId = await getAuthenticatedUserId(ctx);
+			return await ctx.db
+				.query("threads")
+				.withIndex("by_user", (q) => q.eq("userId", userId))
+				.filter((q) => q.eq(q.field("pinned"), true))
+				.order("desc")
+				.collect();
+		} catch {
+			// Return empty array for unauthenticated users
+			return [];
+		}
+	},
+});
+
+// Helper function to determine date category for a thread
+function getDateCategory(lastMessageAt: number): string {
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+	const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+	const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+	const threadDate = new Date(lastMessageAt);
+
+	if (threadDate >= today) return "Today";
+	if (threadDate >= yesterday) return "Yesterday";
+	if (threadDate >= weekAgo) return "This Week";
+	if (threadDate >= monthAgo) return "This Month";
+	return "Older";
+}
+
+// Thread with date category for grouped results
+const threadWithCategoryValidator = v.object({
+	...threadObjectValidator.fields,
+	dateCategory: v.string(),
+});
+
+// List paginated threads with server-side date grouping
+export const listPaginatedWithGrouping = query({
+	args: {
+		paginationOpts: paginationOptsValidator,
+	},
+	returns: v.object({
+		page: v.array(threadWithCategoryValidator),
+		isDone: v.boolean(),
+		continueCursor: v.union(v.string(), v.null()),
+	}),
+	handler: async (ctx, args) => {
+		try {
+			const userId = await getAuthenticatedUserId(ctx);
+			const result = await ctx.db
+				.query("threads")
+				.withIndex("by_user", (q) => q.eq("userId", userId))
+				.filter((q) => q.eq(q.field("pinned"), undefined)) // Exclude pinned threads
+				.order("desc")
+				.paginate(args.paginationOpts);
+
+			// Add date categories to each thread
+			const threadsWithCategories = result.page.map((thread) => ({
+				...thread,
+				dateCategory: getDateCategory(thread.lastMessageAt),
+			}));
+
+			return {
+				page: threadsWithCategories,
+				isDone: result.isDone,
+				continueCursor: result.continueCursor,
+			};
+		} catch {
+			// Return empty page for unauthenticated users
+			return {
+				page: [],
+				isDone: true,
+				continueCursor: null,
+			};
 		}
 	},
 });

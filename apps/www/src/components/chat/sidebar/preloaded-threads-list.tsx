@@ -13,8 +13,12 @@ import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { ThreadItem } from "./thread-item";
+import { VirtualizedThreadsList } from "./virtualized-threads-list";
 
 type Thread = Doc<"threads">;
+
+// Feature flag for virtualized threads list
+const USE_VIRTUALIZED_THREADS = true;
 
 interface PreloadedThreadsListProps {
 	preloadedThreads: Preloaded<typeof api.threads.list>;
@@ -78,6 +82,12 @@ function groupThreadsByDate(threads: Thread[]) {
 export function PreloadedThreadsList({
 	preloadedThreads,
 }: PreloadedThreadsListProps) {
+	// Use new virtualized component if feature flag is enabled
+	if (USE_VIRTUALIZED_THREADS) {
+		return <VirtualizedThreadsList className="h-[calc(100vh-280px)] w-full" />;
+	}
+
+	// Fallback to original implementation
 	const togglePinned = useMutation(api.threads.togglePinned);
 
 	try {

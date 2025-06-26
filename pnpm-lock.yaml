@@ -138,6 +138,9 @@ importers:
       '@t3-oss/env-nextjs':
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.8.3)(zod@3.25.67)
+      '@tanstack/react-virtual':
+        specifier: ^3.13.11
+        version: 3.13.11(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/mdx':
         specifier: ^2.0.13
         version: 2.0.13
@@ -2232,6 +2235,15 @@ packages:
 
   '@tailwindcss/postcss@4.1.10':
     resolution: {integrity: sha512-B+7r7ABZbkXJwpvt2VMnS6ujcDoR2OOcFaqrLIo1xbcdxje4Vf+VgJdBzNNbrAjBj/rLZ66/tlQ1knIGNLKOBQ==}
+
+  '@tanstack/react-virtual@3.13.11':
+    resolution: {integrity: sha512-u5EaOSJOq08T9NXFuDopMdxZBNDFuEMohIFFU45fBYDXXh9SjYdbpNq1OLFSOpQnDRPjqgmY96ipZTkzom9t9Q==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@tanstack/virtual-core@3.13.11':
+    resolution: {integrity: sha512-ORL6UyuZJ0D9X33LDR4TcgcM+K2YiS2j4xbvH1vnhhObwR1Z4dKwPTL/c0kj2Yeb4Yp2lBv1wpyVaqlohk8zpg==}
 
   '@tootallnate/quickjs-emscripten@0.23.0':
     resolution: {integrity: sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA==}
@@ -6321,6 +6333,14 @@ snapshots:
       '@tailwindcss/oxide': 4.1.10
       postcss: 8.5.6
       tailwindcss: 4.1.10
+
+  '@tanstack/react-virtual@3.13.11(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      '@tanstack/virtual-core': 3.13.11
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+
+  '@tanstack/virtual-core@3.13.11': {}
 
   '@tootallnate/quickjs-emscripten@0.23.0': {}
 
