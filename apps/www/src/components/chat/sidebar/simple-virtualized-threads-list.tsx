@@ -276,7 +276,7 @@ export function SimpleVirtualizedThreadsList({
 	});
 
 	// Show empty state if no threads
-	if (threads.length === 0) {
+	if (allThreads.length === 0) {
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
@@ -349,9 +349,43 @@ export function SimpleVirtualizedThreadsList({
 						})}
 					</div>
 				) : (
-					// Show loading state while scroll element is being detected
-					<div className="px-3 py-4 text-center text-muted-foreground">
-						<p className="text-xs">Loading conversations...</p>
+					// Show threads without virtualization while scroll element is being detected
+					// This prevents the "loading" state when threads are actually available
+					<div className="w-full">
+						{virtualItems.map((item, index) => (
+							<div key={index}>
+								{item.type === "category-header" ? (
+									<SidebarGroup className="w-58">
+										<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+											{item.categoryName}
+										</SidebarGroupLabel>
+									</SidebarGroup>
+								) : item.type === "thread" ? (
+									<SidebarGroup className="w-58">
+										<SidebarGroupContent className="w-full max-w-full overflow-hidden">
+											<SidebarMenu className="space-y-0.5">
+												<ThreadItem
+													thread={item.thread}
+													onPinToggle={handlePinToggle}
+												/>
+											</SidebarMenu>
+										</SidebarGroupContent>
+									</SidebarGroup>
+								) : item.type === "load-more" ? (
+									<div className="flex justify-center p-4">
+										<Button
+											onClick={handleLoadMore}
+											disabled={isLoadingMore}
+											variant="ghost"
+											size="sm"
+											className="text-xs"
+										>
+											{isLoadingMore ? "Loading..." : "Load More"}
+										</Button>
+									</div>
+								) : null}
+							</div>
+						))}
 					</div>
 				)}
 			</div>
