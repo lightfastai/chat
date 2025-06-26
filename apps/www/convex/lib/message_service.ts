@@ -50,11 +50,15 @@ export async function buildConversationMessages(
 	attachments?: Id<"files">[],
 	webSearchEnabled?: boolean,
 ): Promise<CoreMessage[]> {
-	// Get recent conversation context
-	const recentMessages = await ctx.runQuery(
+	// Get recent conversation context - type assertion to avoid circular type inference
+	const recentMessages = (await ctx.runQuery(
 		internal.messages.getRecentContext,
 		{ threadId },
-	);
+	)) as Array<{
+		body: string;
+		messageType: "user" | "assistant" | "system";
+		attachments?: Id<"files">[];
+	}>;
 
 	const provider = getProviderFromModelId(modelId);
 	const systemPrompt = createSystemPrompt(modelId, webSearchEnabled);

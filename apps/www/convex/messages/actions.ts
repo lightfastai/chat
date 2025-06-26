@@ -40,20 +40,24 @@ export const generateAIResponseWithMessage = internalAction({
 	handler: async (ctx, args) => {
 		try {
 			// Since this is called from createThreadAndSend, we know the thread exists
-			// We just need to get the userId for API key retrieval
-			const thread = await ctx.runQuery(internal.messages.getThreadById, {
+			// We just need to get the userId for API key retrieval - type assertion to avoid circular type inference
+			const thread = (await ctx.runQuery(internal.messages.getThreadById, {
 				threadId: args.threadId,
-			});
+			})) as { userId: Id<"users"> } | null;
 			requireResource(thread, "Thread");
 
 			// Derive provider from modelId
 			const provider = getProviderFromModelId(args.modelId as ModelId);
 
-			// Get user's API keys if available
-			const userApiKeys = await ctx.runMutation(
+			// Get user's API keys if available - type assertion to avoid circular type inference
+			const userApiKeys = (await ctx.runMutation(
 				internal.userSettings.getDecryptedApiKeys,
 				{ userId: thread.userId },
-			);
+			)) as {
+				anthropic?: string;
+				openai?: string;
+				openrouter?: string;
+			} | null;
 
 			// Determine if user's API key will be used
 			const willUseUserApiKey =
@@ -67,11 +71,15 @@ export const generateAIResponseWithMessage = internalAction({
 				usedUserApiKey: !!willUseUserApiKey,
 			});
 
-			// Get recent conversation context
-			const recentMessages = await ctx.runQuery(
+			// Get recent conversation context - type assertion to avoid circular type inference
+			const recentMessages = (await ctx.runQuery(
 				internal.messages.getRecentContext,
 				{ threadId: args.threadId },
-			);
+			)) as Array<{
+				body: string;
+				messageType: "user" | "assistant" | "system";
+				attachments?: Id<"files">[];
+			}>;
 
 			// Prepare system prompt based on model capabilities
 			const systemPrompt = createSystemPrompt(
@@ -332,20 +340,24 @@ export const generateAIResponse = internalAction({
 	handler: async (ctx, args) => {
 		let messageId: Id<"messages"> | null = null;
 		try {
-			// Get thread and user information
-			const thread = await ctx.runQuery(internal.messages.getThreadById, {
+			// Get thread and user information - type assertion to avoid circular type inference
+			const thread = (await ctx.runQuery(internal.messages.getThreadById, {
 				threadId: args.threadId,
-			});
+			})) as { userId: Id<"users"> } | null;
 			requireResource(thread, "Thread");
 
 			// Derive provider from modelId
 			const provider = getProviderFromModelId(args.modelId as ModelId);
 
-			// Get user's API keys if available
-			const userApiKeys = await ctx.runMutation(
+			// Get user's API keys if available - type assertion to avoid circular type inference
+			const userApiKeys = (await ctx.runMutation(
 				internal.userSettings.getDecryptedApiKeys,
 				{ userId: thread.userId },
-			);
+			)) as {
+				anthropic?: string;
+				openai?: string;
+				openrouter?: string;
+			} | null;
 
 			// Generate unique stream ID and create streaming message
 			const streamId = generateStreamId();
