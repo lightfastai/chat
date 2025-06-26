@@ -1521,10 +1521,11 @@ export const generateAIResponseWithMessage = internalAction({
 						}
 						break;
 
-					// Handle unknown part types
+					// Handle unknown part types (should never happen with proper AI SDK types)
 					default:
-						// Log unknown part types for debugging but don't break the stream
-						console.warn("Unknown stream part type:", (part as any).type, part);
+						// This should be unreachable with proper TextStreamPart typing
+						const _exhaustiveCheck: never = part;
+						console.warn("Unknown stream part type:", (_exhaustiveCheck as { type: string }).type, _exhaustiveCheck);
 						break;
 				}
 			}
