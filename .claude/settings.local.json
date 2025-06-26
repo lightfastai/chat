@@ -89,7 +89,8 @@
       "Bash(pnpx tsc:*)",
       "Bash(git mv:*)",
       "Bash(mv:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(pnpm -w run build:www)"
     ],
     "deny": []
   }

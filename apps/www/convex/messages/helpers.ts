@@ -1,5 +1,5 @@
 import type { CoreMessage } from "ai";
-import { stepCountIs, streamText } from "ai";
+import { smoothStream, stepCountIs, streamText } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../../src/lib/ai/schemas.js";
 import {
@@ -10,6 +10,7 @@ import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import type { ActionCtx, MutationCtx } from "../_generated/server.js";
 import { createAIClient } from "../lib/ai_client.js";
+import { getModelStreamingDelay } from "../lib/streaming_config.js";
 import type {
 	modelIdValidator,
 	modelProviderValidator,
@@ -319,6 +320,10 @@ export async function streamAIResponse(
 		model: aiClient,
 		messages,
 		temperature: 0.7,
+		experimental_transform: smoothStream({
+			delayInMs: getModelStreamingDelay(modelId),
+			chunking: "word", // Stream word by word
+		}),
 	};
 
 	// Add web search tool if enabled
