@@ -3,6 +3,7 @@ import { stepCountIs, streamText } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../../src/lib/ai/schemas.js";
 import {
+	getModelConfig,
 	getProviderFromModelId,
 	isThinkingMode,
 } from "../../src/lib/ai/schemas.js";
@@ -331,14 +332,17 @@ export async function streamAIResponse(
 
 	// For Claude 4.0 thinking mode, enable thinking/reasoning
 	if (provider === "anthropic" && isThinkingMode(modelId)) {
-		generationOptions.providerOptions = {
-			anthropic: {
-				thinking: {
-					type: "enabled",
-					budgetTokens: 12000,
+		const modelConfig = getModelConfig(modelId);
+		if (modelConfig.thinkingConfig) {
+			generationOptions.providerOptions = {
+				anthropic: {
+					thinking: {
+						type: "enabled",
+						budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
+					},
 				},
-			},
-		};
+			};
+		}
 	}
 
 	// Use the AI SDK v5 streamText

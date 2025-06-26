@@ -8,7 +8,12 @@ import {
 	SidebarMenu,
 } from "@lightfast/ui/components/ui/sidebar";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { type Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
+import {
+	type Preloaded,
+	useMutation,
+	usePreloadedQuery,
+	useQuery,
+} from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
@@ -63,14 +68,15 @@ export function SimpleVirtualizedThreadsList({
 
 	// Use preloaded data with reactivity
 	const initialThreads = usePreloadedQuery(preloadedThreads);
-	
+
 	// Get pinned threads separately (always show all)
 	const pinnedThreads = useQuery(api.threads.listPinned) ?? [];
-	
+
 	// Use incremental loading for unpinned threads
-	const { threads, isLoadingMore, hasMoreData, loadMore } = useIncrementalThreads({
-		initialThreads: initialThreads.filter(t => !t.pinned),
-	});
+	const { threads, isLoadingMore, hasMoreData, loadMore } =
+		useIncrementalThreads({
+			initialThreads: initialThreads.filter((t) => !t.pinned),
+		});
 
 	// Handle pin toggle with optimistic update
 	const handlePinToggle = useCallback(
@@ -167,7 +173,7 @@ export function SimpleVirtualizedThreadsList({
 			const scrollTop = scrollElement.scrollTop;
 			const scrollHeight = scrollElement.scrollHeight;
 			const clientHeight = scrollElement.clientHeight;
-			
+
 			// Load more when we're within 200px of the bottom
 			if (scrollHeight - scrollTop - clientHeight < 200) {
 				loadMore();

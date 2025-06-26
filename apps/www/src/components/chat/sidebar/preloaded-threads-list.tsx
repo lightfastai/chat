@@ -87,9 +87,9 @@ export function PreloadedThreadsList({
 	if (USE_VIRTUALIZED_THREADS) {
 		return (
 			<ThreadsErrorBoundary>
-				<SimpleVirtualizedThreadsList 
+				<SimpleVirtualizedThreadsList
 					preloadedThreads={preloadedThreads}
-					className="h-[calc(100vh-280px)] w-full" 
+					className="h-[calc(100vh-280px)] w-full"
 				/>
 			</ThreadsErrorBoundary>
 		);

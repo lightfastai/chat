@@ -43,16 +43,16 @@ export function useIncrementalThreads({
 }: UseIncrementalThreadsProps): UseIncrementalThreadsResult {
 	// Store the initial threads to prevent re-initialization
 	const initialThreadsRef = useRef(initialThreads);
-	
+
 	// Initialize with preloaded threads
 	const [allThreads, setAllThreads] = useState<ThreadWithCategory[]>(() => {
 		// Add date categories to initial threads
-		return initialThreadsRef.current.map(thread => ({
+		return initialThreadsRef.current.map((thread) => ({
 			...thread,
 			dateCategory: getDateCategory(thread.lastMessageAt),
 		}));
 	});
-	
+
 	const [cursor, setCursor] = useState<string | null>(null);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [hasMoreData, setHasMoreData] = useState(true);
@@ -60,13 +60,14 @@ export function useIncrementalThreads({
 	const hasInitialized = useRef(false);
 
 	// Load next page when requested
-	const nextPageArgs = shouldLoadMore && hasMoreData
-		? { 
-			paginationOpts: { numItems: ITEMS_PER_PAGE, cursor },
-			skipFirst: 20, // Skip the first 20 that were preloaded
-		}
-		: "skip";
-		
+	const nextPageArgs =
+		shouldLoadMore && hasMoreData
+			? {
+					paginationOpts: { numItems: ITEMS_PER_PAGE, cursor },
+					skipFirst: 20, // Skip the first 20 that were preloaded
+				}
+			: "skip";
+
 	const nextPageResult = useQuery(
 		api.threads.listPaginatedWithGrouping,
 		nextPageArgs,
@@ -74,36 +75,38 @@ export function useIncrementalThreads({
 
 	// Handle real-time updates for initial threads
 	const updatedInitialThreads = useQuery(api.threads.list);
-	
+
 	useEffect(() => {
 		// Update initial threads when they change (real-time updates)
 		if (updatedInitialThreads && updatedInitialThreads.length > 0) {
-			setAllThreads(prev => {
+			setAllThreads((prev) => {
 				// Update only the first 20 threads with new data
-				const updatedWithCategories = updatedInitialThreads.map(thread => ({
+				const updatedWithCategories = updatedInitialThreads.map((thread) => ({
 					...thread,
 					dateCategory: getDateCategory(thread.lastMessageAt),
 				}));
-				
+
 				// Check if we actually need to update (compare thread IDs and timestamps)
 				const currentFirst20 = prev.slice(0, 20);
-				const hasChanges = updatedWithCategories.length !== currentFirst20.length ||
-					updatedWithCategories.some((thread, index) => 
-						!currentFirst20[index] ||
-						thread._id !== currentFirst20[index]._id ||
-						thread.lastMessageAt !== currentFirst20[index].lastMessageAt
+				const hasChanges =
+					updatedWithCategories.length !== currentFirst20.length ||
+					updatedWithCategories.some(
+						(thread, index) =>
+							!currentFirst20[index] ||
+							thread._id !== currentFirst20[index]._id ||
+							thread.lastMessageAt !== currentFirst20[index].lastMessageAt,
 					);
-				
+
 				if (!hasChanges) {
 					return prev; // No changes, return current state
 				}
-				
+
 				// If we have more than 20 threads loaded, preserve them
 				if (prev.length > 20) {
 					const remainingThreads = prev.slice(20);
 					return [...updatedWithCategories, ...remainingThreads];
 				}
-				
+
 				// Otherwise just return the updated threads
 				return updatedWithCategories;
 			});
