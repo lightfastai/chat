@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import {
 	type ModelId,
 	getProviderFromModelId,
+	isThinkingMode,
 } from "../../src/lib/ai/schemas.js";
 import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
@@ -154,6 +155,18 @@ export const generateAIResponseWithMessage = internalAction({
 				};
 				// Enable iterative tool calling with stopWhen
 				generationOptions.stopWhen = stepCountIs(5); // Allow up to 5 iterations
+			}
+
+			// For Claude thinking models, enable thinking/reasoning
+			if (provider === "anthropic" && isThinkingMode(args.modelId)) {
+				generationOptions.providerOptions = {
+					anthropic: {
+						thinking: {
+							type: "enabled",
+							budgetTokens: 12000,
+						},
+					},
+				};
 			}
 
 			// Use the AI SDK v5 streamText

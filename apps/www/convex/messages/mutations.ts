@@ -27,6 +27,7 @@ export const send = mutation({
 	},
 	returns: v.object({
 		messageId: v.id("messages"),
+		assistantMessageId: v.id("messages"),
 	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
@@ -69,14 +70,40 @@ export const send = mutation({
 			attachments: args.attachments,
 		});
 
-		// Schedule AI response using the modelId
-		await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
+		// Generate unique stream ID for assistant message
+		const streamId = generateStreamId();
+
+		// Create assistant message placeholder immediately
+		const assistantMessageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
-			userMessage: args.body,
+			body: "", // Will be updated as chunks arrive
+			timestamp: Date.now() + 1, // Ensure it comes after user message
+			messageType: "assistant",
+			model: provider,
 			modelId: modelId,
-			attachments: args.attachments,
-			webSearchEnabled: args.webSearchEnabled,
+			isStreaming: true,
+			streamId: streamId,
+			isComplete: false,
+			thinkingStartedAt: Date.now(),
+			streamVersion: 0, // Initialize version counter
+			parts: [], // Initialize empty parts array for tool calls
+			usage: undefined, // Initialize usage tracking
 		});
+
+		// Schedule AI response using the new implementation with full event handling
+		await ctx.scheduler.runAfter(
+			0,
+			internal.messages.generateAIResponseWithMessage,
+			{
+				threadId: args.threadId,
+				userMessage: args.body,
+				modelId: modelId,
+				attachments: args.attachments,
+				webSearchEnabled: args.webSearchEnabled,
+				messageId: assistantMessageId,
+				streamId: streamId,
+			},
+		);
 
 		// Check if this is the first user message in the thread (for title generation)
 		const userMessages = await ctx.db
@@ -93,7 +120,7 @@ export const send = mutation({
 			});
 		}
 
-		return { messageId };
+		return { messageId, assistantMessageId };
 	},
 });
 
