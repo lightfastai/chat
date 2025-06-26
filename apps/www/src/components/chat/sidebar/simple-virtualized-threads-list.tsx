@@ -3,8 +3,6 @@
 import { Button } from "@lightfast/ui/components/ui/button";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
-	SidebarGroup,
-	SidebarGroupContent,
 	SidebarGroupLabel,
 	SidebarMenu,
 } from "@lightfast/ui/components/ui/sidebar";
@@ -89,9 +87,9 @@ type VirtualItem =
 	| { type: "load-more" };
 
 // Constants for virtualization
-const ESTIMATED_ITEM_HEIGHT = 40; // Thread item height
-const CATEGORY_HEADER_HEIGHT = 32; // Category header height
-const LOAD_MORE_HEIGHT = 60; // Load more button height
+const ESTIMATED_ITEM_HEIGHT = 36; // Thread item height
+const CATEGORY_HEADER_HEIGHT = 28; // Category header height
+const LOAD_MORE_HEIGHT = 48; // Load more button height
 const ITEMS_PER_PAGE = 10; // Number of threads to load per page
 
 export function SimpleVirtualizedThreadsList({
@@ -112,19 +110,17 @@ export function SimpleVirtualizedThreadsList({
 	const threads = usePreloadedQuery(preloadedThreads);
 
 	// Query for paginated results (only when we have a cursor and want to load more)
-	const paginationArgs = isLoadingMore && hasMore && cursor !== null
-		? { paginationOpts: { numItems: ITEMS_PER_PAGE, cursor } }
-		: "skip";
-	
-	const paginatedResult = useQuery(
-		api.threads.listPaginated,
-		paginationArgs
-	);
+	const paginationArgs =
+		isLoadingMore && hasMore && cursor !== null
+			? { paginationOpts: { numItems: ITEMS_PER_PAGE, cursor } }
+			: "skip";
+
+	const paginatedResult = useQuery(api.threads.listPaginated, paginationArgs);
 
 	// Handle pagination results
 	useEffect(() => {
 		if (paginatedResult && isLoadingMore) {
-			setAdditionalThreads(prev => [...prev, ...paginatedResult.page]);
+			setAdditionalThreads((prev) => [...prev, ...paginatedResult.page]);
 			setCursor(paginatedResult.continueCursor);
 			setHasMore(!paginatedResult.isDone);
 			setIsLoadingMore(false);
@@ -150,9 +146,12 @@ export function SimpleVirtualizedThreadsList({
 	// Separate and group threads
 	const { pinned, unpinned } = useMemo(
 		() => separatePinnedThreads(allThreads),
-		[allThreads]
+		[allThreads],
 	);
-	const groupedThreads = useMemo(() => groupThreadsByDate(unpinned), [unpinned]);
+	const groupedThreads = useMemo(
+		() => groupThreadsByDate(unpinned),
+		[unpinned],
+	);
 
 	// Create virtual items for rendering
 	const virtualItems = useMemo(() => {
@@ -258,13 +257,16 @@ export function SimpleVirtualizedThreadsList({
 	}, []);
 
 	// Stable size estimator
-	const estimateSize = useCallback((index: number) => {
-		const item = virtualItems[index];
-		if (!item) return ESTIMATED_ITEM_HEIGHT;
-		if (item.type === "category-header") return CATEGORY_HEADER_HEIGHT;
-		if (item.type === "load-more") return LOAD_MORE_HEIGHT;
-		return ESTIMATED_ITEM_HEIGHT;
-	}, [virtualItems]);
+	const estimateSize = useCallback(
+		(index: number) => {
+			const item = virtualItems[index];
+			if (!item) return ESTIMATED_ITEM_HEIGHT;
+			if (item.type === "category-header") return CATEGORY_HEADER_HEIGHT;
+			if (item.type === "load-more") return LOAD_MORE_HEIGHT;
+			return ESTIMATED_ITEM_HEIGHT;
+		},
+		[virtualItems],
+	);
 
 	// Set up virtualizer
 	const virtualizer = useVirtualizer({
@@ -315,30 +317,24 @@ export function SimpleVirtualizedThreadsList({
 									}}
 								>
 									{item.type === "category-header" ? (
-										<SidebarGroup className="w-58">
-											<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-												{item.categoryName}
-											</SidebarGroupLabel>
-										</SidebarGroup>
+										<SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
+											{item.categoryName}
+										</SidebarGroupLabel>
 									) : item.type === "thread" ? (
-										<SidebarGroup className="w-58">
-											<SidebarGroupContent className="w-full max-w-full overflow-hidden">
-												<SidebarMenu className="space-y-0.5">
-													<ThreadItem
-														thread={item.thread}
-														onPinToggle={handlePinToggle}
-													/>
-												</SidebarMenu>
-											</SidebarGroupContent>
-										</SidebarGroup>
+										<SidebarMenu>
+											<ThreadItem
+												thread={item.thread}
+												onPinToggle={handlePinToggle}
+											/>
+										</SidebarMenu>
 									) : item.type === "load-more" ? (
-										<div className="flex justify-center p-4">
+										<div className="flex justify-center py-2 px-2">
 											<Button
 												onClick={handleLoadMore}
 												disabled={isLoadingMore}
 												variant="ghost"
 												size="sm"
-												className="text-xs"
+												className="text-xs w-full"
 											>
 												{isLoadingMore ? "Loading..." : "Load More"}
 											</Button>
@@ -355,30 +351,24 @@ export function SimpleVirtualizedThreadsList({
 						{virtualItems.map((item, index) => (
 							<div key={index}>
 								{item.type === "category-header" ? (
-									<SidebarGroup className="w-58">
-										<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-											{item.categoryName}
-										</SidebarGroupLabel>
-									</SidebarGroup>
+									<SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
+										{item.categoryName}
+									</SidebarGroupLabel>
 								) : item.type === "thread" ? (
-									<SidebarGroup className="w-58">
-										<SidebarGroupContent className="w-full max-w-full overflow-hidden">
-											<SidebarMenu className="space-y-0.5">
-												<ThreadItem
-													thread={item.thread}
-													onPinToggle={handlePinToggle}
-												/>
-											</SidebarMenu>
-										</SidebarGroupContent>
-									</SidebarGroup>
+									<SidebarMenu>
+										<ThreadItem
+											thread={item.thread}
+											onPinToggle={handlePinToggle}
+										/>
+									</SidebarMenu>
 								) : item.type === "load-more" ? (
-									<div className="flex justify-center p-4">
+									<div className="flex justify-center py-2 px-2">
 										<Button
 											onClick={handleLoadMore}
 											disabled={isLoadingMore}
 											variant="ghost"
 											size="sm"
-											className="text-xs"
+											className="text-xs w-full"
 										>
 											{isLoadingMore ? "Loading..." : "Load More"}
 										</Button>
