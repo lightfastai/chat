@@ -42,7 +42,6 @@ export async function validateModelCapabilities(
 	// Get file information for each attachment
 	for (const fileId of attachmentIds) {
 		try {
-			// @ts-expect-error - TypeScript deep instantiation issue with Convex types
 			const file = await ctx.runQuery(internal.files.getFileWithUrl, {
 				fileId,
 			});
