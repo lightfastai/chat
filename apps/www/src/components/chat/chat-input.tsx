@@ -4,8 +4,11 @@ import { useFileDrop } from "@/hooks/use-file-drop";
 import {
 	DEFAULT_MODEL_ID,
 	type ModelId,
+	getIncompatibilityMessage,
+	getModelCapabilities,
 	getModelConfig,
 	getVisibleModels,
+	validateAttachmentsForModel,
 } from "@/lib/ai";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
@@ -283,6 +286,24 @@ const ChatInputComponent = ({
 			return;
 		}
 
+		// Validate attachments against selected model capabilities
+		if (attachments.length > 0) {
+			const validation = validateAttachmentsForModel(
+				selectedModelId as ModelId,
+				attachments.map((att) => ({ type: att.type, name: att.name })),
+			);
+
+			if (!validation.isValid) {
+				const errorMessage = getIncompatibilityMessage(
+					selectedModel?.displayName || "This model",
+					validation.incompatibleAttachments,
+					validation.suggestedModels,
+				);
+				toast.error(errorMessage);
+				return;
+			}
+		}
+
 		setIsSending(true);
 
 		try {
@@ -508,21 +529,43 @@ const ChatInputComponent = ({
 															<span>{providerNames[provider] || provider}</span>
 														</DropdownMenuSubTrigger>
 														<DropdownMenuPortal>
-															<DropdownMenuSubContent className="w-64">
-																{models.map((model) => (
-																	<DropdownMenuItem
-																		key={model.id}
-																		onClick={() => handleModelChange(model.id)}
-																		className="flex flex-col items-start py-2"
-																	>
-																		<span className="font-medium">
-																			{model.displayName}
-																		</span>
-																		<span className="text-xs text-muted-foreground">
-																			{model.description}
-																		</span>
-																	</DropdownMenuItem>
-																))}
+															<DropdownMenuSubContent className="w-72">
+																{models.map((model) => {
+																	const capabilities = getModelCapabilities(
+																		model.id as ModelId,
+																	);
+																	return (
+																		<DropdownMenuItem
+																			key={model.id}
+																			onClick={() =>
+																				handleModelChange(model.id)
+																			}
+																			className="flex flex-col items-start py-3"
+																		>
+																			<div className="flex items-center justify-between w-full">
+																				<span className="font-medium">
+																					{model.displayName}
+																				</span>
+																				{capabilities.length > 0 && (
+																					<div className="flex items-center gap-1">
+																						{capabilities.map((cap) => (
+																							<span
+																								key={cap.key}
+																								className="text-sm"
+																								title={cap.description}
+																							>
+																								{cap.icon}
+																							</span>
+																						))}
+																					</div>
+																				)}
+																			</div>
+																			<span className="text-xs text-muted-foreground">
+																				{model.description}
+																			</span>
+																		</DropdownMenuItem>
+																	);
+																})}
 															</DropdownMenuSubContent>
 														</DropdownMenuPortal>
 													</DropdownMenuSub>

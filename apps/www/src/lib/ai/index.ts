@@ -77,3 +77,20 @@ export {
 	getSupportedProviders,
 	createGenerationOptions,
 } from "./providers";
+
+// Capabilities
+export type {
+	AttachmentType,
+	ModelCapability,
+} from "./capabilities";
+
+export {
+	MODEL_CAPABILITIES,
+	modelSupportsCapability,
+	getModelCapabilities,
+	getAttachmentType,
+	modelSupportsAttachment,
+	validateAttachmentsForModel,
+	getIncompatibilityMessage,
+	shouldWarnAboutCapabilities,
+} from "./capabilities";

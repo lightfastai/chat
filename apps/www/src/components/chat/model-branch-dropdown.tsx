@@ -4,6 +4,7 @@ import { GitBranch } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ModelConfig, ModelId } from "@/lib/ai";
+import { getModelCapabilities } from "@/lib/ai";
 import { getVisibleModels } from "@/lib/ai/schemas";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
@@ -34,7 +35,7 @@ export function ModelBranchDropdown({
 	// Notify parent when dropdown state changes
 	useEffect(() => {
 		onOpenChange?.(open);
-		
+
 		// Blur the button when dropdown closes to remove focus state
 		if (!open && buttonRef.current) {
 			buttonRef.current.blur();
@@ -82,26 +83,51 @@ export function ModelBranchDropdown({
 					<GitBranch className="h-4 w-4" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" side="right" sideOffset={5} className="w-52">
+			<DropdownMenuContent
+				align="start"
+				side="right"
+				sideOffset={5}
+				className="w-52"
+			>
 				{Object.entries(modelsByProvider).map(([provider, models]) => (
 					<DropdownMenuSub key={provider}>
 						<DropdownMenuSubTrigger>
 							<span>{providerNames[provider] || provider}</span>
 						</DropdownMenuSubTrigger>
 						<DropdownMenuPortal>
-							<DropdownMenuSubContent className="w-64">
-								{models.map((model) => (
-									<DropdownMenuItem
-										key={model.id}
-										onClick={() => handleModelSelect(model.id as ModelId)}
-										className="flex flex-col items-start py-2"
-									>
-										<span className="font-medium">{model.displayName}</span>
-										<span className="text-xs text-muted-foreground">
-											{model.description}
-										</span>
-									</DropdownMenuItem>
-								))}
+							<DropdownMenuSubContent className="w-72">
+								{models.map((model) => {
+									const capabilities = getModelCapabilities(
+										model.id as ModelId,
+									);
+									return (
+										<DropdownMenuItem
+											key={model.id}
+											onClick={() => handleModelSelect(model.id as ModelId)}
+											className="flex flex-col items-start py-3"
+										>
+											<div className="flex items-center justify-between w-full">
+												<span className="font-medium">{model.displayName}</span>
+												{capabilities.length > 0 && (
+													<div className="flex items-center gap-1">
+														{capabilities.map((cap) => (
+															<span
+																key={cap.key}
+																className="text-sm"
+																title={cap.description}
+															>
+																{cap.icon}
+															</span>
+														))}
+													</div>
+												)}
+											</div>
+											<span className="text-xs text-muted-foreground">
+												{model.description}
+											</span>
+										</DropdownMenuItem>
+									);
+								})}
 							</DropdownMenuSubContent>
 						</DropdownMenuPortal>
 					</DropdownMenuSub>

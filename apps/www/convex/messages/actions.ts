@@ -9,6 +9,7 @@ import type { Id } from "../_generated/dataModel.js";
 import { internalAction } from "../_generated/server.js";
 import { createAIClient } from "../lib/ai_client.js";
 import { createWebSearchTool } from "../lib/ai_tools.js";
+import { enforceModelCapabilities } from "../lib/capability_guards.js";
 import { requireResource } from "../lib/errors.js";
 import {
 	buildMessageContent,
@@ -39,6 +40,13 @@ export const generateAIResponseWithMessage = internalAction({
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		try {
+			// Validate model capabilities against attachments first
+			await enforceModelCapabilities(
+				ctx,
+				args.modelId as ModelId,
+				args.attachments,
+			);
+
 			// Since this is called from createThreadAndSend, we know the thread exists
 			// We just need to get the userId for API key retrieval
 			const thread = await ctx.runQuery(internal.messages.getThreadById, {
@@ -332,6 +340,13 @@ export const generateAIResponse = internalAction({
 	handler: async (ctx, args) => {
 		let messageId: Id<"messages"> | null = null;
 		try {
+			// Validate model capabilities against attachments first
+			await enforceModelCapabilities(
+				ctx,
+				args.modelId as ModelId,
+				args.attachments,
+			);
+
 			// Get thread and user information
 			const thread = await ctx.runQuery(internal.messages.getThreadById, {
 				threadId: args.threadId,
