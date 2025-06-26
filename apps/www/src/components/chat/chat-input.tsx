@@ -347,6 +347,7 @@ const ChatInputComponent = ({
 		attachments,
 		webSearchEnabled,
 		setMessage,
+		selectedModel?.displayName,
 	]);
 
 	const handleKeyPress = useCallback(
