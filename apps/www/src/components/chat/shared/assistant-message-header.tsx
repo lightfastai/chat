@@ -1,6 +1,5 @@
 "use client";
 
-import { isThinkingMode } from "@/lib/ai";
 import type { Doc } from "../../../../convex/_generated/dataModel";
 import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
 
@@ -30,10 +29,17 @@ export function AssistantMessageHeader({
 	hasParts,
 	message,
 }: AssistantMessageHeaderProps) {
-	// Check if this is a reasoning model
-	const isReasoningModel = message?.modelId
-		? isThinkingMode(message.modelId)
-		: false;
+	// Check if message has reasoning parts
+	const hasReasoningParts = message?.parts?.some(
+		(part) => part.type === "reasoning"
+	) || false;
+	
+	// Get reasoning content from parts
+	const reasoningContent = message?.parts
+		?.filter((part) => part.type === "reasoning")
+		.map((part) => part.text)
+		.join("\n");
+
 	// Check if message has any actual content
 	const hasContent = (() => {
 		// First check streamingText
@@ -60,8 +66,8 @@ export function AssistantMessageHeader({
 			isStreaming={!!isStreaming}
 			isComplete={!!isComplete}
 			hasContent={hasContent}
-			reasoningContent={message?.thinkingContent || undefined}
-			isReasoningModel={isReasoningModel}
+			reasoningContent={reasoningContent}
+			hasReasoningParts={hasReasoningParts}
 		/>
 	);
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { isThinkingMode } from "@/lib/ai";
 import { getMessageParts } from "@/lib/message-parts";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import { cn } from "@lightfast/ui/lib/utils";
@@ -49,9 +48,11 @@ export function MessageItem({
 	forceActionsVisible = false,
 }: MessageItemProps) {
 	const isAssistant = message.messageType === "assistant";
-	const isReasoningModel = message.modelId
-		? isThinkingMode(message.modelId)
-		: false;
+	
+	// Check if message has reasoning parts (for completed messages)
+	const hasReasoningParts = message.parts?.some(
+		(part) => part.type === "reasoning"
+	) || false;
 
 	// Calculate thinking duration
 	const thinkingDuration = React.useMemo(() => {
@@ -97,7 +98,7 @@ export function MessageItem({
 					<ThinkingContent
 						content={message.thinkingContent}
 						duration={thinkingDuration}
-						isReasoningModel={isReasoningModel}
+						isReasoningModel={hasReasoningParts}
 					/>
 				)}
 

@@ -9,7 +9,7 @@ interface StreamingReasoningDisplayProps {
 	isComplete: boolean;
 	hasContent: boolean;
 	reasoningContent?: string;
-	isReasoningModel: boolean;
+	hasReasoningParts: boolean;
 }
 
 export function StreamingReasoningDisplay({
@@ -17,7 +17,7 @@ export function StreamingReasoningDisplay({
 	isComplete,
 	hasContent,
 	reasoningContent,
-	isReasoningModel,
+	hasReasoningParts,
 }: StreamingReasoningDisplayProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 
@@ -26,20 +26,23 @@ export function StreamingReasoningDisplay({
 		return null;
 	}
 
-	// For non-reasoning models, just show the thinking indicator
-	if (!isReasoningModel) {
+	// Show "Thinking" initially, then switch to "Reasoning" when reasoning parts appear
+	const label = hasReasoningParts ? "Reasoning" : "Thinking";
+
+	// If no reasoning parts yet, just show the thinking indicator
+	if (!hasReasoningParts) {
 		return (
 			<div className="mb-2 flex items-center gap-2 min-h-5">
-				<ThinkingIndicator label="Thinking" />
+				<ThinkingIndicator label={label} />
 			</div>
 		);
 	}
 
-	// For reasoning models, show expandable reasoning display
+	// When reasoning parts are detected, show expandable reasoning display
 	return (
 		<div className="mb-4">
 			<div className="flex items-center gap-2 min-h-5">
-				<ThinkingIndicator label="Reasoning" />
+				<ThinkingIndicator label={label} />
 				<button
 					type="button"
 					onClick={() => setIsExpanded(!isExpanded)}
