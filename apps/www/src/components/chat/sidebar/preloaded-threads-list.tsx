@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { ThreadItem } from "./thread-item";
+import { ThreadsErrorBoundary } from "./threads-error-boundary";
 import { VirtualizedThreadsList } from "./virtualized-threads-list";
 
 type Thread = Doc<"threads">;
@@ -84,7 +85,11 @@ export function PreloadedThreadsList({
 }: PreloadedThreadsListProps) {
 	// Use new virtualized component if feature flag is enabled
 	if (USE_VIRTUALIZED_THREADS) {
-		return <VirtualizedThreadsList className="h-[calc(100vh-280px)] w-full" />;
+		return (
+			<ThreadsErrorBoundary>
+				<VirtualizedThreadsList className="h-[calc(100vh-280px)] w-full" />
+			</ThreadsErrorBoundary>
+		);
 	}
 
 	// Fallback to original implementation

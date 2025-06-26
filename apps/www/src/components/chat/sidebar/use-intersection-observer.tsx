@@ -33,7 +33,10 @@ export function useIntersectionObserver(
 		observer.observe(element);
 
 		return () => {
-			observer.unobserve(element);
+			// Ensure element still exists before unobserving
+			if (element) {
+				observer.unobserve(element);
+			}
 			observer.disconnect();
 		};
 	}, [root, rootMargin, threshold]);

@@ -61,19 +61,23 @@ export function useInfiniteThreads(): UseInfiniteThreadsResult {
 		} else {
 			// Subsequent updates - merge new threads at the top
 			// This ensures newly active threads appear at the top
-			const currentThreadIds = new Set(allThreads.map(t => t._id));
-			const newThreads = initialResult.page.filter(t => !currentThreadIds.has(t._id));
-			
+			const currentThreadIds = new Set(allThreads.map((t) => t._id));
+			const newThreads = initialResult.page.filter(
+				(t) => !currentThreadIds.has(t._id),
+			);
+
 			if (newThreads.length > 0) {
 				// Add new threads at the beginning
-				setAllThreads(prev => [...newThreads, ...prev]);
+				setAllThreads((prev) => [...newThreads, ...prev]);
 			}
-			
+
 			// Update existing threads that might have changed (e.g., lastMessageAt)
-			setAllThreads(prev => {
+			setAllThreads((prev) => {
 				const updatedThreads = [...prev];
 				for (let i = 0; i < updatedThreads.length; i++) {
-					const freshThread = initialResult.page.find(t => t._id === updatedThreads[i]._id);
+					const freshThread = initialResult.page.find(
+						(t) => t._id === updatedThreads[i]._id,
+					);
 					if (freshThread) {
 						updatedThreads[i] = freshThread;
 					}
@@ -82,7 +86,7 @@ export function useInfiniteThreads(): UseInfiniteThreadsResult {
 				return updatedThreads.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
 			});
 		}
-	}, [initialResult, hasInitialized, allThreads]);
+	}, [initialResult, hasInitialized]); // Remove allThreads from dependencies to prevent infinite loop
 
 	// Handle loading more data
 	useEffect(() => {

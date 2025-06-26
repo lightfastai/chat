@@ -98,9 +98,14 @@ export function VirtualizedThreadsList({
 		if (pinnedThreads.length > 0) {
 			items.push({ type: "category-header", categoryName: "Pinned" });
 			for (const thread of pinnedThreads) {
+				// Safely add dateCategory to pinned threads
+				const threadWithCategory: ThreadWithCategory = {
+					...thread,
+					dateCategory: "Pinned",
+				};
 				items.push({
 					type: "thread",
-					thread: { ...thread, dateCategory: "Pinned" },
+					thread: threadWithCategory,
 					categoryName: "Pinned",
 				});
 			}
@@ -139,7 +144,9 @@ export function VirtualizedThreadsList({
 	// Find the scroll viewport element when component mounts
 	useEffect(() => {
 		if (scrollAreaRef.current) {
-			const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]');
+			const viewport = scrollAreaRef.current.querySelector(
+				'[data-slot="scroll-area-viewport"]',
+			);
 			if (viewport) {
 				setScrollElement(viewport as HTMLElement);
 			}
@@ -157,6 +164,7 @@ export function VirtualizedThreadsList({
 			return ESTIMATED_ITEM_HEIGHT; // Thread item height
 		},
 		overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
+		enabled: scrollElement !== null, // Disable virtualizer until scroll element is ready
 	});
 
 	// Trigger loading when intersection observer detects the load trigger
@@ -190,10 +198,7 @@ export function VirtualizedThreadsList({
 	}
 
 	return (
-		<ScrollArea 
-			ref={scrollAreaRef}
-			className={className}
-		>
+		<ScrollArea ref={scrollAreaRef} className={className}>
 			<div className="w-full max-w-full min-w-0 overflow-hidden">
 				<div
 					style={{
@@ -202,60 +207,61 @@ export function VirtualizedThreadsList({
 						position: "relative",
 					}}
 				>
-				{virtualizer.getVirtualItems().map((virtualItem) => {
-					const item = virtualItems[virtualItem.index];
-					if (!item) return null;
+					{scrollElement &&
+						virtualizer.getVirtualItems().map((virtualItem) => {
+							const item = virtualItems[virtualItem.index];
+							if (!item) return null;
 
-					return (
-						<div
-							key={virtualItem.key}
-							style={{
-								position: "absolute",
-								top: 0,
-								left: 0,
-								width: "100%",
-								height: `${virtualItem.size}px`,
-								transform: `translateY(${virtualItem.start}px)`,
-							}}
-						>
-							{item.type === "category-header" ? (
-								<SidebarGroup className="w-58">
-									<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-										{item.categoryName}
-									</SidebarGroupLabel>
-								</SidebarGroup>
-							) : item.type === "thread" ? (
-								<SidebarGroup className="w-58">
-									<SidebarGroupContent className="w-full max-w-full overflow-hidden">
-										<SidebarMenu className="space-y-0.5">
-											<ThreadItem
-												thread={item.thread}
-												onPinToggle={handlePinToggle}
-											/>
-										</SidebarMenu>
-									</SidebarGroupContent>
-								</SidebarGroup>
-							) : item.type === "loading" ? (
-								<div className="px-3 py-2">
-									<div className="flex items-center justify-center space-x-2 text-muted-foreground">
-										<div className="w-3 h-3 rounded-full bg-current opacity-20 animate-pulse" />
-										<div
-											className="w-3 h-3 rounded-full bg-current opacity-40 animate-pulse"
-											style={{ animationDelay: "0.2s" }}
-										/>
-										<div
-											className="w-3 h-3 rounded-full bg-current opacity-60 animate-pulse"
-											style={{ animationDelay: "0.4s" }}
-										/>
-									</div>
-									<div className="text-xs text-center mt-1 text-muted-foreground">
-										Loading more...
-									</div>
+							return (
+								<div
+									key={virtualItem.key}
+									style={{
+										position: "absolute",
+										top: 0,
+										left: 0,
+										width: "100%",
+										height: `${virtualItem.size}px`,
+										transform: `translateY(${virtualItem.start}px)`,
+									}}
+								>
+									{item.type === "category-header" ? (
+										<SidebarGroup className="w-58">
+											<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+												{item.categoryName}
+											</SidebarGroupLabel>
+										</SidebarGroup>
+									) : item.type === "thread" ? (
+										<SidebarGroup className="w-58">
+											<SidebarGroupContent className="w-full max-w-full overflow-hidden">
+												<SidebarMenu className="space-y-0.5">
+													<ThreadItem
+														thread={item.thread}
+														onPinToggle={handlePinToggle}
+													/>
+												</SidebarMenu>
+											</SidebarGroupContent>
+										</SidebarGroup>
+									) : item.type === "loading" ? (
+										<div className="px-3 py-2">
+											<div className="flex items-center justify-center space-x-2 text-muted-foreground">
+												<div className="w-3 h-3 rounded-full bg-current opacity-20 animate-pulse" />
+												<div
+													className="w-3 h-3 rounded-full bg-current opacity-40 animate-pulse"
+													style={{ animationDelay: "0.2s" }}
+												/>
+												<div
+													className="w-3 h-3 rounded-full bg-current opacity-60 animate-pulse"
+													style={{ animationDelay: "0.4s" }}
+												/>
+											</div>
+											<div className="text-xs text-center mt-1 text-muted-foreground">
+												Loading more...
+											</div>
+										</div>
+									) : null}
 								</div>
-							) : null}
-						</div>
-					);
-				})}
+							);
+						})}
 				</div>
 				{/* Intersection observer trigger for infinite scroll */}
 				{hasMoreData && !isLoadingMore && (
