@@ -160,6 +160,7 @@ export const generateAIResponseWithMessage = internalAction({
 			const result = streamText(generationOptions);
 
 			let fullText = "";
+			let fullThinking = "";
 			let hasContent = false;
 
 			// Use fullStream as the unified interface (works with or without tools)
@@ -271,6 +272,45 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "finish":
 						// Handle completion events (provides usage stats, finish reason, etc.)
+						break;
+
+					case "reasoning-delta":
+						// Handle streaming reasoning/thinking content
+						if (part.reasoningDelta) {
+							fullThinking += part.reasoningDelta;
+
+							// Update thinking content with accumulated reasoning
+							await ctx.runMutation(internal.messages.updateThinkingContent, {
+								messageId: args.messageId,
+								thinkingContent: fullThinking,
+							});
+
+							// Mark as actively thinking
+							await ctx.runMutation(internal.messages.updateThinkingState, {
+								messageId: args.messageId,
+								isThinking: true,
+								hasThinkingContent: true,
+							});
+						}
+						break;
+
+					case "reasoning":
+						// Handle complete reasoning/thinking content blocks
+						if (part.reasoning) {
+							fullThinking = part.reasoning;
+
+							await ctx.runMutation(internal.messages.updateThinkingContent, {
+								messageId: args.messageId,
+								thinkingContent: fullThinking,
+							});
+
+							// Mark thinking as complete
+							await ctx.runMutation(internal.messages.updateThinkingState, {
+								messageId: args.messageId,
+								isThinking: false,
+								hasThinkingContent: true,
+							});
+						}
 						break;
 
 					case "error":

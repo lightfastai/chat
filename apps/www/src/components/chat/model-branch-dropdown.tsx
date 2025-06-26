@@ -34,7 +34,7 @@ export function ModelBranchDropdown({
 	// Notify parent when dropdown state changes
 	useEffect(() => {
 		onOpenChange?.(open);
-		
+
 		// Blur the button when dropdown closes to remove focus state
 		if (!open && buttonRef.current) {
 			buttonRef.current.blur();
@@ -82,7 +82,12 @@ export function ModelBranchDropdown({
 					<GitBranch className="h-4 w-4" />
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" side="right" sideOffset={5} className="w-52">
+			<DropdownMenuContent
+				align="start"
+				side="right"
+				sideOffset={5}
+				className="w-52"
+			>
 				{Object.entries(modelsByProvider).map(([provider, models]) => (
 					<DropdownMenuSub key={provider}>
 						<DropdownMenuSubTrigger>

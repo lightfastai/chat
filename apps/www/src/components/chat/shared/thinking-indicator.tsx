@@ -30,7 +30,8 @@ export function ThinkingIndicator() {
 					<div
 						className="absolute inset-0 animate-gradient"
 						style={{
-							background: "linear-gradient(135deg, #9333ea 0%, #3b82f6 25%, #ec4899 50%, #9333ea 75%, #3b82f6 100%)",
+							background:
+								"linear-gradient(135deg, #9333ea 0%, #3b82f6 25%, #ec4899 50%, #9333ea 75%, #3b82f6 100%)",
 							backgroundSize: "400% 400%",
 						}}
 					/>
