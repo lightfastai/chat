@@ -12,6 +12,7 @@ import {
 	type CoreMessage,
 	type TextStreamPart,
 	type ToolSet,
+	smoothStream,
 	stepCountIs,
 	streamText,
 } from "ai";
@@ -37,6 +38,7 @@ import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getOrThrow, getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
+import { getModelStreamingDelay } from "./lib/streaming_config.js";
 import {
 	branchInfoValidator,
 	clientIdValidator,
@@ -744,12 +746,29 @@ export const completeStreamingMessage = internalMutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		// Verify the message exists
-		await getOrThrow(ctx.db, "messages", args.messageId);
+		// Verify the message exists and get current parts
+		const message = await getOrThrow(ctx.db, "messages", args.messageId);
 
-		// Update the message with completion status and full text
+		// Combine consecutive text parts to reduce storage
+		const currentParts = message.parts || [];
+		const combinedParts: typeof currentParts = [];
+
+		for (const part of currentParts) {
+			const lastPart = combinedParts[combinedParts.length - 1];
+
+			// If current part is text and last part is also text, combine them
+			if (part.type === "text" && lastPart?.type === "text") {
+				lastPart.text += part.text;
+			} else {
+				// Otherwise, add the part as is
+				combinedParts.push(part);
+			}
+		}
+
+		// Update the message with completion status, full text, and combined parts
 		await ctx.db.patch(args.messageId, {
 			body: args.fullText,
+			parts: combinedParts,
 			isStreaming: false,
 			isComplete: true,
 			thinkingCompletedAt: Date.now(),
@@ -1327,6 +1346,10 @@ export const generateAIResponseWithMessage = internalAction({
 			const generationOptions: Parameters<typeof streamText>[0] = {
 				model: ai,
 				messages: messages,
+				experimental_transform: smoothStream({
+					delayInMs: getModelStreamingDelay(args.modelId),
+					chunking: "word", // Stream word by word
+				}),
 				// Usage will be updated after streaming completes
 			};
 
