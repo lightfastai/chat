@@ -8,55 +8,57 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
-import type { CoreMessage } from "ai";
+import { type CoreMessage, stepCountIs, streamText } from "ai";
 import { v } from "convex/values";
 import {
-	type ModelId,
-	getModelById,
-	getProviderFromModelId,
+  type ModelId,
+  getModelById,
+  getProviderFromModelId,
 } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import {
-	type ActionCtx,
-	internalAction,
-	internalMutation,
-	internalQuery,
-	mutation,
-	query,
+  type ActionCtx,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server.js";
+import { createAIClient } from "./lib/ai_client.js";
+import { createWebSearchTool } from "./lib/ai_tools.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getOrThrow, getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
 import {
-	branchInfoValidator,
-	clientIdValidator,
-	messageTypeValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	shareIdValidator,
-	shareSettingsValidator,
-	streamIdValidator,
-	threadUsageValidator,
-	tokenUsageValidator,
+  branchInfoValidator,
+  clientIdValidator,
+  messageTypeValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  shareIdValidator,
+  shareSettingsValidator,
+  streamIdValidator,
+  threadUsageValidator,
+  tokenUsageValidator,
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
 import {
-	clearGenerationFlagUtil,
-	createStreamingMessageUtil,
-	generateStreamId,
-	handleAIResponseError,
-	streamAIResponse,
-	updateThreadUsage,
-	updateThreadUsageUtil,
+  clearGenerationFlagUtil,
+  createStreamingMessageUtil,
+  generateStreamId,
+  handleAIResponseError,
+  streamAIResponse,
+  updateThreadUsage,
+  updateThreadUsageUtil,
 } from "./messages/helpers.js";
 import {
-	type AISDKUsage,
-	type MessageUsageUpdate,
-	formatUsageData,
-	messageReturnValidator,
+  type AISDKUsage,
+  type MessageUsageUpdate,
+  formatUsageData,
+  messageReturnValidator,
 } from "./messages/types.js";
 
 // Type definitions for multimodal content
@@ -1076,28 +1078,173 @@ export const generateAIResponseWithMessage = internalAction({
 				}
 			};
 
-			// Stream AI response using helper utility
-			const { fullText, usage: finalUsage } = await streamAIResponse(
-				ctx,
-				args.modelId as ModelId,
-				messages,
-				args.messageId,
-				userApiKeys,
-				args.webSearchEnabled,
-			);
+			// Create AI client using shared utility
+			const ai = createAIClient(args.modelId as ModelId, userApiKeys);
 
-			// Update thread usage with final usage
+			// Prepare generation options
+			const generationOptions: Parameters<typeof streamText>[0] = {
+				model: ai,
+				messages: messages,
+				// Usage will be updated after streaming completes
+			};
+
+			// Add web search tool if enabled
+			if (args.webSearchEnabled) {
+				generationOptions.tools = {
+					web_search: createWebSearchTool(),
+				};
+				// Enable iterative tool calling with stopWhen
+				generationOptions.stopWhen = stepCountIs(5); // Allow up to 5 iterations
+			}
+
+			// Use the AI SDK v5 streamText
+			const result = streamText(generationOptions);
+
+			let fullText = "";
+			let hasContent = false;
+
+			// Use fullStream as the unified interface (works with or without tools)
+			for await (const streamPart of result.fullStream) {
+				const part = streamPart;
+				switch (part.type) {
+					case "text-delta":
+						if (part.textDelta) {
+							fullText += part.textDelta;
+							hasContent = true;
+
+							// Add text part to the parts array
+							await ctx.runMutation(internal.messages.addTextPart, {
+								messageId: args.messageId,
+								text: part.textDelta,
+							});
+						}
+						break;
+
+					case "text":
+						// Handle complete text blocks (in addition to text-delta)
+						if (part.text) {
+							fullText += part.text;
+							hasContent = true;
+
+							// Add text part to the parts array
+							await ctx.runMutation(internal.messages.addTextPart, {
+								messageId: args.messageId,
+								text: part.text,
+							});
+						}
+						break;
+
+					case "tool-call":
+						// Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
+						await ctx.runMutation(internal.messages.updateToolCallPart, {
+							messageId: args.messageId,
+							toolCallId: part.toolCallId,
+							args: part.args,
+							state: "call",
+						});
+						break;
+
+					case "tool-call-delta":
+						// Update tool call part with streaming arguments
+						if (part.toolCallId && part.argsTextDelta) {
+							await ctx.runMutation(internal.messages.updateToolCallPart, {
+								messageId: args.messageId,
+								toolCallId: part.toolCallId,
+								args: part.args, // Use the parsed args from the SDK
+								state: "partial-call",
+							});
+						}
+						break;
+
+					case "tool-result": {
+						// The AI SDK uses 'output' field for tool results, not 'result'
+						const toolResult = part.output || part.result;
+
+						// Update the tool call part with the result
+						await ctx.runMutation(internal.messages.updateToolCallPart, {
+							messageId: args.messageId,
+							toolCallId: part.toolCallId,
+							state: "result",
+							result: toolResult,
+						});
+						break;
+					}
+
+					case "tool-call-streaming-start":
+						// Add tool call part in "partial-call" state
+						if (part.toolCallId && part.toolName) {
+							await ctx.runMutation(internal.messages.addToolCallPart, {
+								messageId: args.messageId,
+								toolCallId: part.toolCallId,
+								toolName: part.toolName,
+								args: part.args || {},
+								state: "partial-call",
+							});
+						}
+						break;
+
+					case "start":
+						// Handle generation start event
+						break;
+
+					case "start-step":
+						// Handle multi-step generation start (step boundary marker)
+						break;
+
+					case "finish-step":
+						// Handle multi-step generation completion
+						// Check if this event contains tool results (fallback for different SDK versions)
+						if ((part as any).toolResults) {
+							const toolResults = (part as any).toolResults;
+
+							// Process each tool result
+							for (const toolResult of toolResults) {
+								if (toolResult.toolCallId && toolResult.result) {
+									await ctx.runMutation(internal.messages.updateToolCallPart, {
+										messageId: args.messageId,
+										toolCallId: toolResult.toolCallId,
+										state: "result",
+										result: toolResult.result,
+									});
+								}
+							}
+						}
+						break;
+
+					case "finish":
+						// Handle completion events (provides usage stats, finish reason, etc.)
+						break;
+
+					case "error":
+						// Handle stream errors explicitly
+						console.error("Stream error:", part.error);
+						throw new Error(`Stream error: ${part.error}`);
+
+					// Handle other event types that might be added in future SDK versions
+					default:
+						// Silently ignore unknown event types
+						break;
+				}
+			}
+
+			// Get final usage with optional chaining
+			const finalUsage = await result.usage;
 			if (finalUsage) {
 				await updateUsage(finalUsage);
 			}
 
-			// Complete the streaming message
-			await ctx.runMutation(internal.messages.completeStreamingMessage, {
-				messageId: args.messageId,
-				streamId: args.streamId,
-				fullText,
-				usage: finalUsage ? formatUsageData(finalUsage) : undefined,
-			});
+			// If we have streamed content, mark the message as complete
+			if (hasContent) {
+				// Format usage data for the message
+				const formattedUsage = formatUsageData(finalUsage);
+
+				await ctx.runMutation(internal.messages.completeStreamingMessage, {
+					messageId: args.messageId,
+					streamId: args.streamId,
+					fullText,
+					usage: formattedUsage,
+				});
+			}
 
 			// Clear generation flag
 			await ctx.runMutation(internal.messages.clearGenerationFlag, {
