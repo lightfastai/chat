@@ -86,7 +86,7 @@ export function MessageItem({
 				/>
 			)}
 
-			{/* Thinking content */}
+			{/* Thinking content - Legacy support for thinkingContent field */}
 			{showThinking &&
 				message.hasThinkingContent &&
 				message.thinkingContent && (
@@ -95,6 +95,32 @@ export function MessageItem({
 						duration={thinkingDuration}
 					/>
 				)}
+
+			{/* Reasoning parts - New Vercel AI SDK v5 structure */}
+			{showThinking &&
+				(() => {
+					const reasoningParts =
+						message.parts?.filter(
+							(part): part is { type: "reasoning"; text: string } =>
+								(part as { type: string }).type === "reasoning",
+						) || [];
+
+					if (reasoningParts.length > 0) {
+						// Combine all reasoning parts into one content block
+						const combinedReasoning = reasoningParts
+							.map((part) => part.text)
+							.join("");
+
+						return (
+							<ThinkingContent
+								content={combinedReasoning}
+								duration={thinkingDuration}
+							/>
+						);
+					}
+
+					return null;
+				})()}
 
 			{/* Message body - use parts-based rendering for streaming or final display */}
 			<div className="text-sm leading-relaxed">
@@ -107,31 +133,35 @@ export function MessageItem({
 
 						return (
 							<div className="space-y-2">
-								{parts.map((part, index) => {
-									// Create a unique key based on part content
-									const partKey =
-										part.type === "tool-call"
-											? `tool-call-${(part as any).toolCallId}`
-											: `text-${index}`;
+								{parts
+									.filter((part) => part.type !== "reasoning") // Filter out reasoning parts (rendered separately)
+									.map((part, index) => {
+										// Create a unique key based on part content
+										const partKey =
+											part.type === "tool-call"
+												? `tool-call-${(part as { toolCallId?: string }).toolCallId}`
+												: `text-${index}`;
 
-									switch (part.type) {
-										case "text":
-											return (
-												<div key={partKey}>
-													<Markdown className="text-sm">{part.text}</Markdown>
-													{isStreaming &&
-														!isComplete &&
-														index === parts.length - 1 && (
-															<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-														)}
-												</div>
-											);
-										case "tool-call":
-											return <ToolCallRenderer key={partKey} toolCall={part} />;
-										default:
-											return null;
-									}
-								})}
+										switch (part.type) {
+											case "text":
+												return (
+													<div key={partKey}>
+														<Markdown className="text-sm">{part.text}</Markdown>
+														{isStreaming &&
+															!isComplete &&
+															index === parts.length - 1 && (
+																<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
+															)}
+													</div>
+												);
+											case "tool-call":
+												return (
+													<ToolCallRenderer key={partKey} toolCall={part} />
+												);
+											default:
+												return null;
+										}
+									})}
 							</div>
 						);
 					} else {

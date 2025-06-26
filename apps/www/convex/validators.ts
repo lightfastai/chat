@@ -220,10 +220,18 @@ export const toolCallPartValidator = v.object({
 	step: v.optional(v.number()), // Official SDK step tracking for multi-step calls
 });
 
+// Reasoning part validator - Official Vercel AI SDK v5 compliant
+// Represents reasoning/thinking content from models like Claude 3.5 Sonnet
+export const reasoningPartValidator = v.object({
+	type: v.literal("reasoning"),
+	text: v.string(), // The reasoning content
+});
+
 // Message part union validator - represents any type of message part
 export const messagePartValidator = v.union(
 	textPartValidator,
 	toolCallPartValidator,
+	reasoningPartValidator,
 );
 
 // Array of message parts validator

@@ -6,7 +6,7 @@ import {
 	isThinkingMode,
 } from "../../src/lib/ai/schemas.js";
 import { internal } from "../_generated/api.js";
-import type { Id } from "../_generated/dataModel.js";
+import type { Doc, Id } from "../_generated/dataModel.js";
 import { internalAction } from "../_generated/server.js";
 import { createAIClient } from "../lib/ai_client.js";
 import { createWebSearchTool } from "../lib/ai_tools.js";
@@ -173,18 +173,19 @@ export const generateAIResponseWithMessage = internalAction({
 			const result = streamText(generationOptions);
 
 			let fullText = "";
-			let fullThinking = "";
 			let hasContent = false;
 
 			// Use fullStream as the unified interface (works with or without tools)
 			for await (const streamPart of result.fullStream) {
 				const part = streamPart as any;
-				
+
 				// Debug: Log all event types for Claude thinking models
 				if (provider === "anthropic" && isThinkingMode(args.modelId)) {
-					console.log(`[Stream Event] Type: ${part.type}, Has textDelta: ${!!part.textDelta}`);
+					console.log(
+						`[Stream Event] Type: ${part.type}, Has textDelta: ${!!part.textDelta}`,
+					);
 				}
-				
+
 				switch (part.type) {
 					case "text-delta":
 						if (part.textDelta) {
@@ -291,8 +292,19 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "finish":
 						// Handle completion events (provides usage stats, finish reason, etc.)
-						// Mark thinking as complete if we had any thinking content
-						if (fullThinking) {
+						// Mark thinking as complete if we had any reasoning parts
+						// We'll check if the message has reasoning parts
+						const message: Doc<"messages"> | null = await ctx.runQuery(
+							internal.messages.queries.getMessageById,
+							{
+								messageId: args.messageId,
+							},
+						);
+						const hasReasoningParts = message?.parts?.some(
+							(part) => (part as { type: string }).type === "reasoning",
+						);
+
+						if (hasReasoningParts) {
 							await ctx.runMutation(internal.messages.updateThinkingState, {
 								messageId: args.messageId,
 								isThinking: false,
@@ -305,16 +317,15 @@ export const generateAIResponseWithMessage = internalAction({
 						// Handle streaming reasoning/thinking content from Claude models
 						// According to Vercel AI SDK docs, reasoning events contain textDelta
 						if (part.textDelta) {
-							fullThinking += part.textDelta;
-							
 							// Debug logging for reasoning events
-							console.log(`[Reasoning Event] Received textDelta: ${part.textDelta.substring(0, 50)}...`);
-							console.log(`[Reasoning Event] Total thinking length: ${fullThinking.length}`);
+							console.log(
+								`[Reasoning Event] Received textDelta: ${part.textDelta.substring(0, 50)}...`,
+							);
 
-							// Update thinking content with accumulated reasoning
-							await ctx.runMutation(internal.messages.updateThinkingContent, {
+							// Add reasoning part following Vercel AI SDK v5 structure
+							await ctx.runMutation(internal.messages.addReasoningPart, {
 								messageId: args.messageId,
-								thinkingContent: fullThinking,
+								text: part.textDelta,
 							});
 
 							// Mark as actively thinking

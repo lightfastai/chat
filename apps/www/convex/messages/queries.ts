@@ -221,3 +221,14 @@ export const getThreadById = internalQuery({
 		return await ctx.db.get(args.threadId);
 	},
 });
+
+// Internal query to get message by ID
+export const getMessageById = internalQuery({
+	args: {
+		messageId: v.id("messages"),
+	},
+	returns: v.union(messageReturnValidator, v.null()),
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.messageId);
+	},
+});

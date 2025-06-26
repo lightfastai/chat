@@ -20,6 +20,7 @@ export {
 	// Internal queries
 	getRecentContext,
 	getThreadById,
+	getMessageById,
 } from "./messages/queries.js";
 
 // Export all mutations
@@ -39,6 +40,7 @@ export {
 	updateThinkingContent,
 	clearGenerationFlag,
 	addTextPart,
+	addReasoningPart,
 	addToolCallPart,
 	updateToolCallPart,
 } from "./messages/mutations.js";

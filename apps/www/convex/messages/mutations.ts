@@ -515,6 +515,34 @@ export const addTextPart = internalMutation({
 	},
 });
 
+// Internal mutation to add a reasoning part to a message
+export const addReasoningPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		text: v.string(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "reasoning" as const,
+				text: args.text,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
 // Internal mutation to add a tool call part to a message
 export const addToolCallPart = internalMutation({
 	args: {
