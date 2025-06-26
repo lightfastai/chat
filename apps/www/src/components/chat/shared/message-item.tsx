@@ -1,6 +1,10 @@
 "use client";
 
-import { getMessageParts } from "@/lib/message-parts";
+import { 
+	getMessageParts, 
+	hasReasoningContent, 
+	getCombinedReasoningText 
+} from "@/lib/message-parts";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import { cn } from "@lightfast/ui/lib/utils";
 import React from "react";
@@ -86,15 +90,33 @@ export function MessageItem({
 				/>
 			)}
 
-			{/* Thinking content */}
-			{showThinking &&
-				message.hasThinkingContent &&
-				message.thinkingContent && (
-					<ThinkingContent
-						content={message.thinkingContent}
-						duration={thinkingDuration}
-					/>
-				)}
+			{/* Thinking content - use parts-based reasoning content if available */}
+			{showThinking && (() => {
+				// First check if we have reasoning parts (new system)
+				if (hasReasoningContent(message)) {
+					const reasoningText = getCombinedReasoningText(message);
+					if (reasoningText) {
+						return (
+							<ThinkingContent
+								content={reasoningText}
+								duration={thinkingDuration}
+								isStreaming={isStreaming}
+							/>
+						);
+					}
+				}
+				// Fall back to legacy fields for backward compatibility
+				else if (message.hasThinkingContent && message.thinkingContent) {
+					return (
+						<ThinkingContent
+							content={message.thinkingContent}
+							duration={thinkingDuration}
+							isStreaming={isStreaming}
+						/>
+					);
+				}
+				return null;
+			})()}
 
 			{/* Message body - use parts-based rendering for streaming or final display */}
 			<div className="text-sm leading-relaxed">
@@ -104,10 +126,15 @@ export function MessageItem({
 						// Always use grouped parts to prevent line breaks between text chunks
 						// The grouping function handles both streaming and completed states
 						const parts = getMessageParts(message);
+						
+						// Filter out reasoning and control parts since they're handled separately
+						const displayParts = parts.filter(part => 
+							part.type !== "reasoning" && part.type !== "control"
+						);
 
 						return (
 							<div className="space-y-2">
-								{parts.map((part, index) => {
+								{displayParts.map((part, index) => {
 									// Create a unique key based on part content
 									const partKey =
 										part.type === "tool-call"
@@ -121,7 +148,7 @@ export function MessageItem({
 													<Markdown className="text-sm">{part.text}</Markdown>
 													{isStreaming &&
 														!isComplete &&
-														index === parts.length - 1 && (
+														index === displayParts.length - 1 && (
 															<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
 														)}
 												</div>
