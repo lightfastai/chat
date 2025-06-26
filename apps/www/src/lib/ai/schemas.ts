@@ -216,6 +216,9 @@ export const MODELS = {
 			enabled: true,
 			defaultBudgetTokens: 12000,
 		},
+		deprecated: true,
+		replacedBy: "claude-4-sonnet-20250514-thinking",
+		hidden: true,
 	}),
 	"claude-3-7-sonnet-20250219": ModelConfigSchema.parse({
 		id: "claude-3-7-sonnet-20250219",
@@ -236,6 +239,9 @@ export const MODELS = {
 			enabled: true,
 			defaultBudgetTokens: 12000,
 		},
+		deprecated: true,
+		replacedBy: "claude-3-7-sonnet-20250219-thinking",
+		hidden: true,
 	}),
 	"claude-3-5-sonnet-20241022": ModelConfigSchema.parse({
 		id: "claude-3-5-sonnet-20241022",
@@ -311,8 +317,8 @@ export const MODELS = {
 		id: "claude-4-sonnet-20250514-thinking",
 		provider: "anthropic",
 		name: "claude-4-sonnet-20250514",
-		displayName: "Claude 4 Sonnet (Thinking)",
-		description: "Balanced model with visible reasoning process",
+		displayName: "Claude 4 Sonnet",
+		description: "Latest generation model with visible reasoning process",
 		maxTokens: 200000,
 		costPer1KTokens: { input: 0.003, output: 0.015 },
 		features: {
@@ -331,8 +337,8 @@ export const MODELS = {
 		id: "claude-3-7-sonnet-20250219-thinking",
 		provider: "anthropic",
 		name: "claude-3-7-sonnet-20250219",
-		displayName: "Claude 3.7 Sonnet (Thinking)",
-		description: "Enhanced Claude 3.5 with visible reasoning process",
+		displayName: "Claude 3.7 Sonnet",
+		description: "Enhanced performance model with visible reasoning process",
 		maxTokens: 200000,
 		costPer1KTokens: { input: 0.003, output: 0.015 },
 		features: {
@@ -362,6 +368,7 @@ export const MODELS = {
 			thinking: true,
 			pdfSupport: true,
 		},
+		deprecated: true,
 		hidden: true,
 	}),
 	"claude-3-5-sonnet-20240620-thinking": ModelConfigSchema.parse({
