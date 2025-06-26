@@ -42,7 +42,7 @@ export async function validateModelCapabilities(
 	// Get file information for each attachment
 	for (const fileId of attachmentIds) {
 		try {
-			const file = await ctx.runQuery(internal.files.getFileWithUrl, {
+			const file: any = await ctx.runQuery(internal.files.getFileWithUrl, {
 				fileId,
 			});
 
