@@ -142,12 +142,16 @@ export function SimpleVirtualizedThreadsList({
 	// Find the scroll viewport element when component mounts
 	useEffect(() => {
 		if (scrollAreaRef.current) {
-			const viewport = scrollAreaRef.current.querySelector(
-				'[data-slot="scroll-area-viewport"]',
-			);
-			if (viewport) {
-				setScrollElement(viewport as HTMLElement);
-			}
+			// Add a small delay to ensure the DOM is fully rendered
+			const timeoutId = setTimeout(() => {
+				const viewport = scrollAreaRef.current?.querySelector(
+					'[data-slot="scroll-area-viewport"]',
+				);
+				if (viewport) {
+					setScrollElement(viewport as HTMLElement);
+				}
+			}, 0);
+			return () => clearTimeout(timeoutId);
 		}
 	}, []);
 
@@ -155,12 +159,15 @@ export function SimpleVirtualizedThreadsList({
 	const virtualizer = useVirtualizer({
 		count: virtualItems.length,
 		getScrollElement: () => scrollElement,
-		estimateSize: (index) => {
-			const item = virtualItems[index];
-			if (item?.type === "category-header") return 32; // Category header height
-			if (item?.type === "loading") return 60; // Loading indicator height
-			return ESTIMATED_ITEM_HEIGHT; // Thread item height
-		},
+		estimateSize: useCallback(
+			(index: number) => {
+				const item = virtualItems[index];
+				if (item?.type === "category-header") return 32; // Category header height
+				if (item?.type === "loading") return 60; // Loading indicator height
+				return ESTIMATED_ITEM_HEIGHT; // Thread item height
+			},
+			[virtualItems],
+		),
 		overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
 		enabled: scrollElement !== null, // Disable virtualizer until scroll element is ready
 	});
@@ -170,17 +177,21 @@ export function SimpleVirtualizedThreadsList({
 		if (!scrollElement || !hasMoreData || isLoadingMore) return;
 
 		const handleScroll = () => {
-			const scrollTop = scrollElement.scrollTop;
-			const scrollHeight = scrollElement.scrollHeight;
-			const clientHeight = scrollElement.clientHeight;
+			try {
+				const scrollTop = scrollElement.scrollTop;
+				const scrollHeight = scrollElement.scrollHeight;
+				const clientHeight = scrollElement.clientHeight;
 
-			// Load more when we're within 200px of the bottom
-			if (scrollHeight - scrollTop - clientHeight < 200) {
-				loadMore();
+				// Load more when we're within 200px of the bottom
+				if (scrollHeight - scrollTop - clientHeight < 200) {
+					loadMore();
+				}
+			} catch (error) {
+				console.error("Error in scroll handler:", error);
 			}
 		};
 
-		scrollElement.addEventListener("scroll", handleScroll);
+		scrollElement.addEventListener("scroll", handleScroll, { passive: true });
 		return () => scrollElement.removeEventListener("scroll", handleScroll);
 	}, [scrollElement, hasMoreData, isLoadingMore, loadMore]);
 
@@ -199,15 +210,15 @@ export function SimpleVirtualizedThreadsList({
 	return (
 		<ScrollArea ref={scrollAreaRef} className={className}>
 			<div className="w-full max-w-full min-w-0 overflow-hidden">
-				<div
-					style={{
-						height: `${virtualizer.getTotalSize()}px`,
-						width: "100%",
-						position: "relative",
-					}}
-				>
-					{scrollElement &&
-						virtualizer.getVirtualItems().map((virtualItem) => {
+				{scrollElement ? (
+					<div
+						style={{
+							height: `${virtualizer.getTotalSize()}px`,
+							width: "100%",
+							position: "relative",
+						}}
+					>
+						{virtualizer.getVirtualItems().map((virtualItem) => {
 							const item = virtualItems[virtualItem.index];
 							if (!item) return null;
 
@@ -261,7 +272,23 @@ export function SimpleVirtualizedThreadsList({
 								</div>
 							);
 						})}
-				</div>
+					</div>
+				) : (
+					// Show loading state while scroll element is being detected
+					<div className="px-3 py-8 text-center text-muted-foreground">
+						<div className="flex items-center justify-center space-x-2">
+							<div className="w-2 h-2 rounded-full bg-current opacity-20 animate-pulse" />
+							<div
+								className="w-2 h-2 rounded-full bg-current opacity-40 animate-pulse"
+								style={{ animationDelay: "0.2s" }}
+							/>
+							<div
+								className="w-2 h-2 rounded-full bg-current opacity-60 animate-pulse"
+								style={{ animationDelay: "0.4s" }}
+							/>
+						</div>
+					</div>
+				)}
 			</div>
 		</ScrollArea>
 	);

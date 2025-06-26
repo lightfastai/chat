@@ -72,6 +72,9 @@ export function useIncrementalThreads({
 
 	// Handle updates to initial threads prop (from preloaded query updates)
 	useEffect(() => {
+		// Use a ref to track if this is the first render to avoid unnecessary updates
+		if (!hasInitialized.current) return;
+		
 		setAllThreads((prev) => {
 			// Map initial threads with categories
 			const updatedWithCategories = initialThreads.map((thread) => ({
@@ -104,7 +107,7 @@ export function useIncrementalThreads({
 
 	// Handle loading more data
 	useEffect(() => {
-		if (shouldLoadMore && nextPageResult) {
+		if (shouldLoadMore && nextPageResult && !isLoadingMore) {
 			// Add the new threads to our list
 			setAllThreads((prev) => [...prev, ...nextPageResult.page]);
 			setCursor(nextPageResult.continueCursor);
@@ -112,7 +115,7 @@ export function useIncrementalThreads({
 			setIsLoadingMore(false);
 			setShouldLoadMore(false);
 		}
-	}, [shouldLoadMore, nextPageResult]);
+	}, [shouldLoadMore, nextPageResult, isLoadingMore]);
 
 	// Load more function
 	const loadMore = useCallback(() => {
