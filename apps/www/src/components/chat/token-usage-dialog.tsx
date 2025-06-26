@@ -1,5 +1,6 @@
 "use client";
 
+import { getModelConfig, getModelDisplayName, isValidModelId } from "@/lib/ai";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
 	Dialog,
@@ -38,30 +39,20 @@ function formatTokenCount(count: number): string {
 	return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
 }
 
-// Helper function to get model display name
-function getModelDisplayName(model: string): string {
-	switch (model) {
-		case "anthropic":
-			return "Claude Sonnet 4";
-		case "openai":
-			return "GPT-4o Mini";
-		case "claude-4-sonnet-20250514":
-			return "Claude 4 Sonnet";
-		case "claude-4-sonnet-20250514-thinking":
-			return "Claude 4 Sonnet (Thinking)";
-		case "claude-3-5-sonnet-20241022":
-			return "Claude 3.5 Sonnet";
-		case "claude-3-haiku-20240307":
-			return "Claude 3 Haiku";
-		case "gpt-4o":
-			return "GPT-4o";
-		case "gpt-4o-mini":
-			return "GPT-4o Mini";
-		case "gpt-3.5-turbo":
-			return "GPT-3.5 Turbo";
-		default:
-			return model;
+// Helper function to get model display name with fallback
+function getDisplayNameForModel(model: string): string {
+	// Use the AI library function for all known models
+	if (isValidModelId(model)) {
+		return getModelDisplayName(model);
 	}
+
+	// Fallback for legacy model IDs that might not be in the current schema
+	const legacyMappings: Record<string, string> = {
+		anthropic: "Claude Sonnet 4",
+		openai: "GPT-4o Mini",
+	};
+
+	return legacyMappings[model] || model;
 }
 
 export function TokenUsageDialog({
@@ -97,6 +88,20 @@ export function TokenUsageDialog({
 	if (!usage) {
 		return null;
 	}
+
+	// Calculate total estimated cost
+	const totalCost = usage.modelStats.reduce((sum, modelStat) => {
+		const modelConfig = isValidModelId(modelStat.model)
+			? getModelConfig(modelStat.model)
+			: null;
+		if (!modelConfig) return sum;
+
+		const inputCost =
+			(modelStat.inputTokens * modelConfig.costPer1KTokens.input) / 1000;
+		const outputCost =
+			(modelStat.outputTokens * modelConfig.costPer1KTokens.output) / 1000;
+		return sum + inputCost + outputCost;
+	}, 0);
 
 	return (
 		<>
@@ -136,7 +141,7 @@ export function TokenUsageDialog({
 
 					<div className="space-y-6">
 						{/* Summary */}
-						<div className="grid grid-cols-2 gap-4 text-sm">
+						<div className="grid grid-cols-3 gap-4 text-sm">
 							<div className="p-3 border rounded-lg">
 								<div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
 									Total Tokens
@@ -151,6 +156,14 @@ export function TokenUsageDialog({
 								</div>
 								<div className="font-mono text-lg font-semibold">
 									{usage.messageCount}
+								</div>
+							</div>
+							<div className="p-3 border rounded-lg">
+								<div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+									Est. Cost
+								</div>
+								<div className="font-mono text-lg font-semibold">
+									${totalCost.toFixed(4)}
 								</div>
 							</div>
 						</div>
@@ -233,8 +246,13 @@ interface ModelRowProps {
 }
 
 function ModelRow({ model, stats }: ModelRowProps) {
-	const displayName = getModelDisplayName(model);
-	const isThinking = model.includes("thinking");
+	const displayName = getDisplayNameForModel(model);
+
+	// Get model configuration for additional details
+	const modelConfig = isValidModelId(model) ? getModelConfig(model) : null;
+	const isThinking =
+		modelConfig?.features.thinking === true || model.includes("thinking");
+	const providerName = modelConfig?.provider || "unknown";
 
 	return (
 		<div className="p-3 border rounded-lg hover:bg-muted/30 transition-colors">
@@ -244,6 +262,7 @@ function ModelRow({ model, stats }: ModelRowProps) {
 					<div className="text-xs text-muted-foreground">
 						{stats.messageCount} message{stats.messageCount !== 1 ? "s" : ""}
 						{isThinking && " • thinking mode"}
+						{modelConfig && ` • ${providerName}`}
 					</div>
 				</div>
 				<div className="text-right">
@@ -254,33 +273,54 @@ function ModelRow({ model, stats }: ModelRowProps) {
 				</div>
 			</div>
 
-			<div className="grid grid-cols-2 gap-2 text-xs">
-				<div className="flex justify-between">
-					<span className="text-muted-foreground">Input</span>
-					<span className="font-mono">
-						{formatTokenCount(stats.inputTokens)}
-					</span>
-				</div>
-				<div className="flex justify-between">
-					<span className="text-muted-foreground">Output</span>
-					<span className="font-mono">
-						{formatTokenCount(stats.outputTokens)}
-					</span>
-				</div>
-				{stats.reasoningTokens > 0 && (
+			<div className="space-y-2">
+				{/* Token breakdown */}
+				<div className="grid grid-cols-2 gap-2 text-xs">
 					<div className="flex justify-between">
-						<span className="text-muted-foreground">Reasoning</span>
+						<span className="text-muted-foreground">Input</span>
 						<span className="font-mono">
-							{formatTokenCount(stats.reasoningTokens)}
+							{formatTokenCount(stats.inputTokens)}
 						</span>
 					</div>
-				)}
-				{stats.cachedInputTokens > 0 && (
 					<div className="flex justify-between">
-						<span className="text-muted-foreground">Cached</span>
+						<span className="text-muted-foreground">Output</span>
 						<span className="font-mono">
-							{formatTokenCount(stats.cachedInputTokens)}
+							{formatTokenCount(stats.outputTokens)}
 						</span>
+					</div>
+					{stats.reasoningTokens > 0 && (
+						<div className="flex justify-between">
+							<span className="text-muted-foreground">Reasoning</span>
+							<span className="font-mono">
+								{formatTokenCount(stats.reasoningTokens)}
+							</span>
+						</div>
+					)}
+					{stats.cachedInputTokens > 0 && (
+						<div className="flex justify-between">
+							<span className="text-muted-foreground">Cached</span>
+							<span className="font-mono">
+								{formatTokenCount(stats.cachedInputTokens)}
+							</span>
+						</div>
+					)}
+				</div>
+
+				{/* Cost estimate (if model config available) */}
+				{modelConfig && (
+					<div className="pt-2 border-t border-border/30">
+						<div className="flex justify-between text-xs">
+							<span className="text-muted-foreground">Est. Cost</span>
+							<span className="font-mono">
+								$
+								{(
+									(stats.inputTokens * modelConfig.costPer1KTokens.input) /
+										1000 +
+									(stats.outputTokens * modelConfig.costPer1KTokens.output) /
+										1000
+								).toFixed(4)}
+							</span>
+						</div>
 					</div>
 				)}
 			</div>

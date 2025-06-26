@@ -93,20 +93,20 @@ function LandingPage() {
 				</div>
 			</main>
 
-<div className="px-8">
-			<SiteFooter
-				siteName={siteConfig.name}
-				homeUrl={siteConfig.url.replace("chat.", "")}
-				links={{
-					github: siteConfig.links.github.href,
-					discord: siteConfig.links.discord.href,
-					twitter: siteConfig.links.twitter.href,
-					privacy: siteConfig.links.privacy.href,
-					terms: siteConfig.links.terms.href,
-					docs: siteConfig.links.docs.href,
-				}}
-			/>
-      </div>
+			<div className="px-8">
+				<SiteFooter
+					siteName={siteConfig.name}
+					homeUrl={siteConfig.url.replace("chat.", "")}
+					links={{
+						github: siteConfig.links.github.href,
+						discord: siteConfig.links.discord.href,
+						twitter: siteConfig.links.twitter.href,
+						privacy: siteConfig.links.privacy.href,
+						terms: siteConfig.links.terms.href,
+						docs: siteConfig.links.docs.href,
+					}}
+				/>
+			</div>
 		</div>
 	);
 }
