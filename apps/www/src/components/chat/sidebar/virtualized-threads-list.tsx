@@ -1,5 +1,6 @@
 "use client";
 
+import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -8,7 +9,7 @@ import {
 } from "@lightfast/ui/components/ui/sidebar";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMutation } from "convex/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
@@ -57,7 +58,8 @@ export function VirtualizedThreadsList({
 	className,
 }: VirtualizedThreadsListProps) {
 	const togglePinned = useMutation(api.threads.togglePinned);
-	const parentRef = useRef<HTMLDivElement>(null);
+	const scrollAreaRef = useRef<HTMLDivElement>(null);
+	const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
 	// Use infinite scroll hook
 	const {
@@ -134,10 +136,20 @@ export function VirtualizedThreadsList({
 		return items;
 	}, [pinnedThreads, allThreads, isLoadingMore]);
 
+	// Find the scroll viewport element when component mounts
+	useEffect(() => {
+		if (scrollAreaRef.current) {
+			const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]');
+			if (viewport) {
+				setScrollElement(viewport as HTMLElement);
+			}
+		}
+	}, []);
+
 	// Set up virtualizer
 	const virtualizer = useVirtualizer({
 		count: virtualItems.length,
-		getScrollElement: () => parentRef.current,
+		getScrollElement: () => scrollElement,
 		estimateSize: (index) => {
 			const item = virtualItems[index];
 			if (item?.type === "category-header") return 32; // Category header height
@@ -157,14 +169,11 @@ export function VirtualizedThreadsList({
 	// Show loading state
 	if (isLoading) {
 		return (
-			<div
-				className={className}
-				style={{ height: "calc(100vh - 280px)", overflow: "auto" }}
-			>
+			<ScrollArea className={className}>
 				<div className="p-3">
 					<ThreadListSkeleton count={10} />
 				</div>
-			</div>
+			</ScrollArea>
 		);
 	}
 
@@ -181,18 +190,18 @@ export function VirtualizedThreadsList({
 	}
 
 	return (
-		<div
-			ref={parentRef}
+		<ScrollArea 
+			ref={scrollAreaRef}
 			className={className}
-			style={{ height: "calc(100vh - 280px)", overflow: "auto" }}
 		>
-			<div
-				style={{
-					height: `${virtualizer.getTotalSize()}px`,
-					width: "100%",
-					position: "relative",
-				}}
-			>
+			<div className="w-full max-w-full min-w-0 overflow-hidden">
+				<div
+					style={{
+						height: `${virtualizer.getTotalSize()}px`,
+						width: "100%",
+						position: "relative",
+					}}
+				>
 				{virtualizer.getVirtualItems().map((virtualItem) => {
 					const item = virtualItems[virtualItem.index];
 					if (!item) return null;
@@ -247,20 +256,21 @@ export function VirtualizedThreadsList({
 						</div>
 					);
 				})}
+				</div>
+				{/* Intersection observer trigger for infinite scroll */}
+				{hasMoreData && !isLoadingMore && (
+					<div
+						ref={loadMoreTriggerRef}
+						className="h-1 w-full"
+						style={{
+							position: "absolute",
+							bottom: "20px",
+							left: 0,
+							right: 0,
+						}}
+					/>
+				)}
 			</div>
-			{/* Intersection observer trigger for infinite scroll */}
-			{hasMoreData && !isLoadingMore && (
-				<div
-					ref={loadMoreTriggerRef}
-					className="h-1 w-full"
-					style={{
-						position: "absolute",
-						bottom: "20px",
-						left: 0,
-						right: 0,
-					}}
-				/>
-			)}
-		</div>
+		</ScrollArea>
 	);
 }

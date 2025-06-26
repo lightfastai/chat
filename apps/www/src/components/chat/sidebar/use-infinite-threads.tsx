@@ -27,11 +27,12 @@ export function useInfiniteThreads(): UseInfiniteThreadsResult {
 	const [hasMoreData, setHasMoreData] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [shouldLoadMore, setShouldLoadMore] = useState(false);
+	const [hasInitialized, setHasInitialized] = useState(false);
 
 	// Load pinned threads (always loaded, not paginated)
 	const pinnedThreads = useQuery(api.threads.listPinned) ?? [];
 
-	// Load initial page of threads with server-side grouping
+	// Always load the first page fresh to catch newly active threads
 	const initialResult = useQuery(api.threads.listPaginatedWithGrouping, {
 		paginationOpts: { numItems: ITEMS_PER_PAGE, cursor: null },
 	});
@@ -46,15 +47,42 @@ export function useInfiniteThreads(): UseInfiniteThreadsResult {
 		nextPageArgs,
 	);
 
-	// Initialize threads on first load
+	// Handle initial load and real-time updates to the first page
 	useEffect(() => {
-		if (initialResult && allThreads.length === 0) {
+		if (!initialResult) return;
+
+		if (!hasInitialized) {
+			// First load - set all threads
 			setAllThreads(initialResult.page);
 			setCursor(initialResult.continueCursor);
 			setHasMoreData(!initialResult.isDone);
+			setHasInitialized(true);
 			setError(null);
+		} else {
+			// Subsequent updates - merge new threads at the top
+			// This ensures newly active threads appear at the top
+			const currentThreadIds = new Set(allThreads.map(t => t._id));
+			const newThreads = initialResult.page.filter(t => !currentThreadIds.has(t._id));
+			
+			if (newThreads.length > 0) {
+				// Add new threads at the beginning
+				setAllThreads(prev => [...newThreads, ...prev]);
+			}
+			
+			// Update existing threads that might have changed (e.g., lastMessageAt)
+			setAllThreads(prev => {
+				const updatedThreads = [...prev];
+				for (let i = 0; i < updatedThreads.length; i++) {
+					const freshThread = initialResult.page.find(t => t._id === updatedThreads[i]._id);
+					if (freshThread) {
+						updatedThreads[i] = freshThread;
+					}
+				}
+				// Re-sort to ensure correct order
+				return updatedThreads.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+			});
 		}
-	}, [initialResult, allThreads.length]);
+	}, [initialResult, hasInitialized, allThreads]);
 
 	// Handle loading more data
 	useEffect(() => {
