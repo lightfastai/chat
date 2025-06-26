@@ -179,6 +179,12 @@ export const generateAIResponseWithMessage = internalAction({
 			// Use fullStream as the unified interface (works with or without tools)
 			for await (const streamPart of result.fullStream) {
 				const part = streamPart as any;
+				
+				// Debug: Log all event types for Claude thinking models
+				if (provider === "anthropic" && isThinkingMode(args.modelId)) {
+					console.log(`[Stream Event] Type: ${part.type}, Has textDelta: ${!!part.textDelta}`);
+				}
+				
 				switch (part.type) {
 					case "text-delta":
 						if (part.textDelta) {
@@ -285,12 +291,25 @@ export const generateAIResponseWithMessage = internalAction({
 
 					case "finish":
 						// Handle completion events (provides usage stats, finish reason, etc.)
+						// Mark thinking as complete if we had any thinking content
+						if (fullThinking) {
+							await ctx.runMutation(internal.messages.updateThinkingState, {
+								messageId: args.messageId,
+								isThinking: false,
+								hasThinkingContent: true,
+							});
+						}
 						break;
 
-					case "reasoning-delta":
-						// Handle streaming reasoning/thinking content
-						if (part.reasoningDelta) {
-							fullThinking += part.reasoningDelta;
+					case "reasoning":
+						// Handle streaming reasoning/thinking content from Claude models
+						// According to Vercel AI SDK docs, reasoning events contain textDelta
+						if (part.textDelta) {
+							fullThinking += part.textDelta;
+							
+							// Debug logging for reasoning events
+							console.log(`[Reasoning Event] Received textDelta: ${part.textDelta.substring(0, 50)}...`);
+							console.log(`[Reasoning Event] Total thinking length: ${fullThinking.length}`);
 
 							// Update thinking content with accumulated reasoning
 							await ctx.runMutation(internal.messages.updateThinkingContent, {
@@ -302,25 +321,6 @@ export const generateAIResponseWithMessage = internalAction({
 							await ctx.runMutation(internal.messages.updateThinkingState, {
 								messageId: args.messageId,
 								isThinking: true,
-								hasThinkingContent: true,
-							});
-						}
-						break;
-
-					case "reasoning":
-						// Handle complete reasoning/thinking content blocks
-						if (part.reasoning) {
-							fullThinking = part.reasoning;
-
-							await ctx.runMutation(internal.messages.updateThinkingContent, {
-								messageId: args.messageId,
-								thinkingContent: fullThinking,
-							});
-
-							// Mark thinking as complete
-							await ctx.runMutation(internal.messages.updateThinkingState, {
-								messageId: args.messageId,
-								isThinking: false,
 								hasThinkingContent: true,
 							});
 						}
