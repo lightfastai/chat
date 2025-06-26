@@ -1,3 +1,5 @@
+"use node";
+
 import type { CoreMessage } from "ai";
 import { stepCountIs, streamText } from "ai";
 import type { Infer } from "convex/values";
@@ -348,18 +350,55 @@ export async function streamAIResponse(
 	let hasContent = false;
 	let toolCallsInProgress = 0;
 
+	// Batch configuration
+	const BATCH_SIZE = 10; // Number of chunks to combine
+	const BATCH_TIMEOUT_MS = 100; // Max time to wait before flushing
+	let textBatch: string[] = [];
+	let batchTimer: NodeJS.Timeout | null = null;
+
+	// Function to flush the current batch
+	const flushBatch = async () => {
+		if (textBatch.length > 0) {
+			await ctx.runMutation(internal.messages.combineTextParts, {
+				messageId,
+				texts: textBatch,
+			});
+			textBatch = [];
+		}
+		if (batchTimer) {
+			clearTimeout(batchTimer);
+			batchTimer = null;
+		}
+	};
+
 	// Process the stream
 	for await (const chunk of result.textStream) {
 		if (chunk) {
 			fullText += chunk;
 			hasContent = true;
 
-			await ctx.runMutation(internal.messages.addTextPart, {
-				messageId,
-				text: chunk,
-			});
+			// Add chunk to batch
+			textBatch.push(chunk);
+
+			// Clear existing timer
+			if (batchTimer) {
+				clearTimeout(batchTimer);
+			}
+
+			// Flush if batch is full
+			if (textBatch.length >= BATCH_SIZE) {
+				await flushBatch();
+			} else {
+				// Set timer to flush after timeout
+				batchTimer = setTimeout(() => {
+					flushBatch().catch(console.error);
+				}, BATCH_TIMEOUT_MS);
+			}
 		}
 	}
+
+	// Flush any remaining chunks
+	await flushBatch();
 
 	// Process tool calls if web search is enabled
 	if (webSearchEnabled) {

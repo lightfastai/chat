@@ -1,3 +1,5 @@
+"use node";
+
 /**
  * Messages API
  *
@@ -870,6 +872,54 @@ export const addTextPart = internalMutation({
 	},
 });
 
+// Internal mutation to combine text parts efficiently
+export const combineTextParts = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		texts: v.array(v.string()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const combinedText = args.texts.join("");
+
+		// Check if the last part is a text part we can append to
+		const lastPartIndex = currentParts.length - 1;
+		const lastPart = currentParts[lastPartIndex];
+
+		if (lastPart && lastPart.type === "text") {
+			// Append to existing text part
+			const updatedParts = [...currentParts];
+			updatedParts[lastPartIndex] = {
+				type: "text" as const,
+				text: lastPart.text + combinedText,
+			};
+
+			await ctx.db.patch(args.messageId, {
+				parts: updatedParts,
+			});
+		} else {
+			// Add as new text part
+			const updatedParts = [
+				...currentParts,
+				{
+					type: "text" as const,
+					text: combinedText,
+				},
+			];
+
+			await ctx.db.patch(args.messageId, {
+				parts: updatedParts,
+			});
+		}
+
+		return null;
+	},
+});
+
 // Internal mutation to add a reasoning part to a message
 export const addReasoningPart = internalMutation({
 	args: {
@@ -1345,6 +1395,27 @@ export const generateAIResponseWithMessage = internalAction({
 			let fullText = "";
 			let hasContent = false;
 
+			// Batch configuration for text parts
+			const BATCH_SIZE = 10; // Number of chunks to combine
+			const BATCH_TIMEOUT_MS = 100; // Max time to wait before flushing
+			let textBatch: string[] = [];
+			let batchTimer: NodeJS.Timeout | null = null;
+
+			// Function to flush the current batch
+			const flushBatch = async () => {
+				if (textBatch.length > 0) {
+					await ctx.runMutation(internal.messages.combineTextParts, {
+						messageId: args.messageId,
+						texts: textBatch,
+					});
+					textBatch = [];
+				}
+				if (batchTimer) {
+					clearTimeout(batchTimer);
+					batchTimer = null;
+				}
+			};
+
 			// Use fullStream as the unified interface (works with or without tools)
 			for await (const streamPart of result.fullStream) {
 				// Use the official AI SDK TextStreamPart type
@@ -1356,11 +1427,23 @@ export const generateAIResponseWithMessage = internalAction({
 							fullText += part.text;
 							hasContent = true;
 
-							// Add text part to the parts array
-							await ctx.runMutation(internal.messages.addTextPart, {
-								messageId: args.messageId,
-								text: part.text,
-							});
+							// Add text to batch instead of directly to database
+							textBatch.push(part.text);
+
+							// Clear existing timer
+							if (batchTimer) {
+								clearTimeout(batchTimer);
+							}
+
+							// Flush if batch is full
+							if (textBatch.length >= BATCH_SIZE) {
+								await flushBatch();
+							} else {
+								// Set timer to flush after timeout
+								batchTimer = setTimeout(() => {
+									flushBatch().catch(console.error);
+								}, BATCH_TIMEOUT_MS);
+							}
 						}
 						break;
 
@@ -1545,6 +1628,9 @@ export const generateAIResponseWithMessage = internalAction({
 						break;
 				}
 			}
+
+			// Flush any remaining text chunks before completing
+			await flushBatch();
 
 			// Get final usage with optional chaining
 			const finalUsage = await result.usage;
