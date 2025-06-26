@@ -14,24 +14,45 @@ import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { ThreadItem } from "./thread-item";
-import { ThreadListSkeleton } from "./thread-skeleton";
-import { useInfiniteThreads } from "./use-infinite-threads";
-import { useIntersectionObserver } from "./use-intersection-observer";
 
 type Thread = Doc<"threads">;
-type ThreadWithCategory = Thread & { dateCategory: string };
 
 // Constants for virtualization
 const ESTIMATED_ITEM_HEIGHT = 40; // Estimated height of each thread item in pixels
 
-interface VirtualizedThreadsListProps {
+interface SimpleVirtualizedThreadsListProps {
 	preloadedThreads: Preloaded<typeof api.threads.list>;
 	className?: string;
 }
 
-// Client-side function to group threads that already have categories from server
-function groupThreadsByCategory(threads: ThreadWithCategory[]) {
-	const groups: Record<string, ThreadWithCategory[]> = {
+// Separate pinned threads from unpinned threads
+function separatePinnedThreads(threads: Thread[]) {
+	const pinned: Thread[] = [];
+	const unpinned: Thread[] = [];
+
+	for (const thread of threads) {
+		if (thread.pinned) {
+			pinned.push(thread);
+		} else {
+			unpinned.push(thread);
+		}
+	}
+
+	// Sort pinned threads by lastMessageAt (newest first)
+	pinned.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+
+	return { pinned, unpinned };
+}
+
+// Server-side function to group threads by date - no client needed
+function groupThreadsByDate(threads: Thread[]) {
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+	const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+	const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+	const groups: Record<string, Thread[]> = {
 		Today: [],
 		Yesterday: [],
 		"This Week": [],
@@ -40,9 +61,18 @@ function groupThreadsByCategory(threads: ThreadWithCategory[]) {
 	};
 
 	for (const thread of threads) {
-		const category = thread.dateCategory;
-		if (groups[category]) {
-			groups[category].push(thread);
+		const threadDate = new Date(thread.lastMessageAt);
+
+		if (threadDate >= today) {
+			groups.Today.push(thread);
+		} else if (threadDate >= yesterday) {
+			groups.Yesterday.push(thread);
+		} else if (threadDate >= weekAgo) {
+			groups["This Week"].push(thread);
+		} else if (threadDate >= monthAgo) {
+			groups["This Month"].push(thread);
+		} else {
+			groups.Older.push(thread);
 		}
 	}
 
@@ -51,39 +81,21 @@ function groupThreadsByCategory(threads: ThreadWithCategory[]) {
 
 // Item types for virtualization
 type VirtualItem =
-	| { type: "thread"; thread: ThreadWithCategory; categoryName?: string }
-	| { type: "category-header"; categoryName: string }
-	| { type: "loading" };
+	| { type: "thread"; thread: Thread; categoryName?: string }
+	| { type: "category-header"; categoryName: string };
 
-export function VirtualizedThreadsList({
+export function SimpleVirtualizedThreadsList({
 	preloadedThreads,
 	className,
-}: VirtualizedThreadsListProps) {
+}: SimpleVirtualizedThreadsListProps) {
 	const togglePinned = useMutation(api.threads.togglePinned);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
-	// Use preloaded threads first to ensure immediate display
-	const initialThreads = usePreloadedQuery(preloadedThreads);
+	// Use preloaded data with reactivity
+	const threads = usePreloadedQuery(preloadedThreads);
 
-	// Use infinite scroll hook with initial threads
-	const {
-		threads: allThreads,
-		pinnedThreads,
-		isLoading,
-		isLoadingMore,
-		hasMoreData,
-		loadMore,
-	} = useInfiniteThreads(initialThreads);
-
-
-	// Use intersection observer for loading trigger
-	const { ref: loadMoreTriggerRef, isIntersecting } = useIntersectionObserver({
-		rootMargin: "100px", // Trigger 100px before the element comes into view
-		threshold: 0,
-	});
-
-	// Handle pin toggle (simplified without optimistic updates for now)
+	// Handle pin toggle with optimistic update
 	const handlePinToggle = useCallback(
 		async (threadId: Id<"threads">) => {
 			try {
@@ -99,53 +111,41 @@ export function VirtualizedThreadsList({
 	// Create virtual items for rendering
 	const virtualItems = useMemo(() => {
 		const items: VirtualItem[] = [];
+		const { pinned, unpinned } = separatePinnedThreads(threads);
+		const groupedThreads = groupThreadsByDate(unpinned);
+		const categoryOrder = [
+			"Today",
+			"Yesterday",
+			"This Week",
+			"This Month",
+			"Older",
+		];
 
 		// Add pinned threads section
-		if (pinnedThreads.length > 0) {
+		if (pinned.length > 0) {
 			items.push({ type: "category-header", categoryName: "Pinned" });
-			for (const thread of pinnedThreads) {
-				// Safely add dateCategory to pinned threads
-				const threadWithCategory: ThreadWithCategory = {
-					...thread,
-					dateCategory: "Pinned",
-				};
+			for (const thread of pinned) {
 				items.push({
 					type: "thread",
-					thread: threadWithCategory,
+					thread,
 					categoryName: "Pinned",
 				});
 			}
 		}
 
-		// Add regular threads grouped by date (server-side grouped)
-		if (allThreads.length > 0) {
-			const groupedThreads = groupThreadsByCategory(allThreads);
-			const categoryOrder = [
-				"Today",
-				"Yesterday",
-				"This Week",
-				"This Month",
-				"Older",
-			];
-
-			for (const category of categoryOrder) {
-				const categoryThreads = groupedThreads[category];
-				if (categoryThreads && categoryThreads.length > 0) {
-					items.push({ type: "category-header", categoryName: category });
-					for (const thread of categoryThreads) {
-						items.push({ type: "thread", thread, categoryName: category });
-					}
+		// Add regular threads grouped by date
+		for (const category of categoryOrder) {
+			const categoryThreads = groupedThreads[category];
+			if (categoryThreads && categoryThreads.length > 0) {
+				items.push({ type: "category-header", categoryName: category });
+				for (const thread of categoryThreads) {
+					items.push({ type: "thread", thread, categoryName: category });
 				}
 			}
 		}
 
-		// Add loading indicator if loading more
-		if (isLoadingMore) {
-			items.push({ type: "loading" });
-		}
-
 		return items;
-	}, [pinnedThreads, allThreads, isLoadingMore]);
+	}, [threads]);
 
 	// Find the scroll viewport element when component mounts
 	useEffect(() => {
@@ -166,33 +166,14 @@ export function VirtualizedThreadsList({
 		estimateSize: (index) => {
 			const item = virtualItems[index];
 			if (item?.type === "category-header") return 32; // Category header height
-			if (item?.type === "loading") return 48; // Loading indicator height
 			return ESTIMATED_ITEM_HEIGHT; // Thread item height
 		},
 		overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
 		enabled: scrollElement !== null, // Disable virtualizer until scroll element is ready
 	});
 
-	// Trigger loading when intersection observer detects the load trigger
-	useEffect(() => {
-		if (isIntersecting && hasMoreData && !isLoadingMore) {
-			loadMore();
-		}
-	}, [isIntersecting, hasMoreData, isLoadingMore, loadMore]);
-
-	// Show loading state
-	if (isLoading) {
-		return (
-			<ScrollArea className={className}>
-				<div className="p-3">
-					<ThreadListSkeleton count={10} />
-				</div>
-			</ScrollArea>
-		);
-	}
-
 	// Show empty state if no threads
-	if (pinnedThreads.length === 0 && allThreads.length === 0) {
+	if (threads.length === 0) {
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
@@ -247,41 +228,11 @@ export function VirtualizedThreadsList({
 												</SidebarMenu>
 											</SidebarGroupContent>
 										</SidebarGroup>
-									) : item.type === "loading" ? (
-										<div className="px-3 py-2">
-											<div className="flex items-center justify-center space-x-2 text-muted-foreground">
-												<div className="w-3 h-3 rounded-full bg-current opacity-20 animate-pulse" />
-												<div
-													className="w-3 h-3 rounded-full bg-current opacity-40 animate-pulse"
-													style={{ animationDelay: "0.2s" }}
-												/>
-												<div
-													className="w-3 h-3 rounded-full bg-current opacity-60 animate-pulse"
-													style={{ animationDelay: "0.4s" }}
-												/>
-											</div>
-											<div className="text-xs text-center mt-1 text-muted-foreground">
-												Loading more...
-											</div>
-										</div>
 									) : null}
 								</div>
 							);
 						})}
 				</div>
-				{/* Intersection observer trigger for infinite scroll */}
-				{hasMoreData && !isLoadingMore && (
-					<div
-						ref={loadMoreTriggerRef}
-						className="h-1 w-full"
-						style={{
-							position: "absolute",
-							bottom: "20px",
-							left: 0,
-							right: 0,
-						}}
-					/>
-				)}
 			</div>
 		</ScrollArea>
 	);

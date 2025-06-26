@@ -10,6 +10,23 @@ type ThreadWithCategory = Thread & { dateCategory: string };
 
 const ITEMS_PER_PAGE = 50;
 
+// Helper function to determine date category for a thread
+function getDateCategory(lastMessageAt: number): string {
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+	const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+	const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+	const threadDate = new Date(lastMessageAt);
+
+	if (threadDate >= today) return "Today";
+	if (threadDate >= yesterday) return "Yesterday";
+	if (threadDate >= weekAgo) return "This Week";
+	if (threadDate >= monthAgo) return "This Month";
+	return "Older";
+}
+
 interface UseInfiniteThreadsResult {
 	threads: ThreadWithCategory[];
 	pinnedThreads: Thread[];
@@ -20,14 +37,24 @@ interface UseInfiniteThreadsResult {
 	error: string | null;
 }
 
-export function useInfiniteThreads(): UseInfiniteThreadsResult {
-	const [allThreads, setAllThreads] = useState<ThreadWithCategory[]>([]);
+export function useInfiniteThreads(initialThreads?: Thread[]): UseInfiniteThreadsResult {
+	// Initialize with preloaded threads if provided
+	const [allThreads, setAllThreads] = useState<ThreadWithCategory[]>(() => {
+		if (initialThreads && initialThreads.length > 0) {
+			// Add date categories to initial threads
+			return initialThreads.map(thread => ({
+				...thread,
+				dateCategory: getDateCategory(thread.lastMessageAt),
+			}));
+		}
+		return [];
+	});
 	const [cursor, setCursor] = useState<string | null>(null);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [hasMoreData, setHasMoreData] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [shouldLoadMore, setShouldLoadMore] = useState(false);
-	const [hasInitialized, setHasInitialized] = useState(false);
+	const [hasInitialized, setHasInitialized] = useState(!!initialThreads);
 
 	// Load pinned threads (always loaded, not paginated)
 	const pinnedThreads = useQuery(api.threads.listPinned) ?? [];
@@ -49,7 +76,8 @@ export function useInfiniteThreads(): UseInfiniteThreadsResult {
 
 	// Handle initial load and real-time updates to the first page
 	useEffect(() => {
-		if (!initialResult) return;
+		// Skip if we have preloaded threads
+		if (!initialResult || initialThreads) return;
 
 		if (!hasInitialized) {
 			// First load - set all threads
