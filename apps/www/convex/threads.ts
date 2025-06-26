@@ -192,7 +192,7 @@ export const listPaginatedWithGrouping = query({
 	handler: async (ctx, args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
-			
+
 			// Build the query
 			let query = ctx.db
 				.query("threads")
@@ -210,11 +210,11 @@ export const listPaginatedWithGrouping = query({
 					query = ctx.db
 						.query("threads")
 						.withIndex("by_user", (q) => q.eq("userId", userId))
-						.filter((q) => 
+						.filter((q) =>
 							q.and(
 								q.eq(q.field("pinned"), undefined),
-								q.lt(q.field("lastMessageAt"), lastSkipped.lastMessageAt)
-							)
+								q.lt(q.field("lastMessageAt"), lastSkipped.lastMessageAt),
+							),
 						)
 						.order("desc");
 				}
