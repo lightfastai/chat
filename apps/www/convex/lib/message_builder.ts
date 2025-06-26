@@ -42,7 +42,7 @@ export async function buildMessageContent(
 
 	// Fetch each file with its URL
 	for (const fileId of attachmentIds) {
-		// @ts-ignore - TypeScript deep instantiation issue - suppress with ts-ignore instead of @ts-expect-error
+		// @ts-ignore - TypeScript deep instantiation issue - using @ts-ignore for now
 		const file = await ctx.runQuery(internal.files.getFileWithUrl, { fileId });
 		if (!file || !file.url) continue;
 

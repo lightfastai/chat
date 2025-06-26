@@ -31,6 +31,7 @@ export async function createStreamingMessage(
 ): Promise<Id<"messages">> {
 	const provider = getProviderFromModelId(modelId);
 
+	// @ts-ignore - TypeScript deep instantiation issue with action calling mutation
 	return await ctx.runMutation(internal.messages.createStreamingMessage, {
 		threadId,
 		streamId,
@@ -160,7 +161,7 @@ export async function streamAIResponse(
 			await ctx.runMutation(internal.messages.addTextPart, {
 				messageId,
 				text: chunk,
-			});
+			}) as null; // Type assertion to avoid circular inference
 		}
 	}
 
@@ -226,7 +227,7 @@ export async function updateThreadUsage(
 				usage.promptTokensDetails?.cachedTokens || usage.cachedInputTokens || 0,
 			modelId,
 		},
-	});
+	}) as null; // Type assertion to avoid circular inference
 }
 
 /**
@@ -238,5 +239,5 @@ export async function clearGenerationFlag(
 ) {
 	await ctx.runMutation(internal.messages.clearGenerationFlag, {
 		threadId,
-	});
+	}) as null; // Type assertion to avoid circular inference
 }
