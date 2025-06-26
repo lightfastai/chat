@@ -17,7 +17,13 @@ export type ToolCallPart = {
 	step?: number; // Official SDK step tracking for multi-step calls
 };
 
-export type MessagePart = TextPart | ToolCallPart;
+// Official Vercel AI SDK v5 compliant ReasoningPart
+export type ReasoningPart = {
+	type: "reasoning";
+	text: string;
+};
+
+export type MessagePart = TextPart | ToolCallPart | ReasoningPart;
 
 // Get message parts with text grouping (parts-based architecture only)
 export function getMessageParts(message: Doc<"messages">): MessagePart[] {
@@ -46,7 +52,7 @@ function groupConsecutiveTextParts(parts: MessagePart[]): MessagePart[] {
 				currentTextGroup = "";
 			}
 
-			// Add the non-text part
+			// Add the non-text part (tool-call or reasoning)
 			groupedParts.push(part);
 		}
 	}
