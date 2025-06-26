@@ -3,6 +3,8 @@
 import { Button } from "@lightfast/ui/components/ui/button";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
+	SidebarGroup,
+	SidebarGroupContent,
 	SidebarGroupLabel,
 	SidebarMenu,
 } from "@lightfast/ui/components/ui/sidebar";
@@ -82,15 +84,41 @@ function groupThreadsByDate(threads: Thread[]) {
 
 // Item types for virtualization
 type VirtualItem =
-	| { type: "thread"; thread: Thread; categoryName?: string }
-	| { type: "category-header"; categoryName: string }
+	| { type: "group"; categoryName: string; threads: Thread[] }
 	| { type: "load-more" };
 
 // Constants for virtualization
-const ESTIMATED_ITEM_HEIGHT = 36; // Thread item height
-const CATEGORY_HEADER_HEIGHT = 28; // Category header height
-const LOAD_MORE_HEIGHT = 48; // Load more button height
 const ITEMS_PER_PAGE = 10; // Number of threads to load per page
+
+// Component to render a group of threads
+function ThreadGroup({ 
+	categoryName, 
+	threads, 
+	onPinToggle 
+}: { 
+	categoryName: string; 
+	threads: Thread[]; 
+	onPinToggle: (threadId: Id<"threads">) => void;
+}) {
+	return (
+		<SidebarGroup className="w-58">
+			<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+				{categoryName}
+			</SidebarGroupLabel>
+			<SidebarGroupContent className="w-full max-w-full overflow-hidden">
+				<SidebarMenu className="space-y-0.5">
+					{threads.map((thread) => (
+						<ThreadItem
+							key={thread._id}
+							thread={thread}
+							onPinToggle={onPinToggle}
+						/>
+					))}
+				</SidebarMenu>
+			</SidebarGroupContent>
+		</SidebarGroup>
+	);
+}
 
 export function SimpleVirtualizedThreadsList({
 	preloadedThreads,
@@ -166,24 +194,14 @@ export function SimpleVirtualizedThreadsList({
 
 		// Add pinned threads section
 		if (pinned.length > 0) {
-			items.push({ type: "category-header", categoryName: "Pinned" });
-			for (const thread of pinned) {
-				items.push({
-					type: "thread",
-					thread,
-					categoryName: "Pinned",
-				});
-			}
+			items.push({ type: "group", categoryName: "Pinned", threads: pinned });
 		}
 
 		// Add regular threads grouped by date
 		for (const category of categoryOrder) {
 			const categoryThreads = groupedThreads[category];
 			if (categoryThreads && categoryThreads.length > 0) {
-				items.push({ type: "category-header", categoryName: category });
-				for (const thread of categoryThreads) {
-					items.push({ type: "thread", thread, categoryName: category });
-				}
+				items.push({ type: "group", categoryName: category, threads: categoryThreads });
 			}
 		}
 
@@ -260,10 +278,11 @@ export function SimpleVirtualizedThreadsList({
 	const estimateSize = useCallback(
 		(index: number) => {
 			const item = virtualItems[index];
-			if (!item) return ESTIMATED_ITEM_HEIGHT;
-			if (item.type === "category-header") return CATEGORY_HEADER_HEIGHT;
-			if (item.type === "load-more") return LOAD_MORE_HEIGHT;
-			return ESTIMATED_ITEM_HEIGHT;
+			if (!item) return 40;
+			if (item.type === "load-more") return 60;
+			// For groups, estimate based on number of threads
+			// Each thread is ~40px, plus header ~32px, plus padding
+			return 32 + (item.threads.length * 40) + 16;
 		},
 		[virtualItems],
 	);
@@ -273,7 +292,7 @@ export function SimpleVirtualizedThreadsList({
 		count: virtualItems.length,
 		getScrollElement: () => scrollElement,
 		estimateSize,
-		overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
+		overscan: 2, // Render 2 extra groups outside viewport
 		enabled: scrollElement !== null, // Disable virtualizer until scroll element is ready
 	});
 
@@ -316,25 +335,20 @@ export function SimpleVirtualizedThreadsList({
 										transform: `translateY(${virtualItem.start}px)`,
 									}}
 								>
-									{item.type === "category-header" ? (
-										<SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
-											{item.categoryName}
-										</SidebarGroupLabel>
-									) : item.type === "thread" ? (
-										<SidebarMenu>
-											<ThreadItem
-												thread={item.thread}
-												onPinToggle={handlePinToggle}
-											/>
-										</SidebarMenu>
+									{item.type === "group" ? (
+										<ThreadGroup
+											categoryName={item.categoryName}
+											threads={item.threads}
+											onPinToggle={handlePinToggle}
+										/>
 									) : item.type === "load-more" ? (
-										<div className="flex justify-center py-2 px-2">
+										<div className="flex justify-center py-4">
 											<Button
 												onClick={handleLoadMore}
 												disabled={isLoadingMore}
 												variant="ghost"
 												size="sm"
-												className="text-xs w-full"
+												className="text-xs"
 											>
 												{isLoadingMore ? "Loading..." : "Load More"}
 											</Button>
@@ -350,25 +364,20 @@ export function SimpleVirtualizedThreadsList({
 					<div className="w-full">
 						{virtualItems.map((item, index) => (
 							<div key={index}>
-								{item.type === "category-header" ? (
-									<SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
-										{item.categoryName}
-									</SidebarGroupLabel>
-								) : item.type === "thread" ? (
-									<SidebarMenu>
-										<ThreadItem
-											thread={item.thread}
-											onPinToggle={handlePinToggle}
-										/>
-									</SidebarMenu>
+								{item.type === "group" ? (
+									<ThreadGroup
+										categoryName={item.categoryName}
+										threads={item.threads}
+										onPinToggle={handlePinToggle}
+									/>
 								) : item.type === "load-more" ? (
-									<div className="flex justify-center py-2 px-2">
+									<div className="flex justify-center py-4">
 										<Button
 											onClick={handleLoadMore}
 											disabled={isLoadingMore}
 											variant="ghost"
 											size="sm"
-											className="text-xs w-full"
+											className="text-xs"
 										>
 											{isLoadingMore ? "Loading..." : "Load More"}
 										</Button>
