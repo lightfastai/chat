@@ -194,6 +194,16 @@ export function useChat(options: UseChatOptions = {}) {
 			lastMessageAt: now,
 			isTitleGenerating: true,
 			isGenerating: true,
+			// Initialize usage field to match the server-side thread creation
+			usage: {
+				totalInputTokens: 0,
+				totalOutputTokens: 0,
+				totalTokens: 0,
+				totalReasoningTokens: 0,
+				totalCachedInputTokens: 0,
+				messageCount: 0,
+				modelStats: {},
+			},
 		};
 
 		// Get existing threads from the store
