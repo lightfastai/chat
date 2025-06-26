@@ -91,15 +91,16 @@ export function useIncrementalThreads({
 		});
 	}, [initialThreads]);
 
-	// Initialize pagination on first load
+	// Initialize pagination on first mount only
 	useEffect(() => {
-		if (!hasInitialized.current && initialThreads.length === 20) {
-			// We have 20 items, so there might be more
+		if (!hasInitialized.current) {
 			hasInitialized.current = true;
-			// Don't set a cursor yet - we'll handle it differently
-			setHasMoreData(true);
+			// If we have 20 items, there might be more
+			if (initialThreads.length === 20) {
+				setHasMoreData(true);
+			}
 		}
-	}, [initialThreads]); // Run when initialThreads changes
+	}, []); // Empty deps - only run once on mount
 
 	// Handle loading more data
 	useEffect(() => {
