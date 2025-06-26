@@ -72,9 +72,6 @@ export function useIncrementalThreads({
 
 	// Handle updates to initial threads prop (from preloaded query updates)
 	useEffect(() => {
-		// Use a ref to track if this is the first render to avoid unnecessary updates
-		if (!hasInitialized.current) return;
-		
 		setAllThreads((prev) => {
 			// Map initial threads with categories
 			const updatedWithCategories = initialThreads.map((thread) => ({
