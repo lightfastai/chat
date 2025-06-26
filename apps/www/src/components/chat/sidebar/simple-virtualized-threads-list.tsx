@@ -12,29 +12,48 @@ import {
 	type Preloaded,
 	useMutation,
 	usePreloadedQuery,
-	useQuery,
 } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { ThreadItem } from "./thread-item";
-import { useIncrementalThreads } from "./use-incremental-threads";
 
 type Thread = Doc<"threads">;
-type ThreadWithCategory = Thread & { dateCategory: string };
-
-// Constants for virtualization
-const ESTIMATED_ITEM_HEIGHT = 40; // Estimated height of each thread item in pixels
 
 interface SimpleVirtualizedThreadsListProps {
 	preloadedThreads: Preloaded<typeof api.threads.list>;
 	className?: string;
 }
 
-// Group threads by date using the date category from server
-function groupThreadsByCategory(threads: ThreadWithCategory[]) {
-	const groups: Record<string, ThreadWithCategory[]> = {
+// Separate pinned threads from unpinned threads
+function separatePinnedThreads(threads: Thread[]) {
+	const pinned: Thread[] = [];
+	const unpinned: Thread[] = [];
+
+	for (const thread of threads) {
+		if (thread.pinned) {
+			pinned.push(thread);
+		} else {
+			unpinned.push(thread);
+		}
+	}
+
+	// Sort pinned threads by lastMessageAt (newest first)
+	pinned.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+
+	return { pinned, unpinned };
+}
+
+// Group threads by date
+function groupThreadsByDate(threads: Thread[]) {
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+	const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+	const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+	const groups: Record<string, Thread[]> = {
 		Today: [],
 		Yesterday: [],
 		"This Week": [],
@@ -43,9 +62,18 @@ function groupThreadsByCategory(threads: ThreadWithCategory[]) {
 	};
 
 	for (const thread of threads) {
-		const category = thread.dateCategory;
-		if (groups[category]) {
-			groups[category].push(thread);
+		const threadDate = new Date(thread.lastMessageAt);
+
+		if (threadDate >= today) {
+			groups.Today.push(thread);
+		} else if (threadDate >= yesterday) {
+			groups.Yesterday.push(thread);
+		} else if (threadDate >= weekAgo) {
+			groups["This Week"].push(thread);
+		} else if (threadDate >= monthAgo) {
+			groups["This Month"].push(thread);
+		} else {
+			groups.Older.push(thread);
 		}
 	}
 
@@ -54,9 +82,12 @@ function groupThreadsByCategory(threads: ThreadWithCategory[]) {
 
 // Item types for virtualization
 type VirtualItem =
-	| { type: "thread"; thread: ThreadWithCategory; categoryName?: string }
-	| { type: "category-header"; categoryName: string }
-	| { type: "loading" };
+	| { type: "thread"; thread: Thread; categoryName?: string }
+	| { type: "category-header"; categoryName: string };
+
+// Constants for virtualization
+const ESTIMATED_ITEM_HEIGHT = 40; // Thread item height
+const CATEGORY_HEADER_HEIGHT = 32; // Category header height
 
 export function SimpleVirtualizedThreadsList({
 	preloadedThreads,
@@ -66,35 +97,19 @@ export function SimpleVirtualizedThreadsList({
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
-	// Use preloaded data with reactivity
-	const initialThreads = usePreloadedQuery(preloadedThreads);
+	// Use preloaded data with reactivity - this provides instant loading with real-time updates
+	const threads = usePreloadedQuery(preloadedThreads);
 
-	// Get pinned threads separately (always show all)
-	const pinnedThreads = useQuery(api.threads.listPinned) ?? [];
-
-	// Use incremental loading for unpinned threads
-	const { threads, isLoadingMore, hasMoreData, loadMore } =
-		useIncrementalThreads({
-			initialThreads: initialThreads.filter((t) => !t.pinned),
-		});
-
-	// Handle pin toggle with optimistic update
-	const handlePinToggle = useCallback(
-		async (threadId: Id<"threads">) => {
-			try {
-				await togglePinned({ threadId });
-			} catch (error) {
-				console.error("Failed to toggle pin:", error);
-				toast.error("Failed to update pin status. Please try again.");
-			}
-		},
-		[togglePinned],
+	// Separate and group threads
+	const { pinned, unpinned } = useMemo(
+		() => separatePinnedThreads(threads),
+		[threads]
 	);
+	const groupedThreads = useMemo(() => groupThreadsByDate(unpinned), [unpinned]);
 
 	// Create virtual items for rendering
 	const virtualItems = useMemo(() => {
 		const items: VirtualItem[] = [];
-		const groupedThreads = groupThreadsByCategory(threads);
 		const categoryOrder = [
 			"Today",
 			"Yesterday",
@@ -104,17 +119,12 @@ export function SimpleVirtualizedThreadsList({
 		];
 
 		// Add pinned threads section
-		if (pinnedThreads.length > 0) {
+		if (pinned.length > 0) {
 			items.push({ type: "category-header", categoryName: "Pinned" });
-			for (const thread of pinnedThreads) {
-				// Add date category to pinned threads for consistency
-				const threadWithCategory: ThreadWithCategory = {
-					...thread,
-					dateCategory: "Pinned", // Use "Pinned" as category for pinned threads
-				};
+			for (const thread of pinned) {
 				items.push({
 					type: "thread",
-					thread: threadWithCategory,
+					thread,
 					categoryName: "Pinned",
 				});
 			}
@@ -131,13 +141,40 @@ export function SimpleVirtualizedThreadsList({
 			}
 		}
 
-		// Add loading indicator if loading more
-		if (isLoadingMore) {
-			items.push({ type: "loading" });
-		}
-
 		return items;
-	}, [threads, pinnedThreads, isLoadingMore]);
+	}, [pinned, groupedThreads]);
+
+	// Handle pin toggle with optimistic update
+	const handlePinToggle = useCallback(
+		async (threadId: Id<"threads">) => {
+			try {
+				await togglePinned.withOptimisticUpdate((localStore, args) => {
+					// Get the current threads list
+					const currentThreads = localStore.getQuery(api.threads.list, {});
+					if (!currentThreads) return;
+
+					// Find the thread being toggled
+					const threadIndex = currentThreads.findIndex(
+						(t) => t._id === args.threadId,
+					);
+					if (threadIndex === -1) return;
+
+					// Create a new array with the updated thread
+					const updatedThreads = [...currentThreads];
+					const thread = { ...updatedThreads[threadIndex] };
+					thread.pinned = !thread.pinned;
+					updatedThreads[threadIndex] = thread;
+
+					// Update the query result
+					localStore.setQuery(api.threads.list, {}, updatedThreads);
+				})({ threadId });
+			} catch (error) {
+				console.error("Failed to toggle pin:", error);
+				toast.error("Failed to update pin status. Please try again.");
+			}
+		},
+		[togglePinned],
+	);
 
 	// Find the scroll viewport element when component mounts
 	useEffect(() => {
@@ -155,48 +192,24 @@ export function SimpleVirtualizedThreadsList({
 		}
 	}, []);
 
+	// Stable size estimator
+	const estimateSize = useCallback((index: number) => {
+		const item = virtualItems[index];
+		if (!item) return ESTIMATED_ITEM_HEIGHT;
+		return item.type === "category-header" ? CATEGORY_HEADER_HEIGHT : ESTIMATED_ITEM_HEIGHT;
+	}, [virtualItems]);
+
 	// Set up virtualizer
 	const virtualizer = useVirtualizer({
 		count: virtualItems.length,
 		getScrollElement: () => scrollElement,
-		estimateSize: useCallback(
-			(index: number) => {
-				const item = virtualItems[index];
-				if (item?.type === "category-header") return 32; // Category header height
-				if (item?.type === "loading") return 60; // Loading indicator height
-				return ESTIMATED_ITEM_HEIGHT; // Thread item height
-			},
-			[virtualItems],
-		),
+		estimateSize,
 		overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
 		enabled: scrollElement !== null, // Disable virtualizer until scroll element is ready
 	});
 
-	// Detect when we're near the bottom to load more
-	useEffect(() => {
-		if (!scrollElement || !hasMoreData || isLoadingMore) return;
-
-		const handleScroll = () => {
-			try {
-				const scrollTop = scrollElement.scrollTop;
-				const scrollHeight = scrollElement.scrollHeight;
-				const clientHeight = scrollElement.clientHeight;
-
-				// Load more when we're within 200px of the bottom
-				if (scrollHeight - scrollTop - clientHeight < 200) {
-					loadMore();
-				}
-			} catch (error) {
-				console.error("Error in scroll handler:", error);
-			}
-		};
-
-		scrollElement.addEventListener("scroll", handleScroll, { passive: true });
-		return () => scrollElement.removeEventListener("scroll", handleScroll);
-	}, [scrollElement, hasMoreData, isLoadingMore, loadMore]);
-
 	// Show empty state if no threads
-	if (threads.length === 0 && pinnedThreads.length === 0) {
+	if (threads.length === 0) {
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
@@ -251,23 +264,6 @@ export function SimpleVirtualizedThreadsList({
 												</SidebarMenu>
 											</SidebarGroupContent>
 										</SidebarGroup>
-									) : item.type === "loading" ? (
-										<div className="px-3 py-4">
-											<div className="flex items-center justify-center space-x-2 text-muted-foreground">
-												<div className="w-2 h-2 rounded-full bg-current opacity-20 animate-pulse" />
-												<div
-													className="w-2 h-2 rounded-full bg-current opacity-40 animate-pulse"
-													style={{ animationDelay: "0.2s" }}
-												/>
-												<div
-													className="w-2 h-2 rounded-full bg-current opacity-60 animate-pulse"
-													style={{ animationDelay: "0.4s" }}
-												/>
-											</div>
-											<div className="text-xs text-center mt-2 text-muted-foreground">
-												Loading more...
-											</div>
-										</div>
 									) : null}
 								</div>
 							);
@@ -275,18 +271,8 @@ export function SimpleVirtualizedThreadsList({
 					</div>
 				) : (
 					// Show loading state while scroll element is being detected
-					<div className="px-3 py-8 text-center text-muted-foreground">
-						<div className="flex items-center justify-center space-x-2">
-							<div className="w-2 h-2 rounded-full bg-current opacity-20 animate-pulse" />
-							<div
-								className="w-2 h-2 rounded-full bg-current opacity-40 animate-pulse"
-								style={{ animationDelay: "0.2s" }}
-							/>
-							<div
-								className="w-2 h-2 rounded-full bg-current opacity-60 animate-pulse"
-								style={{ animationDelay: "0.4s" }}
-							/>
-						</div>
+					<div className="px-3 py-4 text-center text-muted-foreground">
+						<p className="text-xs">Loading conversations...</p>
 					</div>
 				)}
 			</div>
