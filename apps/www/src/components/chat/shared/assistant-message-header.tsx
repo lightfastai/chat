@@ -1,7 +1,8 @@
 "use client";
 
+import { isThinkingMode } from "@/lib/ai";
 import type { Doc } from "../../../../convex/_generated/dataModel";
-import { ThinkingIndicator } from "./thinking-indicator";
+import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
 
 interface AssistantMessageHeaderProps {
 	modelName?: string;
@@ -29,6 +30,10 @@ export function AssistantMessageHeader({
 	hasParts,
 	message,
 }: AssistantMessageHeaderProps) {
+	// Check if this is a reasoning model
+	const isReasoningModel = message?.modelId
+		? isThinkingMode(message.modelId)
+		: false;
 	// Check if message has any actual content
 	const hasContent = (() => {
 		// First check streamingText
@@ -49,15 +54,14 @@ export function AssistantMessageHeader({
 		return false;
 	})();
 
-	// Only show "Thinking" when streaming but no content has appeared yet
-	if (isStreaming && !isComplete && !hasContent) {
-		return (
-			<div className="mb-2 flex items-center gap-2 min-h-5">
-				<ThinkingIndicator />
-			</div>
-		);
-	}
-
-	// Don't show header for completed messages or when content is showing
-	return null;
+	// Show streaming reasoning display
+	return (
+		<StreamingReasoningDisplay
+			isStreaming={!!isStreaming}
+			isComplete={!!isComplete}
+			hasContent={hasContent}
+			reasoningContent={message?.thinkingContent || undefined}
+			isReasoningModel={isReasoningModel}
+		/>
+	);
 }

@@ -8,6 +8,7 @@ export interface ThinkingContentProps {
 	duration?: number | null;
 	isExpanded?: boolean;
 	onToggle?: (expanded: boolean) => void;
+	isReasoningModel?: boolean;
 }
 
 // Helper function to format duration
@@ -28,6 +29,7 @@ export function ThinkingContent({
 	duration,
 	isExpanded: controlledExpanded,
 	onToggle,
+	isReasoningModel = false,
 }: ThinkingContentProps) {
 	const [localExpanded, setLocalExpanded] = useState(false);
 
@@ -44,7 +46,7 @@ export function ThinkingContent({
 	};
 
 	return (
-		<div className="mb-4 rounded-lg border border-muted bg-muted/20 p-3">
+		<div className="mb-4">
 			<button
 				type="button"
 				onClick={() => handleToggle(!isExpanded)}
@@ -56,7 +58,11 @@ export function ThinkingContent({
 					<ChevronRight className="h-3 w-3" />
 				)}
 				<Brain className="h-3 w-3" />
-				<span>View reasoning process</span>
+				<span>
+					{isReasoningModel
+						? "View reasoning process"
+						: "View thinking process"}
+				</span>
 				{duration && (
 					<span className="ml-auto font-mono text-[10px]">
 						{formatDuration(duration)}
@@ -64,7 +70,7 @@ export function ThinkingContent({
 				)}
 			</button>
 			{isExpanded && (
-				<div className="mt-3 text-xs text-muted-foreground space-y-2">
+				<div className="mt-3 pl-5 text-xs text-muted-foreground space-y-2">
 					<p className="whitespace-pre-wrap font-mono leading-relaxed">
 						{content}
 					</p>
