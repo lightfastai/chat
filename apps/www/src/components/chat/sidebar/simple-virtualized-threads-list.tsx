@@ -8,14 +8,16 @@ import {
 	SidebarMenu,
 } from "@lightfast/ui/components/ui/sidebar";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
+import { type Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { ThreadItem } from "./thread-item";
+import { useIncrementalThreads } from "./use-incremental-threads";
 
 type Thread = Doc<"threads">;
+type ThreadWithCategory = Thread & { dateCategory: string };
 
 // Constants for virtualization
 const ESTIMATED_ITEM_HEIGHT = 40; // Estimated height of each thread item in pixels
@@ -25,34 +27,9 @@ interface SimpleVirtualizedThreadsListProps {
 	className?: string;
 }
 
-// Separate pinned threads from unpinned threads
-function separatePinnedThreads(threads: Thread[]) {
-	const pinned: Thread[] = [];
-	const unpinned: Thread[] = [];
-
-	for (const thread of threads) {
-		if (thread.pinned) {
-			pinned.push(thread);
-		} else {
-			unpinned.push(thread);
-		}
-	}
-
-	// Sort pinned threads by lastMessageAt (newest first)
-	pinned.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
-
-	return { pinned, unpinned };
-}
-
-// Server-side function to group threads by date - no client needed
-function groupThreadsByDate(threads: Thread[]) {
-	const now = new Date();
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-	const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-	const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-	const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-	const groups: Record<string, Thread[]> = {
+// Group threads by date using the date category from server
+function groupThreadsByCategory(threads: ThreadWithCategory[]) {
+	const groups: Record<string, ThreadWithCategory[]> = {
 		Today: [],
 		Yesterday: [],
 		"This Week": [],
@@ -61,18 +38,9 @@ function groupThreadsByDate(threads: Thread[]) {
 	};
 
 	for (const thread of threads) {
-		const threadDate = new Date(thread.lastMessageAt);
-
-		if (threadDate >= today) {
-			groups.Today.push(thread);
-		} else if (threadDate >= yesterday) {
-			groups.Yesterday.push(thread);
-		} else if (threadDate >= weekAgo) {
-			groups["This Week"].push(thread);
-		} else if (threadDate >= monthAgo) {
-			groups["This Month"].push(thread);
-		} else {
-			groups.Older.push(thread);
+		const category = thread.dateCategory;
+		if (groups[category]) {
+			groups[category].push(thread);
 		}
 	}
 
@@ -81,8 +49,9 @@ function groupThreadsByDate(threads: Thread[]) {
 
 // Item types for virtualization
 type VirtualItem =
-	| { type: "thread"; thread: Thread; categoryName?: string }
-	| { type: "category-header"; categoryName: string };
+	| { type: "thread"; thread: ThreadWithCategory; categoryName?: string }
+	| { type: "category-header"; categoryName: string }
+	| { type: "loading" };
 
 export function SimpleVirtualizedThreadsList({
 	preloadedThreads,
@@ -93,7 +62,15 @@ export function SimpleVirtualizedThreadsList({
 	const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
 	// Use preloaded data with reactivity
-	const threads = usePreloadedQuery(preloadedThreads);
+	const initialThreads = usePreloadedQuery(preloadedThreads);
+	
+	// Get pinned threads separately (always show all)
+	const pinnedThreads = useQuery(api.threads.listPinned) ?? [];
+	
+	// Use incremental loading for unpinned threads
+	const { threads, isLoadingMore, hasMoreData, loadMore } = useIncrementalThreads({
+		initialThreads: initialThreads.filter(t => !t.pinned),
+	});
 
 	// Handle pin toggle with optimistic update
 	const handlePinToggle = useCallback(
@@ -111,8 +88,7 @@ export function SimpleVirtualizedThreadsList({
 	// Create virtual items for rendering
 	const virtualItems = useMemo(() => {
 		const items: VirtualItem[] = [];
-		const { pinned, unpinned } = separatePinnedThreads(threads);
-		const groupedThreads = groupThreadsByDate(unpinned);
+		const groupedThreads = groupThreadsByCategory(threads);
 		const categoryOrder = [
 			"Today",
 			"Yesterday",
@@ -122,12 +98,17 @@ export function SimpleVirtualizedThreadsList({
 		];
 
 		// Add pinned threads section
-		if (pinned.length > 0) {
+		if (pinnedThreads.length > 0) {
 			items.push({ type: "category-header", categoryName: "Pinned" });
-			for (const thread of pinned) {
+			for (const thread of pinnedThreads) {
+				// Add date category to pinned threads for consistency
+				const threadWithCategory: ThreadWithCategory = {
+					...thread,
+					dateCategory: "Pinned", // Use "Pinned" as category for pinned threads
+				};
 				items.push({
 					type: "thread",
-					thread,
+					thread: threadWithCategory,
 					categoryName: "Pinned",
 				});
 			}
@@ -144,8 +125,13 @@ export function SimpleVirtualizedThreadsList({
 			}
 		}
 
+		// Add loading indicator if loading more
+		if (isLoadingMore) {
+			items.push({ type: "loading" });
+		}
+
 		return items;
-	}, [threads]);
+	}, [threads, pinnedThreads, isLoadingMore]);
 
 	// Find the scroll viewport element when component mounts
 	useEffect(() => {
@@ -166,14 +152,34 @@ export function SimpleVirtualizedThreadsList({
 		estimateSize: (index) => {
 			const item = virtualItems[index];
 			if (item?.type === "category-header") return 32; // Category header height
+			if (item?.type === "loading") return 60; // Loading indicator height
 			return ESTIMATED_ITEM_HEIGHT; // Thread item height
 		},
 		overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
 		enabled: scrollElement !== null, // Disable virtualizer until scroll element is ready
 	});
 
+	// Detect when we're near the bottom to load more
+	useEffect(() => {
+		if (!scrollElement || !hasMoreData || isLoadingMore) return;
+
+		const handleScroll = () => {
+			const scrollTop = scrollElement.scrollTop;
+			const scrollHeight = scrollElement.scrollHeight;
+			const clientHeight = scrollElement.clientHeight;
+			
+			// Load more when we're within 200px of the bottom
+			if (scrollHeight - scrollTop - clientHeight < 200) {
+				loadMore();
+			}
+		};
+
+		scrollElement.addEventListener("scroll", handleScroll);
+		return () => scrollElement.removeEventListener("scroll", handleScroll);
+	}, [scrollElement, hasMoreData, isLoadingMore, loadMore]);
+
 	// Show empty state if no threads
-	if (threads.length === 0) {
+	if (threads.length === 0 && pinnedThreads.length === 0) {
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
@@ -228,6 +234,23 @@ export function SimpleVirtualizedThreadsList({
 												</SidebarMenu>
 											</SidebarGroupContent>
 										</SidebarGroup>
+									) : item.type === "loading" ? (
+										<div className="px-3 py-4">
+											<div className="flex items-center justify-center space-x-2 text-muted-foreground">
+												<div className="w-2 h-2 rounded-full bg-current opacity-20 animate-pulse" />
+												<div
+													className="w-2 h-2 rounded-full bg-current opacity-40 animate-pulse"
+													style={{ animationDelay: "0.2s" }}
+												/>
+												<div
+													className="w-2 h-2 rounded-full bg-current opacity-60 animate-pulse"
+													style={{ animationDelay: "0.4s" }}
+												/>
+											</div>
+											<div className="text-xs text-center mt-2 text-muted-foreground">
+												Loading more...
+											</div>
+										</div>
 									) : null}
 								</div>
 							);

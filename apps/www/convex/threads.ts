@@ -85,17 +85,19 @@ export const create = mutation({
 });
 
 // List threads for a user
+// List initial threads for preloading (first 20)
 export const list = query({
 	args: {},
 	returns: v.array(threadObjectValidator),
 	handler: async (ctx, _args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
+			// Return first 20 threads for initial preload
 			return await ctx.db
 				.query("threads")
 				.withIndex("by_user", (q) => q.eq("userId", userId))
 				.order("desc")
-				.collect();
+				.take(20);
 		} catch {
 			// Return empty array for unauthenticated users
 			return [];
@@ -176,10 +178,11 @@ const threadWithCategoryValidator = v.object({
 	dateCategory: v.string(),
 });
 
-// List paginated threads with server-side date grouping
+// List paginated threads with server-side date grouping (5 items per page for smooth loading)
 export const listPaginatedWithGrouping = query({
 	args: {
 		paginationOpts: paginationOptsValidator,
+		skipFirst: v.optional(v.number()), // Skip the first N items (for after preload)
 	},
 	returns: v.object({
 		page: v.array(threadWithCategoryValidator),
@@ -189,12 +192,35 @@ export const listPaginatedWithGrouping = query({
 	handler: async (ctx, args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
-			const result = await ctx.db
+			
+			// Build the query
+			let query = ctx.db
 				.query("threads")
 				.withIndex("by_user", (q) => q.eq("userId", userId))
 				.filter((q) => q.eq(q.field("pinned"), undefined)) // Exclude pinned threads
-				.order("desc")
-				.paginate(args.paginationOpts);
+				.order("desc");
+
+			// Skip the first N items only on the first paginated call (no cursor)
+			if (args.skipFirst && args.skipFirst > 0 && !args.paginationOpts.cursor) {
+				// This is the first paginated call after preload, so we need to skip
+				const itemsToSkip = await query.take(args.skipFirst);
+				if (itemsToSkip.length === args.skipFirst) {
+					// Get the last item's timestamp to continue from there
+					const lastSkipped = itemsToSkip[itemsToSkip.length - 1];
+					query = ctx.db
+						.query("threads")
+						.withIndex("by_user", (q) => q.eq("userId", userId))
+						.filter((q) => 
+							q.and(
+								q.eq(q.field("pinned"), undefined),
+								q.lt(q.field("lastMessageAt"), lastSkipped.lastMessageAt)
+							)
+						)
+						.order("desc");
+				}
+			}
+
+			const result = await query.paginate(args.paginationOpts);
 
 			// Add date categories to each thread
 			const threadsWithCategories = result.page.map((thread) => ({
