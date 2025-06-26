@@ -23,8 +23,7 @@ apps/www/
 │   │   └── settings/    # Settings components
 │   └── lib/             # Utilities and helpers
 ├── convex/              # Backend (see convex/CLAUDE.md)
-├── public/              # Static assets
-└── .env.local          # Environment variables
+└── public/              # Static assets
 ```
 
 ### Key Patterns

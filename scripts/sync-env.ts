@@ -310,8 +310,6 @@ function findEnvFile(): string {
     path.resolve(process.cwd(), "..", ENV_FILE),
     // Two levels up (if running from nested subdirectory)
     path.resolve(process.cwd(), "..", "..", ENV_FILE),
-    // apps/www directory (fallback for compatibility)
-    path.resolve(process.cwd(), "apps", "www", ENV_FILE),
   ]
 
   for (const envPath of possiblePaths) {
@@ -338,9 +336,8 @@ async function syncEnvironment(): Promise<void> {
     if (!envPath) {
       log.error(`${ENV_FILE} file not found in any of the expected locations`)
       console.log("Expected locations:")
-      console.log("  - Current directory")
-      console.log("  - apps/www directory (if running from root)")
-      console.log("  - Parent directory (if running from apps/www)")
+      console.log("  - Current directory (root)")
+      console.log("  - Parent directory (if running from subdirectory)")
       console.log("")
       console.log(`Create ${ENV_FILE} with your environment variables`)
       console.log("Example:")

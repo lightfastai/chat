@@ -346,8 +346,8 @@ mkdir -p worktrees
 git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 cd worktrees/<feature_name>
 pnpm install
-cp ../../.env.local apps/www/.env.local
-pnpm run env:sync  # Run from root - Vercel links apps/www env to root
+# .env.local should already be in root directory
+pnpm run env:sync  # Run from root with .env.local in root
 ```
 
 ### Step 4: Development Cycle
@@ -542,7 +542,7 @@ cd apps/www && SKIP_ENV_VALIDATION=true pnpm run build
 pnpm run lint
 pnpm run format
 
-# Environment sync (from root - auto-detects apps/www/.env.local)
+# Environment sync (from root with .env.local in root)
 pnpm run env:sync
 
 # Convex development (from root)
@@ -639,7 +639,7 @@ pnpm run ui:add <component>  # Add new shadcn component
 pnpm run ui:diff            # Check for component updates
 
 # Environment Management
-pnpm run env:sync       # Sync environment variables to Convex (from root - Vercel links apps/www/.env.local to root)
+pnpm run env:sync       # Sync environment variables to Convex (run from root with .env.local in root)
 pnpm run env:check      # Check environment variables in Convex
 
 # Quality

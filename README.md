@@ -154,7 +154,7 @@ AUTH_GITHUB_SECRET=your_github_client_secret_here
 Run the sync script to push environment variables to Convex:
 
 ```bash
-pnpm run env:sync  # Run from root - auto-detects apps/www/.env.local
+pnpm run env:sync  # Run from root with .env.local in root directory
 ```
 
 ### Usage
@@ -185,19 +185,19 @@ SKIP_ENV_VALIDATION=true pnpm run build
    pnpm install
    ```
 
-2. Set up your environment variables (create `.env.local` in `apps/www/` directory with the variables shown above)
+2. Set up your environment variables (create `.env.local` in the root directory with the variables shown above)
 
 3. Set up GitHub OAuth (see Authentication Setup section above)
 
 4. Sync environment variables to Convex:
    ```bash
-   pnpm run env:sync  # Run from root - auto-detects apps/www/.env.local
+   pnpm run env:sync  # Run from root with .env.local in root directory
    ```
    
    This command will:
    - Validate all required environment variables
    - Sync API keys and authentication settings to Convex
-   - Use the `.env.local` file that Vercel links from `apps/www/` to root
+   - Use the `.env.local` file from the root directory
    - Automatically set NODE_ENV=development for local development
 
 5. Start the development servers (Next.js + Convex concurrently):
@@ -316,7 +316,7 @@ SKIP_ENV_VALIDATION=true pnpm run build
 - `pnpm run dev:next` - Start Next.js development server only (run from apps/www)
 - `pnpm run convex:dev` - Start Convex development server (from root, executes in apps/www)
 - `pnpm run convex:deploy` - Deploy to Convex (run from apps/www)
-- `pnpm run env:sync` - Sync environment variables to Convex (from root - auto-detects apps/www/.env.local)
+- `pnpm run env:sync` - Sync environment variables to Convex (run from root with .env.local in root)
 
 ### UI Components
 - `pnpm run ui:add <component>` - Add a new shadcn/ui component
@@ -399,8 +399,8 @@ Simply visit [chat.lightfast.ai](https://chat.lightfast.ai) and start chatting w
 
 4. **Configure environment variables**
    ```bash
-   cp .env.example apps/www/.env.local
-   # Edit apps/www/.env.local with your API keys
+   cp .env.example .env.local
+   # Edit .env.local with your API keys
    pnpm run env:sync  # Auto-detects apps/www/.env.local
    ```
 
