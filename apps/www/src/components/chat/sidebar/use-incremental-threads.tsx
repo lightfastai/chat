@@ -41,13 +41,10 @@ interface UseIncrementalThreadsResult {
 export function useIncrementalThreads({
 	initialThreads,
 }: UseIncrementalThreadsProps): UseIncrementalThreadsResult {
-	// Store the initial threads to prevent re-initialization
-	const initialThreadsRef = useRef(initialThreads);
-
 	// Initialize with preloaded threads
 	const [allThreads, setAllThreads] = useState<ThreadWithCategory[]>(() => {
 		// Add date categories to initial threads
-		return initialThreadsRef.current.map((thread) => ({
+		return initialThreads.map((thread) => ({
 			...thread,
 			dateCategory: getDateCategory(thread.lastMessageAt),
 		}));
@@ -73,65 +70,36 @@ export function useIncrementalThreads({
 		nextPageArgs,
 	);
 
-	// Handle real-time updates for initial threads
-	const updatedInitialThreads = useQuery(api.threads.list);
-
+	// Handle updates to initial threads prop (from preloaded query updates)
 	useEffect(() => {
-		// Update initial threads when they change (real-time updates)
-		if (updatedInitialThreads && updatedInitialThreads.length > 0) {
-			setAllThreads((prev) => {
-				// Map updated threads with categories
-				const updatedWithCategories = updatedInitialThreads.map((thread) => ({
-					...thread,
-					dateCategory: getDateCategory(thread.lastMessageAt),
-				}));
+		setAllThreads((prev) => {
+			// Map initial threads with categories
+			const updatedWithCategories = initialThreads.map((thread) => ({
+				...thread,
+				dateCategory: getDateCategory(thread.lastMessageAt),
+			}));
 
-				// For new threads (when updatedInitialThreads has more items), always update
-				const currentFirst20 = prev.slice(0, Math.min(prev.length, 20));
-
-				// Check if we have new threads by comparing lengths first
-				if (updatedWithCategories.length > currentFirst20.length) {
-					// New threads detected - always update to show them immediately
-					if (prev.length > 20) {
-						const remainingThreads = prev.slice(20);
-						return [...updatedWithCategories, ...remainingThreads];
-					}
-					return updatedWithCategories;
-				}
-
-				// For same number of threads, check for actual changes
-				const hasChanges = updatedWithCategories.some(
-					(thread, index) =>
-						!currentFirst20[index] ||
-						thread._id !== currentFirst20[index]._id ||
-						thread.lastMessageAt !== currentFirst20[index].lastMessageAt ||
-						thread.title !== currentFirst20[index].title,
-				);
-
-				if (!hasChanges) {
-					return prev; // No changes, return current state
-				}
-
-				// Apply updates while preserving additional loaded threads
-				if (prev.length > 20) {
-					const remainingThreads = prev.slice(20);
-					return [...updatedWithCategories, ...remainingThreads];
-				}
-
+			// If we haven't loaded additional pages yet, just use the new initial threads
+			if (prev.length <= initialThreads.length) {
 				return updatedWithCategories;
-			});
-		}
-	}, [updatedInitialThreads]);
+			}
+
+			// Otherwise, preserve the additional loaded threads
+			// This maintains the pagination state while updating the first batch
+			const additionalThreads = prev.slice(initialThreads.length);
+			return [...updatedWithCategories, ...additionalThreads];
+		});
+	}, [initialThreads]);
 
 	// Initialize pagination on first load
 	useEffect(() => {
-		if (!hasInitialized.current && initialThreadsRef.current.length === 20) {
+		if (!hasInitialized.current && initialThreads.length === 20) {
 			// We have 20 items, so there might be more
 			hasInitialized.current = true;
 			// Don't set a cursor yet - we'll handle it differently
 			setHasMoreData(true);
 		}
-	}, []); // Empty deps - only run once on mount
+	}, [initialThreads]); // Run when initialThreads changes
 
 	// Handle loading more data
 	useEffect(() => {

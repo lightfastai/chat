@@ -68,9 +68,6 @@ export function SimpleVirtualizedThreadsList({
 
 	// Use preloaded data with reactivity
 	const initialThreads = usePreloadedQuery(preloadedThreads);
-	
-	// Subscribe to real-time thread updates to catch new threads immediately
-	const realtimeThreads = useQuery(api.threads.list) ?? initialThreads;
 
 	// Get pinned threads separately (always show all)
 	const pinnedThreads = useQuery(api.threads.listPinned) ?? [];
@@ -78,7 +75,7 @@ export function SimpleVirtualizedThreadsList({
 	// Use incremental loading for unpinned threads
 	const { threads, isLoadingMore, hasMoreData, loadMore } =
 		useIncrementalThreads({
-			initialThreads: realtimeThreads.filter((t) => !t.pinned),
+			initialThreads: initialThreads.filter((t) => !t.pinned),
 		});
 
 	// Handle pin toggle with optimistic update
