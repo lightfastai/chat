@@ -179,13 +179,12 @@ export const generateAIResponseWithMessage = internalAction({
 			for await (const streamPart of result.fullStream) {
 				const part = streamPart as any;
 
-				// Debug: Log all event types for Claude thinking models
-				if (provider === "anthropic" && isThinkingMode(args.modelId)) {
-					console.log(
-						`[Stream Event] Type: ${part.type}, Has textDelta: ${!!part.textDelta}, Full part:`,
-						JSON.stringify(part).substring(0, 200),
-					);
-				}
+				// Debug: Log all event types to diagnose missing parts
+				console.log(`[Stream Event] Type: ${part.type}`, { 
+					hasTextDelta: !!part.textDelta, 
+					modelId: args.modelId,
+					isThinking: isThinkingMode(args.modelId)
+				});
 
 				switch (part.type) {
 					case "text-delta":
@@ -194,6 +193,7 @@ export const generateAIResponseWithMessage = internalAction({
 							hasContent = true;
 
 							// Add text part to the parts array
+							console.log(`[Text Part] Adding text delta: "${part.textDelta.substring(0, 30)}..."`);
 							await ctx.runMutation(internal.messages.addTextPart, {
 								messageId: args.messageId,
 								text: part.textDelta,
@@ -318,11 +318,7 @@ export const generateAIResponseWithMessage = internalAction({
 						// Handle streaming reasoning/thinking content from Claude models
 						// According to Vercel AI SDK docs, reasoning events contain textDelta
 						if (part.textDelta) {
-							// Debug logging for reasoning events
-							console.log(
-								`[Reasoning Event] Received textDelta: ${part.textDelta.substring(0, 50)}...`,
-							);
-
+							console.log(`[Reasoning Part] Adding reasoning delta: "${part.textDelta.substring(0, 50)}..."`);
 							// Add reasoning part following Vercel AI SDK v5 structure
 							await ctx.runMutation(internal.messages.addReasoningPart, {
 								messageId: args.messageId,
