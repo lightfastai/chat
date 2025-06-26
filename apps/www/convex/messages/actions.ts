@@ -182,7 +182,8 @@ export const generateAIResponseWithMessage = internalAction({
 				// Debug: Log all event types for Claude thinking models
 				if (provider === "anthropic" && isThinkingMode(args.modelId)) {
 					console.log(
-						`[Stream Event] Type: ${part.type}, Has textDelta: ${!!part.textDelta}`,
+						`[Stream Event] Type: ${part.type}, Has textDelta: ${!!part.textDelta}, Full part:`,
+						JSON.stringify(part).substring(0, 200),
 					);
 				}
 
