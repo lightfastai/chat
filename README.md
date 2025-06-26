@@ -185,7 +185,11 @@ SKIP_ENV_VALIDATION=true pnpm run build
    pnpm install
    ```
 
-2. Set up your environment variables (create `.env.local` in the root directory with the variables shown above)
+2. Copy the example environment file and configure it:
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your API keys and configuration
+   ```
 
 3. Set up GitHub OAuth (see Authentication Setup section above)
 
@@ -209,10 +213,10 @@ SKIP_ENV_VALIDATION=true pnpm run build
    
    **Alternative**: If you prefer separate terminals:
    ```bash
-   # Terminal 1: Start Convex development server (from root)
+   # Terminal 1: Start Convex development server
    pnpm run convex:dev
    
-   # Terminal 2: Start Next.js development server only (from apps/www)
+   # Terminal 2: Start Next.js development server only
    cd apps/www && pnpm run dev:next
    ```
 
@@ -314,7 +318,7 @@ SKIP_ENV_VALIDATION=true pnpm run build
 ### Development Servers
 - `pnpm run dev:www` - Start Next.js + Convex concurrently
 - `pnpm run dev:next` - Start Next.js development server only (run from apps/www)
-- `pnpm run convex:dev` - Start Convex development server (from root, executes in apps/www)
+- `pnpm run convex:dev` - Start Convex development server (run from root)
 - `pnpm run convex:deploy` - Deploy to Convex (run from apps/www)
 - `pnpm run env:sync` - Sync environment variables to Convex (run from root with .env.local in root)
 
@@ -401,7 +405,7 @@ Simply visit [chat.lightfast.ai](https://chat.lightfast.ai) and start chatting w
    ```bash
    cp .env.example .env.local
    # Edit .env.local with your API keys
-   pnpm run env:sync  # Auto-detects apps/www/.env.local
+   pnpm run env:sync
    ```
 
 5. **Deploy Convex functions**
