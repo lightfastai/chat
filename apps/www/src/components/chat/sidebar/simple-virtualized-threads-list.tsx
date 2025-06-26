@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@lightfast/ui/components/ui/button";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
 	SidebarGroup,
@@ -12,6 +13,7 @@ import {
 	type Preloaded,
 	useMutation,
 	usePreloadedQuery,
+	useQuery,
 } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -83,11 +85,14 @@ function groupThreadsByDate(threads: Thread[]) {
 // Item types for virtualization
 type VirtualItem =
 	| { type: "thread"; thread: Thread; categoryName?: string }
-	| { type: "category-header"; categoryName: string };
+	| { type: "category-header"; categoryName: string }
+	| { type: "load-more" };
 
 // Constants for virtualization
 const ESTIMATED_ITEM_HEIGHT = 40; // Thread item height
 const CATEGORY_HEADER_HEIGHT = 32; // Category header height
+const LOAD_MORE_HEIGHT = 60; // Load more button height
+const ITEMS_PER_PAGE = 10; // Number of threads to load per page
 
 export function SimpleVirtualizedThreadsList({
 	preloadedThreads,
@@ -97,13 +102,55 @@ export function SimpleVirtualizedThreadsList({
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
+	// Pagination state
+	const [cursor, setCursor] = useState<string | null>(null);
+	const [isLoadingMore, setIsLoadingMore] = useState(false);
+	const [hasMore, setHasMore] = useState(true);
+	const [additionalThreads, setAdditionalThreads] = useState<Thread[]>([]);
+
 	// Use preloaded data with reactivity - this provides instant loading with real-time updates
 	const threads = usePreloadedQuery(preloadedThreads);
 
+	// Query for paginated results (only when we have a cursor and want to load more)
+	const paginationArgs = isLoadingMore && hasMore && cursor !== null
+		? { paginationOpts: { numItems: ITEMS_PER_PAGE, cursor } }
+		: "skip";
+	
+	const paginatedResult = useQuery(
+		api.threads.listPaginated,
+		paginationArgs
+	);
+
+	// Handle pagination results
+	useEffect(() => {
+		if (paginatedResult && isLoadingMore) {
+			setAdditionalThreads(prev => [...prev, ...paginatedResult.page]);
+			setCursor(paginatedResult.continueCursor);
+			setHasMore(!paginatedResult.isDone);
+			setIsLoadingMore(false);
+		}
+	}, [paginatedResult, isLoadingMore]);
+
+	// Initialize pagination state when threads are loaded
+	useEffect(() => {
+		// If we have exactly 20 threads from the initial load, there might be more
+		if (threads.length === 20 && cursor === null && hasMore) {
+			// Set initial cursor to prepare for pagination
+			// We'll need to set this when the user clicks "Load More"
+			setHasMore(true);
+		}
+	}, [threads.length, cursor, hasMore]);
+
+	// Combine reactive threads with additional loaded threads
+	const allThreads = useMemo(() => {
+		// First 20 are reactive, additional ones are static
+		return [...threads, ...additionalThreads];
+	}, [threads, additionalThreads]);
+
 	// Separate and group threads
 	const { pinned, unpinned } = useMemo(
-		() => separatePinnedThreads(threads),
-		[threads]
+		() => separatePinnedThreads(allThreads),
+		[allThreads]
 	);
 	const groupedThreads = useMemo(() => groupThreadsByDate(unpinned), [unpinned]);
 
@@ -141,8 +188,26 @@ export function SimpleVirtualizedThreadsList({
 			}
 		}
 
+		// Add load more button if there might be more threads
+		if (hasMore && threads.length >= 20) {
+			items.push({ type: "load-more" });
+		}
+
 		return items;
-	}, [pinned, groupedThreads]);
+	}, [pinned, groupedThreads, hasMore, threads.length]);
+
+	// Handle load more
+	const handleLoadMore = useCallback(() => {
+		if (!isLoadingMore && hasMore) {
+			setIsLoadingMore(true);
+			// For the first pagination, we need to set an initial cursor
+			// Since we don't have the actual cursor from the first 20 items,
+			// we'll use an empty string which the backend should handle
+			if (cursor === null) {
+				setCursor("");
+			}
+		}
+	}, [isLoadingMore, hasMore, cursor]);
 
 	// Handle pin toggle with optimistic update
 	const handlePinToggle = useCallback(
@@ -196,7 +261,9 @@ export function SimpleVirtualizedThreadsList({
 	const estimateSize = useCallback((index: number) => {
 		const item = virtualItems[index];
 		if (!item) return ESTIMATED_ITEM_HEIGHT;
-		return item.type === "category-header" ? CATEGORY_HEADER_HEIGHT : ESTIMATED_ITEM_HEIGHT;
+		if (item.type === "category-header") return CATEGORY_HEADER_HEIGHT;
+		if (item.type === "load-more") return LOAD_MORE_HEIGHT;
+		return ESTIMATED_ITEM_HEIGHT;
 	}, [virtualItems]);
 
 	// Set up virtualizer
@@ -264,6 +331,18 @@ export function SimpleVirtualizedThreadsList({
 												</SidebarMenu>
 											</SidebarGroupContent>
 										</SidebarGroup>
+									) : item.type === "load-more" ? (
+										<div className="flex justify-center p-4">
+											<Button
+												onClick={handleLoadMore}
+												disabled={isLoadingMore}
+												variant="ghost"
+												size="sm"
+												className="text-xs"
+											>
+												{isLoadingMore ? "Loading..." : "Load More"}
+											</Button>
+										</div>
 									) : null}
 								</div>
 							);
