@@ -4,17 +4,13 @@ import type { ModelId } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
-import type {
-	httpStreamChunkValidator,
-	httpStreamingRequestValidator,
-} from "./validators";
+import type { httpStreamingRequestValidator } from "./validators";
 
 // Types from validators
 type StreamWithChunks = NonNullable<
 	FunctionReturnType<typeof internal.streams.getStreamWithChunks>
 >;
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
-type StreamChunk = Infer<typeof httpStreamChunkValidator>;
 
 export const streamChatResponse = httpAction(async (ctx, request) => {
 	console.log("HTTP Streaming endpoint called");
@@ -119,7 +115,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						for (const chunk of newChunks) {
 							lastChunkIndex++;
 
-							let chunkData: StreamChunk = {
+							let chunkData: any = {
 								type: "text-delta",
 								text: chunk.text,
 								messageId,
@@ -307,7 +303,7 @@ export const streamContinue = httpAction(async (ctx, request) => {
 
 				// Send all existing chunks immediately
 				for (const chunk of streamData.chunks) {
-					let chunkData: StreamChunk = {
+					let chunkData: any = {
 						type: "text-delta",
 						text: chunk.text,
 						messageId: streamData.stream.messageId as Id<"messages">,
