@@ -49,16 +49,14 @@ export function useStream({
 	const authToken = useAuthToken();
 
 	// Query stream body from database
-	// Only query if we have a valid Convex stream ID
-	const isValidStreamId = streamId?.startsWith("k");
 	const streamBody = useQuery(
 		api.streams.getStreamBody,
-		streamId && isValidStreamId ? { streamId } : "skip",
+		streamId ? { streamId } : "skip",
 	);
 
 	// Determine if we should use HTTP streaming
 	const shouldUseHttp =
-		driven && !!streamId && isValidStreamId && httpStatus !== "error";
+		driven && !!streamId && httpStatus !== "error";
 
 	// Start HTTP streaming if we're the driven client
 	useEffect(() => {
@@ -144,7 +142,7 @@ export function useStream({
 	// Combine HTTP and database state
 	return useMemo(() => {
 		// If we're using HTTP, use that
-		if (driven && streamId && isValidStreamId) {
+		if (driven && streamId) {
 			// Check if we had an HTTP error
 			if (httpStatus === "error") {
 				// Fall through to database
@@ -177,7 +175,6 @@ export function useStream({
 	}, [
 		driven,
 		streamId,
-		isValidStreamId,
 		httpStatus,
 		httpText,
 		httpError,

@@ -759,18 +759,6 @@ export function validateTitle(title: string): boolean {
 	return title.length >= 1 && title.length <= 80;
 }
 
-// ID format validation
-export function isValidStreamId(id: string): boolean {
-	return /^k[a-zA-Z0-9]+$/.test(id); // Convex stream ID format
-}
-
-export function isValidMessageId(id: string): boolean {
-	return /^j[a-zA-Z0-9]+$/.test(id); // Convex message ID format
-}
-
-export function isValidThreadId(id: string): boolean {
-	return /^h[a-zA-Z0-9]+$/.test(id); // Convex thread ID format
-}
 
 // ===== Utility Functions =====
 
