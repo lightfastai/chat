@@ -57,8 +57,8 @@ export function StreamingReasoningDisplay({
 
 			{/* Expanded reasoning content */}
 			{isExpanded && reasoningContent && (
-				<div className="mt-3 text-sm text-muted-foreground max-w-none">
-					<Markdown className="prose prose-sm max-w-none [&>*]:text-muted-foreground">
+				<div className="mt-3 text-xs text-muted-foreground max-w-none">
+					<Markdown className="prose prose-xs max-w-none [&>*]:text-muted-foreground">
 						{reasoningContent}
 					</Markdown>
 				</div>
