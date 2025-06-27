@@ -90,29 +90,22 @@ export function useHTTPStreaming({
       // Make HTTP streaming request to Convex HTTP endpoint
       const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
       
-      // For local development, use localhost URL
-      const isLocal = convexUrl.includes("localhost") || convexUrl.includes("127.0.0.1");
-      let streamUrl: string;
-      
-      if (isLocal) {
-        // Local development URL
-        const localMatch = convexUrl.match(/https?:\/\/(localhost|127\.0\.0\.1):(\d+)/);
-        if (localMatch) {
-          streamUrl = `http://${localMatch[1]}:${localMatch[2]}/stream-chat`;
-        } else {
-          throw new Error("Invalid local Convex URL format");
-        }
+      // Construct site URL following Convex Agent SDK pattern
+      let convexSiteUrl: string;
+      if (convexUrl.includes(".cloud")) {
+        // Production: replace .cloud with .site
+        convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
       } else {
-        // Production URL - extract deployment name
-        const deploymentMatch = convexUrl.match(/https:\/\/([^.]+)\.convex\.cloud/);
-        if (!deploymentMatch) {
-          throw new Error("Invalid Convex URL format");
-        }
-        const deploymentName = deploymentMatch[1];
-        streamUrl = `https://${deploymentName}.convex.site/stream-chat`;
+        // Local development: use port + 1
+        const url = new URL(convexUrl);
+        url.port = String(Number(url.port) + 1);
+        convexSiteUrl = url.toString();
       }
       
+      const streamUrl = `${convexSiteUrl}/stream-chat`;
+      
       console.log("Convex URL:", convexUrl);
+      console.log("Convex Site URL:", convexSiteUrl);
       console.log("Stream URL:", streamUrl);
       
       console.log("🌊 HTTP Streaming: Making request to:", streamUrl, {
