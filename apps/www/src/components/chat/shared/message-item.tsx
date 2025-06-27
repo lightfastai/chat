@@ -80,7 +80,6 @@ export function MessageItem({
 					modelName={modelName}
 					usedUserApiKey={message.usedUserApiKey}
 					isStreaming={isStreaming}
-					isComplete={isComplete}
 					thinkingStartedAt={message.thinkingStartedAt}
 					thinkingCompletedAt={message.thinkingCompletedAt}
 					streamingText={displayText}

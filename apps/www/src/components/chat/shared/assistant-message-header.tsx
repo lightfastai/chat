@@ -7,7 +7,6 @@ interface AssistantMessageHeaderProps {
 	modelName?: string;
 	usedUserApiKey?: boolean;
 	isStreaming?: boolean;
-	isComplete?: boolean;
 	thinkingStartedAt?: number;
 	thinkingCompletedAt?: number;
 	streamingText?: string;
@@ -24,7 +23,6 @@ interface AssistantMessageHeaderProps {
 
 export function AssistantMessageHeader({
 	isStreaming,
-	isComplete,
 	streamingText,
 	hasParts,
 	message,
@@ -63,7 +61,6 @@ export function AssistantMessageHeader({
 	return (
 		<StreamingReasoningDisplay
 			isStreaming={!!isStreaming}
-			isComplete={!!isComplete}
 			hasContent={hasContent}
 			reasoningContent={reasoningContent}
 			hasReasoningParts={hasReasoningParts}
