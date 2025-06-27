@@ -1,17 +1,17 @@
 import {
-	type CoreMessage,
-	type TextStreamPart,
-	type ToolSet,
-	smoothStream,
-	streamText,
+  type CoreMessage,
+  type TextStreamPart,
+  type ToolSet,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import {
-	type ModelId,
-	getModelById,
-	getModelConfig,
-	getProviderFromModelId,
-	isThinkingMode,
+  type ModelId,
+  getModelById,
+  getModelConfig,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -159,24 +159,6 @@ export async function streamAIText(
 		const result = streamText(generationOptions);
 
 		let fullText = "";
-		let textBuffer = "";
-		let pendingBuffer = "";
-		const SENTENCE_DELIMITERS = /[.!?\n]/;
-
-		const flushTextBuffer = async (force = false) => {
-			const toFlush = force ? textBuffer + pendingBuffer : textBuffer;
-
-			if (toFlush.length > 0) {
-				// Use HybridStreamWriter directly
-				await hybridWriter.writeTextChunk(toFlush);
-				fullText += toFlush;
-
-				textBuffer = "";
-				if (force) {
-					pendingBuffer = "";
-				}
-			}
-		};
 
 		// Process the AI stream
 		for await (const streamPart of result.fullStream) {
@@ -185,38 +167,20 @@ export async function streamAIText(
 			switch (part.type) {
 				case "text":
 					if (part.text) {
-						pendingBuffer += part.text;
-
-						let lastDelimiterIndex = -1;
-						for (let i = 0; i < pendingBuffer.length; i++) {
-							if (SENTENCE_DELIMITERS.test(pendingBuffer[i])) {
-								lastDelimiterIndex = i;
-							}
-						}
-
-						if (lastDelimiterIndex !== -1) {
-							textBuffer += pendingBuffer.substring(0, lastDelimiterIndex + 1);
-							pendingBuffer = pendingBuffer.substring(lastDelimiterIndex + 1);
-							await flushTextBuffer();
-						}
-
-						if (pendingBuffer.length >= 200) {
-							textBuffer = pendingBuffer;
-							pendingBuffer = "";
-							await flushTextBuffer(true);
-						}
+						// Send text immediately to client without accumulation
+						await hybridWriter.writeTextChunk(part.text);
+						fullText += part.text;
 					}
 					break;
 
 				case "reasoning":
-					await flushTextBuffer(true);
 					if (part.type === "reasoning" && part.text) {
+						// Send reasoning immediately to client without accumulation
 						await hybridWriter.writeReasoning(part.text);
 					}
 					break;
 
 				case "tool-call":
-					await flushTextBuffer(true);
 					await hybridWriter.writeToolCall({
 						toolCallId: part.toolCallId,
 						toolName: part.toolName,
@@ -286,8 +250,7 @@ export async function streamAIText(
 			}
 		}
 
-		// Flush any remaining text
-		await flushTextBuffer(true);
+		// No need to flush anything since we're sending immediately
 
 		// Get final usage and complete the message
 		const finalUsage = await result.usage;

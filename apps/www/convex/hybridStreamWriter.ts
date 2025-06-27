@@ -7,10 +7,13 @@ import type { MessagePart, StreamEnvelope } from "./validators";
  * HybridStreamWriter - Implements dual-write strategy for optimal streaming
  *
  * Key features:
- * 1. Immediate HTTP delivery via envelope format
- * 2. Throttled database writes (250ms) for multi-client sync
- * 3. Sentence boundary optimization for natural chunking
+ * 1. Immediate HTTP delivery of all chunks without accumulation
+ * 2. Throttled database writes (250ms) with text/reasoning accumulation
+ * 3. Sentence boundary optimization for database chunks only
  * 4. Automatic sequence tracking and ordering
+ * 
+ * The client receives text immediately for smooth UX while the database
+ * accumulates chunks for efficient storage and querying.
  */
 export class HybridStreamWriter {
 	private sequence = 0;
@@ -65,13 +68,13 @@ export class HybridStreamWriter {
 	 * Write a text chunk - the most common streaming operation
 	 */
 	async writeTextChunk(text: string): Promise<void> {
-		// 1. IMMEDIATE: Send via HTTP stream
+		// 1. IMMEDIATE: Send via HTTP stream without accumulation
 		await this.sendHttpChunk({
 			type: "text",
 			text,
 		});
 
-		// 2. ACCUMULATE: For database throttling
+		// 2. ACCUMULATE: Only for database updates
 		this.pendingText += text;
 		this.pendingDeltas.push({
 			text,
@@ -132,21 +135,20 @@ export class HybridStreamWriter {
 	 * Write reasoning/thinking content
 	 */
 	async writeReasoning(text: string): Promise<void> {
-		const part: MessagePart = {
+		// 1. IMMEDIATE: Send via HTTP stream without accumulation
+		await this.sendHttpChunk({
 			type: "reasoning",
 			text,
-		};
+		});
 
-		await this.sendHttpChunk(part);
-
-		// Accumulate reasoning text similar to regular text
+		// 2. ACCUMULATE: Only for database updates
 		this.pendingReasoning += text;
 		this.pendingDeltas.push({
 			text,
 			partType: "reasoning",
 		});
 
-		// Reasoning chunks can be throttled like text
+		// 3. THROTTLED: Write to database if conditions met
 		if (this.shouldWriteToDb(text)) {
 			await this.flushToDatabase();
 		}
