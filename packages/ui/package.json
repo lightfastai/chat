@@ -58,6 +58,7 @@
 		"react-hook-form": "^7.58.1",
 		"react-resizable-panels": "^3.0.3",
 		"recharts": "^2.15.4",
+		"shiki": "^3.7.0",
 		"sonner": "^2.0.5",
 		"tailwind-merge": "^3.3.1",
 		"tailwindcss-animate": "^1.0.7",
@@ -72,10 +73,10 @@
 	"devDependencies": {
 		"@repo/biome": "workspace:*",
 		"@repo/typescript": "workspace:*",
+		"@tailwindcss/postcss": "catalog:tailwind4",
 		"@types/react": "^19.1.7",
 		"@types/react-dom": "^19.1.6",
-		"typescript": "^5.8.3",
 		"tailwindcss": "catalog:tailwind4",
-		"@tailwindcss/postcss": "catalog:tailwind4"
+		"typescript": "^5.8.3"
 	}
 }

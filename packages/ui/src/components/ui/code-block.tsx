@@ -2,12 +2,12 @@
 
 import { Check, Copy } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useState } from "react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { useEffect, useState } from "react";
 import {
-	oneDark,
-	oneLight,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
+	type BundledLanguage,
+	type BundledTheme,
+	createHighlighter,
+} from "shiki";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
 
@@ -20,6 +20,8 @@ interface CodeBlockProps {
 export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 	const { theme } = useTheme();
 	const [copied, setCopied] = useState(false);
+	const [highlightedCode, setHighlightedCode] = useState<string>("");
+	const [isLoading, setIsLoading] = useState(true);
 	// TODO: Re-enable scroll mode once overflow container issues are resolved
 	// For now, we only support text wrapping to prevent overflow beyond message bounds
 	// const [isWrapped, setIsWrapped] = useState(true)
@@ -54,7 +56,83 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 		return langMap[lang.toLowerCase()] || lang.toLowerCase();
 	};
 
-	const normalizedLanguage = normalizeLanguage(language);
+	const normalizedLanguage = normalizeLanguage(language) as BundledLanguage;
+
+	// Shiki highlighting effect
+	useEffect(() => {
+		let isMounted = true;
+
+		async function highlightCode() {
+			try {
+				setIsLoading(true);
+				const highlighter = await createHighlighter({
+					themes: ["github-light", "github-dark"],
+					langs: [
+						"javascript",
+						"typescript",
+						"jsx",
+						"tsx",
+						"python",
+						"bash",
+						"json",
+						"markdown",
+						"css",
+						"html",
+						"yaml",
+						"sql",
+						"rust",
+						"go",
+						"java",
+						"cpp",
+						"c",
+						"php",
+						"ruby",
+						"xml",
+						"plaintext",
+					],
+				});
+
+				if (!isMounted) return;
+
+				const currentTheme = theme === "dark" ? "github-dark" : "github-light";
+				const langToUse = normalizedLanguage || "plaintext";
+
+				try {
+					const highlighted = highlighter.codeToHtml(code, {
+						lang: langToUse as BundledLanguage,
+						theme: currentTheme as BundledTheme,
+					});
+					if (isMounted) {
+						setHighlightedCode(highlighted);
+					}
+				} catch (langError) {
+					// Fallback to plaintext if language is not supported
+					const highlighted = highlighter.codeToHtml(code, {
+						lang: "plaintext",
+						theme: currentTheme as BundledTheme,
+					});
+					if (isMounted) {
+						setHighlightedCode(highlighted);
+					}
+				}
+			} catch (error) {
+				console.error("Failed to highlight code:", error);
+				if (isMounted) {
+					setHighlightedCode(`<pre><code>${code}</code></pre>`);
+				}
+			} finally {
+				if (isMounted) {
+					setIsLoading(false);
+				}
+			}
+		}
+
+		highlightCode();
+
+		return () => {
+			isMounted = false;
+		};
+	}, [code, language, theme, normalizedLanguage]);
 
 	return (
 		<div className={cn("relative group my-4 w-full", className)}>
@@ -94,42 +172,21 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 				</div>
 			</div>
 
-			{/* Syntax Highlighter - Text wrapping mode only */}
+			{/* Shiki Syntax Highlighter - Text wrapping mode only */}
 			{/* TODO: Re-implement horizontal scroll mode with proper container constraints */}
 			<div className="border border-t-0 border-border rounded-b-md overflow-hidden">
 				<div className="w-full">
-					<SyntaxHighlighter
-						language={normalizedLanguage}
-						style={theme === "dark" ? oneDark : oneLight}
-						wrapLines={true}
-						wrapLongLines={true}
-						customStyle={{
-							margin: 0,
-							padding: "12px",
-							fontSize: "13px",
-							fontFamily:
-								"ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-							background: "transparent",
-							borderRadius: 0,
-							whiteSpace: "pre-wrap",
-							wordBreak: "break-word",
-							overflowWrap: "break-word",
-							width: "100%",
-						}}
-						codeTagProps={{
-							style: {
-								fontFamily:
-									"ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-								whiteSpace: "pre-wrap",
-								wordBreak: "break-word",
-								overflowWrap: "break-word",
-								display: "block",
-								width: "100%",
-							},
-						}}
-					>
-						{code}
-					</SyntaxHighlighter>
+					{isLoading ? (
+						<div className="p-3 text-sm font-mono text-muted-foreground animate-pulse">
+							Syntax highlighting...
+						</div>
+					) : (
+						<div
+							className="[&>pre]:!m-0 [&>pre]:!p-3 [&>pre]:!bg-transparent [&>pre]:!border-none [&>pre]:!rounded-none [&>pre]:text-sm [&>pre]:leading-relaxed [&>pre]:whitespace-pre-wrap [&>pre]:break-words [&>pre]:overflow-wrap-anywhere [&_code]:whitespace-pre-wrap [&_code]:break-words [&_code]:overflow-wrap-anywhere [&_code]:font-mono"
+							// biome-ignore lint/security/noDangerouslySetInnerHtml: Shiki output is safe
+							dangerouslySetInnerHTML={{ __html: highlightedCode }}
+						/>
+					)}
 				</div>
 			</div>
 		</div>
