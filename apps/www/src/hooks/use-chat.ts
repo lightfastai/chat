@@ -3,6 +3,7 @@
 import type { ModelId } from "@/lib/ai";
 import { getProviderFromModelId } from "@/lib/ai";
 import { isClientId, nanoid } from "@/lib/nanoid";
+import { env } from "@/env";
 import { useAuthToken } from "@convex-dev/auth/react";
 import {
 	type Preloaded,
@@ -454,7 +455,19 @@ export function useChat(options: UseChatOptions = {}) {
 
 				// 2. Then trigger HTTP streaming with the created streamId and messageId
 				if (authToken && convexResult?.streamId && convexResult?.messageId) {
-					fetch("/api/convex/httpStreaming/streamChatResponse", {
+					// Construct Convex HTTP endpoint URL
+					const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
+					let convexSiteUrl: string;
+					if (convexUrl.includes(".cloud")) {
+						convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
+					} else {
+						const url = new URL(convexUrl);
+						url.port = String(Number(url.port) + 1);
+						convexSiteUrl = url.toString();
+					}
+					const streamUrl = `${convexSiteUrl}/stream-chat`;
+
+					fetch(streamUrl, {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
