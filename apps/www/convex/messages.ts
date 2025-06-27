@@ -17,6 +17,7 @@ import {
 	streamText,
 } from "ai";
 import { v } from "convex/values";
+import type { Infer } from "convex/values";
 import {
 	type ModelId,
 	getModelById,
@@ -42,11 +43,10 @@ import { getOrThrow, getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
 import { getModelStreamingDelay } from "./lib/streaming_config.js";
-import type { Infer } from "convex/values";
 import {
 	branchInfoValidator,
 	clientIdValidator,
-	messagePartValidator,
+	type messagePartValidator,
 	messageTypeValidator,
 	modelIdValidator,
 	modelProviderValidator,

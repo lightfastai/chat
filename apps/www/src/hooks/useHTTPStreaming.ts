@@ -169,7 +169,17 @@ export function useHTTPStreaming({
 							try {
 								const data: StreamChunk = JSON.parse(line);
 
-								if (data.type === "text-delta" && data.text) {
+								if (data.type === "init") {
+									// Initialize message with proper IDs
+									currentMessage = {
+										...currentMessage,
+										_id: data.messageId,
+									};
+									console.log(
+										"🌊 HTTP Streaming: Initialized with messageId:",
+										data.messageId,
+									);
+								} else if (data.type === "text-delta" && data.text) {
 									// Update streaming message with new text
 									currentMessage = {
 										...currentMessage,
@@ -199,7 +209,7 @@ export function useHTTPStreaming({
 									// Mark as complete
 									currentMessage = {
 										...currentMessage,
-										_id: data.messageId,
+										_id: data.messageId || currentMessage._id,
 										isStreaming: false,
 										isComplete: true,
 										timestamp: data.timestamp,
@@ -212,7 +222,7 @@ export function useHTTPStreaming({
 									setIsStreaming(false);
 									currentMessage = {
 										...currentMessage,
-										_id: data.messageId,
+										_id: data.messageId || currentMessage._id,
 										isStreaming: false,
 										isComplete: true,
 										body: data.error || "Error occurred during streaming",

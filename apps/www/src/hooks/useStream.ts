@@ -110,9 +110,9 @@ export function useStream({
 
 					for (const line of lines) {
 						try {
-							const data = JSON.parse(line) as Pick<StreamChunk, "type" | "text" | "error">;
+							const data = JSON.parse(line) as StreamChunk;
 
-							if (data.type === "text-delta" && data.text) {
+							if (data.type === "text-delta") {
 								setHttpText((prev) => prev + data.text);
 							} else if (data.type === "completion") {
 								setHttpStatus("done");

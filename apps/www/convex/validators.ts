@@ -302,26 +302,73 @@ export const messagePartValidator = v.union(
 export const messagePartsValidator = v.array(messagePartValidator);
 
 // ===== HTTP Streaming Validators =====
-// HTTP streaming chunk type validator - for chunks sent over HTTP
-export const httpStreamChunkValidator = v.object({
-	type: v.union(
-		v.literal("text-delta"),
-		v.literal("tool-call"),
-		v.literal("tool-result"),
-		v.literal("completion"),
-		v.literal("error"),
-	),
-	text: v.optional(v.string()),
+// Individual chunk type validators following Vercel AI SDK pattern
+
+// Init chunk - sent at the start of streaming
+export const httpInitChunkValidator = v.object({
+	type: v.literal("init"),
 	messageId: v.id("messages"),
-	streamId: v.optional(v.id("streams")),
-	error: v.optional(v.string()),
+	streamId: v.id("streams"),
 	timestamp: v.number(),
-	// Tool-related fields
-	toolName: v.optional(v.string()),
-	toolCallId: v.optional(v.string()),
-	args: v.optional(v.any()),
-	result: v.optional(v.any()),
 });
+
+// Text delta chunk - for streaming text content
+export const httpTextDeltaChunkValidator = v.object({
+	type: v.literal("text-delta"),
+	text: v.string(),
+	messageId: v.id("messages"),
+	streamId: v.id("streams"),
+	timestamp: v.number(),
+});
+
+// Tool call chunk - for streaming tool invocations
+export const httpToolCallChunkValidator = v.object({
+	type: v.literal("tool-call"),
+	toolName: v.string(),
+	toolCallId: v.string(),
+	args: v.any(),
+	messageId: v.id("messages"),
+	streamId: v.id("streams"),
+	timestamp: v.number(),
+});
+
+// Tool result chunk - for streaming tool results
+export const httpToolResultChunkValidator = v.object({
+	type: v.literal("tool-result"),
+	toolName: v.string(),
+	toolCallId: v.string(),
+	result: v.any(),
+	messageId: v.id("messages"),
+	streamId: v.id("streams"),
+	timestamp: v.number(),
+});
+
+// Completion chunk - signals end of stream
+export const httpCompletionChunkValidator = v.object({
+	type: v.literal("completion"),
+	messageId: v.optional(v.id("messages")),
+	streamId: v.optional(v.id("streams")),
+	timestamp: v.number(),
+});
+
+// Error chunk - for streaming errors
+export const httpErrorChunkValidator = v.object({
+	type: v.literal("error"),
+	error: v.string(),
+	messageId: v.optional(v.id("messages")),
+	streamId: v.optional(v.id("streams")),
+	timestamp: v.number(),
+});
+
+// Union of all HTTP streaming chunk types
+export const httpStreamChunkValidator = v.union(
+	httpInitChunkValidator,
+	httpTextDeltaChunkValidator,
+	httpToolCallChunkValidator,
+	httpToolResultChunkValidator,
+	httpCompletionChunkValidator,
+	httpErrorChunkValidator,
+);
 
 // HTTP streaming request validator
 export const httpStreamingRequestValidator = v.object({

@@ -1,6 +1,6 @@
 import type { FunctionReturnType } from "convex/server";
 import type { Infer } from "convex/values";
-import { ModelId } from "../src/lib/ai/schemas";
+import type { ModelId } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
@@ -10,7 +10,9 @@ import type {
 } from "./validators";
 
 // Types from validators
-type StreamWithChunks = NonNullable<FunctionReturnType<typeof internal.streams.getStreamWithChunks>>;
+type StreamWithChunks = NonNullable<
+	FunctionReturnType<typeof internal.streams.getStreamWithChunks>
+>;
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
 type StreamChunk = Infer<typeof httpStreamChunkValidator>;
 
@@ -36,7 +38,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		console.log("Auth header present:", !!authHeader);
 
 		// Parse request body with type
-		const body = await request.json() as HTTPStreamingRequest;
+		const body = (await request.json()) as HTTPStreamingRequest;
 		const { threadId, modelId, messages } = body;
 
 		console.log("HTTP Streaming request:", {
@@ -117,18 +119,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						for (const chunk of newChunks) {
 							lastChunkIndex++;
 
-							let chunkData: {
-								type: string;
-								text?: string;
-								messageId: Id<"messages">;
-								streamId: Id<"streams">;
-								timestamp: number;
-								toolCallId?: string;
-								toolName?: string;
-								args?: unknown;
-								result?: unknown;
-								error?: string;
-							} = {
+							let chunkData: StreamChunk = {
 								type: "text-delta",
 								text: chunk.text,
 								messageId,
@@ -139,8 +130,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							if (chunk.type === "tool_call") {
 								chunkData = {
 									type: "tool-call",
-									toolName: chunk.metadata?.toolName,
-									toolCallId: chunk.metadata?.toolCallId,
+									toolName: chunk.metadata?.toolName || "unknown",
+									toolCallId: chunk.metadata?.toolCallId || "unknown",
 									args: JSON.parse(chunk.text),
 									messageId,
 									streamId,
@@ -149,8 +140,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							} else if (chunk.type === "tool_result") {
 								chunkData = {
 									type: "tool-result",
-									toolName: chunk.metadata?.toolName,
-									toolCallId: chunk.metadata?.toolCallId,
+									toolName: chunk.metadata?.toolName || "unknown",
+									toolCallId: chunk.metadata?.toolCallId || "unknown",
 									result: JSON.parse(chunk.text),
 									messageId,
 									streamId,
@@ -327,8 +318,8 @@ export const streamContinue = httpAction(async (ctx, request) => {
 					if (chunk.type === "tool_call") {
 						chunkData = {
 							type: "tool-call",
-							toolName: chunk.metadata?.toolName as string | undefined,
-							toolCallId: chunk.metadata?.toolCallId as string | undefined,
+							toolName: (chunk.metadata?.toolName as string) || "unknown",
+							toolCallId: (chunk.metadata?.toolCallId as string) || "unknown",
 							args: JSON.parse(chunk.text),
 							messageId: streamData.stream.messageId as Id<"messages">,
 							streamId: streamData.stream._id,
@@ -337,8 +328,8 @@ export const streamContinue = httpAction(async (ctx, request) => {
 					} else if (chunk.type === "tool_result") {
 						chunkData = {
 							type: "tool-result",
-							toolName: chunk.metadata?.toolName as string | undefined,
-							toolCallId: chunk.metadata?.toolCallId as string | undefined,
+							toolName: (chunk.metadata?.toolName as string) || "unknown",
+							toolCallId: (chunk.metadata?.toolCallId as string) || "unknown",
 							result: JSON.parse(chunk.text),
 							messageId: streamData.stream.messageId as Id<"messages">,
 							streamId: streamData.stream._id,
