@@ -34,6 +34,7 @@ import type * as messages_types from "../messages/types.js";
 import type * as messages from "../messages.js";
 import type * as setup from "../setup.js";
 import type * as share from "../share.js";
+import type * as streams from "../streams.js";
 import type * as threads from "../threads.js";
 import type * as titles from "../titles.js";
 import type * as userSettings from "../userSettings.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   messages: typeof messages;
   setup: typeof setup;
   share: typeof share;
+  streams: typeof streams;
   threads: typeof threads;
   titles: typeof titles;
   userSettings: typeof userSettings;

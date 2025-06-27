@@ -18,11 +18,17 @@ interface StreamingMessage {
 }
 
 interface StreamChunk {
-  type: "text-delta" | "completion" | "error";
+  type: "text-delta" | "tool-call" | "tool-result" | "completion" | "error";
   text?: string;
   messageId: Id<"messages">;
+  streamId?: Id<"streams">;
   error?: string;
   timestamp: number;
+  // Tool-related fields
+  toolName?: string;
+  toolCallId?: string;
+  args?: any;
+  result?: any;
 }
 
 interface UseHTTPStreamingOptions {
@@ -188,6 +194,20 @@ export function useHTTPStreaming({
                   totalLength: currentMessage.body.length,
                   timestamp: new Date(data.timestamp).toISOString(),
                 });
+
+              } else if (data.type === "tool-call") {
+                console.log("🔧 HTTP Streaming: Tool call:", {
+                  toolName: data.toolName,
+                  toolCallId: data.toolCallId,
+                });
+                // Tool calls are handled by the message parts system
+                
+              } else if (data.type === "tool-result") {
+                console.log("📊 HTTP Streaming: Tool result:", {
+                  toolName: data.toolName,
+                  toolCallId: data.toolCallId,
+                });
+                // Tool results are handled by the message parts system
 
               } else if (data.type === "completion") {
                 // Mark as complete

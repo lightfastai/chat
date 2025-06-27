@@ -2,6 +2,7 @@ import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { createAIClient } from "./lib/ai_client";
 import { streamText } from "ai";
+import { Id } from "./_generated/dataModel";
 
 export const streamChatResponse = httpAction(async (ctx, request) => {
   console.log("HTTP Streaming endpoint called");
@@ -36,13 +37,20 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
       return new Response("Thread not found", { status: 404 });
     }
 
-    // Create initial AI message
+    // Create a stream first
+    const streamId = await ctx.runMutation(internal.streams.create, {
+      userId: thread.userId,
+      metadata: { threadId, modelId },
+    });
+
+    // Create initial AI message with streamId
     const messageId = await ctx.runMutation(internal.messages.create, {
       threadId,
       messageType: "assistant",
       body: "",
       modelId,
       isStreaming: true,
+      streamId,
     });
     // Set up AI streaming
     const aiClient = createAIClient(modelId);
@@ -52,100 +60,176 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
       temperature: 0.7,
     });
 
-    // Create HTTP streaming response with 200ms batching
+    // Create HTTP streaming response with sentence-based batching
     const stream = new ReadableStream({
       async start(controller) {
         let textBuffer = "";
-        let lastBatchTime = Date.now();
-        const BATCH_INTERVAL_MS = 200;
-        const BATCH_SIZE_THRESHOLD = 50; // Characters
+        let pendingBuffer = ""; // Buffer for incomplete sentences
+        const SENTENCE_DELIMITERS = /[.!?\n]/;
+        const MAX_BUFFER_SIZE = 200; // Max chars before forced flush
         
         // Stats for logging
-        let batchCount = 0;
-        let totalTokens = 0;
+        let chunkCount = 0;
+        let totalChars = 0;
         const startTime = Date.now();
 
         const encoder = new TextEncoder();
 
-        const flushBuffer = async () => {
-          if (textBuffer.length > 0) {
-            batchCount++;
-            console.log(`🔄 HTTP Streaming Batch #${batchCount}:`, {
-              batchSize: textBuffer.length,
-              timeSinceLastBatch: Date.now() - lastBatchTime,
+        const flushBuffer = async (force = false) => {
+          const toFlush = force ? textBuffer + pendingBuffer : textBuffer;
+          
+          if (toFlush.length > 0) {
+            chunkCount++;
+            console.log(`🔄 HTTP Streaming Chunk #${chunkCount}:`, {
+              chunkSize: toFlush.length,
+              type: force ? "forced" : "sentence",
               totalElapsed: Date.now() - startTime,
             });
+            
             // Send to client immediately via HTTP stream
             const chunk = JSON.stringify({
               type: "text-delta",
-              text: textBuffer,
+              text: toFlush,
               messageId,
+              streamId,
               timestamp: Date.now(),
             }) + "\n";
             controller.enqueue(encoder.encode(chunk));
 
-            // Batch update to database
-            await ctx.runMutation(internal.messages.appendStreamingText, {
-              messageId,
-              text: textBuffer,
+            // Add chunk to database
+            await ctx.runMutation(internal.streams.addChunk, {
+              streamId,
+              text: toFlush,
+              type: "text",
             });
 
             textBuffer = "";
-            lastBatchTime = Date.now();
+            if (force) {
+              pendingBuffer = "";
+            }
           }
         };
 
         try {
           for await (const part of result.fullStream) {
             if (part.type === "text") {
-              textBuffer += part.text;
-              totalTokens++;
+              pendingBuffer += part.text;
+              totalChars += part.text.length;
 
-              const now = Date.now();
-              const timeSinceLastBatch = now - lastBatchTime;
+              // Look for sentence boundaries
+              let lastDelimiterIndex = -1;
+              for (let i = 0; i < pendingBuffer.length; i++) {
+                if (SENTENCE_DELIMITERS.test(pendingBuffer[i])) {
+                  lastDelimiterIndex = i;
+                }
+              }
 
-              // Flush buffer based on time interval or size threshold
-              if (
-                timeSinceLastBatch >= BATCH_INTERVAL_MS ||
-                textBuffer.length >= BATCH_SIZE_THRESHOLD
-              ) {
+              // If we found a sentence boundary, move complete sentences to textBuffer
+              if (lastDelimiterIndex !== -1) {
+                textBuffer += pendingBuffer.substring(0, lastDelimiterIndex + 1);
+                pendingBuffer = pendingBuffer.substring(lastDelimiterIndex + 1);
                 await flushBuffer();
               }
-            } else if (part.type === "finish") {
-              // Flush any remaining buffer
-              await flushBuffer();
-              
-              console.log("✅ HTTP Streaming Complete:", {
-                totalBatches: batchCount,
-                totalTokens,
-                totalTime: Date.now() - startTime,
-                avgBatchSize: totalTokens / batchCount,
-                dbWriteSavings: `${Math.round((1 - batchCount / totalTokens) * 100)}%`,
+
+              // Force flush if buffer is too large
+              if (pendingBuffer.length >= MAX_BUFFER_SIZE) {
+                textBuffer = pendingBuffer;
+                pendingBuffer = "";
+                await flushBuffer(true);
+              }
+            } else if (part.type === "tool-call") {
+              // Flush any pending text first
+              textBuffer = pendingBuffer;
+              pendingBuffer = "";
+              await flushBuffer(true);
+
+              // Send tool call as a separate chunk
+              const toolChunk = JSON.stringify({
+                type: "tool-call",
+                toolName: part.toolName,
+                toolCallId: part.toolCallId,
+                args: part.args,
+                messageId,
+                streamId,
+                timestamp: Date.now(),
+              }) + "\n";
+              controller.enqueue(encoder.encode(toolChunk));
+
+              // Store tool call in database
+              await ctx.runMutation(internal.streams.addChunk, {
+                streamId,
+                text: JSON.stringify(part.args),
+                type: "tool_call",
+                metadata: {
+                  toolName: part.toolName,
+                  toolCallId: part.toolCallId,
+                },
               });
 
-              // Mark message as complete
-              await ctx.runMutation(internal.messages.markComplete, {
+            } else if (part.type === "tool-result") {
+              // Send tool result
+              const resultChunk = JSON.stringify({
+                type: "tool-result",
+                toolName: part.toolName,
+                toolCallId: part.toolCallId,
+                result: part.result,
                 messageId,
+                streamId,
+                timestamp: Date.now(),
+              }) + "\n";
+              controller.enqueue(encoder.encode(resultChunk));
+
+              // Store tool result
+              await ctx.runMutation(internal.streams.addChunk, {
+                streamId,
+                text: JSON.stringify(part.result),
+                type: "tool_result",
+                metadata: {
+                  toolName: part.toolName,
+                  toolCallId: part.toolCallId,
+                },
+              });
+
+            } else if (part.type === "finish") {
+              // Flush any remaining text
+              textBuffer = pendingBuffer;
+              pendingBuffer = "";
+              await flushBuffer(true);
+              
+              console.log("✅ HTTP Streaming Complete:", {
+                totalChunks: chunkCount,
+                totalChars,
+                totalTime: Date.now() - startTime,
+                avgChunkSize: totalChars / chunkCount,
+              });
+
+              // Mark stream as complete
+              await ctx.runMutation(internal.streams.markComplete, {
+                streamId,
               });
 
               // Send completion signal
               const completionChunk = JSON.stringify({
                 type: "completion",
                 messageId,
+                streamId,
                 timestamp: Date.now(),
               }) + "\n";
               controller.enqueue(encoder.encode(completionChunk));
             } else if (part.type === "error") {
               // Handle streaming errors
               const errorMessage = part.error instanceof Error ? part.error.message : "Unknown error";
-              await ctx.runMutation(internal.messages.markError, {
-                messageId,
+              
+              // Mark stream as errored
+              await ctx.runMutation(internal.streams.markError, {
+                streamId,
                 error: errorMessage,
               });
 
               const errorChunk = JSON.stringify({
                 type: "error",
                 messageId,
+                streamId,
                 error: errorMessage,
                 timestamp: Date.now(),
               }) + "\n";
@@ -155,9 +239,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
         } catch (error) {
           console.error("Streaming error:", error);
           
-          // Mark message as errored
-          await ctx.runMutation(internal.messages.markError, {
-            messageId,
+          // Mark stream as errored
+          await ctx.runMutation(internal.streams.markError, {
+            streamId,
             error: error instanceof Error ? error.message : "Unknown error",
           });
 

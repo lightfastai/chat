@@ -1761,24 +1761,39 @@ export const generateAIResponse = internalAction({
 export const create = internalMutation({
 	args: {
 		threadId: v.id("threads"),
-		role: messageTypeValidator,
+		role: v.optional(messageTypeValidator), // Optional for backward compatibility
+		messageType: v.optional(messageTypeValidator), // New field name
 		body: v.string(),
 		modelId: v.optional(modelIdValidator),
 		isStreaming: v.optional(v.boolean()),
+		streamId: v.optional(v.id("streams")),
 	},
 	returns: v.id("messages"),
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		return await ctx.db.insert("messages", {
+		const messageType = args.messageType || args.role || "assistant";
+		
+		const messageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			body: args.body,
 			timestamp: now,
-			messageType: args.role,
+			messageType,
 			modelId: args.modelId,
+			model: args.modelId ? getProviderFromModelId(args.modelId as ModelId) : undefined,
 			isStreaming: args.isStreaming || false,
 			isComplete: !args.isStreaming,
+			streamId: args.streamId,
 			usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
 		});
+		
+		// Link the stream to this message
+		if (args.streamId) {
+			await ctx.db.patch(args.streamId, {
+				messageId,
+			});
+		}
+		
+		return messageId;
 	},
 });
 
@@ -1832,6 +1847,63 @@ export const markError = internalMutation({
 			isStreaming: false,
 			isComplete: true,
 			body: args.error,
+		});
+
+		return null;
+	},
+});
+
+// Sync message body from stream chunks (new stream system)
+export const syncMessageFromStream = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		streamId: v.id("streams"),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const streamData = await ctx.runQuery(internal.streams.getStreamWithChunks, {
+			streamId: args.streamId,
+		});
+		
+		if (!streamData) {
+			throw new Error("Stream not found");
+		}
+		
+		// Build message body from chunks
+		let body = "";
+		const parts: any[] = [];
+		
+		for (const chunk of streamData.chunks) {
+			if (chunk.type === "text" || chunk.type === "reasoning") {
+				body += chunk.text;
+				parts.push({
+					type: "text",
+					text: chunk.text,
+				});
+			} else if (chunk.type === "tool_call") {
+				parts.push({
+					type: "tool-call",
+					toolCallId: chunk.metadata?.toolCallId,
+					toolName: chunk.metadata?.toolName,
+					args: JSON.parse(chunk.text),
+				});
+			} else if (chunk.type === "tool_result") {
+				parts.push({
+					type: "tool-result",
+					toolCallId: chunk.metadata?.toolCallId,
+					toolName: chunk.metadata?.toolName,
+					result: JSON.parse(chunk.text),
+				});
+			}
+		}
+		
+		// Update message with final content
+		await ctx.db.patch(args.messageId, {
+			body,
+			parts: parts.length > 0 ? parts : undefined,
+			isStreaming: streamData.stream.status === "streaming",
+			isComplete: streamData.stream.status === "done",
+			streamVersion: (streamData.chunks.length || 0) + 1,
 		});
 
 		return null;
