@@ -150,7 +150,10 @@ export class HybridStreamWriter {
 	/**
 	 * Write an error part
 	 */
-	async writeError(errorMessage: string, errorDetails?: Record<string, unknown>): Promise<void> {
+	async writeError(
+		errorMessage: string,
+		errorDetails?: Record<string, unknown>,
+	): Promise<void> {
 		const part: MessagePart = {
 			type: "error",
 			errorMessage,

@@ -26,11 +26,6 @@ export const getUserSettings = query({
 				v.object({
 					defaultModel: v.optional(modelIdValidator),
 					preferredProvider: v.optional(modelProviderValidator),
-					experimentalFeatures: v.optional(
-						v.object({
-							httpStreaming: v.optional(v.boolean()),
-						}),
-					),
 				}),
 			),
 			createdAt: v.number(),
@@ -143,17 +138,9 @@ export const updatePreferences = mutation({
 	args: {
 		defaultModel: v.optional(modelIdValidator),
 		preferredProvider: v.optional(modelProviderValidator),
-		experimentalFeatures: v.optional(
-			v.object({
-				httpStreaming: v.optional(v.boolean()),
-			}),
-		),
 	},
 	returns: v.object({ success: v.boolean() }),
-	handler: async (
-		ctx,
-		{ defaultModel, preferredProvider, experimentalFeatures },
-	) => {
+	handler: async (ctx, { defaultModel, preferredProvider }) => {
 		const userId = await getAuthUserId(ctx);
 		if (!userId) {
 			throw new ConvexError("Unauthorized");
@@ -168,7 +155,6 @@ export const updatePreferences = mutation({
 		const preferences = {
 			defaultModel,
 			preferredProvider,
-			experimentalFeatures,
 		};
 
 		if (existingSettings) {

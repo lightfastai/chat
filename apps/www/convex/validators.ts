@@ -205,11 +205,6 @@ export const userPreferencesValidator = v.optional(
 	v.object({
 		defaultModel: v.optional(modelIdValidator),
 		preferredProvider: v.optional(modelProviderValidator),
-		experimentalFeatures: v.optional(
-			v.object({
-				httpStreaming: v.optional(v.boolean()),
-			}),
-		),
 	}),
 );
 
@@ -530,7 +525,7 @@ export const httpStreamingRequestValidator = v.object({
 
 			// Resume from previous attempt
 			resumeFromStreamId: v.optional(v.id("streams")),
-			
+
 			// For hybrid streaming - use existing structures
 			useExistingMessage: v.optional(v.id("messages")),
 			webSearchEnabled: v.optional(v.boolean()),

@@ -32,9 +32,6 @@ type UserSettings = {
 	preferences?: {
 		defaultModel?: string;
 		preferredProvider?: string;
-		experimentalFeatures?: {
-			httpStreaming?: boolean;
-		};
 	};
 	createdAt: number;
 	updatedAt: number;

@@ -441,8 +441,6 @@ export const send = mutation({
 		modelId: v.optional(modelIdValidator), // Use the validated modelId
 		attachments: v.optional(v.array(v.id("files"))), // Add attachments support
 		webSearchEnabled: v.optional(v.boolean()),
-		skipAIResponse: v.optional(v.boolean()), // Skip AI response for HTTP streaming
-		useStreamSystem: v.optional(v.boolean()), // Use new stream system
 		useHybridStreaming: v.optional(v.boolean()), // Use hybrid streaming (HTTP + Convex)
 	},
 	returns: v.object({
@@ -543,84 +541,20 @@ export const send = mutation({
 
 			// For hybrid streaming, return the assistant message ID for the HTTP endpoint
 			messageId = assistantMessageId;
-			
+
 			// For hybrid streaming, we only create the database structures
 			// The HTTP endpoint will handle BOTH:
 			// 1. AI generation and HTTP streaming for instant feedback
 			// 2. Database persistence via HybridStreamWriter
 			// This ensures single AI generation with dual writing
-		} else if (args.useStreamSystem) {
-			// Create stream first
-			const streamResult: Id<"streams"> = await ctx.runMutation(
-				internal.streams.create,
-				{
-					userId,
-					metadata: { threadId: args.threadId, modelId },
-				},
-			);
-			streamId = streamResult;
-
-			// Get user's API keys for the AI generation
-			const userApiKeys = (await ctx.runMutation(
-				internal.userSettings.getDecryptedApiKeys,
-				{ userId },
-			)) as {
-				anthropic?: string;
-				openai?: string;
-				openrouter?: string;
-			} | null;
-
-			// Determine if we'll use user's API key
-			const willUseUserApiKey =
-				(provider === "anthropic" && userApiKeys?.anthropic) ||
-				(provider === "openai" && userApiKeys?.openai) ||
-				(provider === "openrouter" && userApiKeys?.openrouter);
-
-			// Create assistant message with streamId
-			const now = Date.now();
-			const assistantMessageId = await ctx.db.insert("messages", {
-				threadId: args.threadId,
-				body: "",
-				timestamp: now,
-				messageType: "assistant",
-				model: provider,
-				modelId: modelId,
-				isStreaming: true,
-				streamId,
-				isComplete: false,
-				thinkingStartedAt: now, // Enable thinking display for subsequent messages
-				usedUserApiKey: !!willUseUserApiKey,
-			});
-
-			// Return assistant message ID for streaming
-			messageId = assistantMessageId;
-
-			// Schedule AI response using the stream system (database-only mode)
-			await ctx.scheduler.runAfter(
-				0,
-				internal.messages.generateAIResponseHybrid,
-				{
-					threadId: args.threadId,
-					messageId: assistantMessageId,
-					streamId,
-					modelId,
-					userApiKeys: userApiKeys || undefined,
-					webSearchEnabled: args.webSearchEnabled ?? false,
-				},
-			);
-		} else if (!args.skipAIResponse) {
-			// Original non-stream AI response
+		} else {
+			// Standard AI response (non-hybrid streaming)
 			await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
 				threadId: args.threadId,
 				userMessage: args.body,
 				modelId: modelId,
 				attachments: args.attachments,
 				webSearchEnabled: args.webSearchEnabled,
-			});
-		} else {
-			// Reset isGenerating flag since HTTP streaming will handle it
-			await ctx.db.patch(args.threadId, {
-				isGenerating: false,
 			});
 		}
 

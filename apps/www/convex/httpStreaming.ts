@@ -113,7 +113,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			// Hybrid streaming mode - use existing structures
 			streamId = options.resumeFromStreamId;
 			messageId = options.useExistingMessage;
-			
+
 			console.log("Using existing stream and message for hybrid streaming:", {
 				streamId,
 				messageId,
@@ -142,7 +142,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 		// For hybrid streaming, we handle AI generation directly in the HTTP endpoint
 		// This ensures single AI generation with dual writing (HTTP + database)
-		
+
 		// Get user's API keys for AI generation
 		const userApiKeys = (await ctx.runMutation(
 			internal.userSettings.getDecryptedApiKeys,
