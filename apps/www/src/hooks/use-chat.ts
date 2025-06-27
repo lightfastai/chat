@@ -474,7 +474,7 @@ export function useChat(options: UseChatOptions = {}) {
 				webSearchEnabled,
 			});
 
-			// Check if we should use HTTP streaming
+			// Check if we should use the stream system
 			// Only use if we have a real Convex thread ID (not optimistic)
 			const hasRealThreadId = currentThread?._id?.startsWith("k");
 			if (
@@ -484,31 +484,22 @@ export function useChat(options: UseChatOptions = {}) {
 				!attachments?.length &&
 				!webSearchEnabled
 			) {
-				console.log("🚀 Using HTTP streaming mode for message:", {
+				console.log("🚀 Using stream system for message:", {
 					threadId: currentThread._id,
 					modelId,
 					httpStreamingEnabled,
 					hasRealThreadId,
 				});
 
-				// Use HTTP streaming for simple text messages
-				setHttpStreamingModelId(modelId);
-
-				// First send the user message via Convex (without AI response)
+				// Send the user message and trigger stream-based AI response
 				await sendMessage({
 					threadId: currentThread._id,
 					body: message,
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
-					skipAIResponse: true, // Prevent standard AI response generation
+					useStreamSystem: true, // Use the new stream system
 				});
-
-				// Wait a moment for the message to be saved
-				await new Promise((resolve) => setTimeout(resolve, 100));
-
-				// Then trigger HTTP streaming for the response
-				await httpStreaming.sendMessage(message);
 
 				return;
 			}
