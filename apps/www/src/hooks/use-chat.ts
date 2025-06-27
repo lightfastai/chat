@@ -444,7 +444,7 @@ export function useChat(options: UseChatOptions = {}) {
 				} else {
 					const url = new URL(convexUrl);
 					url.port = String(Number(url.port) + 1);
-					convexSiteUrl = url.toString();
+					convexSiteUrl = url.toString().replace(/\/$/, ""); // Remove trailing slash
 				}
 				const streamUrl = `${convexSiteUrl}/stream-chat`;
 
