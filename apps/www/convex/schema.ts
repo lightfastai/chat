@@ -168,4 +168,18 @@ export default defineSchema({
 	})
 		.index("by_stream", ["streamId"])
 		.index("by_stream_created", ["streamId", "createdAt"]),
+
+	// Hybrid streaming: Delta-based reactivity for multi-client sync
+	streamDeltas: defineTable({
+		messageId: v.id("messages"),
+		streamId: v.id("streams"),
+		sequence: v.number(), // Order tracking (0, 1, 2...)
+		text: v.string(), // Text chunk content
+		timestamp: v.number(), // When delta was created
+		partType: v.optional(v.string()), // "text" | "tool-call" | "reasoning" | "error"
+		metadata: v.optional(v.any()), // Additional part metadata (toolName, toolCallId, etc.)
+	})
+		.index("by_message", ["messageId", "sequence"])
+		.index("by_stream", ["streamId", "sequence"])
+		.index("by_message_timestamp", ["messageId", "timestamp"]),
 });

@@ -171,9 +171,12 @@ export function useHTTPStreaming({
 
 								if (data.type === "content" && data.envelope) {
 									const { envelope } = data;
-									
+
 									// Update message ID if not set
-									if (!currentMessage._id || currentMessage._id === "temp_streaming") {
+									if (
+										!currentMessage._id ||
+										currentMessage._id === "temp_streaming"
+									) {
 										currentMessage = {
 											...currentMessage,
 											_id: envelope.messageId,
@@ -236,7 +239,10 @@ export function useHTTPStreaming({
 											setStreamingMessage(currentMessage);
 											setIsStreaming(false);
 										} else if (event.type === "stream-error") {
-											console.error("❌ HTTP Streaming: Stream error:", event.error);
+											console.error(
+												"❌ HTTP Streaming: Stream error:",
+												event.error,
+											);
 											setError(event.error);
 											setIsStreaming(false);
 											currentMessage = {
@@ -249,7 +255,10 @@ export function useHTTPStreaming({
 										}
 									}
 								} else if (data.type === "control") {
-									console.log("🎛️ HTTP Streaming: Control message:", data.action);
+									console.log(
+										"🎛️ HTTP Streaming: Control message:",
+										data.action,
+									);
 									// Handle control messages (ping, abort, ack)
 								}
 							} catch (parseError) {

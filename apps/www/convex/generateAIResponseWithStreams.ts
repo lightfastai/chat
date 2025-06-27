@@ -20,6 +20,7 @@ import { createSystemPrompt } from "./lib/message_builder";
 import { handleAIResponseError } from "./messages/helpers";
 import { formatUsageData } from "./messages/types";
 import { modelIdValidator } from "./validators";
+import { getWriter } from "./hybridStreamWriter";
 
 // Helper function to build conversation messages for stream-based AI responses
 async function buildConversationMessagesForStreams(
@@ -98,6 +99,8 @@ export const generateAIResponseWithStreams = internalAction({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
+		// Look up active HTTP writer for this stream
+		const hybridWriter = getWriter(args.streamId);
 		try {
 			const provider = getProviderFromModelId(args.modelId as ModelId);
 			const model = getModelById(args.modelId as ModelId);
@@ -148,10 +151,15 @@ export const generateAIResponseWithStreams = internalAction({
 				const toFlush = force ? textBuffer + pendingBuffer : textBuffer;
 
 				if (toFlush.length > 0) {
-					await ctx.runMutation(internal.streams.addTextChunk, {
-						streamId: args.streamId,
-						text: toFlush,
-					});
+					// Use HybridStreamWriter if available, otherwise fallback to old system
+					if (hybridWriter) {
+						await hybridWriter.writeTextChunk(toFlush);
+					} else {
+						await ctx.runMutation(internal.streams.addTextChunk, {
+							streamId: args.streamId,
+							text: toFlush,
+						});
+					}
 					fullText += toFlush;
 
 					textBuffer = "";
@@ -204,11 +212,15 @@ export const generateAIResponseWithStreams = internalAction({
 
 						// Handle Claude thinking/reasoning content
 						if (part.type === "reasoning" && part.text) {
-							await ctx.runMutation(internal.streams.addReasoningChunk, {
-								streamId: args.streamId,
-								text: part.text,
-								providerMetadata: part.providerMetadata,
-							});
+							if (hybridWriter) {
+								await hybridWriter.writeReasoning(part.text);
+							} else {
+								await ctx.runMutation(internal.streams.addReasoningChunk, {
+									streamId: args.streamId,
+									text: part.text,
+									providerMetadata: part.providerMetadata,
+								});
+							}
 						}
 						break;
 
@@ -225,13 +237,22 @@ export const generateAIResponseWithStreams = internalAction({
 						await flushTextBuffer(true);
 
 						// Add tool call to stream
-						await ctx.runMutation(internal.streams.addToolCallChunk, {
-							streamId: args.streamId,
-							toolCallId: part.toolCallId,
-							toolName: part.toolName,
-							args: part.input,
-							state: "call",
-						});
+						if (hybridWriter) {
+							await hybridWriter.writeToolCall({
+								toolCallId: part.toolCallId,
+								toolName: part.toolName,
+								args: part.input,
+								state: "call",
+							});
+						} else {
+							await ctx.runMutation(internal.streams.addToolCallChunk, {
+								streamId: args.streamId,
+								toolCallId: part.toolCallId,
+								toolName: part.toolName,
+								args: part.input,
+								state: "call",
+							});
+						}
 						break;
 
 					case "tool-call-delta":
@@ -241,13 +262,22 @@ export const generateAIResponseWithStreams = internalAction({
 							part.toolCallId &&
 							part.inputTextDelta
 						) {
-							await ctx.runMutation(internal.streams.addToolCallChunk, {
-								streamId: args.streamId,
-								toolCallId: part.toolCallId,
-								toolName: part.toolName || "",
-								args: part.inputTextDelta,
-								state: "partial-call",
-							});
+							if (hybridWriter) {
+								await hybridWriter.writeToolCall({
+									toolCallId: part.toolCallId,
+									toolName: part.toolName || "",
+									args: part.inputTextDelta,
+									state: "partial-call",
+								});
+							} else {
+								await ctx.runMutation(internal.streams.addToolCallChunk, {
+									streamId: args.streamId,
+									toolCallId: part.toolCallId,
+									toolName: part.toolName || "",
+									args: part.inputTextDelta,
+									state: "partial-call",
+								});
+							}
 						}
 						break;
 
@@ -258,13 +288,22 @@ export const generateAIResponseWithStreams = internalAction({
 							part.toolCallId &&
 							part.toolName
 						) {
-							await ctx.runMutation(internal.streams.addToolCallChunk, {
-								streamId: args.streamId,
-								toolCallId: part.toolCallId,
-								toolName: part.toolName,
-								args: {},
-								state: "partial-call",
-							});
+							if (hybridWriter) {
+								await hybridWriter.writeToolCall({
+									toolCallId: part.toolCallId,
+									toolName: part.toolName,
+									args: {},
+									state: "partial-call",
+								});
+							} else {
+								await ctx.runMutation(internal.streams.addToolCallChunk, {
+									streamId: args.streamId,
+									toolCallId: part.toolCallId,
+									toolName: part.toolName,
+									args: {},
+									state: "partial-call",
+								});
+							}
 						}
 						break;
 
@@ -273,12 +312,21 @@ export const generateAIResponseWithStreams = internalAction({
 						const toolResult = part.output;
 
 						// Add tool result to stream
-						await ctx.runMutation(internal.streams.addToolResultChunk, {
-							streamId: args.streamId,
-							toolCallId: part.toolCallId,
-							toolName: part.toolName,
-							result: toolResult,
-						});
+						if (hybridWriter) {
+							await hybridWriter.writeToolCall({
+								toolCallId: part.toolCallId,
+								toolName: part.toolName,
+								result: toolResult,
+								state: "result",
+							});
+						} else {
+							await ctx.runMutation(internal.streams.addToolResultChunk, {
+								streamId: args.streamId,
+								toolCallId: part.toolCallId,
+								toolName: part.toolName,
+								result: toolResult,
+							});
+						}
 						break;
 					}
 
@@ -314,11 +362,19 @@ export const generateAIResponseWithStreams = internalAction({
 									: String(part.error || "Unknown stream error");
 							console.error("Stream error:", errorMessage);
 
-							// Mark stream as errored
-							await ctx.runMutation(internal.streams.markError, {
-								streamId: args.streamId,
-								error: errorMessage,
-							});
+							// Write error via HybridStreamWriter or fallback to old system
+							if (hybridWriter) {
+								await hybridWriter.writeError(errorMessage, {
+									error: part.error,
+									timestamp: Date.now(),
+								});
+							} else {
+								// Mark stream as errored
+								await ctx.runMutation(internal.streams.markError, {
+									streamId: args.streamId,
+									error: errorMessage,
+								});
+							}
 
 							throw new Error(`Stream error: ${errorMessage}`);
 						}
@@ -359,21 +415,33 @@ export const generateAIResponseWithStreams = internalAction({
 				});
 			}
 
-			// Mark stream as complete
-			await ctx.runMutation(internal.streams.markComplete, {
-				streamId: args.streamId,
-			});
+			// Complete the stream - use HybridStreamWriter if available
+			if (hybridWriter) {
+				await hybridWriter.finish();
+			} else {
+				// Mark stream as complete using old system
+				await ctx.runMutation(internal.streams.markComplete, {
+					streamId: args.streamId,
+				});
+			}
 
 			// Clear generation flag
 			await ctx.runMutation(internal.messages.clearGenerationFlag, {
 				threadId: args.threadId,
 			});
 		} catch (error) {
-			// Mark stream as errored
-			await ctx.runMutation(internal.streams.markError, {
-				streamId: args.streamId,
-				error: error instanceof Error ? error.message : "Unknown error",
-			});
+			const errorMessage = error instanceof Error ? error.message : "Unknown error";
+			
+			// Handle error - use HybridStreamWriter if available
+			if (hybridWriter) {
+				await hybridWriter.handleError(errorMessage, "generation_error");
+			} else {
+				// Mark stream as errored using old system
+				await ctx.runMutation(internal.streams.markError, {
+					streamId: args.streamId,
+					error: errorMessage,
+				});
+			}
 
 			await handleAIResponseError(ctx, error, args.threadId, args.messageId, {
 				modelId: args.modelId,

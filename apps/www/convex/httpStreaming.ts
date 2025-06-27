@@ -4,10 +4,11 @@ import type { ModelId } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
-import type { 
-	httpStreamingRequestValidator,
-	StreamEnvelope,
+import { HybridStreamWriter, getWriter } from "./hybridStreamWriter";
+import type {
 	MessagePart,
+	StreamEnvelope,
+	httpStreamingRequestValidator,
 } from "./validators";
 
 // Types from validators
@@ -17,14 +18,16 @@ type StreamWithChunks = NonNullable<
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
 
 // Helper to convert database chunks to message parts
-function chunkToMessagePart(chunk: StreamWithChunks["chunks"][0]): MessagePart | null {
+function chunkToMessagePart(
+	chunk: StreamWithChunks["chunks"][0],
+): MessagePart | null {
 	if (chunk.type === "text" || !chunk.type) {
 		return {
 			type: "text",
 			text: chunk.text,
 		};
 	}
-	
+
 	if (chunk.type === "tool_call") {
 		return {
 			type: "tool-call",
@@ -34,7 +37,7 @@ function chunkToMessagePart(chunk: StreamWithChunks["chunks"][0]): MessagePart |
 			state: "call",
 		};
 	}
-	
+
 	if (chunk.type === "tool_result") {
 		return {
 			type: "tool-call",
@@ -44,21 +47,21 @@ function chunkToMessagePart(chunk: StreamWithChunks["chunks"][0]): MessagePart |
 			state: "result",
 		};
 	}
-	
+
 	if (chunk.type === "reasoning") {
 		return {
 			type: "reasoning",
 			text: chunk.text,
 		};
 	}
-	
+
 	if (chunk.type === "error") {
 		return {
 			type: "error",
 			errorMessage: chunk.text,
 		};
 	}
-	
+
 	return null;
 }
 
@@ -128,162 +131,62 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			},
 		);
 
-		// Create HTTP streaming response that polls the stream for updates
+		// Create HTTP streaming response using HybridStreamWriter
 		const stream = new ReadableStream({
 			async start(controller) {
-				const encoder = new TextEncoder();
-				let lastChunkIndex = -1;
-				const pollInterval = 100; // Poll every 100ms
-				const maxPolls = 600; // Max 60 seconds
-				let pollCount = 0;
+				try {
+					// Create hybrid writer for direct streaming
+					const writer = new HybridStreamWriter(
+						ctx,
+						messageId,
+						streamId,
+						controller,
+					);
 
-				// Send initial stream-start event
-				const startEnvelope: StreamEnvelope = {
-					streamId,
-					messageId,
-					sequence: 0,
-					timestamp: Date.now(),
-					event: {
-						type: "stream-start",
-						metadata: { modelId },
-					},
-				};
-				const startChunk = {
-					type: "content",
-					envelope: startEnvelope,
-				};
-				controller.enqueue(encoder.encode(`${JSON.stringify(startChunk)}\n`));
+					// Send stream start event
+					await writer.sendStreamStart({ modelId });
 
-				// Poll for stream updates
-				const pollStream = async () => {
-					try {
-						const streamData = await ctx.runQuery(
-							internal.streams.getStreamWithChunks,
-							{
-								streamId,
-							},
-						);
-
-						if (!streamData) {
-							throw new Error("Stream not found");
-						}
-
-						// Send any new chunks since last poll
-						const newChunks = streamData.chunks.slice(lastChunkIndex + 1);
-						for (const chunk of newChunks) {
-							lastChunkIndex++;
-							
-							const part = chunkToMessagePart(chunk);
-							if (part) {
-								const envelope: StreamEnvelope = {
-									streamId,
-									messageId,
-									sequence: lastChunkIndex,
-									timestamp: chunk.createdAt || chunk._creationTime,
-									part,
-								};
-								
-								const streamChunk = {
-									type: "content",
-									envelope,
-								};
-								
-								controller.enqueue(encoder.encode(`${JSON.stringify(streamChunk)}\n`));
-							}
-						}
-
-						// Check if stream is complete
-						if (streamData.stream.status === "done") {
-							const endEnvelope: StreamEnvelope = {
-								streamId,
-								messageId,
-								sequence: lastChunkIndex + 1,
-								timestamp: Date.now(),
-								event: {
-									type: "stream-end",
-									metadata: {},
-								},
-							};
-							const endChunk = {
-								type: "content",
-								envelope: endEnvelope,
-							};
-							controller.enqueue(encoder.encode(`${JSON.stringify(endChunk)}\n`));
-							controller.close();
-							return;
-						}
-						
-						if (streamData.stream.status === "error" || streamData.stream.status === "timeout") {
-							const errorEnvelope: StreamEnvelope = {
-								streamId,
-								messageId,
-								sequence: lastChunkIndex + 1,
-								timestamp: Date.now(),
-								event: {
-									type: "stream-error",
-									error: streamData.stream.error || 
-										(streamData.stream.status === "timeout" ? "Stream timed out" : "Stream error"),
-									code: streamData.stream.status,
-								},
-							};
-							const errorChunk = {
-								type: "content",
-								envelope: errorEnvelope,
-							};
-							controller.enqueue(encoder.encode(`${JSON.stringify(errorChunk)}\n`));
-							controller.close();
-							return;
-						}
-
-						// Continue polling if not done
-						pollCount++;
-						if (pollCount < maxPolls) {
-							setTimeout(pollStream, pollInterval);
-						} else {
-							// Timeout after max polls
-							const timeoutEnvelope: StreamEnvelope = {
-								streamId,
-								messageId,
-								sequence: lastChunkIndex + 1,
-								timestamp: Date.now(),
-								event: {
-									type: "stream-error",
-									error: "Polling timeout",
-									code: "polling_timeout",
-								},
-							};
-							const timeoutChunk = {
-								type: "content",
-								envelope: timeoutEnvelope,
-							};
-							controller.enqueue(encoder.encode(`${JSON.stringify(timeoutChunk)}\n`));
-							controller.close();
-						}
-					} catch (error) {
-						console.error("Polling error:", error);
-						const errorEnvelope: StreamEnvelope = {
-							streamId,
+					// Start AI generation with direct streaming via HybridStreamWriter
+					// The AI generation will look up the writer from global registry
+					ctx.scheduler.runAfter(
+						0,
+						internal.generateAIResponseWithStreams.generateAIResponseWithStreams,
+						{
+							threadId,
 							messageId,
-							sequence: lastChunkIndex + 1,
-							timestamp: Date.now(),
-							event: {
-								type: "stream-error",
-								error: error instanceof Error ? error.message : "Unknown error",
-								code: "polling_error",
-							},
-						};
-						const errorChunk = {
-							type: "content",
-							envelope: errorEnvelope,
-						};
-						controller.enqueue(encoder.encode(`${JSON.stringify(errorChunk)}\n`));
-						controller.close();
-					}
-				};
+							streamId,
+							modelId: modelId as ModelId,
+							webSearchEnabled: false, // Can be configured from request
+						},
+					);
 
-				// Start polling
-				setTimeout(pollStream, pollInterval);
+					// Connection will remain active until stream completes or client disconnects
+					// The writer will handle HTTP disconnection automatically in its methods
+
+				} catch (error) {
+					console.error("Stream setup error:", error);
+					const writer = new HybridStreamWriter(
+						ctx,
+						messageId,
+						streamId,
+						controller,
+					);
+					await writer.handleError(
+						error instanceof Error ? error.message : "Stream setup failed",
+						"setup_error",
+					);
+				}
 			},
+			
+			// Handle client disconnection
+			cancel(reason) {
+				console.log(`HTTP connection cancelled for stream ${streamId}:`, reason);
+				// Look up the writer and mark it as disconnected
+				const writer = getWriter(streamId);
+				if (writer) {
+					writer.onHttpDisconnect();
+				}
+			}
 		});
 
 		return new Response(stream, {
@@ -369,13 +272,15 @@ export const streamContinue = httpAction(async (ctx, request) => {
 							timestamp: chunk.createdAt || chunk._creationTime,
 							part,
 						};
-						
+
 						const streamChunk = {
 							type: "content",
 							envelope,
 						};
-						
-						controller.enqueue(encoder.encode(`${JSON.stringify(streamChunk)}\n`));
+
+						controller.enqueue(
+							encoder.encode(`${JSON.stringify(streamChunk)}\n`),
+						);
 					}
 				});
 

@@ -605,7 +605,6 @@ export const streamingMessageValidator = v.object({
  * - Support resumption and replay of partial streams
  */
 
-
 // =========================================================================
 // SECTION 8: TYPE EXPORTS AND HELPERS
 // =========================================================================
@@ -670,7 +669,6 @@ export function isToolCallWithResult(part: MessagePart): boolean {
 export function validateTitle(title: string): boolean {
 	return title.length >= 1 && title.length <= 80;
 }
-
 
 // ===== Utility Functions =====
 

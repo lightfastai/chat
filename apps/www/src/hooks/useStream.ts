@@ -55,8 +55,7 @@ export function useStream({
 	);
 
 	// Determine if we should use HTTP streaming
-	const shouldUseHttp =
-		driven && !!streamId && httpStatus !== "error";
+	const shouldUseHttp = driven && !!streamId && httpStatus !== "error";
 
 	// Start HTTP streaming if we're the driven client
 	useEffect(() => {
@@ -112,7 +111,7 @@ export function useStream({
 
 							if (data.type === "content" && data.envelope) {
 								const { envelope } = data;
-								
+
 								// Handle message parts
 								if (envelope.part) {
 									const part = envelope.part;
@@ -122,7 +121,7 @@ export function useStream({
 										throw new Error(part.errorMessage);
 									}
 								}
-								
+
 								// Handle events
 								if (envelope.event) {
 									const event = envelope.event;
@@ -191,14 +190,7 @@ export function useStream({
 			text: streamBody.text,
 			status: streamBody.status,
 		};
-	}, [
-		driven,
-		streamId,
-		httpStatus,
-		httpText,
-		httpError,
-		streamBody,
-	]);
+	}, [driven, streamId, httpStatus, httpText, httpError, streamBody]);
 }
 
 /**
