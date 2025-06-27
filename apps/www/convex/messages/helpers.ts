@@ -1,8 +1,9 @@
-import type { CoreMessage } from "ai";
+import type { CoreMessage, TextStreamPart, ToolSet } from "ai";
 import { smoothStream, stepCountIs, streamText } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../../src/lib/ai/schemas.js";
 import {
+	getModelConfig,
 	getProviderFromModelId,
 	isThinkingMode,
 } from "../../src/lib/ai/schemas.js";
@@ -336,14 +337,17 @@ export async function streamAIResponse(
 
 	// For Claude 4.0 thinking mode, enable thinking/reasoning
 	if (provider === "anthropic" && isThinkingMode(modelId)) {
-		generationOptions.providerOptions = {
-			anthropic: {
-				thinking: {
-					type: "enabled",
-					budgetTokens: 12000,
+		const modelConfig = getModelConfig(modelId);
+		if (modelConfig.thinkingConfig) {
+			generationOptions.providerOptions = {
+				anthropic: {
+					thinking: {
+						type: "enabled",
+						budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
+					},
 				},
-			},
-		};
+			};
+		}
 	}
 
 	// Use the AI SDK v5 streamText
@@ -351,27 +355,96 @@ export async function streamAIResponse(
 
 	let fullText = "";
 	let hasContent = false;
-	let toolCallsInProgress = 0;
 
-	// Process the stream
-	for await (const chunk of result.textStream) {
-		if (chunk) {
-			fullText += chunk;
-			hasContent = true;
+	// Use fullStream to capture all part types including reasoning
+	for await (const streamPart of result.fullStream) {
+		const part: TextStreamPart<ToolSet> = streamPart;
 
-			await ctx.runMutation(internal.messages.addTextPart, {
-				messageId,
-				text: chunk,
-			});
-		}
-	}
+		switch (part.type) {
+			case "text":
+				// Handle text content
+				if (part.text) {
+					fullText += part.text;
+					hasContent = true;
 
-	// Process tool calls if web search is enabled
-	if (webSearchEnabled) {
-		for await (const streamPart of result.fullStream) {
-			if (streamPart.type === "tool-call") {
-				toolCallsInProgress++;
-			}
+					await ctx.runMutation(internal.messages.addTextPart, {
+						messageId,
+						text: part.text,
+					});
+				}
+				break;
+
+			case "reasoning":
+				// Handle Claude thinking/reasoning content
+				if (part.type === "reasoning" && part.text) {
+					await ctx.runMutation(internal.messages.addReasoningPart, {
+						messageId,
+						text: part.text,
+						providerMetadata: part.providerMetadata,
+					});
+				}
+				break;
+
+			case "reasoning-part-finish":
+				// Mark reasoning section as complete
+				await ctx.runMutation(internal.messages.addStreamControlPart, {
+					messageId,
+					controlType: "reasoning-part-finish",
+				});
+				break;
+
+			case "tool-call":
+				// Handle tool calls
+				await ctx.runMutation(internal.messages.updateToolCallPart, {
+					messageId,
+					toolCallId: part.toolCallId,
+					args: part.input,
+					state: "call",
+				});
+				break;
+
+			case "tool-call-streaming-start":
+				// Add tool call part in "partial-call" state
+				if (
+					part.type === "tool-call-streaming-start" &&
+					part.toolCallId &&
+					part.toolName
+				) {
+					await ctx.runMutation(internal.messages.addToolCallPart, {
+						messageId,
+						toolCallId: part.toolCallId,
+						toolName: part.toolName,
+						state: "partial-call",
+					});
+				}
+				break;
+
+			case "tool-result":
+				// Handle tool results
+				const toolResult = part.output;
+				await ctx.runMutation(internal.messages.updateToolCallPart, {
+					messageId,
+					toolCallId: part.toolCallId,
+					state: "result",
+					result: toolResult,
+				});
+				break;
+
+			case "finish":
+				// Handle completion
+				if (part.type === "finish") {
+					await ctx.runMutation(internal.messages.addStreamControlPart, {
+						messageId,
+						controlType: "finish",
+						finishReason: part.finishReason,
+						totalUsage: part.totalUsage,
+					});
+				}
+				break;
+
+			// Skip other part types for now
+			default:
+				break;
 		}
 	}
 
@@ -381,7 +454,6 @@ export async function streamAIResponse(
 	return {
 		fullText,
 		hasContent,
-		toolCallsInProgress,
 		usage: finalUsage,
 	};
 }

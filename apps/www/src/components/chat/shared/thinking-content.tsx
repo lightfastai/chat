@@ -9,6 +9,7 @@ export interface ThinkingContentProps {
 	isExpanded?: boolean;
 	onToggle?: (expanded: boolean) => void;
 	isReasoningModel?: boolean;
+	isStreaming?: boolean;
 }
 
 // Helper function to format duration
@@ -30,6 +31,7 @@ export function ThinkingContent({
 	isExpanded: controlledExpanded,
 	onToggle,
 	isReasoningModel = false,
+	isStreaming = false,
 }: ThinkingContentProps) {
 	const [localExpanded, setLocalExpanded] = useState(false);
 
@@ -63,16 +65,25 @@ export function ThinkingContent({
 						? "View reasoning process"
 						: "View thinking process"}
 				</span>
-				{duration && (
-					<span className="ml-auto font-mono text-[10px]">
-						{formatDuration(duration)}
+				{isStreaming ? (
+					<span className="ml-auto font-mono text-[10px] animate-pulse">
+						thinking...
 					</span>
+				) : (
+					duration && (
+						<span className="ml-auto font-mono text-[10px]">
+							{formatDuration(duration)}
+						</span>
+					)
 				)}
 			</button>
 			{isExpanded && (
 				<div className="mt-3 pl-5 text-xs text-muted-foreground space-y-2">
 					<p className="whitespace-pre-wrap font-mono leading-relaxed">
 						{content}
+						{isStreaming && (
+							<span className="inline-block w-2 h-3 bg-current animate-pulse ml-1 opacity-70" />
+						)}
 					</p>
 				</div>
 			)}

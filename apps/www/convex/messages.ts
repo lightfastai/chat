@@ -20,7 +20,9 @@ import { v } from "convex/values";
 import {
 	type ModelId,
 	getModelById,
+	getModelConfig,
 	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
@@ -1352,6 +1354,22 @@ export const generateAIResponseWithMessage = internalAction({
 				}),
 				// Usage will be updated after streaming completes
 			};
+
+			// Apply thinking configuration for Anthropic models if enabled
+			if (provider === "anthropic" && isThinkingMode(args.modelId as ModelId)) {
+				const modelConfig = getModelConfig(args.modelId as ModelId);
+				if (modelConfig.thinkingConfig) {
+					// Add thinking configuration for Anthropic models
+					generationOptions.providerOptions = {
+						anthropic: {
+							thinking: {
+								type: "enabled",
+								budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
+							},
+						},
+					};
+				}
+			}
 
 			// Add web search tool if enabled
 			if (args.webSearchEnabled) {

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { ThreadItem } from "./thread-item";
+import { useIncrementalThreads } from "./use-incremental-threads";
 
 type Thread = Doc<"threads">;
 type ThreadWithCategory = Thread & { dateCategory: string };
@@ -66,89 +67,16 @@ export function SimpleVirtualizedThreadsList({
 	const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
 	// Use preloaded data with reactivity
-	const allThreads = usePreloadedQuery(preloadedThreads);
+	const initialThreads = usePreloadedQuery(preloadedThreads);
 
 	// Get pinned threads separately (always show all)
 	const pinnedThreads = useQuery(api.threads.listPinned) ?? [];
 
-	// State for pagination
-	const [cursor, setCursor] = useState<string | undefined>(undefined);
-	const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-	// Get paginated threads for infinite scroll
-	const paginatedResult = useQuery(
-		api.threads.listPaginated,
-		cursor
-			? {
-					paginationOpts: {
-						cursor,
-						numItems: 20,
-					},
-				}
-			: "skip",
-	);
-
-	// Helper function to add date category to threads
-	const addDateCategory = useCallback((thread: Thread): ThreadWithCategory => {
-		const now = new Date();
-		const threadDate = new Date(thread._creationTime);
-		const diffDays = Math.floor(
-			(now.getTime() - threadDate.getTime()) / (1000 * 60 * 60 * 24),
-		);
-
-		let dateCategory: string;
-		if (diffDays === 0) {
-			dateCategory = "Today";
-		} else if (diffDays === 1) {
-			dateCategory = "Yesterday";
-		} else if (diffDays <= 7) {
-			dateCategory = "This Week";
-		} else if (diffDays <= 30) {
-			dateCategory = "This Month";
-		} else {
-			dateCategory = "Older";
-		}
-
-		return { ...thread, dateCategory };
-	}, []);
-
-	// Merge all threads (reactive + paginated)
-	const threads = useMemo(() => {
-		const allThreadsUnpinned = allThreads
-			.filter((t) => !t.pinned)
-			.map(addDateCategory);
-		if (!paginatedResult?.page) return allThreadsUnpinned;
-
-		// Merge and deduplicate by _id, keeping reactive data priority
-		const mergedThreads = [...allThreadsUnpinned];
-
-		// Add paginated threads that aren't already in reactive data
-		for (const paginatedThread of paginatedResult.page) {
-			const existingIndex = mergedThreads.findIndex(
-				(t) => t._id === paginatedThread._id,
-			);
-			if (existingIndex === -1) {
-				mergedThreads.push(addDateCategory(paginatedThread));
-			}
-		}
-
-		return mergedThreads;
-	}, [allThreads, paginatedResult?.page, addDateCategory]);
-
-	// Check if we can load more
-	const hasMoreData = paginatedResult ? !paginatedResult.isDone : true;
-
-	// Load more function
-	const loadMore = useCallback(() => {
-		if (!hasMoreData || isLoadingMore) return;
-
-		setIsLoadingMore(true);
-		// Set cursor to load next page
-		if (paginatedResult?.continueCursor) {
-			setCursor(paginatedResult.continueCursor);
-		}
-		setIsLoadingMore(false);
-	}, [hasMoreData, isLoadingMore, paginatedResult?.continueCursor]);
+	// Use incremental loading for unpinned threads
+	const { threads, isLoadingMore, hasMoreData, loadMore } =
+		useIncrementalThreads({
+			initialThreads: initialThreads.filter((t) => !t.pinned),
+		});
 
 	// Handle pin toggle with optimistic update
 	const handlePinToggle = useCallback(
@@ -257,7 +185,7 @@ export function SimpleVirtualizedThreadsList({
 	}, [scrollElement, hasMoreData, isLoadingMore, loadMore]);
 
 	// Show empty state if no threads
-	if (allThreads.length === 0) {
+	if (threads.length === 0) {
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
