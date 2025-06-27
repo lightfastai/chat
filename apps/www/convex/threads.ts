@@ -517,6 +517,7 @@ export const branchFromMessage = mutation({
 				usage: message.usage,
 				thinkingContent: message.thinkingContent,
 				hasThinkingContent: message.hasThinkingContent,
+				parts: message.parts,
 			});
 
 			// Track the last user message for AI response
