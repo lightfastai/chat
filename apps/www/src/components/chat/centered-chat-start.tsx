@@ -5,7 +5,7 @@ import { useTimeGreeting } from "@/hooks/use-time-greeting";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { ZapIcon } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ChatInput } from "./chat-input";
@@ -32,6 +32,7 @@ export function CenteredChatStart({
 	const { displayName, email } = useAuth();
 	const greeting = useTimeGreeting();
 	const [message, setMessage] = useState("");
+	const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
 	// Use preloaded user data if available, otherwise fall back to regular auth hook
 	const preloadedUserData = preloadedUser
@@ -50,6 +51,8 @@ export function CenteredChatStart({
 	const handlePromptSelect = (prompt: string) => {
 		// Populate the chat input with the selected prompt
 		setMessage(prompt);
+		// Focus the textarea after selecting a prompt
+		chatInputRef.current?.focus();
 	};
 
 	return (
@@ -66,6 +69,7 @@ export function CenteredChatStart({
 
 					<div className="relative">
 						<ChatInput
+							ref={chatInputRef}
 							onSendMessage={onSendMessage}
 							placeholder="How can I help you today?"
 							disabled={disabled}
