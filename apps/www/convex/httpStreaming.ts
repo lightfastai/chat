@@ -39,11 +39,22 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
         let lastBatchTime = Date.now();
         const BATCH_INTERVAL_MS = 200;
         const BATCH_SIZE_THRESHOLD = 50; // Characters
+        
+        // Stats for logging
+        let batchCount = 0;
+        let totalTokens = 0;
+        const startTime = Date.now();
 
         const encoder = new TextEncoder();
 
         const flushBuffer = async () => {
           if (textBuffer.length > 0) {
+            batchCount++;
+            console.log(`🔄 HTTP Streaming Batch #${batchCount}:`, {
+              batchSize: textBuffer.length,
+              timeSinceLastBatch: Date.now() - lastBatchTime,
+              totalElapsed: Date.now() - startTime,
+            });
             // Send to client immediately via HTTP stream
             const chunk = JSON.stringify({
               type: "text-delta",
@@ -68,6 +79,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
           for await (const part of result.fullStream) {
             if (part.type === "text") {
               textBuffer += part.text;
+              totalTokens++;
 
               const now = Date.now();
               const timeSinceLastBatch = now - lastBatchTime;
@@ -82,6 +94,14 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
             } else if (part.type === "finish") {
               // Flush any remaining buffer
               await flushBuffer();
+              
+              console.log("✅ HTTP Streaming Complete:", {
+                totalBatches: batchCount,
+                totalTokens,
+                totalTime: Date.now() - startTime,
+                avgBatchSize: totalTokens / batchCount,
+                dbWriteSavings: `${Math.round((1 - batchCount / totalTokens) * 100)}%`,
+              });
 
               // Mark message as complete
               await ctx.runMutation(internal.messages.markComplete, {

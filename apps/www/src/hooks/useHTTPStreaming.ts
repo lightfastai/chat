@@ -58,6 +58,8 @@ export function useHTTPStreaming({
       return;
     }
 
+    console.log("🌊 HTTP Streaming: Starting stream for message:", content);
+
     try {
       setError(null);
       setIsStreaming(true);
@@ -84,7 +86,15 @@ export function useHTTPStreaming({
 
       // Make HTTP streaming request to Convex HTTP endpoint
       const convexUrl = env.NEXT_PUBLIC_CONVEX_URL.replace('/api', '');
-      const response = await fetch(`${convexUrl}/stream-chat`, {
+      const streamUrl = `${convexUrl}/stream-chat`;
+      
+      console.log("🌊 HTTP Streaming: Making request to:", streamUrl, {
+        threadId,
+        modelId,
+        messageCount: conversationMessages.length,
+      });
+      
+      const response = await fetch(streamUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,6 +154,11 @@ export function useHTTPStreaming({
                   timestamp: data.timestamp,
                 };
                 setStreamingMessage(currentMessage);
+                console.log("🌊 HTTP Streaming: Received text chunk:", {
+                  chunkLength: data.text.length,
+                  totalLength: currentMessage.body.length,
+                  timestamp: new Date(data.timestamp).toISOString(),
+                });
 
               } else if (data.type === "completion") {
                 // Mark as complete

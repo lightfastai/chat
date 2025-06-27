@@ -450,6 +450,12 @@ export function useChat(options: UseChatOptions = {}) {
 		try {
 			// Check if we should use HTTP streaming
 			if (httpStreamingEnabled && currentThread && !attachments?.length && !webSearchEnabled) {
+				console.log("🚀 Using HTTP streaming mode for message:", {
+					threadId: currentThread._id,
+					modelId,
+					httpStreamingEnabled,
+				});
+				
 				// Use HTTP streaming for simple text messages
 				setHttpStreamingModelId(modelId);
 				
@@ -474,6 +480,13 @@ export function useChat(options: UseChatOptions = {}) {
 			}
 
 			// Standard Convex flow for new chats or when HTTP streaming is disabled
+			console.log("📡 Using standard Convex mutations (not HTTP streaming):", {
+				httpStreamingEnabled,
+				currentThread: !!currentThread,
+				hasAttachments: !!attachments?.length,
+				webSearchEnabled,
+			});
+			
 			if (isNewChat) {
 				// 🚀 Generate client ID for new chat
 				const clientId = nanoid();
