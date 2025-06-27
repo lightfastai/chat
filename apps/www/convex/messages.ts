@@ -503,16 +503,18 @@ export const send = mutation({
 			streamId = streamResult;
 
 			// Create assistant message with streamId
+			const now = Date.now();
 			const assistantMessageId = await ctx.db.insert("messages", {
 				threadId: args.threadId,
 				body: "",
-				timestamp: Date.now(),
+				timestamp: now,
 				messageType: "assistant",
 				model: provider,
 				modelId: modelId,
 				isStreaming: true,
 				streamId,
 				isComplete: false,
+				thinkingStartedAt: now, // Enable thinking display for subsequent messages
 			});
 
 			// Schedule AI response using the stream system
