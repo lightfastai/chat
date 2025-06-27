@@ -145,6 +145,13 @@ export function useChat(options: UseChatOptions = {}) {
 	// Check if HTTP streaming is enabled
 	const httpStreamingEnabled = 
 		finalUserSettings?.preferences?.experimentalFeatures?.httpStreaming ?? false;
+	
+	console.log("🔍 HTTP Streaming Debug:", {
+		finalUserSettings,
+		preferences: finalUserSettings?.preferences,
+		experimentalFeatures: finalUserSettings?.preferences?.experimentalFeatures,
+		httpStreamingEnabled,
+	});
 
 	// Initialize HTTP streaming when enabled
 	const [httpStreamingModelId, setHttpStreamingModelId] = useState<string>("");
@@ -448,6 +455,16 @@ export function useChat(options: UseChatOptions = {}) {
 		}
 
 		try {
+			console.log("🎯 handleSendMessage called:", {
+				httpStreamingEnabled,
+				hasCurrentThread: !!currentThread,
+				currentThreadId: currentThread?._id,
+				isNewChat,
+				currentClientId,
+				hasAttachments: !!attachments?.length,
+				webSearchEnabled,
+			});
+			
 			// Check if we should use HTTP streaming
 			if (httpStreamingEnabled && currentThread && !attachments?.length && !webSearchEnabled) {
 				console.log("🚀 Using HTTP streaming mode for message:", {
@@ -466,8 +483,7 @@ export function useChat(options: UseChatOptions = {}) {
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
-					// This flag would need to be added to prevent AI response generation
-					// For now, the HTTP streaming will create its own response
+					skipAIResponse: true, // Prevent standard AI response generation
 				});
 
 				// Wait a moment for the message to be saved

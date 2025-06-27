@@ -411,6 +411,7 @@ export const send = mutation({
 		modelId: v.optional(modelIdValidator), // Use the validated modelId
 		attachments: v.optional(v.array(v.id("files"))), // Add attachments support
 		webSearchEnabled: v.optional(v.boolean()),
+		skipAIResponse: v.optional(v.boolean()), // Skip AI response for HTTP streaming
 	},
 	returns: v.object({
 		messageId: v.id("messages"),
@@ -459,14 +460,21 @@ export const send = mutation({
 			attachments: args.attachments,
 		});
 
-		// Schedule AI response using the modelId
-		await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
-			threadId: args.threadId,
-			userMessage: args.body,
-			modelId: modelId,
-			attachments: args.attachments,
-			webSearchEnabled: args.webSearchEnabled,
-		});
+		// Schedule AI response using the modelId (unless using HTTP streaming)
+		if (!args.skipAIResponse) {
+			await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
+				threadId: args.threadId,
+				userMessage: args.body,
+				modelId: modelId,
+				attachments: args.attachments,
+				webSearchEnabled: args.webSearchEnabled,
+			});
+		} else {
+			// Reset isGenerating flag since HTTP streaming will handle it
+			await ctx.db.patch(args.threadId, {
+				isGenerating: false,
+			});
+		}
 
 		// Check if this is the first user message in the thread (for title generation)
 		const userMessages = await ctx.db

@@ -63,6 +63,9 @@ export function ExperimentalFeaturesSection({
       });
       
       console.log("Preferences updated successfully");
+      
+      // Force a page reload to ensure the new settings are picked up
+      window.location.reload();
     } catch (error) {
       console.error("Failed to update experimental features:", error);
       // You might want to show a toast notification here
