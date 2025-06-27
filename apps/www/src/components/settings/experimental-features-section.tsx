@@ -36,24 +36,43 @@ export function ExperimentalFeaturesSection({
   const httpStreamingEnabled = 
     userSettings?.preferences?.experimentalFeatures?.httpStreaming ?? false;
 
+  // Debug logging
+  console.log("ExperimentalFeaturesSection render:", {
+    userSettings,
+    httpStreamingEnabled,
+    isSaving,
+  });
+
   const handleToggleHttpStreaming = async (checked: boolean) => {
-    if (!userSettings) return;
+    console.log("Toggle clicked:", checked);
     
     setIsSaving(true);
     try {
+      // If userSettings is null, we'll create new settings
+      // The mutation will handle creating the settings if they don't exist
+      console.log("Updating preferences with:", {
+        defaultModel: userSettings?.preferences?.defaultModel,
+        preferredProvider: userSettings?.preferences?.preferredProvider,
+        experimentalFeatures: { httpStreaming: checked },
+      });
+      
       await updatePreferences({
-        defaultModel: userSettings.preferences?.defaultModel as any,
-        preferredProvider: userSettings.preferences?.preferredProvider as any,
         experimentalFeatures: {
           httpStreaming: checked,
         },
       });
+      
+      console.log("Preferences updated successfully");
     } catch (error) {
       console.error("Failed to update experimental features:", error);
+      // You might want to show a toast notification here
+      alert("Failed to update settings. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Don't show loading state - allow toggle even without existing settings
 
   return (
     <div>
