@@ -4,13 +4,63 @@ import type { ModelId } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
-import type { httpStreamingRequestValidator } from "./validators";
+import type { 
+	httpStreamingRequestValidator,
+	StreamEnvelope,
+	MessagePart,
+} from "./validators";
 
 // Types from validators
 type StreamWithChunks = NonNullable<
 	FunctionReturnType<typeof internal.streams.getStreamWithChunks>
 >;
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
+
+// Helper to convert database chunks to message parts
+function chunkToMessagePart(chunk: StreamWithChunks["chunks"][0]): MessagePart | null {
+	if (chunk.type === "text" || !chunk.type) {
+		return {
+			type: "text",
+			text: chunk.text,
+		};
+	}
+	
+	if (chunk.type === "tool_call") {
+		return {
+			type: "tool-call",
+			toolCallId: chunk.metadata?.toolCallId || "unknown",
+			toolName: chunk.metadata?.toolName || "unknown",
+			args: JSON.parse(chunk.text),
+			state: "call",
+		};
+	}
+	
+	if (chunk.type === "tool_result") {
+		return {
+			type: "tool-call",
+			toolCallId: chunk.metadata?.toolCallId || "unknown",
+			toolName: chunk.metadata?.toolName || "unknown",
+			result: JSON.parse(chunk.text),
+			state: "result",
+		};
+	}
+	
+	if (chunk.type === "reasoning") {
+		return {
+			type: "reasoning",
+			text: chunk.text,
+		};
+	}
+	
+	if (chunk.type === "error") {
+		return {
+			type: "error",
+			errorMessage: chunk.text,
+		};
+	}
+	
+	return null;
+}
 
 export const streamChatResponse = httpAction(async (ctx, request) => {
 	console.log("HTTP Streaming endpoint called");
@@ -87,14 +137,22 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				const maxPolls = 600; // Max 60 seconds
 				let pollCount = 0;
 
-				// Send initial response with streamId and messageId
-				const initChunk = `${JSON.stringify({
-					type: "init",
+				// Send initial stream-start event
+				const startEnvelope: StreamEnvelope = {
 					streamId,
 					messageId,
+					sequence: 0,
 					timestamp: Date.now(),
-				})}\n`;
-				controller.enqueue(encoder.encode(initChunk));
+					event: {
+						type: "stream-start",
+						metadata: { modelId },
+					},
+				};
+				const startChunk = {
+					type: "content",
+					envelope: startEnvelope,
+				};
+				controller.enqueue(encoder.encode(`${JSON.stringify(startChunk)}\n`));
 
 				// Poll for stream updates
 				const pollStream = async () => {
@@ -114,82 +172,65 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						const newChunks = streamData.chunks.slice(lastChunkIndex + 1);
 						for (const chunk of newChunks) {
 							lastChunkIndex++;
-
-							let chunkData: any = {
-								type: "text-delta",
-								text: chunk.text,
-								messageId,
-								streamId,
-								timestamp: chunk.createdAt || chunk._creationTime,
-							};
-
-							if (chunk.type === "tool_call") {
-								chunkData = {
-									type: "tool-call",
-									toolName: chunk.metadata?.toolName || "unknown",
-									toolCallId: chunk.metadata?.toolCallId || "unknown",
-									args: JSON.parse(chunk.text),
-									messageId,
+							
+							const part = chunkToMessagePart(chunk);
+							if (part) {
+								const envelope: StreamEnvelope = {
 									streamId,
-									timestamp: chunk.createdAt || chunk._creationTime,
-								};
-							} else if (chunk.type === "tool_result") {
-								chunkData = {
-									type: "tool-result",
-									toolName: chunk.metadata?.toolName || "unknown",
-									toolCallId: chunk.metadata?.toolCallId || "unknown",
-									result: JSON.parse(chunk.text),
 									messageId,
-									streamId,
+									sequence: lastChunkIndex,
 									timestamp: chunk.createdAt || chunk._creationTime,
+									part,
 								};
-							} else if (chunk.type === "error") {
-								chunkData = {
-									type: "error",
-									error: chunk.text,
-									messageId,
-									streamId,
-									timestamp: chunk.createdAt || chunk._creationTime,
+								
+								const streamChunk = {
+									type: "content",
+									envelope,
 								};
+								
+								controller.enqueue(encoder.encode(`${JSON.stringify(streamChunk)}\n`));
 							}
-
-							const line = `${JSON.stringify(chunkData)}\n`;
-							controller.enqueue(encoder.encode(line));
 						}
 
 						// Check if stream is complete
 						if (streamData.stream.status === "done") {
-							const completionChunk = `${JSON.stringify({
-								type: "completion",
-								messageId,
+							const endEnvelope: StreamEnvelope = {
 								streamId,
+								messageId,
+								sequence: lastChunkIndex + 1,
 								timestamp: Date.now(),
-							})}\n`;
-							controller.enqueue(encoder.encode(completionChunk));
+								event: {
+									type: "stream-end",
+									metadata: {},
+								},
+							};
+							const endChunk = {
+								type: "content",
+								envelope: endEnvelope,
+							};
+							controller.enqueue(encoder.encode(`${JSON.stringify(endChunk)}\n`));
 							controller.close();
 							return;
 						}
-						if (streamData.stream.status === "error") {
-							const errorChunk = `${JSON.stringify({
-								type: "error",
-								error: streamData.stream.error || "Stream error",
-								messageId,
+						
+						if (streamData.stream.status === "error" || streamData.stream.status === "timeout") {
+							const errorEnvelope: StreamEnvelope = {
 								streamId,
-								timestamp: Date.now(),
-							})}\n`;
-							controller.enqueue(encoder.encode(errorChunk));
-							controller.close();
-							return;
-						}
-						if (streamData.stream.status === "timeout") {
-							const timeoutChunk = `${JSON.stringify({
-								type: "error",
-								error: "Stream timed out",
 								messageId,
-								streamId,
+								sequence: lastChunkIndex + 1,
 								timestamp: Date.now(),
-							})}\n`;
-							controller.enqueue(encoder.encode(timeoutChunk));
+								event: {
+									type: "stream-error",
+									error: streamData.stream.error || 
+										(streamData.stream.status === "timeout" ? "Stream timed out" : "Stream error"),
+									code: streamData.stream.status,
+								},
+							};
+							const errorChunk = {
+								type: "content",
+								envelope: errorEnvelope,
+							};
+							controller.enqueue(encoder.encode(`${JSON.stringify(errorChunk)}\n`));
 							controller.close();
 							return;
 						}
@@ -200,26 +241,42 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							setTimeout(pollStream, pollInterval);
 						} else {
 							// Timeout after max polls
-							const timeoutChunk = `${JSON.stringify({
-								type: "error",
-								error: "Polling timeout",
-								messageId,
+							const timeoutEnvelope: StreamEnvelope = {
 								streamId,
+								messageId,
+								sequence: lastChunkIndex + 1,
 								timestamp: Date.now(),
-							})}\n`;
-							controller.enqueue(encoder.encode(timeoutChunk));
+								event: {
+									type: "stream-error",
+									error: "Polling timeout",
+									code: "polling_timeout",
+								},
+							};
+							const timeoutChunk = {
+								type: "content",
+								envelope: timeoutEnvelope,
+							};
+							controller.enqueue(encoder.encode(`${JSON.stringify(timeoutChunk)}\n`));
 							controller.close();
 						}
 					} catch (error) {
 						console.error("Polling error:", error);
-						const errorChunk = `${JSON.stringify({
-							type: "error",
-							error: error instanceof Error ? error.message : "Unknown error",
-							messageId,
+						const errorEnvelope: StreamEnvelope = {
 							streamId,
+							messageId,
+							sequence: lastChunkIndex + 1,
 							timestamp: Date.now(),
-						})}\n`;
-						controller.enqueue(encoder.encode(errorChunk));
+							event: {
+								type: "stream-error",
+								error: error instanceof Error ? error.message : "Unknown error",
+								code: "polling_error",
+							},
+						};
+						const errorChunk = {
+							type: "content",
+							envelope: errorEnvelope,
+						};
+						controller.enqueue(encoder.encode(`${JSON.stringify(errorChunk)}\n`));
 						controller.close();
 					}
 				};
@@ -301,64 +358,61 @@ export const streamContinue = httpAction(async (ctx, request) => {
 			async start(controller) {
 				const encoder = new TextEncoder();
 
-				// Send all existing chunks immediately
-				for (const chunk of streamData.chunks) {
-					let chunkData: any = {
-						type: "text-delta",
-						text: chunk.text,
-						messageId: streamData.stream.messageId as Id<"messages">,
-						streamId: streamData.stream._id,
-						timestamp: chunk.createdAt || chunk._creationTime,
-					};
-
-					if (chunk.type === "tool_call") {
-						chunkData = {
-							type: "tool-call",
-							toolName: (chunk.metadata?.toolName as string) || "unknown",
-							toolCallId: (chunk.metadata?.toolCallId as string) || "unknown",
-							args: JSON.parse(chunk.text),
-							messageId: streamData.stream.messageId as Id<"messages">,
+				// Send all existing chunks immediately using new envelope format
+				streamData.chunks.forEach((chunk, index) => {
+					const part = chunkToMessagePart(chunk);
+					if (part) {
+						const envelope: StreamEnvelope = {
 							streamId: streamData.stream._id,
-							timestamp: chunk.createdAt || chunk._creationTime,
-						};
-					} else if (chunk.type === "tool_result") {
-						chunkData = {
-							type: "tool-result",
-							toolName: (chunk.metadata?.toolName as string) || "unknown",
-							toolCallId: (chunk.metadata?.toolCallId as string) || "unknown",
-							result: JSON.parse(chunk.text),
 							messageId: streamData.stream.messageId as Id<"messages">,
-							streamId: streamData.stream._id,
+							sequence: index,
 							timestamp: chunk.createdAt || chunk._creationTime,
+							part,
 						};
-					} else if (chunk.type === "error") {
-						chunkData = {
-							type: "error",
-							error: chunk.text,
-							messageId: streamData.stream.messageId as Id<"messages">,
-							streamId: streamData.stream._id,
-							timestamp: chunk.createdAt || chunk._creationTime,
+						
+						const streamChunk = {
+							type: "content",
+							envelope,
 						};
+						
+						controller.enqueue(encoder.encode(`${JSON.stringify(streamChunk)}\n`));
 					}
+				});
 
-					const line = `${JSON.stringify(chunkData)}\n`;
-					controller.enqueue(encoder.encode(line));
-				}
-
-				// Send completion if stream is done
+				// Send completion or error if stream is done
 				if (streamData.stream.status === "done") {
-					const completionChunk = `${JSON.stringify({
-						type: "completion",
+					const endEnvelope: StreamEnvelope = {
+						streamId: streamData.stream._id,
+						messageId: streamData.stream.messageId as Id<"messages">,
+						sequence: streamData.chunks.length,
 						timestamp: Date.now(),
-					})}\n`;
-					controller.enqueue(encoder.encode(completionChunk));
+						event: {
+							type: "stream-end",
+							metadata: {},
+						},
+					};
+					const endChunk = {
+						type: "content",
+						envelope: endEnvelope,
+					};
+					controller.enqueue(encoder.encode(`${JSON.stringify(endChunk)}\n`));
 				} else if (streamData.stream.status === "error") {
-					const errorChunk = `${JSON.stringify({
-						type: "error",
-						error: streamData.stream.error || "Stream error",
+					const errorEnvelope: StreamEnvelope = {
+						streamId: streamData.stream._id,
+						messageId: streamData.stream.messageId as Id<"messages">,
+						sequence: streamData.chunks.length,
 						timestamp: Date.now(),
-					})}\n`;
-					controller.enqueue(encoder.encode(errorChunk));
+						event: {
+							type: "stream-error",
+							error: streamData.stream.error || "Stream error",
+							code: "stream_error",
+						},
+					};
+					const errorChunk = {
+						type: "content",
+						envelope: errorEnvelope,
+					};
+					controller.enqueue(encoder.encode(`${JSON.stringify(errorChunk)}\n`));
 				}
 
 				// Close the stream

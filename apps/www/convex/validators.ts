@@ -383,74 +383,8 @@ export const streamControlChunkValidator = v.object({
 	data: v.optional(v.any()),
 });
 
-// ===== TEMPORARY: Dual-mode HTTP Streaming =====
-/**
- * During migration, we support both old and new formats
- * This allows gradual migration without breaking existing code
- */
-
-// Keep the old validators exactly as they were
-export const httpTextDeltaChunkValidator = v.object({
-	type: v.literal("text-delta"),
-	text: v.string(),
-	messageId: v.id("messages"),
-	streamId: v.id("streams"),
-	timestamp: v.number(),
-});
-
-export const httpInitChunkValidator = v.object({
-	type: v.literal("init"),
-	messageId: v.id("messages"),
-	streamId: v.id("streams"),
-	timestamp: v.number(),
-});
-
-export const httpToolCallChunkValidator = v.object({
-	type: v.literal("tool-call"),
-	toolName: v.string(),
-	toolCallId: v.string(),
-	args: v.any(),
-	messageId: v.id("messages"),
-	streamId: v.id("streams"),
-	timestamp: v.number(),
-});
-
-export const httpToolResultChunkValidator = v.object({
-	type: v.literal("tool-result"),
-	toolName: v.string(),
-	toolCallId: v.string(),
-	result: v.any(),
-	messageId: v.id("messages"),
-	streamId: v.id("streams"),
-	timestamp: v.number(),
-});
-
-export const httpCompletionChunkValidator = v.object({
-	type: v.literal("completion"),
-	messageId: v.optional(v.id("messages")),
-	streamId: v.optional(v.id("streams")),
-	timestamp: v.number(),
-});
-
-export const httpErrorChunkValidator = v.object({
-	type: v.literal("error"),
-	error: v.string(),
-	messageId: v.optional(v.id("messages")),
-	streamId: v.optional(v.id("streams")),
-	timestamp: v.number(),
-});
-
-// TEMPORARY: Support both old and new formats
+// HTTP Stream chunk validator - the wire format for streaming
 export const httpStreamChunkValidator = v.union(
-	// OLD FORMAT - For backward compatibility (put first for type inference)
-	httpInitChunkValidator,
-	httpTextDeltaChunkValidator,
-	httpToolCallChunkValidator,
-	httpToolResultChunkValidator,
-	httpCompletionChunkValidator,
-	httpErrorChunkValidator,
-
-	// NEW FORMAT - Preferred (will migrate to this)
 	streamContentChunkValidator,
 	streamControlChunkValidator,
 );
@@ -650,49 +584,27 @@ export const streamingMessageValidator = v.object({
 });
 
 // =========================================================================
-// SECTION 7: MIGRATION GUIDE - FROM LEGACY TO NEW STREAMING
+// SECTION 7: STREAMING ARCHITECTURE
 // =========================================================================
 /**
- * Migration path from the old streaming format to the new one:
+ * The streaming architecture follows a clean separation of concerns:
  *
- * OLD FORMAT:
- * - Custom chunk types: "text-delta", "tool-call", "completion", "error"
- * - Mixed content and metadata in the same object
- * - Inconsistent with Vercel AI SDK
+ * CONTENT LAYER (What):
+ * - Message parts from Vercel AI SDK define the content
+ * - Standard types: text, tool-call, reasoning, error, etc.
+ * - Matches exactly what Vercel AI SDK produces
  *
- * NEW FORMAT:
- * - Wraps standard message parts from Vercel AI SDK
- * - Separates content (parts) from metadata (envelope)
- * - Compatible with Vercel AI SDK processing
+ * INFRASTRUCTURE LAYER (How):
+ * - Stream envelopes wrap content with metadata
+ * - Provides ordering, deduplication, and resumption
+ * - Handles lifecycle events (start, end, error)
  *
- * MIGRATION STRATEGY:
- * 1. Keep legacy validators for backward compatibility
- * 2. Add adapter functions to convert between formats
- * 3. Gradually update endpoints to use new format
- * 4. Remove legacy code once all clients updated
+ * This design allows us to:
+ * - Stream any Vercel AI SDK content without modification
+ * - Add streaming-specific features transparently
+ * - Support resumption and replay of partial streams
  */
 
-/**
- * Adapter to convert legacy chunks to new format
- * Use this during the migration period
- */
-export const legacyChunkAdapterValidator = v.object({
-	// Input: legacy chunk format
-	legacyChunk: v.union(
-		httpTextDeltaChunkValidator,
-		httpCompletionChunkValidator,
-		httpErrorChunkValidator,
-	),
-
-	// Output: new envelope format
-	toEnvelope: v.object({
-		streamId: v.id("streams"),
-		messageId: v.id("messages"),
-		sequence: v.number(),
-		part: v.optional(messagePartValidator),
-		event: v.optional(v.any()),
-	}),
-});
 
 // =========================================================================
 // SECTION 8: TYPE EXPORTS AND HELPERS

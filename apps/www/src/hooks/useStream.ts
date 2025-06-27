@@ -110,12 +110,31 @@ export function useStream({
 						try {
 							const data = JSON.parse(line) as StreamChunk;
 
-							if (data.type === "text-delta") {
-								setHttpText((prev) => prev + data.text);
-							} else if (data.type === "completion") {
-								setHttpStatus("done");
-							} else if (data.type === "error") {
-								throw new Error(data.error || "Stream error");
+							if (data.type === "content" && data.envelope) {
+								const { envelope } = data;
+								
+								// Handle message parts
+								if (envelope.part) {
+									const part = envelope.part;
+									if (part.type === "text") {
+										setHttpText((prev) => prev + part.text);
+									} else if (part.type === "error") {
+										throw new Error(part.errorMessage);
+									}
+								}
+								
+								// Handle events
+								if (envelope.event) {
+									const event = envelope.event;
+									if (event.type === "stream-end") {
+										setHttpStatus("done");
+									} else if (event.type === "stream-error") {
+										throw new Error(event.error);
+									}
+								}
+							} else if (data.type === "control") {
+								// Handle control messages if needed
+								console.log("Control message:", data.action);
 							}
 						} catch (parseError) {
 							console.warn(

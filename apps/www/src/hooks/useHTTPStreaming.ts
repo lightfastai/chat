@@ -169,65 +169,88 @@ export function useHTTPStreaming({
 							try {
 								const data: StreamChunk = JSON.parse(line);
 
-								if (data.type === "init") {
-									// Initialize message with proper IDs
-									currentMessage = {
-										...currentMessage,
-										_id: data.messageId,
-									};
-									console.log(
-										"🌊 HTTP Streaming: Initialized with messageId:",
-										data.messageId,
-									);
-								} else if (data.type === "text-delta" && data.text) {
-									// Update streaming message with new text
-									currentMessage = {
-										...currentMessage,
-										_id: data.messageId,
-										body: currentMessage.body + data.text,
-										timestamp: data.timestamp,
-									};
-									setStreamingMessage(currentMessage);
-									console.log("🌊 HTTP Streaming: Received text chunk:", {
-										chunkLength: data.text.length,
-										totalLength: currentMessage.body.length,
-										timestamp: new Date(data.timestamp).toISOString(),
-									});
-								} else if (data.type === "tool-call") {
-									console.log("🔧 HTTP Streaming: Tool call:", {
-										toolName: data.toolName,
-										toolCallId: data.toolCallId,
-									});
-									// Tool calls are handled by the message parts system
-								} else if (data.type === "tool-result") {
-									console.log("📊 HTTP Streaming: Tool result:", {
-										toolName: data.toolName,
-										toolCallId: data.toolCallId,
-									});
-									// Tool results are handled by the message parts system
-								} else if (data.type === "completion") {
-									// Mark as complete
-									currentMessage = {
-										...currentMessage,
-										_id: data.messageId || currentMessage._id,
-										isStreaming: false,
-										isComplete: true,
-										timestamp: data.timestamp,
-									};
-									setStreamingMessage(currentMessage);
-									setIsStreaming(false);
-								} else if (data.type === "error") {
-									// Handle streaming error
-									setError(data.error || "Unknown streaming error");
-									setIsStreaming(false);
-									currentMessage = {
-										...currentMessage,
-										_id: data.messageId || currentMessage._id,
-										isStreaming: false,
-										isComplete: true,
-										body: data.error || "Error occurred during streaming",
-									};
-									setStreamingMessage(currentMessage);
+								if (data.type === "content" && data.envelope) {
+									const { envelope } = data;
+									
+									// Update message ID if not set
+									if (!currentMessage._id || currentMessage._id === "temp_streaming") {
+										currentMessage = {
+											...currentMessage,
+											_id: envelope.messageId,
+										};
+									}
+
+									// Handle message parts
+									if (envelope.part) {
+										const part = envelope.part;
+										if (part.type === "text") {
+											currentMessage = {
+												...currentMessage,
+												body: currentMessage.body + part.text,
+												timestamp: envelope.timestamp,
+											};
+											setStreamingMessage(currentMessage);
+											console.log("🌊 HTTP Streaming: Received text chunk:", {
+												chunkLength: part.text.length,
+												totalLength: currentMessage.body.length,
+												timestamp: new Date(envelope.timestamp).toISOString(),
+											});
+										} else if (part.type === "tool-call") {
+											console.log("🔧 HTTP Streaming: Tool call:", {
+												toolName: part.toolName,
+												toolCallId: part.toolCallId,
+												state: part.state,
+											});
+											// Tool calls are handled by the message parts system
+										} else if (part.type === "reasoning") {
+											console.log("🧠 HTTP Streaming: Reasoning:", {
+												textLength: part.text.length,
+											});
+											// Reasoning parts could be displayed separately
+										} else if (part.type === "error") {
+											setError(part.errorMessage);
+											setIsStreaming(false);
+											currentMessage = {
+												...currentMessage,
+												isStreaming: false,
+												isComplete: true,
+												body: part.errorMessage,
+											};
+											setStreamingMessage(currentMessage);
+										}
+									}
+
+									// Handle events
+									if (envelope.event) {
+										const event = envelope.event;
+										if (event.type === "stream-start") {
+											console.log("🚀 HTTP Streaming: Stream started");
+										} else if (event.type === "stream-end") {
+											console.log("✅ HTTP Streaming: Stream completed");
+											currentMessage = {
+												...currentMessage,
+												isStreaming: false,
+												isComplete: true,
+												timestamp: envelope.timestamp,
+											};
+											setStreamingMessage(currentMessage);
+											setIsStreaming(false);
+										} else if (event.type === "stream-error") {
+											console.error("❌ HTTP Streaming: Stream error:", event.error);
+											setError(event.error);
+											setIsStreaming(false);
+											currentMessage = {
+												...currentMessage,
+												isStreaming: false,
+												isComplete: true,
+												body: event.error,
+											};
+											setStreamingMessage(currentMessage);
+										}
+									}
+								} else if (data.type === "control") {
+									console.log("🎛️ HTTP Streaming: Control message:", data.action);
+									// Handle control messages (ping, abort, ack)
 								}
 							} catch (parseError) {
 								console.warn(
