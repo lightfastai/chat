@@ -36,10 +36,9 @@ interface CodeBlockProps {
 	code: string;
 	language?: string;
 	className?: string;
-	disableHighlighting?: boolean;
 }
 
-export function CodeBlock({ code, language = "", className, disableHighlighting = false }: CodeBlockProps) {
+export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 	const { theme } = useTheme();
 	const [copied, setCopied] = useState(false);
 	const [highlightedCode, setHighlightedCode] = useState<string>(`<pre><code>${code}</code></pre>`);
@@ -84,14 +83,6 @@ export function CodeBlock({ code, language = "", className, disableHighlighting 
 		let isMounted = true;
 
 		async function highlightCode() {
-			// If highlighting is disabled, just return plain code
-			if (disableHighlighting) {
-				if (isMounted) {
-					setHighlightedCode(`<pre><code>${code}</code></pre>`);
-				}
-				return;
-			}
-
 			try {
 				const highlighter = await getHighlighter();
 
@@ -131,7 +122,7 @@ export function CodeBlock({ code, language = "", className, disableHighlighting 
 		return () => {
 			isMounted = false;
 		};
-	}, [code, language, theme, normalizedLanguage, disableHighlighting]);
+	}, [code, language, theme, normalizedLanguage]);
 
 	return (
 		<div className={cn("relative group my-4 w-full", className)}>
