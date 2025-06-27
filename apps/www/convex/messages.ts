@@ -37,6 +37,7 @@ import {
 import { createAIClient } from "./lib/ai_client.js";
 import { createWebSearchTool } from "./lib/ai_tools.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
+import { enforceModelCapabilities } from "./lib/capability_guards.js";
 import { getOrThrow, getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
@@ -441,6 +442,9 @@ export const send = mutation({
 		// Use default model if none provided
 		const modelId = args.modelId || "gpt-4o-mini";
 
+		// Validate model capabilities against attachments before proceeding
+		await enforceModelCapabilities(ctx, modelId as ModelId, args.attachments);
+
 		// Derive provider from modelId (type-safe)
 		const provider = getProviderFromModelId(modelId as ModelId);
 
@@ -515,6 +519,10 @@ export const createThreadAndSend = mutation({
 
 		// Use default model if none provided
 		const modelId = args.modelId || "gpt-4o-mini";
+
+		// Validate model capabilities against attachments before proceeding
+		await enforceModelCapabilities(ctx, modelId as ModelId, args.attachments);
+
 		const provider = getProviderFromModelId(modelId as ModelId);
 
 		// Create thread atomically with generation flag set
@@ -1289,6 +1297,13 @@ export const generateAIResponseWithMessage = internalAction({
 			})) as { userId: Id<"users"> } | null;
 			requireResource(thread, "Thread");
 
+			// Validate model capabilities against attachments before processing
+			await enforceModelCapabilities(
+				ctx,
+				args.modelId as ModelId,
+				args.attachments,
+			);
+
 			// Derive provider from modelId
 			const provider = getProviderFromModelId(args.modelId as ModelId);
 
@@ -1641,6 +1656,13 @@ export const generateAIResponse = internalAction({
 				threadId: args.threadId,
 			})) as { userId: Id<"users"> } | null;
 			requireResource(thread, "Thread");
+
+			// Validate model capabilities against attachments before processing
+			await enforceModelCapabilities(
+				ctx,
+				args.modelId as ModelId,
+				args.attachments,
+			);
 
 			// Derive provider from modelId
 			const provider = getProviderFromModelId(args.modelId as ModelId);

@@ -11,6 +11,28 @@ import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import type { ActionCtx, QueryCtx } from "../_generated/server.js";
 
+// Type for file with URL (matches the return type of internal.files.getFileWithUrl)
+type FileWithUrl = {
+	_id: Id<"files">;
+	_creationTime: number;
+	storageId: string;
+	fileName: string;
+	fileType: string;
+	fileSize: number;
+	uploadedBy: Id<"users">;
+	uploadedAt: number;
+	metadata?: {
+		extracted?: boolean;
+		extractedText?: string;
+		pageCount?: number;
+		dimensions?: {
+			width: number;
+			height: number;
+		};
+	};
+	url: string;
+} | null;
+
 export interface AttachmentValidationError {
 	code: "VISION_NOT_SUPPORTED" | "PDF_NOT_SUPPORTED" | "FEATURE_NOT_AVAILABLE";
 	message: string;
@@ -42,9 +64,12 @@ export async function validateModelCapabilities(
 	// Get file information for each attachment
 	for (const fileId of attachmentIds) {
 		try {
-			const file: any = await ctx.runQuery(internal.files.getFileWithUrl, {
-				fileId,
-			});
+			const file: FileWithUrl = await ctx.runQuery(
+				internal.files.getFileWithUrl,
+				{
+					fileId,
+				},
+			);
 
 			if (!file) {
 				continue; // Skip missing files

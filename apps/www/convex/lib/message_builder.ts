@@ -3,6 +3,28 @@ import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import type { ActionCtx } from "../_generated/server.js";
 
+// Type for file with URL (matches the return type of internal.files.getFileWithUrl)
+type FileWithUrl = {
+	_id: Id<"files">;
+	_creationTime: number;
+	storageId: string;
+	fileName: string;
+	fileType: string;
+	fileSize: number;
+	uploadedBy: Id<"users">;
+	uploadedAt: number;
+	metadata?: {
+		extracted?: boolean;
+		extractedText?: string;
+		pageCount?: number;
+		dimensions?: {
+			width: number;
+			height: number;
+		};
+	};
+	url: string;
+} | null;
+
 // Type definitions for multimodal content based on AI SDK v5
 type TextPart = { type: "text"; text: string };
 type ImagePart = { type: "image"; image: string | URL };
@@ -42,7 +64,12 @@ export async function buildMessageContent(
 
 	// Fetch each file with its URL
 	for (const fileId of attachmentIds) {
-		const file: any = await ctx.runQuery(internal.files.getFileWithUrl, { fileId });
+		const file: FileWithUrl = await ctx.runQuery(
+			internal.files.getFileWithUrl,
+			{
+				fileId,
+			},
+		);
 		if (!file || !file.url) continue;
 
 		// Handle images
