@@ -443,6 +443,7 @@ export const send = mutation({
 		webSearchEnabled: v.optional(v.boolean()),
 		skipAIResponse: v.optional(v.boolean()), // Skip AI response for HTTP streaming
 		useStreamSystem: v.optional(v.boolean()), // Use new stream system
+		useHybridStreaming: v.optional(v.boolean()), // Use hybrid streaming (HTTP + Convex)
 	},
 	returns: v.object({
 		messageId: v.id("messages"),
@@ -495,7 +496,70 @@ export const send = mutation({
 		let streamId: Id<"streams"> | undefined;
 
 		// Handle AI response based on system type
-		if (args.useStreamSystem) {
+		if (args.useHybridStreaming) {
+			// Hybrid streaming: Both HTTP and Convex persistence
+			// Create stream first for hybrid approach
+			const streamResult: Id<"streams"> = await ctx.runMutation(
+				internal.streams.create,
+				{
+					userId,
+					metadata: { threadId: args.threadId, modelId },
+				},
+			);
+			streamId = streamResult;
+
+			// Get user's API keys for the AI generation
+			const userApiKeys = (await ctx.runMutation(
+				internal.userSettings.getDecryptedApiKeys,
+				{ userId },
+			)) as {
+				anthropic?: string;
+				openai?: string;
+				openrouter?: string;
+			} | null;
+
+			// Determine if we'll use user's API key
+			const willUseUserApiKey =
+				(provider === "anthropic" && userApiKeys?.anthropic) ||
+				(provider === "openai" && userApiKeys?.openai) ||
+				(provider === "openrouter" && userApiKeys?.openrouter);
+
+			// Create assistant message with streamId
+			const now = Date.now();
+			const assistantMessageId = await ctx.db.insert("messages", {
+				threadId: args.threadId,
+				body: "",
+				timestamp: now,
+				messageType: "assistant",
+				model: provider,
+				modelId: modelId,
+				isStreaming: true,
+				streamId,
+				isComplete: false,
+				thinkingStartedAt: now,
+				usedUserApiKey: !!willUseUserApiKey,
+			});
+
+			// For hybrid streaming, we trigger BOTH:
+			// 1. HTTP streaming for instant feedback
+			// 2. Convex streaming for persistence
+			// This is done by the client calling both the HTTP endpoint AND this mutation
+			// The HTTP endpoint provides instant streaming, Convex provides reliable persistence
+
+			// Schedule Convex-side AI response generation for persistence
+			await ctx.scheduler.runAfter(
+				0,
+				internal.messages.generateAIResponseHybrid,
+				{
+					threadId: args.threadId,
+					messageId: assistantMessageId,
+					streamId,
+					modelId,
+					userApiKeys: userApiKeys || undefined,
+					webSearchEnabled: args.webSearchEnabled ?? false,
+				},
+			);
+		} else if (args.useStreamSystem) {
 			// Create stream first
 			const streamResult: Id<"streams"> = await ctx.runMutation(
 				internal.streams.create,
@@ -538,7 +602,7 @@ export const send = mutation({
 				usedUserApiKey: !!willUseUserApiKey,
 			});
 
-			// Schedule AI response using the hybrid stream system
+			// Schedule AI response using the stream system (database-only mode)
 			await ctx.scheduler.runAfter(
 				0,
 				internal.messages.generateAIResponseHybrid,

@@ -3,6 +3,7 @@
 import type { ModelId } from "@/lib/ai";
 import { getProviderFromModelId } from "@/lib/ai";
 import { isClientId, nanoid } from "@/lib/nanoid";
+import { useAuthToken } from "@convex-dev/auth/react";
 import {
 	type Preloaded,
 	useMutation,
@@ -13,7 +14,7 @@ import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import { useHTTPStreaming } from "./useHTTPStreaming";
+// Removed old useHTTPStreaming import
 
 interface UseChatOptions {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
@@ -24,6 +25,7 @@ interface UseChatOptions {
 
 export function useChat(options: UseChatOptions = {}) {
 	const pathname = usePathname();
+	const authToken = useAuthToken();
 
 	// Store the temporary thread ID to maintain consistency across URL changes
 
@@ -142,62 +144,9 @@ export function useChat(options: UseChatOptions = {}) {
 	// Use whichever is available
 	const finalUserSettings = preloadedUserSettings ?? userSettings;
 
-	// Check if HTTP streaming is enabled
-	const httpStreamingEnabled =
-		finalUserSettings?.preferences?.experimentalFeatures?.httpStreaming ??
-		false;
-
-	console.log("🔍 HTTP Streaming Debug:", {
-		finalUserSettings,
-		preferences: finalUserSettings?.preferences,
-		experimentalFeatures: finalUserSettings?.preferences?.experimentalFeatures,
-		httpStreamingEnabled,
-	});
-
-	// Initialize HTTP streaming when enabled
-	// Only use HTTP streaming if we have a real thread ID
-	const httpStreaming = useHTTPStreaming({
-		threadId:
-			currentThread?._id && !isOptimisticThreadId
-				? currentThread._id
-				: ("skip" as Id<"threads">),
-		modelId: "", // No longer used for this old HTTP streaming approach
-	});
-
-	// Merge HTTP streaming message with regular messages
-	const messages = useMemo(() => {
-		if (!httpStreamingEnabled || !httpStreaming.streamingMessage) {
-			return baseMessages;
-		}
-
-		// Convert HTTP streaming message to Doc<"messages"> format
-		const streamingDoc: Doc<"messages"> = {
-			_id: httpStreaming.streamingMessage._id,
-			_creationTime: httpStreaming.streamingMessage.timestamp,
-			threadId: httpStreaming.streamingMessage._id.includes("temp_")
-				? currentThread?._id || ("" as Id<"threads">)
-				: currentThread?._id || ("" as Id<"threads">),
-			body: httpStreaming.streamingMessage.body,
-			messageType: httpStreaming.streamingMessage.messageType,
-			modelId: httpStreaming.streamingMessage.modelId as ModelId,
-			timestamp: httpStreaming.streamingMessage.timestamp,
-			isStreaming: httpStreaming.streamingMessage.isStreaming,
-			isComplete: httpStreaming.streamingMessage.isComplete,
-		};
-
-		// If we have a real message ID from the server, replace any existing message with that ID
-		const filteredMessages = baseMessages.filter(
-			(msg) => msg._id !== httpStreaming.streamingMessage?._id,
-		);
-
-		// Add streaming message at the beginning (newest first)
-		return [streamingDoc, ...filteredMessages];
-	}, [
-		baseMessages,
-		httpStreamingEnabled,
-		httpStreaming.streamingMessage,
-		currentThread,
-	]);
+	// For true hybrid streaming, we always use both HTTP and Convex
+	// No settings toggle needed - hybrid streaming is always on
+	const messages = baseMessages;
 
 	// Remove debug logging for production
 	// Uncomment the following for debugging message queries
@@ -465,7 +414,6 @@ export function useChat(options: UseChatOptions = {}) {
 
 		try {
 			console.log("🎯 handleSendMessage called:", {
-				httpStreamingEnabled,
 				hasCurrentThread: !!currentThread,
 				currentThreadId: currentThread?._id,
 				isNewChat,
@@ -474,39 +422,65 @@ export function useChat(options: UseChatOptions = {}) {
 				webSearchEnabled,
 			});
 
-			// Check if we should use the stream system
-			// Only use if we have a real Convex thread ID (not optimistic)
+			// Check if we can use hybrid streaming (real thread ID, no attachments/web search)
 			const hasRealThreadId = currentThread?._id?.startsWith("k");
-			if (
-				httpStreamingEnabled &&
+			const canUseHybridStreaming =
 				currentThread &&
 				hasRealThreadId &&
 				!attachments?.length &&
-				!webSearchEnabled
-			) {
-				console.log("🚀 Using stream system for message:", {
+				!webSearchEnabled;
+
+			if (canUseHybridStreaming) {
+				console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
 					threadId: currentThread._id,
 					modelId,
-					httpStreamingEnabled,
-					hasRealThreadId,
 				});
 
-				// Send the user message and trigger stream-based AI response
-				await sendMessage({
-					threadId: currentThread._id,
-					body: message,
-					modelId: modelId as ModelId,
-					attachments,
-					webSearchEnabled,
-					useStreamSystem: true, // Use the new stream system
-				});
+				// For hybrid streaming:
+				// 1. Send user message to Convex for persistence
+				// 2. Simultaneously start HTTP stream for instant feedback
+				// This gives us the best of both: instant streaming + reliable persistence
 
+				// Start both operations simultaneously
+				await Promise.all([
+					// 1. Convex mutation for persistence and database updates
+					sendMessage({
+						threadId: currentThread._id,
+						body: message,
+						modelId: modelId as ModelId,
+						attachments,
+						webSearchEnabled,
+						useHybridStreaming: true, // Use hybrid approach
+					}),
+					// 2. HTTP streaming for instant feedback (fire and forget)
+					authToken
+						? fetch("/api/convex/httpStreaming/streamChatResponse", {
+								method: "POST",
+								headers: {
+									"Content-Type": "application/json",
+									Authorization: `Bearer ${authToken}`,
+								},
+								body: JSON.stringify({
+									threadId: currentThread._id,
+									modelId: modelId,
+									messages: [], // Will be populated by the endpoint from thread
+								}),
+							}).catch((error) => {
+								console.warn(
+									"HTTP streaming failed (falling back to Convex only):",
+									error,
+								);
+								// HTTP failure is non-fatal - Convex persistence will still work
+							})
+						: Promise.resolve(),
+				]);
+
+				// Don't return the result to maintain void return type for UI components
 				return;
 			}
 
-			// Standard Convex flow for new chats or when HTTP streaming is disabled
-			console.log("📡 Using standard Convex mutations (not HTTP streaming):", {
-				httpStreamingEnabled,
+			// Standard Convex flow for new chats or complex requests
+			console.log("📡 Using standard Convex flow:", {
 				currentThread: !!currentThread,
 				hasAttachments: !!attachments?.length,
 				webSearchEnabled,

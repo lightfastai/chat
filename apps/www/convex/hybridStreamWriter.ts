@@ -18,7 +18,7 @@ export class HybridStreamWriter {
 	private pendingDeltas: Array<{
 		text: string;
 		partType: string;
-		metadata?: any;
+		metadata?: Record<string, unknown>;
 	}> = [];
 	private lastDbWrite = 0;
 	private readonly dbWriteThrottle = 250; // ms
@@ -89,8 +89,8 @@ export class HybridStreamWriter {
 	async writeToolCall(toolCall: {
 		toolCallId: string;
 		toolName: string;
-		args?: any;
-		result?: any;
+		args?: Record<string, unknown>;
+		result?: unknown;
 		state: "partial-call" | "call" | "result";
 	}): Promise<void> {
 		const part: MessagePart = {
@@ -150,7 +150,7 @@ export class HybridStreamWriter {
 	/**
 	 * Write an error part
 	 */
-	async writeError(errorMessage: string, errorDetails?: any): Promise<void> {
+	async writeError(errorMessage: string, errorDetails?: Record<string, unknown>): Promise<void> {
 		const part: MessagePart = {
 			type: "error",
 			errorMessage,
@@ -172,7 +172,7 @@ export class HybridStreamWriter {
 	/**
 	 * Send stream start event (protected by connection status)
 	 */
-	async sendStreamStart(metadata: any = {}): Promise<void> {
+	async sendStreamStart(metadata: Record<string, unknown> = {}): Promise<void> {
 		// Only send via HTTP if connection is active
 		if (this.httpConnected && this.httpController) {
 			try {

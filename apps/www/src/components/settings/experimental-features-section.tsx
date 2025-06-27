@@ -1,82 +1,9 @@
 "use client";
 
 import { Badge } from "@lightfast/ui/components/ui/badge";
-import { Switch } from "@lightfast/ui/components/ui/switch";
-import { useMutation } from "convex/react";
-import { AlertCircle, FlaskConical } from "lucide-react";
-import { useState } from "react";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { CheckCircle, FlaskConical } from "lucide-react";
 
-interface ExperimentalFeaturesSectionProps {
-	userSettings: {
-		_id: Id<"userSettings">;
-		userId: Id<"users">;
-		preferences?: {
-			defaultModel?: string;
-			preferredProvider?: string;
-			experimentalFeatures?: {
-				httpStreaming?: boolean;
-			};
-		};
-		createdAt: number;
-		updatedAt: number;
-		hasOpenAIKey: boolean;
-		hasAnthropicKey: boolean;
-		hasOpenRouterKey: boolean;
-	} | null;
-}
-
-export function ExperimentalFeaturesSection({
-	userSettings,
-}: ExperimentalFeaturesSectionProps) {
-	const updatePreferences = useMutation(api.userSettings.updatePreferences);
-	const [isSaving, setIsSaving] = useState(false);
-
-	const httpStreamingEnabled =
-		userSettings?.preferences?.experimentalFeatures?.httpStreaming ?? false;
-
-	// Debug logging
-	console.log("ExperimentalFeaturesSection render:", {
-		userSettings,
-		httpStreamingEnabled,
-		isSaving,
-	});
-
-	const handleToggleHttpStreaming = async (checked: boolean) => {
-		console.log("Toggle clicked:", checked);
-
-		setIsSaving(true);
-		try {
-			// If userSettings is null, we'll create new settings
-			// The mutation will handle creating the settings if they don't exist
-			console.log("Updating preferences with:", {
-				defaultModel: userSettings?.preferences?.defaultModel,
-				preferredProvider: userSettings?.preferences?.preferredProvider,
-				experimentalFeatures: { httpStreaming: checked },
-			});
-
-			await updatePreferences({
-				experimentalFeatures: {
-					httpStreaming: checked,
-				},
-			});
-
-			console.log("Preferences updated successfully");
-
-			// Force a page reload to ensure the new settings are picked up
-			window.location.reload();
-		} catch (error) {
-			console.error("Failed to update experimental features:", error);
-			// You might want to show a toast notification here
-			alert("Failed to update settings. Please try again.");
-		} finally {
-			setIsSaving(false);
-		}
-	};
-
-	// Don't show loading state - allow toggle even without existing settings
-
+export function ExperimentalFeaturesSection() {
 	return (
 		<div>
 			<div className="mb-6">
@@ -88,54 +15,45 @@ export function ExperimentalFeaturesSection({
 					</Badge>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Try out new features before they're officially released
+					New features currently enabled in this version
 				</p>
 			</div>
 
 			<div className="space-y-6">
-				{/* HTTP Streaming Toggle */}
-				<div className="flex items-start justify-between gap-6">
+				{/* Hybrid Streaming - Always On */}
+				<div className="flex items-start gap-6">
 					<div className="flex-1 space-y-1">
 						<div className="flex items-center gap-2">
-							<h3 className="text-sm font-medium">HTTP Streaming</h3>
-							<Badge variant="outline" className="text-xs">
-								New
+							<h3 className="text-sm font-medium">Hybrid Streaming</h3>
+							<Badge variant="default" className="text-xs bg-green-600">
+								Always On
 							</Badge>
 						</div>
 						<p className="text-sm text-muted-foreground">
-							Use HTTP streaming with 200ms server-side batching for ~75% fewer
-							database writes during message streaming.
+							Combines HTTP streaming for instant feedback with Convex
+							persistence for reliability. Provides the best of both worlds.
 						</p>
 						<div className="flex items-start gap-2 mt-2">
-							<AlertCircle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+							<CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
 							<p className="text-xs text-muted-foreground">
-								This feature is experimental and may have bugs. Your feedback
-								helps us improve!
+								This feature is now enabled by default for optimal performance.
 							</p>
 						</div>
 					</div>
-					<Switch
-						checked={httpStreamingEnabled}
-						onCheckedChange={handleToggleHttpStreaming}
-						disabled={isSaving}
-						aria-label="Toggle HTTP streaming"
-					/>
 				</div>
 
-				{/* Performance Impact Notice */}
-				{httpStreamingEnabled && (
-					<div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-						<h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-							HTTP Streaming Active
-						</h4>
-						<ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-							<li>• Messages stream via HTTP with 200ms batching</li>
-							<li>• Reduces database load by ~75% during streaming</li>
-							<li>• Same smooth UI experience with optimized backend</li>
-							<li>• Report any issues to help us improve</li>
-						</ul>
-					</div>
-				)}
+				{/* Performance Features */}
+				<div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+					<h4 className="text-sm font-medium text-green-900 dark:text-green-100 mb-2">
+						Hybrid Streaming Features
+					</h4>
+					<ul className="text-xs text-green-700 dark:text-green-300 space-y-1">
+						<li>• HTTP streaming provides instant message feedback</li>
+						<li>• Convex persistence ensures reliable data storage</li>
+						<li>• Automatic fallback if HTTP connection fails</li>
+						<li>• Optimized for both speed and reliability</li>
+					</ul>
+				</div>
 			</div>
 		</div>
 	);

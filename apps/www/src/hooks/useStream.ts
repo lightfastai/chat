@@ -205,7 +205,15 @@ export function useStream({
 			text: streamBody.text,
 			status: streamBody.status,
 		};
-	}, [driven, streamId, httpStatus, httpText, httpError, streamingText, streamBody]);
+	}, [
+		driven,
+		streamId,
+		httpStatus,
+		httpText,
+		httpError,
+		streamingText,
+		streamBody,
+	]);
 }
 
 /**

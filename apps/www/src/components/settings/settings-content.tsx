@@ -66,7 +66,7 @@ export function SettingsContent({
 		<div className="space-y-8 sm:space-y-12">
 			<ProfileSection user={user} userSettings={userSettings} />
 			<ApiKeysSection userSettings={userSettings} />
-			<ExperimentalFeaturesSection userSettings={userSettings} />
+			<ExperimentalFeaturesSection />
 		</div>
 	);
 }
