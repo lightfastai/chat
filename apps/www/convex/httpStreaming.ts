@@ -160,37 +160,36 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 						// Check if stream is complete
 						if (streamData.stream.status === "done") {
-							const completionChunk =
-								JSON.stringify({
-									type: "completion",
-									messageId,
-									streamId,
-									timestamp: Date.now(),
-								}) + "\n";
+							const completionChunk = `${JSON.stringify({
+								type: "completion",
+								messageId,
+								streamId,
+								timestamp: Date.now(),
+							})}\n`;
 							controller.enqueue(encoder.encode(completionChunk));
 							controller.close();
 							return;
-						} else if (streamData.stream.status === "error") {
-							const errorChunk =
-								JSON.stringify({
-									type: "error",
-									error: streamData.stream.error || "Stream error",
-									messageId,
-									streamId,
-									timestamp: Date.now(),
-								}) + "\n";
+						}
+						if (streamData.stream.status === "error") {
+							const errorChunk = `${JSON.stringify({
+								type: "error",
+								error: streamData.stream.error || "Stream error",
+								messageId,
+								streamId,
+								timestamp: Date.now(),
+							})}\n`;
 							controller.enqueue(encoder.encode(errorChunk));
 							controller.close();
 							return;
-						} else if (streamData.stream.status === "timeout") {
-							const timeoutChunk =
-								JSON.stringify({
-									type: "error",
-									error: "Stream timed out",
-									messageId,
-									streamId,
-									timestamp: Date.now(),
-								}) + "\n";
+						}
+						if (streamData.stream.status === "timeout") {
+							const timeoutChunk = `${JSON.stringify({
+								type: "error",
+								error: "Stream timed out",
+								messageId,
+								streamId,
+								timestamp: Date.now(),
+							})}\n`;
 							controller.enqueue(encoder.encode(timeoutChunk));
 							controller.close();
 							return;
@@ -202,27 +201,25 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							setTimeout(pollStream, pollInterval);
 						} else {
 							// Timeout after max polls
-							const timeoutChunk =
-								JSON.stringify({
-									type: "error",
-									error: "Polling timeout",
-									messageId,
-									streamId,
-									timestamp: Date.now(),
-								}) + "\n";
+							const timeoutChunk = `${JSON.stringify({
+								type: "error",
+								error: "Polling timeout",
+								messageId,
+								streamId,
+								timestamp: Date.now(),
+							})}\n`;
 							controller.enqueue(encoder.encode(timeoutChunk));
 							controller.close();
 						}
 					} catch (error) {
 						console.error("Polling error:", error);
-						const errorChunk =
-							JSON.stringify({
-								type: "error",
-								error: error instanceof Error ? error.message : "Unknown error",
-								messageId,
-								streamId,
-								timestamp: Date.now(),
-							}) + "\n";
+						const errorChunk = `${JSON.stringify({
+							type: "error",
+							error: error instanceof Error ? error.message : "Unknown error",
+							messageId,
+							streamId,
+							timestamp: Date.now(),
+						})}\n`;
 						controller.enqueue(encoder.encode(errorChunk));
 						controller.close();
 					}
@@ -307,7 +304,7 @@ export const streamContinue = httpAction(async (ctx, request) => {
 
 				// Send all existing chunks immediately
 				for (const chunk of streamData.chunks) {
-					let chunkData: any = {
+					let chunkData: Record<string, unknown> = {
 						type: "text-delta",
 						text: chunk.text,
 						timestamp: chunk.createdAt || chunk._creationTime,

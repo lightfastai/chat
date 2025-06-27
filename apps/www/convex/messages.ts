@@ -42,9 +42,11 @@ import { getOrThrow, getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
 import { getModelStreamingDelay } from "./lib/streaming_config.js";
+import type { Infer } from "convex/values";
 import {
 	branchInfoValidator,
 	clientIdValidator,
+	messagePartValidator,
 	messageTypeValidator,
 	modelIdValidator,
 	modelProviderValidator,
@@ -1945,7 +1947,7 @@ export const syncMessageFromStream = internalMutation({
 
 		// Build message body and parts from chunks
 		let body = "";
-		const parts: any[] = [];
+		const parts: Infer<typeof messagePartValidator>[] = [];
 
 		// Process chunks in order to build message content
 		for (const chunk of streamData.chunks) {
@@ -1979,7 +1981,7 @@ export const syncMessageFromStream = internalMutation({
 					});
 					break;
 
-				case "tool_result":
+				case "tool_result": {
 					// Find the corresponding tool call and update it
 					const toolCallIndex = parts.findIndex(
 						(p) =>
@@ -1987,10 +1989,14 @@ export const syncMessageFromStream = internalMutation({
 							p.toolCallId === chunk.metadata?.toolCallId,
 					);
 					if (toolCallIndex !== -1) {
-						parts[toolCallIndex].result = JSON.parse(chunk.text);
-						parts[toolCallIndex].state = "result";
+						const toolCallPart = parts[toolCallIndex];
+						if (toolCallPart.type === "tool-call") {
+							toolCallPart.result = JSON.parse(chunk.text);
+							toolCallPart.state = "result";
+						}
 					}
 					break;
+				}
 
 				case "control":
 					// Handle control chunks

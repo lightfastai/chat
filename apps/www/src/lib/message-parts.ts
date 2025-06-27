@@ -1,47 +1,30 @@
+import type { Infer } from "convex/values";
 import type { Doc } from "../../convex/_generated/dataModel";
+import type {
+	messagePartValidator,
+	reasoningPartValidator,
+	streamControlPartValidator,
+	textPartValidator,
+	toolCallPartValidator,
+} from "../../convex/validators";
 
-// Types matching Vercel AI SDK v5 structure and new schema
-export type TextPart = {
-	type: "text";
-	text: string;
-};
+// === Core Types ===
+// Using Convex validators for type consistency between client and server
+
+// Text part for regular message content
+export type TextPart = Infer<typeof textPartValidator>;
 
 // Reasoning part for Claude thinking/reasoning content
-export type ReasoningPart = {
-	type: "reasoning";
-	text: string;
-	providerMetadata?: {
-		reasoningTokens?: number;
-		totalTokens?: number;
-		[key: string]: unknown;
-	};
-};
+export type ReasoningPart = Infer<typeof reasoningPartValidator>;
 
 // Official Vercel AI SDK v5 compliant ToolCallPart
-export type ToolCallPart = {
-	type: "tool-call";
-	toolCallId: string;
-	toolName: string;
-	args?: Record<string, unknown>;
-	result?: unknown;
-	state: "partial-call" | "call" | "result"; // Official SDK states only
-	step?: number; // Official SDK step tracking for multi-step calls
-};
+export type ToolCallPart = Infer<typeof toolCallPartValidator>;
 
 // Stream control part for start/finish/metadata events
-export type StreamControlPart = {
-	type: "control";
-	controlType: "start" | "finish" | "reasoning-part-finish";
-	finishReason?: string;
-	totalUsage?: any;
-	metadata?: any;
-};
+export type StreamControlPart = Infer<typeof streamControlPartValidator>;
 
-export type MessagePart =
-	| TextPart
-	| ReasoningPart
-	| ToolCallPart
-	| StreamControlPart;
+// Union type for all message parts
+export type MessagePart = Infer<typeof messagePartValidator>;
 
 // Get message parts with text grouping (parts-based architecture only)
 export function getMessageParts(message: Doc<"messages">): MessagePart[] {

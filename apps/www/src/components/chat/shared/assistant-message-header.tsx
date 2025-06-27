@@ -41,7 +41,7 @@ export function AssistantMessageHeader({
 			.map((part) => part.text)
 			.join("\n");
 
-		if (partsContent && partsContent.trim()) {
+		if (partsContent?.trim()) {
 			return partsContent;
 		}
 

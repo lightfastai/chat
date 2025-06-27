@@ -187,7 +187,7 @@ export function useChat(options: UseChatOptions = {}) {
 
 		// If we have a real message ID from the server, replace any existing message with that ID
 		const filteredMessages = baseMessages.filter(
-			(msg) => msg._id !== httpStreaming.streamingMessage!._id,
+			(msg) => msg._id !== httpStreaming.streamingMessage?._id,
 		);
 
 		// Add streaming message at the beginning (newest first)

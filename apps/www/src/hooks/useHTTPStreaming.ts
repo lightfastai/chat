@@ -27,8 +27,8 @@ interface StreamChunk {
 	// Tool-related fields
 	toolName?: string;
 	toolCallId?: string;
-	args?: any;
-	result?: any;
+	args?: unknown;
+	result?: unknown;
 }
 
 interface UseHTTPStreamingOptions {
