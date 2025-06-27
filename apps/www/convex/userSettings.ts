@@ -26,6 +26,11 @@ export const getUserSettings = query({
 				v.object({
 					defaultModel: v.optional(modelIdValidator),
 					preferredProvider: v.optional(modelProviderValidator),
+					experimentalFeatures: v.optional(
+						v.object({
+							httpStreaming: v.optional(v.boolean()),
+						}),
+					),
 				}),
 			),
 			createdAt: v.number(),
