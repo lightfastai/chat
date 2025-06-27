@@ -34,10 +34,10 @@ export class ThreadsErrorBoundary extends Component<
 	}
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-		// Log to console in development
-		if (process.env.NODE_ENV === "development") {
-			console.error("ThreadsErrorBoundary caught error:", error, errorInfo);
-		}
+		// Always log to console for debugging
+		console.error("ThreadsErrorBoundary caught error:", error);
+		console.error("Error stack:", error.stack);
+		console.error("Component stack:", errorInfo.componentStack);
 
 		// In production, you could log to an error reporting service
 		// logErrorToService(error, errorInfo);
