@@ -6,10 +6,31 @@ import { useEffect, useState } from "react";
 import {
 	type BundledLanguage,
 	type BundledTheme,
+	type Highlighter,
 	createHighlighter,
 } from "shiki";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
+
+// Shared highlighter instance to avoid recreating it
+let sharedHighlighter: Highlighter | null = null;
+let highlighterPromise: Promise<Highlighter> | null = null;
+
+const getHighlighter = async (): Promise<Highlighter> => {
+	if (sharedHighlighter) {
+		return sharedHighlighter;
+	}
+	
+	if (!highlighterPromise) {
+		highlighterPromise = createHighlighter({
+			themes: ["github-light", "github-dark"],
+			langs: ["javascript", "typescript", "jsx", "tsx", "python", "bash", "json", "markdown", "css", "html", "yaml", "sql", "rust", "go", "java", "cpp", "c", "php", "ruby", "xml", "plaintext"],
+		});
+	}
+	
+	sharedHighlighter = await highlighterPromise;
+	return sharedHighlighter;
+};
 
 interface CodeBlockProps {
 	code: string;
@@ -20,8 +41,7 @@ interface CodeBlockProps {
 export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 	const { theme } = useTheme();
 	const [copied, setCopied] = useState(false);
-	const [highlightedCode, setHighlightedCode] = useState<string>("");
-	const [isLoading, setIsLoading] = useState(true);
+	const [highlightedCode, setHighlightedCode] = useState<string>(`<pre><code>${code}</code></pre>`);
 	// TODO: Re-enable scroll mode once overflow container issues are resolved
 	// For now, we only support text wrapping to prevent overflow beyond message bounds
 	// const [isWrapped, setIsWrapped] = useState(true)
@@ -64,33 +84,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 
 		async function highlightCode() {
 			try {
-				setIsLoading(true);
-				const highlighter = await createHighlighter({
-					themes: ["github-light", "github-dark"],
-					langs: [
-						"javascript",
-						"typescript",
-						"jsx",
-						"tsx",
-						"python",
-						"bash",
-						"json",
-						"markdown",
-						"css",
-						"html",
-						"yaml",
-						"sql",
-						"rust",
-						"go",
-						"java",
-						"cpp",
-						"c",
-						"php",
-						"ruby",
-						"xml",
-						"plaintext",
-					],
-				});
+				const highlighter = await getHighlighter();
 
 				if (!isMounted) return;
 
@@ -119,10 +113,6 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 				console.error("Failed to highlight code:", error);
 				if (isMounted) {
 					setHighlightedCode(`<pre><code>${code}</code></pre>`);
-				}
-			} finally {
-				if (isMounted) {
-					setIsLoading(false);
 				}
 			}
 		}
@@ -176,17 +166,11 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 			{/* TODO: Re-implement horizontal scroll mode with proper container constraints */}
 			<div className="border border-t-0 border-border rounded-b-md overflow-hidden">
 				<div className="w-full">
-					{isLoading ? (
-						<div className="p-3 text-sm font-mono text-muted-foreground animate-pulse">
-							Syntax highlighting...
-						</div>
-					) : (
-						<div
-							className="[&>pre]:!m-0 [&>pre]:!p-3 [&>pre]:!bg-transparent [&>pre]:!border-none [&>pre]:!rounded-none [&>pre]:text-sm [&>pre]:leading-relaxed [&>pre]:whitespace-pre-wrap [&>pre]:break-words [&>pre]:overflow-wrap-anywhere [&_code]:whitespace-pre-wrap [&_code]:break-words [&_code]:overflow-wrap-anywhere [&_code]:font-mono"
-							// biome-ignore lint/security/noDangerouslySetInnerHtml: Shiki output is safe
-							dangerouslySetInnerHTML={{ __html: highlightedCode }}
-						/>
-					)}
+					<div
+						className="[&>pre]:!m-0 [&>pre]:!p-3 [&>pre]:!bg-transparent [&>pre]:!border-none [&>pre]:!rounded-none [&>pre]:text-sm [&>pre]:leading-relaxed [&>pre]:whitespace-pre-wrap [&>pre]:break-words [&>pre]:overflow-wrap-anywhere [&_code]:whitespace-pre-wrap [&_code]:break-words [&_code]:overflow-wrap-anywhere [&_code]:font-mono"
+						// biome-ignore lint/security/noDangerouslySetInnerHtml: Shiki output is safe
+						dangerouslySetInnerHTML={{ __html: highlightedCode }}
+					/>
 				</div>
 			</div>
 		</div>
