@@ -262,9 +262,7 @@ export const getDeltas = internalQuery({
 
 		if (args.fromSequence !== undefined) {
 			const fromSequence = args.fromSequence;
-			query = query.filter((q) =>
-				q.gte(q.field("sequence"), fromSequence),
-			);
+			query = query.filter((q) => q.gte(q.field("sequence"), fromSequence));
 		}
 
 		return await query.order("asc").collect();

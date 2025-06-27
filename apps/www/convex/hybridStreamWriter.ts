@@ -3,23 +3,6 @@ import type { Id } from "./_generated/dataModel";
 import type { ActionCtx } from "./_generated/server";
 import type { MessagePart, StreamEnvelope } from "./validators";
 
-// Global registry for active HTTP writers
-const activeWriters = new Map<string, HybridStreamWriter>();
-
-export function registerWriter(streamId: string, writer: HybridStreamWriter): void {
-	activeWriters.set(streamId, writer);
-	console.log(`Registered HTTP writer for stream ${streamId}`);
-}
-
-export function getWriter(streamId: string): HybridStreamWriter | undefined {
-	return activeWriters.get(streamId);
-}
-
-export function unregisterWriter(streamId: string): void {
-	activeWriters.delete(streamId);
-	console.log(`Unregistered HTTP writer for stream ${streamId}`);
-}
-
 /**
  * HybridStreamWriter - Implements dual-write strategy for optimal streaming
  *
@@ -51,11 +34,6 @@ export class HybridStreamWriter {
 	) {
 		this.lastDbWrite = Date.now();
 		this.httpConnected = !!httpController;
-		
-		// Register this writer globally if it has HTTP capability
-		if (this.httpConnected) {
-			registerWriter(this.streamId, this);
-		}
 	}
 
 	/**
@@ -63,7 +41,9 @@ export class HybridStreamWriter {
 	 */
 	onHttpDisconnect(): void {
 		this.httpConnected = false;
-		console.log(`HTTP disconnected for stream ${this.streamId}, continuing database writes`);
+		console.log(
+			`HTTP disconnected for stream ${this.streamId}, continuing database writes`,
+		);
 	}
 
 	/**
@@ -267,11 +247,9 @@ export class HybridStreamWriter {
 		});
 
 		this.streamCompleted = true;
-		
-		// Unregister from global registry
-		unregisterWriter(this.streamId);
-		
-		console.log(`Stream ${this.streamId} completed (HTTP: ${this.httpConnected})`);
+		console.log(
+			`Stream ${this.streamId} completed (HTTP: ${this.httpConnected})`,
+		);
 	}
 
 	/**
@@ -321,11 +299,9 @@ export class HybridStreamWriter {
 		});
 
 		this.streamCompleted = true;
-		
-		// Unregister from global registry
-		unregisterWriter(this.streamId);
-		
-		console.log(`Stream ${this.streamId} failed: ${error} (HTTP: ${this.httpConnected})`);
+		console.log(
+			`Stream ${this.streamId} failed: ${error} (HTTP: ${this.httpConnected})`,
+		);
 	}
 
 	/**
@@ -334,7 +310,7 @@ export class HybridStreamWriter {
 	async sendHttpChunk(part: MessagePart): Promise<void> {
 		// Always increment sequence for consistency
 		const sequence = this.sequence++;
-		
+
 		// Only send via HTTP if connection is active
 		if (this.httpConnected && this.httpController) {
 			try {

@@ -4,7 +4,8 @@ import type { ModelId } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
-import { HybridStreamWriter, getWriter } from "./hybridStreamWriter";
+import { generateAIResponseInline } from "./generateAIResponseWithStreams";
+import { HybridStreamWriter } from "./hybridStreamWriter";
 import type {
 	MessagePart,
 	StreamEnvelope,
@@ -146,23 +147,18 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					// Send stream start event
 					await writer.sendStreamStart({ modelId });
 
-					// Start AI generation with direct streaming via HybridStreamWriter
-					// The AI generation will look up the writer from global registry
-					ctx.scheduler.runAfter(
-						0,
-						internal.generateAIResponseWithStreams.generateAIResponseWithStreams,
-						{
-							threadId,
-							messageId,
-							streamId,
-							modelId: modelId as ModelId,
-							webSearchEnabled: false, // Can be configured from request
-						},
-					);
+					// Run AI generation inline with direct HybridStreamWriter access
+					// This keeps the writer in the same execution context, solving the global state issue
+					await generateAIResponseInline(ctx, {
+						threadId,
+						messageId,
+						streamId,
+						modelId: modelId as ModelId,
+						hybridWriter: writer,
+						webSearchEnabled: false, // Can be configured from request
+					});
 
-					// Connection will remain active until stream completes or client disconnects
-					// The writer will handle HTTP disconnection automatically in its methods
-
+					// AI generation completes and writer is automatically cleaned up
 				} catch (error) {
 					console.error("Stream setup error:", error);
 					const writer = new HybridStreamWriter(
@@ -177,16 +173,16 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					);
 				}
 			},
-			
+
 			// Handle client disconnection
 			cancel(reason) {
-				console.log(`HTTP connection cancelled for stream ${streamId}:`, reason);
-				// Look up the writer and mark it as disconnected
-				const writer = getWriter(streamId);
-				if (writer) {
-					writer.onHttpDisconnect();
-				}
-			}
+				console.log(
+					`HTTP connection cancelled for stream ${streamId}:`,
+					reason,
+				);
+				// The inline execution means the writer will be garbage collected
+				// and database writes will complete naturally in the background
+			},
 		});
 
 		return new Response(stream, {

@@ -14,13 +14,13 @@ import {
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { type ActionCtx, internalAction } from "./_generated/server";
+import type { HybridStreamWriter } from "./hybridStreamWriter";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
 import { createSystemPrompt } from "./lib/message_builder";
 import { handleAIResponseError } from "./messages/helpers";
 import { formatUsageData } from "./messages/types";
 import { modelIdValidator } from "./validators";
-import { getWriter } from "./hybridStreamWriter";
 
 // Helper function to build conversation messages for stream-based AI responses
 async function buildConversationMessagesForStreams(
@@ -81,6 +81,226 @@ async function buildConversationMessagesForStreams(
 	return messages;
 }
 
+// Inline AI generation function that works with HybridStreamWriter directly
+export async function generateAIResponseInline(
+	ctx: ActionCtx,
+	args: {
+		threadId: Id<"threads">;
+		messageId: Id<"messages">;
+		streamId: Id<"streams">;
+		modelId: ModelId;
+		hybridWriter: HybridStreamWriter;
+		userApiKeys?: {
+			anthropic?: string;
+			openai?: string;
+			openrouter?: string;
+		};
+		webSearchEnabled?: boolean;
+	},
+): Promise<void> {
+	const { hybridWriter } = args;
+
+	try {
+		const provider = getProviderFromModelId(args.modelId);
+		const model = getModelById(args.modelId);
+
+		// Build conversation messages from the thread
+		const messages = await buildConversationMessagesForStreams(
+			ctx,
+			args.threadId,
+			args.modelId,
+			args.webSearchEnabled,
+		);
+
+		console.log(
+			`AI SDK v5: Starting inline streaming with ${provider} model ${model.id}, messages: ${messages.length}`,
+		);
+
+		// Create AI client with proper API keys
+		const aiClient = createAIClient(args.modelId, args.userApiKeys);
+
+		// Prepare generation options
+		const generationOptions: Parameters<typeof streamText>[0] = {
+			model: aiClient,
+			messages,
+			temperature: 0.7,
+		};
+
+		// Add tools if supported and enabled
+		if (model.features.functionCalling && args.webSearchEnabled) {
+			generationOptions.tools = {
+				web_search: createWebSearchTool(),
+			};
+			generationOptions.stopWhen = stepCountIs(5);
+		}
+
+		// Use the AI SDK v5 streamText
+		const result = streamText(generationOptions);
+
+		let fullText = "";
+		let textBuffer = "";
+		let pendingBuffer = "";
+		const SENTENCE_DELIMITERS = /[.!?\n]/;
+
+		const flushTextBuffer = async (force = false) => {
+			const toFlush = force ? textBuffer + pendingBuffer : textBuffer;
+
+			if (toFlush.length > 0) {
+				// Use HybridStreamWriter directly
+				await hybridWriter.writeTextChunk(toFlush);
+				fullText += toFlush;
+
+				textBuffer = "";
+				if (force) {
+					pendingBuffer = "";
+				}
+			}
+		};
+
+		// Process the AI stream
+		for await (const streamPart of result.fullStream) {
+			const part: TextStreamPart<ToolSet> = streamPart;
+
+			switch (part.type) {
+				case "text":
+					if (part.text) {
+						pendingBuffer += part.text;
+
+						let lastDelimiterIndex = -1;
+						for (let i = 0; i < pendingBuffer.length; i++) {
+							if (SENTENCE_DELIMITERS.test(pendingBuffer[i])) {
+								lastDelimiterIndex = i;
+							}
+						}
+
+						if (lastDelimiterIndex !== -1) {
+							textBuffer += pendingBuffer.substring(0, lastDelimiterIndex + 1);
+							pendingBuffer = pendingBuffer.substring(lastDelimiterIndex + 1);
+							await flushTextBuffer();
+						}
+
+						if (pendingBuffer.length >= 200) {
+							textBuffer = pendingBuffer;
+							pendingBuffer = "";
+							await flushTextBuffer(true);
+						}
+					}
+					break;
+
+				case "reasoning":
+					await flushTextBuffer(true);
+					if (part.type === "reasoning" && part.text) {
+						await hybridWriter.writeReasoning(part.text);
+					}
+					break;
+
+				case "tool-call":
+					await flushTextBuffer(true);
+					await hybridWriter.writeToolCall({
+						toolCallId: part.toolCallId,
+						toolName: part.toolName,
+						args: part.input,
+						state: "call",
+					});
+					break;
+
+				case "tool-call-delta":
+					if (part.toolCallId && part.inputTextDelta) {
+						await hybridWriter.writeToolCall({
+							toolCallId: part.toolCallId,
+							toolName: part.toolName || "",
+							args: part.inputTextDelta,
+							state: "partial-call",
+						});
+					}
+					break;
+
+				case "tool-call-streaming-start":
+					if (part.toolCallId && part.toolName) {
+						await hybridWriter.writeToolCall({
+							toolCallId: part.toolCallId,
+							toolName: part.toolName,
+							args: {},
+							state: "partial-call",
+						});
+					}
+					break;
+
+				case "tool-result":
+					const toolResult = part.output;
+					await hybridWriter.writeToolCall({
+						toolCallId: part.toolCallId,
+						toolName: part.toolName,
+						result: toolResult,
+						state: "result",
+					});
+					break;
+
+				case "error":
+					const errorMessage =
+						part.error instanceof Error
+							? part.error.message
+							: String(part.error || "Unknown stream error");
+					console.error("Stream error:", errorMessage);
+					await hybridWriter.writeError(errorMessage, {
+						error: part.error,
+						timestamp: Date.now(),
+					});
+					throw new Error(`Stream error: ${errorMessage}`);
+
+				default:
+					console.warn(
+						"Unhandled stream part type:",
+						(part as { type: string }).type,
+					);
+					break;
+			}
+		}
+
+		// Flush any remaining text
+		await flushTextBuffer(true);
+
+		// Get final usage and complete the message
+		const finalUsage = await result.usage;
+		if (finalUsage) {
+			const formattedUsage = formatUsageData(finalUsage);
+			await ctx.runMutation(internal.messages.completeStreamingMessage, {
+				messageId: args.messageId,
+				streamId: args.streamId,
+				fullText,
+				usage: formattedUsage,
+			});
+		} else if (fullText.length > 0) {
+			await ctx.runMutation(internal.messages.completeStreamingMessage, {
+				messageId: args.messageId,
+				streamId: args.streamId,
+				fullText,
+				usage: undefined,
+			});
+		}
+
+		// Complete the stream via HybridStreamWriter
+		await hybridWriter.finish();
+
+		// Clear generation flag
+		await ctx.runMutation(internal.messages.clearGenerationFlag, {
+			threadId: args.threadId,
+		});
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : "Unknown error";
+
+		// Handle error via HybridStreamWriter
+		await hybridWriter.handleError(errorMessage, "generation_error");
+
+		await handleAIResponseError(ctx, error, args.threadId, args.messageId, {
+			modelId: args.modelId,
+			provider: getProviderFromModelId(args.modelId),
+			useStreamingUpdate: true,
+		});
+	}
+}
+
 // New action that uses the stream system for all AI responses
 export const generateAIResponseWithStreams = internalAction({
 	args: {
@@ -99,8 +319,14 @@ export const generateAIResponseWithStreams = internalAction({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		// Look up active HTTP writer for this stream
-		const hybridWriter = getWriter(args.streamId);
+		// This function is now mainly for fallback compatibility
+		// Most calls should use generateAIResponseInline directly
+		console.log(
+			"Using fallback generateAIResponseWithStreams - consider using inline version",
+		);
+
+		// No hybridWriter available in this context - use old system
+		const hybridWriter: HybridStreamWriter | undefined = undefined;
 		try {
 			const provider = getProviderFromModelId(args.modelId as ModelId);
 			const model = getModelById(args.modelId as ModelId);
@@ -153,7 +379,7 @@ export const generateAIResponseWithStreams = internalAction({
 				if (toFlush.length > 0) {
 					// Use HybridStreamWriter if available, otherwise fallback to old system
 					if (hybridWriter) {
-						await hybridWriter.writeTextChunk(toFlush);
+						await (hybridWriter as HybridStreamWriter).writeTextChunk(toFlush);
 					} else {
 						await ctx.runMutation(internal.streams.addTextChunk, {
 							streamId: args.streamId,
@@ -213,7 +439,9 @@ export const generateAIResponseWithStreams = internalAction({
 						// Handle Claude thinking/reasoning content
 						if (part.type === "reasoning" && part.text) {
 							if (hybridWriter) {
-								await hybridWriter.writeReasoning(part.text);
+								await (hybridWriter as HybridStreamWriter).writeReasoning(
+									part.text,
+								);
 							} else {
 								await ctx.runMutation(internal.streams.addReasoningChunk, {
 									streamId: args.streamId,
@@ -238,7 +466,7 @@ export const generateAIResponseWithStreams = internalAction({
 
 						// Add tool call to stream
 						if (hybridWriter) {
-							await hybridWriter.writeToolCall({
+							await (hybridWriter as HybridStreamWriter).writeToolCall({
 								toolCallId: part.toolCallId,
 								toolName: part.toolName,
 								args: part.input,
@@ -263,7 +491,7 @@ export const generateAIResponseWithStreams = internalAction({
 							part.inputTextDelta
 						) {
 							if (hybridWriter) {
-								await hybridWriter.writeToolCall({
+								await (hybridWriter as HybridStreamWriter).writeToolCall({
 									toolCallId: part.toolCallId,
 									toolName: part.toolName || "",
 									args: part.inputTextDelta,
@@ -289,7 +517,7 @@ export const generateAIResponseWithStreams = internalAction({
 							part.toolName
 						) {
 							if (hybridWriter) {
-								await hybridWriter.writeToolCall({
+								await (hybridWriter as HybridStreamWriter).writeToolCall({
 									toolCallId: part.toolCallId,
 									toolName: part.toolName,
 									args: {},
@@ -313,7 +541,7 @@ export const generateAIResponseWithStreams = internalAction({
 
 						// Add tool result to stream
 						if (hybridWriter) {
-							await hybridWriter.writeToolCall({
+							await (hybridWriter as HybridStreamWriter).writeToolCall({
 								toolCallId: part.toolCallId,
 								toolName: part.toolName,
 								result: toolResult,
@@ -364,10 +592,13 @@ export const generateAIResponseWithStreams = internalAction({
 
 							// Write error via HybridStreamWriter or fallback to old system
 							if (hybridWriter) {
-								await hybridWriter.writeError(errorMessage, {
-									error: part.error,
-									timestamp: Date.now(),
-								});
+								await (hybridWriter as HybridStreamWriter).writeError(
+									errorMessage,
+									{
+										error: part.error,
+										timestamp: Date.now(),
+									},
+								);
 							} else {
 								// Mark stream as errored
 								await ctx.runMutation(internal.streams.markError, {
@@ -417,7 +648,7 @@ export const generateAIResponseWithStreams = internalAction({
 
 			// Complete the stream - use HybridStreamWriter if available
 			if (hybridWriter) {
-				await hybridWriter.finish();
+				await (hybridWriter as HybridStreamWriter).finish();
 			} else {
 				// Mark stream as complete using old system
 				await ctx.runMutation(internal.streams.markComplete, {
@@ -430,11 +661,15 @@ export const generateAIResponseWithStreams = internalAction({
 				threadId: args.threadId,
 			});
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : "Unknown error";
-			
+			const errorMessage =
+				error instanceof Error ? error.message : "Unknown error";
+
 			// Handle error - use HybridStreamWriter if available
 			if (hybridWriter) {
-				await hybridWriter.handleError(errorMessage, "generation_error");
+				await (hybridWriter as HybridStreamWriter).handleError(
+					errorMessage,
+					"generation_error",
+				);
 			} else {
 				// Mark stream as errored using old system
 				await ctx.runMutation(internal.streams.markError, {
