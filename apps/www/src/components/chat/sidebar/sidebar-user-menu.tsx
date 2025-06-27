@@ -1,5 +1,6 @@
 "use client";
 
+import { usePlatformShortcuts } from "@/hooks/use-platform-shortcuts";
 import { siteConfig } from "@/lib/site-config";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
@@ -43,6 +44,7 @@ export function SidebarUserMenu({ preloadedUser }: SidebarUserMenuProps) {
 	const currentUser = usePreloadedQuery(preloadedUser);
 	const { state } = useSidebar();
 	const [open, setOpen] = useState(false);
+	const { getShortcut } = usePlatformShortcuts();
 
 	// Close dropdown when sidebar state changes
 	useEffect(() => {
@@ -56,6 +58,7 @@ export function SidebarUserMenu({ preloadedUser }: SidebarUserMenuProps) {
 
 	const displayName = currentUser?.name || currentUser?.email || "User";
 	const displayEmail = currentUser?.email || "No email";
+	const settingsShortcut = getShortcut("openSettings");
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
@@ -107,11 +110,16 @@ export function SidebarUserMenu({ preloadedUser }: SidebarUserMenuProps) {
 				<DropdownMenuItem asChild>
 					<Link
 						href="/chat/settings"
-						className="cursor-pointer"
+						className="cursor-pointer flex items-center justify-between"
 						prefetch={true}
 					>
-						<Settings className="mr-2 h-3 w-3" />
-						<span className="text-xs">Settings</span>
+						<div className="flex items-center">
+							<Settings className="mr-2 h-3 w-3" />
+							<span className="text-xs">Settings</span>
+						</div>
+						<span className="text-xs text-muted-foreground">
+							{settingsShortcut.display}
+						</span>
 					</Link>
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />

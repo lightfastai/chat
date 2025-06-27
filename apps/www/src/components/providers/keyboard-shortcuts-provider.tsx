@@ -47,6 +47,16 @@ export function KeyboardShortcutsProvider({
 	// Note: Sidebar toggle (Cmd/Ctrl+B) is handled directly by SidebarProvider
 	// to avoid circular event dispatch patterns that can fail after page reload
 
+	// Add keyboard shortcut for settings (Cmd/Ctrl+,)
+	useKeyboardShortcut({
+		key: ",",
+		ctrlKey: true,
+		metaKey: true,
+		callback: () => {
+			router.push("/chat/settings");
+		},
+	});
+
 	// Add keyboard shortcut for model selector (Cmd/Ctrl+.)
 	useKeyboardShortcut({
 		key: ".",
