@@ -2,10 +2,10 @@
 
 import React, { useState, useCallback, useRef } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import { useQuery, useConvex } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { env } from "@/env";
-import { useAuth } from "@convex-dev/auth/nextjs";
+import { useAuthToken } from "@convex-dev/auth/react";
 
 interface StreamingMessage {
   _id: Id<"messages">;
@@ -46,12 +46,11 @@ export function useHTTPStreaming({
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const { getToken } = useAuth();
-  const convex = useConvex();
+  const token = useAuthToken();
 
   // Fallback to real-time messages for non-streaming content
   const messages = useQuery(
-    api.messages.list, 
+    api.messages.list,
     threadId && threadId !== "skip" ? { threadId } : "skip"
   );
 
@@ -89,7 +88,7 @@ export function useHTTPStreaming({
 
       // Make HTTP streaming request to Convex HTTP endpoint
       const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
-      
+
       // Construct site URL following Convex Agent SDK pattern
       let convexSiteUrl: string;
       if (convexUrl.includes(".cloud")) {
@@ -101,23 +100,23 @@ export function useHTTPStreaming({
         url.port = String(Number(url.port) + 1);
         convexSiteUrl = url.toString();
       }
-      
+
       const streamUrl = `${convexSiteUrl}/stream-chat`;
-      
+
       console.log("Convex URL:", convexUrl);
       console.log("Convex Site URL:", convexSiteUrl);
       console.log("Stream URL:", streamUrl);
-      
+
       console.log("🌊 HTTP Streaming: Making request to:", streamUrl, {
         threadId,
         modelId,
         messageCount: conversationMessages.length,
       });
-      
+
       // Get auth token from Convex auth
-      const authToken = await getToken();
+      const authToken = token;
       console.log("Auth token obtained:", !!authToken);
-      
+
       const response = await fetch(streamUrl, {
         method: "POST",
         headers: {
@@ -165,7 +164,7 @@ export function useHTTPStreaming({
       try {
         while (true) {
           const { done, value } = await reader.read();
-          
+
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
@@ -228,7 +227,7 @@ export function useHTTPStreaming({
         // Stream was cancelled, don't set error
         return;
       }
-      
+
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
       setIsStreaming(false);
