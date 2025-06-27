@@ -425,11 +425,11 @@ export function useChat(options: UseChatOptions = {}) {
 
 			// Check if we can use hybrid streaming (real thread ID, no attachments/web search)
 			const hasRealThreadId = currentThread?._id?.startsWith("k");
-			const canUseHybridStreaming =
-				currentThread &&
-				hasRealThreadId &&
-				!attachments?.length &&
-				!webSearchEnabled;
+			const canUseHybridStreaming = false; // Temporarily disabled - use standard Convex flow for all messages
+				// currentThread &&
+				// hasRealThreadId &&
+				// !attachments?.length &&
+				// !webSearchEnabled;
 
 			if (canUseHybridStreaming) {
 				console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
