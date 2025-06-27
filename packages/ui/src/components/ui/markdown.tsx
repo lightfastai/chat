@@ -331,16 +331,70 @@ const remarkPlugins = [remarkGfm];
 export interface MarkdownProps {
 	children: string;
 	className?: string;
+	disableHighlighting?: boolean;
 }
 
 /**
  * Non-memoized Markdown component
  * Renders markdown content with custom styling
  */
-const NonMemoizedMarkdown = ({ children, className }: MarkdownProps) => {
+const NonMemoizedMarkdown = ({ children, className, disableHighlighting = false }: MarkdownProps) => {
+	// Create dynamic components with disableHighlighting context
+	const dynamicComponents: Partial<Components> = {
+		...components,
+		// Override pre component to pass disableHighlighting to CodeBlock
+		pre({ children, className, ...props }: MarkdownComponentProps) {
+			// Check if this pre contains a code element
+			let codeContent = "";
+			let language = "";
+
+			// Extract code content and language from children
+			if (React.isValidElement(children) && children.props) {
+				const codeProps = children.props as {
+					children?: string;
+					className?: string;
+				};
+				codeContent =
+					typeof codeProps.children === "string" ? codeProps.children : "";
+				language = codeProps.className?.replace("language-", "") || "";
+			} else if (typeof children === "string") {
+				codeContent = children;
+			}
+
+			// If we have code content, use CodeBlock component
+			if (codeContent.trim()) {
+				return (
+					<CodeBlock
+						code={codeContent}
+						language={language}
+						className={className}
+						disableHighlighting={disableHighlighting}
+					/>
+				);
+			}
+
+			// Fallback to original pre element
+			return (
+				<div className="flex flex-col my-4">
+					<pre
+						className={cn(
+							"text-foreground bg-muted/50 dark:bg-muted/20 border border-border",
+							"w-full overflow-x-auto rounded-md p-3",
+							"text-xs font-mono leading-relaxed",
+							className,
+						)}
+						{...props}
+					>
+						{children}
+					</pre>
+				</div>
+			);
+		},
+	};
+
 	return (
 		<div className={cn("w-full break-all", className)}>
-			<ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
+			<ReactMarkdown remarkPlugins={remarkPlugins} components={dynamicComponents}>
 				{children}
 			</ReactMarkdown>
 		</div>
@@ -349,11 +403,11 @@ const NonMemoizedMarkdown = ({ children, className }: MarkdownProps) => {
 
 /**
  * Memoized Markdown component for better performance
- * Only re-renders when the markdown content changes
+ * Only re-renders when the markdown content or disableHighlighting changes
  */
 export const Markdown = memo(
 	NonMemoizedMarkdown,
-	(prevProps, nextProps) => prevProps.children === nextProps.children,
+	(prevProps, nextProps) => prevProps.children === nextProps.children && prevProps.disableHighlighting === nextProps.disableHighlighting,
 );
 
 // Export the non-memoized version for cases where memoization isn't needed
