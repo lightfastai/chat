@@ -1,4 +1,4 @@
-import { type TextStreamPart, type ToolSet, streamText } from "ai";
+import { type TextStreamPart, type ToolSet, streamText, type CoreMessage } from "ai";
 import { stepCountIs } from "ai";
 import { v } from "convex/values";
 import {
@@ -7,13 +7,73 @@ import {
 	getProviderFromModelId,
 } from "../src/lib/ai/schemas";
 import { internal } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { type ActionCtx, internalAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
 import { createSystemPrompt } from "./lib/message_builder";
 import { handleAIResponseError } from "./messages/helpers";
 import { formatUsageData } from "./messages/types";
 import { modelIdValidator } from "./validators";
+import type { Id } from "./_generated/dataModel";
+
+// Helper function to build conversation messages for stream-based AI responses
+async function buildConversationMessagesForStreams(
+	ctx: ActionCtx,
+	threadId: Id<"threads">,
+	modelId: ModelId,
+	webSearchEnabled?: boolean,
+): Promise<CoreMessage[]> {
+	// Get recent conversation context
+	const recentMessages: Array<{
+		body: string;
+		messageType: "user" | "assistant" | "system";
+		attachments?: Id<"files">[];
+	}> = await ctx.runQuery(internal.messages.getRecentContext, { threadId });
+
+	const provider = getProviderFromModelId(modelId);
+	const systemPrompt = createSystemPrompt(modelId, webSearchEnabled);
+
+	// Prepare messages for AI SDK v5 with multimodal support
+	const messages: CoreMessage[] = [
+		{
+			role: "system",
+			content: systemPrompt,
+		},
+	];
+
+	// Build conversation history with attachments
+	for (const msg of recentMessages) {
+		// Skip system messages as we already have system prompt
+		if (msg.messageType === "system") continue;
+
+		// Build message content with attachments using mutation
+		const content = await ctx.runMutation(
+			internal.messages.buildMessageContent,
+			{
+				text: msg.body,
+				attachmentIds: msg.attachments,
+				provider,
+				modelId,
+			},
+		);
+
+		if (msg.messageType === "user") {
+			messages.push({
+				role: "user",
+				content,
+			});
+		} else if (msg.messageType === "assistant") {
+			// Assistant messages should only have text content
+			const textContent = typeof content === "string" ? content : msg.body;
+			messages.push({
+				role: "assistant",
+				content: textContent,
+			});
+		}
+	}
+
+	return messages;
+}
 
 // New action that uses the stream system for all AI responses
 export const generateAIResponseWithStreams = internalAction({
@@ -22,16 +82,6 @@ export const generateAIResponseWithStreams = internalAction({
 		messageId: v.id("messages"),
 		streamId: v.id("streams"),
 		modelId: modelIdValidator,
-		messages: v.array(
-			v.object({
-				role: v.union(
-					v.literal("user"),
-					v.literal("assistant"),
-					v.literal("system"),
-				),
-				content: v.string(),
-			}),
-		),
 		userApiKeys: v.optional(
 			v.object({
 				anthropic: v.optional(v.string()),
@@ -47,30 +97,31 @@ export const generateAIResponseWithStreams = internalAction({
 			const provider = getProviderFromModelId(args.modelId as ModelId);
 			const model = getModelById(args.modelId as ModelId);
 
+			// Build conversation messages from the thread
+			const messages = await buildConversationMessagesForStreams(
+				ctx,
+				args.threadId,
+				args.modelId as ModelId,
+				args.webSearchEnabled,
+			);
+
+			console.log(
+				`AI SDK v5: Starting streaming with ${provider} model ${model.id}, messages: ${messages.length}`,
+			);
+
 			// Create AI client with proper API keys
 			const aiClient = createAIClient(
 				args.modelId as ModelId,
 				args.userApiKeys,
 			);
 
-			console.log(
-				`AI SDK v5: Starting streaming with ${provider} model ${model.id}`,
-			);
-
 			// Prepare generation options
 			const generationOptions: any = {
 				model: aiClient,
-				messages: args.messages,
+				messages,
 				temperature: 0.7, // Default temperature
 				maxTokens: model.maxTokens,
 			};
-
-			// Add system prompt if needed (all models support system messages)
-			const systemPrompt = createSystemPrompt(
-				args.modelId as ModelId,
-				args.webSearchEnabled || false,
-			);
-			generationOptions.system = systemPrompt;
 
 			// Add tools if supported and enabled
 			if (model.features.functionCalling && args.webSearchEnabled) {

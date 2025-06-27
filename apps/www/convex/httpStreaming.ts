@@ -64,7 +64,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				messageId,
 				streamId,
 				modelId,
-				messages,
 				webSearchEnabled: false, // Can be configured from request
 			},
 		);

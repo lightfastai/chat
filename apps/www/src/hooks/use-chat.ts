@@ -10,7 +10,7 @@ import {
 	useQuery,
 } from "convex/react";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { useHTTPStreaming } from "./useHTTPStreaming";
@@ -155,13 +155,12 @@ export function useChat(options: UseChatOptions = {}) {
 	});
 
 	// Initialize HTTP streaming when enabled
-	const [httpStreamingModelId, setHttpStreamingModelId] = useState<string>("");
 	// Only use HTTP streaming if we have a real thread ID
 	const httpStreaming = useHTTPStreaming({
 		threadId: currentThread?._id && !isOptimisticThreadId 
 			? currentThread._id 
 			: ("skip" as Id<"threads">),
-		modelId: httpStreamingModelId,
+		modelId: "", // No longer used for this old HTTP streaming approach
 	});
 
 	// Merge HTTP streaming message with regular messages

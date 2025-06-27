@@ -524,7 +524,6 @@ export const send = mutation({
 					messageId: assistantMessageId,
 					streamId,
 					modelId,
-					messages: [], // Will be populated by the action
 					webSearchEnabled: args.webSearchEnabled ?? false,
 				},
 			);
