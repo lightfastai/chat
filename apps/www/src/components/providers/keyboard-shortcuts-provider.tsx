@@ -44,21 +44,8 @@ export function KeyboardShortcutsProvider({
 		},
 	});
 
-	// Add keyboard shortcut for sidebar toggle (Cmd/Ctrl+B)
-	useKeyboardShortcut({
-		key: "b",
-		ctrlKey: true,
-		metaKey: true,
-		callback: () => {
-			// Toggle sidebar - this is handled by the sidebar component itself
-			const event = new KeyboardEvent("keydown", {
-				key: "b",
-				ctrlKey: true,
-				metaKey: true,
-			});
-			window.dispatchEvent(event);
-		},
-	});
+	// Note: Sidebar toggle (Cmd/Ctrl+B) is handled directly by SidebarProvider
+	// to avoid circular event dispatch patterns that can fail after page reload
 
 	// Add keyboard shortcut for model selector (Cmd/Ctrl+.)
 	useKeyboardShortcut({
