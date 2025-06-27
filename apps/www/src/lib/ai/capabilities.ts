@@ -11,7 +11,7 @@ export type AttachmentType = "image" | "pdf" | "document" | "unknown";
 
 export interface ModelCapability {
 	key: keyof ModelFeatures;
-	icon: string;
+	icon: string; // Lucide icon name
 	label: string;
 	description: string;
 }
@@ -22,25 +22,25 @@ export interface ModelCapability {
 export const MODEL_CAPABILITIES: ModelCapability[] = [
 	{
 		key: "vision",
-		icon: "👁️",
+		icon: "Eye",
 		label: "Vision",
 		description: "Can analyze images and visual content",
 	},
 	{
 		key: "pdfSupport",
-		icon: "📄",
+		icon: "FileText",
 		label: "PDF",
 		description: "Can read and analyze PDF documents",
 	},
 	{
 		key: "functionCalling",
-		icon: "🔧",
+		icon: "Wrench",
 		label: "Tools",
 		description: "Can use tools and function calls",
 	},
 	{
 		key: "thinking",
-		icon: "🤔",
+		icon: "Brain",
 		label: "Reasoning",
 		description: "Shows visible reasoning process",
 	},

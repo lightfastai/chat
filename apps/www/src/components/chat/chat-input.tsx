@@ -31,13 +31,16 @@ import {
 import { useMutation } from "convex/react";
 import {
 	ArrowUp,
+	Brain,
 	ChevronDown,
+	Eye,
 	FileIcon,
 	FileText,
 	Globe,
 	Image,
 	Loader2,
 	Paperclip,
+	Wrench,
 	X,
 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -70,6 +73,22 @@ interface FileAttachment {
 	type: string;
 	url?: string;
 }
+
+// Icon component mapper for capability icons
+const CapabilityIcon = ({
+	iconName,
+	className,
+}: { iconName: string; className?: string }) => {
+	const iconMap = {
+		Eye,
+		FileText,
+		Wrench,
+		Brain,
+	} as const;
+
+	const IconComponent = iconMap[iconName as keyof typeof iconMap];
+	return IconComponent ? <IconComponent className={className} /> : null;
+};
 
 const ChatInputComponent = ({
 	onSendMessage,
@@ -598,13 +617,11 @@ const ChatInputComponent = ({
 																				{capabilities.length > 0 && (
 																					<div className="flex items-center gap-1">
 																						{capabilities.map((cap) => (
-																							<span
+																							<CapabilityIcon
 																								key={cap.key}
-																								className="text-sm"
-																								title={cap.description}
-																							>
-																								{cap.icon}
-																							</span>
+																								iconName={cap.icon}
+																								className="h-3 w-3"
+																							/>
 																						))}
 																					</div>
 																				)}

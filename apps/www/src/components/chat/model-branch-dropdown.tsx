@@ -1,6 +1,6 @@
 "use client";
 
-import { GitBranch } from "lucide-react";
+import { Brain, Eye, FileText, GitBranch, Wrench } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ModelConfig, ModelId } from "@/lib/ai";
@@ -17,6 +17,22 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
+
+// Icon component mapper for capability icons
+const CapabilityIcon = ({
+	iconName,
+	className,
+}: { iconName: string; className?: string }) => {
+	const iconMap = {
+		Eye,
+		FileText,
+		Wrench,
+		Brain,
+	} as const;
+
+	const IconComponent = iconMap[iconName as keyof typeof iconMap];
+	return IconComponent ? <IconComponent className={className} /> : null;
+};
 
 interface ModelBranchDropdownProps {
 	onBranch: (modelId: ModelId) => void;
@@ -111,13 +127,11 @@ export function ModelBranchDropdown({
 												{capabilities.length > 0 && (
 													<div className="flex items-center gap-1">
 														{capabilities.map((cap) => (
-															<span
+															<CapabilityIcon
 																key={cap.key}
-																className="text-sm"
-																title={cap.description}
-															>
-																{cap.icon}
-															</span>
+																iconName={cap.icon}
+																className="h-3 w-3"
+															/>
 														))}
 													</div>
 												)}
