@@ -6,36 +6,15 @@ import { env } from "@/env";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import React, { useState, useCallback, useRef } from "react";
+import type { StreamChunk, StreamingMessage } from "../../convex/streamTypes";
 
-interface StreamingMessage {
-	_id: Id<"messages">;
-	body: string;
-	isStreaming: boolean;
-	isComplete: boolean;
-	timestamp: number;
-	messageType: "user" | "assistant" | "system";
-	modelId?: string;
-}
-
-interface StreamChunk {
-	type: "text-delta" | "tool-call" | "tool-result" | "completion" | "error";
-	text?: string;
-	messageId: Id<"messages">;
-	streamId?: Id<"streams">;
-	error?: string;
-	timestamp: number;
-	// Tool-related fields
-	toolName?: string;
-	toolCallId?: string;
-	args?: unknown;
-	result?: unknown;
-}
-
+// Hook options
 interface UseHTTPStreamingOptions {
 	threadId: Id<"threads">;
 	modelId: string;
 }
 
+// Hook return type
 interface UseHTTPStreamingReturn {
 	streamingMessage: StreamingMessage | null;
 	isStreaming: boolean;

@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { env } from "@/env";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
@@ -14,9 +14,10 @@ interface UseStreamOptions {
 	onError?: (error: string) => void;
 }
 
+// Stream state type matching the streams table status field
 interface StreamState {
 	text: string;
-	status: "pending" | "streaming" | "done" | "error" | "timeout";
+	status: Doc<"streams">["status"];
 	error?: string;
 }
 
@@ -103,7 +104,11 @@ export function useStream({
 
 					for (const line of lines) {
 						try {
-							const data = JSON.parse(line);
+							const data = JSON.parse(line) as {
+								type: string;
+								text?: string;
+								error?: string;
+							};
 
 							if (data.type === "text-delta" && data.text) {
 								setHttpText((prev) => prev + data.text);
