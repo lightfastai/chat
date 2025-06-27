@@ -48,10 +48,16 @@ export function useStream({
 	const streamStarted = useRef(false);
 	const authToken = useAuthToken();
 
-	// Query stream body from database
+	// Query stream body from database - prefer new delta system if messageId available
+	const streamingText = useQuery(
+		api.streamDeltas.getStreamingText,
+		messageId ? { messageId } : "skip",
+	);
+
+	// Fallback to old stream body for compatibility
 	const streamBody = useQuery(
 		api.streams.getStreamBody,
-		streamId ? { streamId } : "skip",
+		streamId && !messageId ? { streamId } : "skip",
 	);
 
 	// Determine if we should use HTTP streaming
@@ -178,7 +184,16 @@ export function useStream({
 			}
 		}
 
-		// Otherwise use database
+		// Otherwise use database - prefer new delta system
+		if (streamingText) {
+			return {
+				text: streamingText.text,
+				status: streamingText.status,
+				error: streamingText.error,
+			};
+		}
+
+		// Fallback to old stream body system
 		if (!streamBody) {
 			return {
 				text: "",
@@ -190,7 +205,7 @@ export function useStream({
 			text: streamBody.text,
 			status: streamBody.status,
 		};
-	}, [driven, streamId, httpStatus, httpText, httpError, streamBody]);
+	}, [driven, streamId, httpStatus, httpText, httpError, streamingText, streamBody]);
 }
 
 /**

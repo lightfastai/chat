@@ -35,6 +35,8 @@ import {
 	mutation,
 	query,
 } from "./_generated/server.js";
+import { generateAIResponseInline } from "./generateAIResponseWithStreams.js";
+import { HybridStreamWriter } from "./hybridStreamWriter.js";
 import { createAIClient } from "./lib/ai_client.js";
 import { createWebSearchTool } from "./lib/ai_tools.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
@@ -504,6 +506,22 @@ export const send = mutation({
 			);
 			streamId = streamResult;
 
+			// Get user's API keys for the AI generation
+			const userApiKeys = (await ctx.runMutation(
+				internal.userSettings.getDecryptedApiKeys,
+				{ userId },
+			)) as {
+				anthropic?: string;
+				openai?: string;
+				openrouter?: string;
+			} | null;
+
+			// Determine if we'll use user's API key
+			const willUseUserApiKey =
+				(provider === "anthropic" && userApiKeys?.anthropic) ||
+				(provider === "openai" && userApiKeys?.openai) ||
+				(provider === "openrouter" && userApiKeys?.openrouter);
+
 			// Create assistant message with streamId
 			const now = Date.now();
 			const assistantMessageId = await ctx.db.insert("messages", {
@@ -517,17 +535,19 @@ export const send = mutation({
 				streamId,
 				isComplete: false,
 				thinkingStartedAt: now, // Enable thinking display for subsequent messages
+				usedUserApiKey: !!willUseUserApiKey,
 			});
 
-			// Schedule AI response using the stream system
+			// Schedule AI response using the hybrid stream system
 			await ctx.scheduler.runAfter(
 				0,
-				internal.generateAIResponseWithStreams.generateAIResponseWithStreams,
+				internal.messages.generateAIResponseHybrid,
 				{
 					threadId: args.threadId,
 					messageId: assistantMessageId,
 					streamId,
 					modelId,
+					userApiKeys: userApiKeys || undefined,
 					webSearchEnabled: args.webSearchEnabled ?? false,
 				},
 			);
@@ -2045,6 +2065,61 @@ export const syncMessageFromStream = internalMutation({
 		}
 
 		await ctx.db.patch(args.messageId, updateData);
+
+		return null;
+	},
+});
+
+/**
+ * Hybrid streaming action - uses HybridStreamWriter for dual-write strategy
+ * This action runs AI generation with both HTTP streaming and database throttling
+ */
+export const generateAIResponseHybrid = internalAction({
+	args: {
+		threadId: v.id("threads"),
+		messageId: v.id("messages"),
+		streamId: v.id("streams"),
+		modelId: modelIdValidator,
+		userApiKeys: v.optional(
+			v.object({
+				anthropic: v.optional(v.string()),
+				openai: v.optional(v.string()),
+				openrouter: v.optional(v.string()),
+			}),
+		),
+		webSearchEnabled: v.optional(v.boolean()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		console.log("🚀 Starting hybrid streaming for message:", args.messageId);
+
+		// Create a HybridStreamWriter without HTTP controller (database-only mode)
+		// This provides the dual-write benefits without HTTP streaming
+		const hybridWriter = new HybridStreamWriter(
+			ctx,
+			args.messageId,
+			args.streamId,
+			undefined, // No HTTP controller in mutation context
+		);
+
+		try {
+			// Use the inline AI generation with HybridStreamWriter
+			await generateAIResponseInline(ctx, {
+				threadId: args.threadId,
+				messageId: args.messageId,
+				streamId: args.streamId,
+				modelId: args.modelId as ModelId,
+				hybridWriter,
+				userApiKeys: args.userApiKeys,
+				webSearchEnabled: args.webSearchEnabled,
+			});
+
+			console.log("✅ Hybrid streaming completed successfully");
+		} catch (error) {
+			console.error("❌ Hybrid streaming failed:", error);
+			// Error handling is done by generateAIResponseInline
+			throw error;
+		}
 
 		return null;
 	},
