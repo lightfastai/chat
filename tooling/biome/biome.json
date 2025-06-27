@@ -42,6 +42,7 @@
       "**/.next/**",
       "**/dist/**",
       "**/build/**",
+      "**/convex/_generated/**",
       "apps/www/convex/_generated/**",
       "apps/docs/.source/**",
       "apps/docs/.map.ts",

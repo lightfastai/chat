@@ -44,6 +44,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { useKeyboardShortcutsContext } from "../providers/keyboard-shortcuts-provider";
 
 interface ChatInputProps {
 	onSendMessage: (
@@ -103,6 +104,7 @@ const ChatInputComponent = ({
 	const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const keyboardShortcuts = useKeyboardShortcutsContext();
 
 	const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 	const createFile = useMutation(api.files.createFile);
@@ -160,6 +162,19 @@ const ChatInputComponent = ({
 	useEffect(() => {
 		textareaRef.current?.focus();
 	}, []);
+
+	// Focus chat input callback
+	const focusChatInput = useCallback(() => {
+		textareaRef.current?.focus();
+	}, []);
+
+	// Register focus callback with keyboard shortcuts context
+	useEffect(() => {
+		keyboardShortcuts.registerChatInputFocus(focusChatInput);
+		return () => {
+			keyboardShortcuts.unregisterChatInputFocus();
+		};
+	}, [keyboardShortcuts, focusChatInput]);
 
 	// File upload handler
 	const handleFileUpload = useCallback(
@@ -377,6 +392,39 @@ const ChatInputComponent = ({
 		}
 		setDropdownOpen(false);
 	}, []);
+
+	const toggleModelSelector = useCallback(() => {
+		setDropdownOpen((prev) => !prev);
+	}, []);
+
+	// Register model selector toggle with keyboard shortcuts context
+	// Only register when textarea is focused
+	useEffect(() => {
+		const textarea = textareaRef.current;
+		if (!textarea) return;
+
+		const handleFocus = () => {
+			keyboardShortcuts.registerModelSelectorToggle(toggleModelSelector);
+		};
+
+		const handleBlur = () => {
+			keyboardShortcuts.unregisterModelSelectorToggle();
+		};
+
+		textarea.addEventListener("focus", handleFocus);
+		textarea.addEventListener("blur", handleBlur);
+
+		// If already focused, register immediately
+		if (document.activeElement === textarea) {
+			keyboardShortcuts.registerModelSelectorToggle(toggleModelSelector);
+		}
+
+		return () => {
+			textarea.removeEventListener("focus", handleFocus);
+			textarea.removeEventListener("blur", handleBlur);
+			keyboardShortcuts.unregisterModelSelectorToggle();
+		};
+	}, [keyboardShortcuts, toggleModelSelector]);
 
 	const handleWebSearchToggle = useCallback(() => {
 		setWebSearchEnabled((prev) => !prev);

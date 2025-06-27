@@ -226,6 +226,7 @@ EOF
 
 # 4. Create PR that links back to research issue
 gh pr create --repo lightfastai/chat \
+  --base staging \
   --title "feat: add smooth text streaming for better UX" \
   --body "Implements Phase 1 findings from #$RESEARCH_ISSUE
 
@@ -449,6 +450,7 @@ echo "   - <specific feature 2>"
 ```bash
 # Create PR and add to project
 PR_URL=$(gh pr create --repo lightfastai/chat \
+  --base staging \
   --title "feat: <feature_name>" \
   --body "Closes #<issue_number>")
 PR_NUM=$(echo $PR_URL | grep -oE "[0-9]+$")
@@ -569,7 +571,7 @@ gh issue create --repo lightfastai/chat
 gh project item-add 2 --owner lightfastai --url <issue_url>
 
 # Create and link PR
-gh pr create --repo lightfastai/chat
+gh pr create --repo lightfastai/chat --base staging
 gh project item-add 2 --owner lightfastai --url <pr_url>
 
 # Monitor deployment

@@ -1,8 +1,19 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export function ThinkingIndicator() {
+interface ThinkingIndicatorProps {
+	label?: string;
+	showChevron?: boolean;
+	onChevronClick?: () => void;
+}
+
+export function ThinkingIndicator({
+	label = "Thinking",
+	showChevron = false,
+	onChevronClick,
+}: ThinkingIndicatorProps) {
 	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
@@ -12,7 +23,7 @@ export function ThinkingIndicator() {
 
 	if (!mounted) {
 		// Simple fallback for SSR
-		return <span className="text-xs text-muted-foreground">Thinking...</span>;
+		return <span className="text-xs text-muted-foreground">{label}...</span>;
 	}
 
 	return (
@@ -42,7 +53,18 @@ export function ThinkingIndicator() {
 			</div>
 
 			{/* Text */}
-			<span className="text-xs text-muted-foreground">Thinking</span>
+			<span className="text-xs text-muted-foreground">{label}</span>
+
+			{/* Chevron for reasoning models */}
+			{showChevron && (
+				<button
+					type="button"
+					onClick={onChevronClick}
+					className="ml-1 text-muted-foreground hover:text-foreground transition-colors"
+				>
+					<ChevronDown className="h-3 w-3" />
+				</button>
+			)}
 
 			{/* SVG Filters */}
 			<svg className="absolute w-0 h-0" aria-hidden="true">
