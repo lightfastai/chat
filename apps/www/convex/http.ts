@@ -29,6 +29,13 @@ http.route({
 	handler: streamChatResponse,
 });
 
+// CORS preflight for streaming endpoint
+http.route({
+	path: "/stream-chat",
+	method: "OPTIONS",
+	handler: streamChatResponse, // Same handler handles OPTIONS internally
+});
+
 // HTTP streaming continuation endpoint (for resuming streams)
 http.route({
 	path: "/stream-continue/:streamId",

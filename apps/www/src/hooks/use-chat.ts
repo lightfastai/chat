@@ -6,10 +6,10 @@ import { isClientId, nanoid } from "@/lib/nanoid";
 import { env } from "@/env";
 import { useAuthToken } from "@convex-dev/auth/react";
 import {
-	type Preloaded,
-	useMutation,
-	usePreloadedQuery,
-	useQuery,
+  type Preloaded,
+  useMutation,
+  usePreloadedQuery,
+  useQuery,
 } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
@@ -446,6 +446,9 @@ export function useChat(options: UseChatOptions = {}) {
 					url.port = String(Number(url.port) + 1);
 					convexSiteUrl = url.toString().replace(/\/$/, ""); // Remove trailing slash
 				}
+        console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
+          convexSiteUrl,
+        });
 				const streamUrl = `${convexSiteUrl}/stream-chat`;
 
 				fetch(streamUrl, {
