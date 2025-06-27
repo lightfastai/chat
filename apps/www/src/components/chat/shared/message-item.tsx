@@ -103,7 +103,13 @@ export function MessageItem({
 										case "text":
 											return (
 												<div key={partKey}>
-													<Markdown className="text-sm">{part.text}</Markdown>
+													{isAssistant ? (
+														<Markdown className="text-sm">{part.text}</Markdown>
+													) : (
+														<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+															{part.text}
+														</div>
+													)}
 													{isStreaming &&
 														!isComplete &&
 														index === displayParts.length - 1 && (
@@ -123,7 +129,13 @@ export function MessageItem({
 						// Legacy text rendering for messages without parts
 						return displayText ? (
 							<>
-								<Markdown className="text-sm">{displayText}</Markdown>
+								{isAssistant ? (
+									<Markdown className="text-sm">{displayText}</Markdown>
+								) : (
+									<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+										{displayText}
+									</div>
+								)}
 								{isStreaming && !isComplete && (
 									<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
 								)}

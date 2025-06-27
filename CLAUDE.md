@@ -463,20 +463,32 @@ gh pr view $PR_NUM --json statusCheckRollup
 
 ### Step 6: PR Merge & Cleanup
 
-**CRITICAL**: Remove worktree BEFORE merging to prevent errors:
-```bash
-# Remove worktree first
-git worktree remove worktrees/<feature_name>
-cd /path/to/main/repo
+**CRITICAL**: Always merge from the main repo directory to prevent git conflicts:
 
-# Merge PR
+```bash
+# Method 1: Merge from main repo (RECOMMENDED)
+cd /path/to/main/repo  # Navigate to main repo root, NOT the worktree
 gh pr merge <pr_number> --squash --delete-branch
+
+# Method 2: If admin privileges needed (when branch protection rules are active)
+cd /path/to/main/repo
+gh pr merge <pr_number> --squash --delete-branch --admin
+
+# Clean up after successful merge
+git worktree remove worktrees/<feature_name>  # Remove the worktree
+git branch -D jeevanpillay/<feature_name>     # Delete local branch (if not auto-deleted)
 
 # Sync staging branch
 git checkout staging
 git pull origin staging
 git log --oneline -5  # Verify merge
 ```
+
+**Common Issues & Solutions:**
+- **"already checked out" error**: You're trying to merge from within the worktree. Always `cd` to main repo first
+- **"branch protection" error**: Use `--admin` flag if you have admin privileges
+- **"auto-merge not allowed" error**: Repository doesn't support auto-merge, use manual merge instead
+- **Worktree removal fails**: The branch is still checked out. Merge first, then remove worktree
 
 ## Tech Stack & Standards
 
@@ -585,6 +597,41 @@ gh pr view <pr_number> --json statusCheckRollup
 2. **Merge conflicts**: Remove worktree first: `git worktree remove worktrees/<feature_name>`
 3. **Context loss**: Check `./tmp_context/claude-context-*.md` files
 4. **Deployment issues**: Monitor with `gh pr view <pr_number>`
+
+### PR Merge Issues
+1. **"already checked out" error**: 
+   ```bash
+   # Fix: Always merge from main repo directory
+   cd /path/to/main/repo  # NOT from worktree
+   gh pr merge <pr_number> --squash --delete-branch
+   ```
+
+2. **"branch policy prohibits merge" error**:
+   ```bash
+   # Fix: Use admin privileges if available
+   gh pr merge <pr_number> --squash --delete-branch --admin
+   ```
+
+3. **"auto-merge not allowed" error**:
+   ```bash
+   # Fix: Repository doesn't support auto-merge, remove --auto flag
+   gh pr merge <pr_number> --squash --delete-branch
+   ```
+
+4. **"Cannot delete branch" error**:
+   ```bash
+   # Fix: Remove worktree first, then delete branch
+   git worktree remove worktrees/<feature_name>
+   git branch -D jeevanpillay/<feature_name>
+   ```
+
+5. **Git state conflicts**:
+   ```bash
+   # Fix: Clean up git state
+   git checkout staging  # Switch to main branch
+   git worktree remove worktrees/<feature_name>  # Remove worktree
+   git pull origin staging  # Sync latest changes
+   ```
 
 ### Quality Gate Failures
 - **TypeScript errors**: Fix type issues before commit
