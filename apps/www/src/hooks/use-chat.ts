@@ -156,8 +156,11 @@ export function useChat(options: UseChatOptions = {}) {
 
 	// Initialize HTTP streaming when enabled
 	const [httpStreamingModelId, setHttpStreamingModelId] = useState<string>("");
+	// Only use HTTP streaming if we have a real thread ID
 	const httpStreaming = useHTTPStreaming({
-		threadId: currentThread?._id || ("skip" as Id<"threads">),
+		threadId: currentThread?._id && !isOptimisticThreadId 
+			? currentThread._id 
+			: ("skip" as Id<"threads">),
 		modelId: httpStreamingModelId,
 	});
 
@@ -472,9 +475,12 @@ export function useChat(options: UseChatOptions = {}) {
 			});
 
 			// Check if we should use HTTP streaming
+			// Only use if we have a real Convex thread ID (not optimistic)
+			const hasRealThreadId = currentThread?._id?.startsWith("k");
 			if (
 				httpStreamingEnabled &&
 				currentThread &&
+				hasRealThreadId &&
 				!attachments?.length &&
 				!webSearchEnabled
 			) {
@@ -482,6 +488,7 @@ export function useChat(options: UseChatOptions = {}) {
 					threadId: currentThread._id,
 					modelId,
 					httpStreamingEnabled,
+					hasRealThreadId,
 				});
 
 				// Use HTTP streaming for simple text messages
