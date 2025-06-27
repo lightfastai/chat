@@ -301,6 +301,51 @@ export const messagePartValidator = v.union(
 // Array of message parts validator
 export const messagePartsValidator = v.array(messagePartValidator);
 
+// ===== HTTP Streaming Validators =====
+// HTTP streaming chunk type validator - for chunks sent over HTTP
+export const httpStreamChunkValidator = v.object({
+	type: v.union(
+		v.literal("text-delta"),
+		v.literal("tool-call"),
+		v.literal("tool-result"),
+		v.literal("completion"),
+		v.literal("error"),
+	),
+	text: v.optional(v.string()),
+	messageId: v.id("messages"),
+	streamId: v.optional(v.id("streams")),
+	error: v.optional(v.string()),
+	timestamp: v.number(),
+	// Tool-related fields
+	toolName: v.optional(v.string()),
+	toolCallId: v.optional(v.string()),
+	args: v.optional(v.any()),
+	result: v.optional(v.any()),
+});
+
+// HTTP streaming request validator
+export const httpStreamingRequestValidator = v.object({
+	threadId: v.id("threads"),
+	modelId: v.string(),
+	messages: v.array(
+		v.object({
+			role: messageTypeValidator,
+			content: v.string(),
+		}),
+	),
+});
+
+// Streaming message validator - represents a message during streaming
+export const streamingMessageValidator = v.object({
+	_id: v.id("messages"),
+	body: v.string(),
+	isStreaming: v.boolean(),
+	isComplete: v.boolean(),
+	timestamp: v.number(),
+	messageType: messageTypeValidator,
+	modelId: v.optional(v.string()),
+});
+
 // ===== Validation Functions =====
 // Title validation function
 export function validateTitle(title: string): boolean {

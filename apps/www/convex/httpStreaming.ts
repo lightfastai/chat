@@ -1,12 +1,18 @@
 import type { FunctionReturnType } from "convex/server";
+import type { Infer } from "convex/values";
+import { ModelId } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
-import type { HTTPStreamingRequest, StreamChunk } from "./streamTypes";
-import { ModelId } from "../src/lib/ai/schemas";
+import type {
+	httpStreamChunkValidator,
+	httpStreamingRequestValidator,
+} from "./validators";
 
-// Type for the stream with chunks query result
+// Types from validators
 type StreamWithChunks = NonNullable<FunctionReturnType<typeof internal.streams.getStreamWithChunks>>;
+type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
+type StreamChunk = Infer<typeof httpStreamChunkValidator>;
 
 export const streamChatResponse = httpAction(async (ctx, request) => {
 	console.log("HTTP Streaming endpoint called");

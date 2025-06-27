@@ -5,21 +5,27 @@ import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { env } from "@/env";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
+import type { Infer } from "convex/values";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { httpStreamChunkValidator } from "../../convex/validators";
 
-interface UseStreamOptions {
+// Type from validator
+type StreamChunk = Infer<typeof httpStreamChunkValidator>;
+
+// Hook options type
+type UseStreamOptions = {
 	streamId: Id<"streams"> | undefined;
 	messageId: Id<"messages"> | undefined;
 	driven: boolean; // Is this the client that initiated the stream?
 	onError?: (error: string) => void;
-}
+};
 
 // Stream state type matching the streams table status field
-interface StreamState {
+type StreamState = {
 	text: string;
 	status: Doc<"streams">["status"];
 	error?: string;
-}
+};
 
 /**
  * React hook for persistent text streaming following the Convex pattern.
@@ -104,11 +110,7 @@ export function useStream({
 
 					for (const line of lines) {
 						try {
-							const data = JSON.parse(line) as {
-								type: string;
-								text?: string;
-								error?: string;
-							};
+							const data = JSON.parse(line) as Pick<StreamChunk, "type" | "text" | "error">;
 
 							if (data.type === "text-delta" && data.text) {
 								setHttpText((prev) => prev + data.text);

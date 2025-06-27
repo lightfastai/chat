@@ -5,23 +5,31 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { env } from "@/env";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
+import type { Infer } from "convex/values";
 import React, { useState, useCallback, useRef } from "react";
-import type { StreamChunk, StreamingMessage } from "../../convex/streamTypes";
+import type {
+	httpStreamChunkValidator,
+	streamingMessageValidator,
+} from "../../convex/validators";
 
-// Hook options
-interface UseHTTPStreamingOptions {
+// Types from validators
+type StreamingMessage = Infer<typeof streamingMessageValidator>;
+type StreamChunk = Infer<typeof httpStreamChunkValidator>;
+
+// Hook options - using Pick to get just what we need
+type UseHTTPStreamingOptions = {
 	threadId: Id<"threads">;
 	modelId: string;
-}
+};
 
 // Hook return type
-interface UseHTTPStreamingReturn {
+type UseHTTPStreamingReturn = {
 	streamingMessage: StreamingMessage | null;
 	isStreaming: boolean;
 	error: string | null;
 	sendMessage: (content: string) => Promise<void>;
 	clearError: () => void;
-}
+};
 
 export function useHTTPStreaming({
 	threadId,
