@@ -372,6 +372,8 @@ const ChatInputComponent = ({
 			sessionStorage.setItem("selectedModelId", value);
 		}
 		setDropdownOpen(false);
+		// Focus the chat input after model selection
+		textareaRef.current?.focus();
 	}, []);
 
 	const toggleModelSelector = useCallback(() => {

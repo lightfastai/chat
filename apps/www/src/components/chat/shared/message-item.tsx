@@ -103,7 +103,12 @@ export function MessageItem({
 										case "text":
 											return (
 												<div key={partKey}>
-													<Markdown className="text-sm">{part.text}</Markdown>
+													<Markdown
+														className="text-sm"
+														disableHighlighting={!isAssistant}
+													>
+														{part.text}
+													</Markdown>
 													{isStreaming &&
 														!isComplete &&
 														index === displayParts.length - 1 && (
@@ -123,7 +128,12 @@ export function MessageItem({
 						// Legacy text rendering for messages without parts
 						return displayText ? (
 							<>
-								<Markdown className="text-sm">{displayText}</Markdown>
+								<Markdown
+									className="text-sm"
+									disableHighlighting={!isAssistant}
+								>
+									{displayText}
+								</Markdown>
 								{isStreaming && !isComplete && (
 									<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
 								)}
