@@ -91,13 +91,13 @@ type VirtualItem =
 const ITEMS_PER_PAGE = 10; // Number of threads to load per page
 
 // Component to render a group of threads
-function ThreadGroup({ 
-	categoryName, 
-	threads, 
-	onPinToggle 
-}: { 
-	categoryName: string; 
-	threads: Thread[]; 
+function ThreadGroup({
+	categoryName,
+	threads,
+	onPinToggle,
+}: {
+	categoryName: string;
+	threads: Thread[];
 	onPinToggle: (threadId: Id<"threads">) => void;
 }) {
 	return (
@@ -201,7 +201,11 @@ export function SimpleVirtualizedThreadsList({
 		for (const category of categoryOrder) {
 			const categoryThreads = groupedThreads[category];
 			if (categoryThreads && categoryThreads.length > 0) {
-				items.push({ type: "group", categoryName: category, threads: categoryThreads });
+				items.push({
+					type: "group",
+					categoryName: category,
+					threads: categoryThreads,
+				});
 			}
 		}
 
@@ -282,7 +286,7 @@ export function SimpleVirtualizedThreadsList({
 			if (item.type === "load-more") return 60;
 			// For groups, estimate based on number of threads
 			// Each thread is ~40px, plus header ~32px, plus padding
-			return 32 + (item.threads.length * 40) + 16;
+			return 32 + item.threads.length * 40 + 16;
 		},
 		[virtualItems],
 	);

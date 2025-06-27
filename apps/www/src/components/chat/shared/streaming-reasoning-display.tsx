@@ -1,5 +1,6 @@
 "use client";
 
+import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { ThinkingIndicator } from "./thinking-indicator";
@@ -56,10 +57,10 @@ export function StreamingReasoningDisplay({
 
 			{/* Expanded reasoning content */}
 			{isExpanded && reasoningContent && (
-				<div className="mt-3 pl-5 text-xs text-muted-foreground">
-					<p className="whitespace-pre-wrap font-mono leading-relaxed">
+				<div className="mt-3 text-sm text-muted-foreground max-w-none">
+					<Markdown className="prose prose-sm max-w-none [&>*]:text-muted-foreground">
 						{reasoningContent}
-					</p>
+					</Markdown>
 				</div>
 			)}
 		</div>

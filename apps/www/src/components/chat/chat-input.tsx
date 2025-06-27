@@ -7,6 +7,7 @@ import {
 	getModelConfig,
 	getVisibleModels,
 } from "@/lib/ai";
+import { preprocessUserMessage } from "@/lib/message-preprocessing";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
 	DropdownMenu,
@@ -302,8 +303,10 @@ const ChatInputComponent = ({
 
 		try {
 			const attachmentIds = attachments.map((att) => att.id);
+			// Preprocess message to automatically wrap code blocks
+			const processedMessage = preprocessUserMessage(message);
 			await onSendMessage(
-				message,
+				processedMessage,
 				selectedModelId,
 				attachmentIds.length > 0 ? attachmentIds : undefined,
 				webSearchEnabled,
