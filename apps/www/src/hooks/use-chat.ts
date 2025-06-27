@@ -1,15 +1,15 @@
 "use client";
 
+import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
 import { getProviderFromModelId } from "@/lib/ai";
 import { isClientId, nanoid } from "@/lib/nanoid";
-import { env } from "@/env";
 import { useAuthToken } from "@convex-dev/auth/react";
 import {
-  type Preloaded,
-  useMutation,
-  usePreloadedQuery,
-  useQuery,
+	type Preloaded,
+	useMutation,
+	usePreloadedQuery,
+	useQuery,
 } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
@@ -433,7 +433,11 @@ export function useChat(options: UseChatOptions = {}) {
 			});
 
 			// Helper function to start HTTP streaming
-			const startHttpStreaming = async (threadId: Id<"threads">, streamId: Id<"streams">, messageId: Id<"messages">) => {
+			const startHttpStreaming = async (
+				threadId: Id<"threads">,
+				streamId: Id<"streams">,
+				messageId: Id<"messages">,
+			) => {
 				if (!authToken) return;
 
 				// Construct Convex HTTP endpoint URL
@@ -446,9 +450,9 @@ export function useChat(options: UseChatOptions = {}) {
 					url.port = String(Number(url.port) + 1);
 					convexSiteUrl = url.toString().replace(/\/$/, ""); // Remove trailing slash
 				}
-        console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
-          convexSiteUrl,
-        });
+				console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
+					convexSiteUrl,
+				});
 				const streamUrl = `${convexSiteUrl}/stream-chat`;
 
 				fetch(streamUrl, {
@@ -493,8 +497,16 @@ export function useChat(options: UseChatOptions = {}) {
 				});
 
 				// Start HTTP streaming if we got the necessary IDs
-				if (convexResult?.streamId && convexResult?.messageId && convexResult?.threadId) {
-					await startHttpStreaming(convexResult.threadId, convexResult.streamId, convexResult.messageId);
+				if (
+					convexResult?.streamId &&
+					convexResult?.messageId &&
+					convexResult?.threadId
+				) {
+					await startHttpStreaming(
+						convexResult.threadId,
+						convexResult.streamId,
+						convexResult.messageId,
+					);
 				}
 
 				return;
@@ -513,8 +525,16 @@ export function useChat(options: UseChatOptions = {}) {
 				});
 
 				// Start HTTP streaming if we got the necessary IDs
-				if (convexResult?.streamId && convexResult?.messageId && convexResult?.threadId) {
-					await startHttpStreaming(convexResult.threadId, convexResult.streamId, convexResult.messageId);
+				if (
+					convexResult?.streamId &&
+					convexResult?.messageId &&
+					convexResult?.threadId
+				) {
+					await startHttpStreaming(
+						convexResult.threadId,
+						convexResult.streamId,
+						convexResult.messageId,
+					);
 				}
 
 				return;
@@ -533,7 +553,11 @@ export function useChat(options: UseChatOptions = {}) {
 
 				// Start HTTP streaming if we got the necessary IDs
 				if (convexResult?.streamId && convexResult?.messageId) {
-					await startHttpStreaming(currentThread._id, convexResult.streamId, convexResult.messageId);
+					await startHttpStreaming(
+						currentThread._id,
+						convexResult.streamId,
+						convexResult.messageId,
+					);
 				}
 
 				return;

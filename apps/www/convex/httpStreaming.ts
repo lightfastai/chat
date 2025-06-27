@@ -4,12 +4,12 @@ import type { ModelId } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
-import { generateAIResponseInline } from "./generateAIResponseWithStreams";
+import { streamAIText } from "./streamAIText";
 import { HybridStreamWriter } from "./hybridStreamWriter";
 import type {
-	MessagePart,
-	StreamEnvelope,
-	httpStreamingRequestValidator,
+  MessagePart,
+  StreamEnvelope,
+  httpStreamingRequestValidator,
 } from "./validators";
 
 // Types from validators
@@ -170,7 +170,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 					// Run AI generation inline with direct HybridStreamWriter access
 					// This keeps the writer in the same execution context, solving the global state issue
-					await generateAIResponseInline(ctx, {
+					await streamAIText(ctx, {
 						threadId,
 						messageId,
 						streamId,

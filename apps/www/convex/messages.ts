@@ -9,33 +9,33 @@
 
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
-	type CoreMessage,
-	type TextStreamPart,
-	type ToolSet,
-	smoothStream,
-	stepCountIs,
-	streamText,
+  type CoreMessage,
+  type TextStreamPart,
+  type ToolSet,
+  smoothStream,
+  stepCountIs,
+  streamText,
 } from "ai";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
 import {
-	type ModelId,
-	getModelById,
-	getModelConfig,
-	getProviderFromModelId,
-	isThinkingMode,
+  type ModelId,
+  getModelById,
+  getModelConfig,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import {
-	type ActionCtx,
-	internalAction,
-	internalMutation,
-	internalQuery,
-	mutation,
-	query,
+  type ActionCtx,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server.js";
-import { generateAIResponseInline } from "./generateAIResponseWithStreams.js";
+import { streamAIText } from "./streamAIText.js";
 import { HybridStreamWriter } from "./hybridStreamWriter.js";
 import { createAIClient } from "./lib/ai_client.js";
 import { createWebSearchTool } from "./lib/ai_tools.js";
@@ -46,34 +46,34 @@ import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
 import { getModelStreamingDelay } from "./lib/streaming_config.js";
 import {
-	branchInfoValidator,
-	clientIdValidator,
-	type messagePartValidator,
-	messageTypeValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	shareIdValidator,
-	shareSettingsValidator,
-	streamIdValidator,
-	threadUsageValidator,
-	tokenUsageValidator,
+  branchInfoValidator,
+  clientIdValidator,
+  type messagePartValidator,
+  messageTypeValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  shareIdValidator,
+  shareSettingsValidator,
+  streamIdValidator,
+  threadUsageValidator,
+  tokenUsageValidator,
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
 import {
-	clearGenerationFlagUtil,
-	createStreamingMessageUtil,
-	generateStreamId,
-	handleAIResponseError,
-	streamAIResponse,
-	updateThreadUsage,
-	updateThreadUsageUtil,
+  clearGenerationFlagUtil,
+  createStreamingMessageUtil,
+  generateStreamId,
+  handleAIResponseError,
+  streamAIResponse,
+  updateThreadUsage,
+  updateThreadUsageUtil,
 } from "./messages/helpers.js";
 import {
-	type AISDKUsage,
-	type MessageUsageUpdate,
-	formatUsageData,
-	messageReturnValidator,
+  type AISDKUsage,
+  type MessageUsageUpdate,
+  formatUsageData,
+  messageReturnValidator,
 } from "./messages/types.js";
 
 // Type definitions for multimodal content
@@ -2158,7 +2158,7 @@ export const generateAIResponseHybrid = internalAction({
 
 		try {
 			// Use the inline AI generation with HybridStreamWriter
-			await generateAIResponseInline(ctx, {
+			await streamAIText(ctx, {
 				threadId: args.threadId,
 				messageId: args.messageId,
 				streamId: args.streamId,
