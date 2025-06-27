@@ -4,9 +4,25 @@ import { createAIClient } from "./lib/ai_client";
 import { streamText } from "ai";
 
 export const streamChatResponse = httpAction(async (ctx, request) => {
+  console.log("HTTP Streaming endpoint called");
+  
+  // Handle CORS preflight
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  }
+  
   // Parse request body
   const body = await request.json();
   const { threadId, modelId, messages } = body;
+  
+  console.log("HTTP Streaming request:", { threadId, modelId, messageCount: messages?.length });
 
   // Verify thread exists and user has access
   const thread = await ctx.runQuery(api.threads.get, { threadId });

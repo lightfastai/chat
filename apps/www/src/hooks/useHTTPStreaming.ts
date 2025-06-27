@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { env } from "@/env";
 
@@ -85,8 +85,32 @@ export function useHTTPStreaming({
       ];
 
       // Make HTTP streaming request to Convex HTTP endpoint
-      const convexUrl = env.NEXT_PUBLIC_CONVEX_URL.replace('/api', '');
-      const streamUrl = `${convexUrl}/stream-chat`;
+      const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
+      
+      // For local development, use localhost URL
+      const isLocal = convexUrl.includes("localhost") || convexUrl.includes("127.0.0.1");
+      let streamUrl: string;
+      
+      if (isLocal) {
+        // Local development URL
+        const localMatch = convexUrl.match(/https?:\/\/(localhost|127\.0\.0\.1):(\d+)/);
+        if (localMatch) {
+          streamUrl = `http://${localMatch[1]}:${localMatch[2]}/stream-chat`;
+        } else {
+          throw new Error("Invalid local Convex URL format");
+        }
+      } else {
+        // Production URL - extract deployment name
+        const deploymentMatch = convexUrl.match(/https:\/\/([^.]+)\.convex\.cloud/);
+        if (!deploymentMatch) {
+          throw new Error("Invalid Convex URL format");
+        }
+        const deploymentName = deploymentMatch[1];
+        streamUrl = `https://${deploymentName}.convex.site/stream-chat`;
+      }
+      
+      console.log("Convex URL:", convexUrl);
+      console.log("Stream URL:", streamUrl);
       
       console.log("🌊 HTTP Streaming: Making request to:", streamUrl, {
         threadId,
@@ -94,10 +118,14 @@ export function useHTTPStreaming({
         messageCount: conversationMessages.length,
       });
       
+      // Get auth token if available
+      const authToken = await (window as any).Clerk?.session?.getToken({ template: "convex" });
+      
       const response = await fetch(streamUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(authToken && { "Authorization": `Bearer ${authToken}` }),
         },
         body: JSON.stringify({
           threadId,
@@ -105,6 +133,11 @@ export function useHTTPStreaming({
           messages: conversationMessages,
         }),
         signal: abortControllerRef.current.signal,
+      }).catch(error => {
+        console.error("🚨 HTTP Streaming fetch error:", error);
+        console.error("Failed URL:", streamUrl);
+        console.error("Convex URL:", convexUrl);
+        throw error;
       });
 
       if (!response.ok) {
