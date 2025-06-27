@@ -14,15 +14,21 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
       },
     });
   }
   
-  // Parse request body
-  const body = await request.json();
-  const { threadId, modelId, messages } = body;
-  
-  console.log("HTTP Streaming request:", { threadId, modelId, messageCount: messages?.length });
+  try {
+    // Get authentication from header
+    const authHeader = request.headers.get("Authorization");
+    console.log("Auth header present:", !!authHeader);
+    
+    // Parse request body
+    const body = await request.json();
+    const { threadId, modelId, messages } = body;
+    
+    console.log("HTTP Streaming request:", { threadId, modelId, messageCount: messages?.length });
 
   // Verify thread exists and user has access
   const thread = await ctx.runQuery(api.threads.get, { threadId });
@@ -176,7 +182,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
         "Transfer-Encoding": "chunked",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Cache-Control": "no-cache",
       },
     });
   } catch (error) {

@@ -2,9 +2,10 @@
 
 import React, { useState, useCallback, useRef } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { env } from "@/env";
+import { useAuth } from "@convex-dev/auth/nextjs";
 
 interface StreamingMessage {
   _id: Id<"messages">;
@@ -45,6 +46,8 @@ export function useHTTPStreaming({
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const { getToken } = useAuth();
+  const convex = useConvex();
 
   // Fallback to real-time messages for non-streaming content
   const messages = useQuery(
@@ -118,8 +121,9 @@ export function useHTTPStreaming({
         messageCount: conversationMessages.length,
       });
       
-      // Get auth token if available
-      const authToken = await (window as any).Clerk?.session?.getToken({ template: "convex" });
+      // Get auth token from Convex auth
+      const authToken = await getToken();
+      console.log("Auth token obtained:", !!authToken);
       
       const response = await fetch(streamUrl, {
         method: "POST",
