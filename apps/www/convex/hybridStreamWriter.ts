@@ -117,6 +117,8 @@ export class HybridStreamWriter {
 			metadata: {
 				toolCallId: toolCall.toolCallId,
 				toolName: toolCall.toolName,
+				args: toolCall.args,
+				result: toolCall.result,
 				state: toolCall.state,
 			},
 		});
@@ -376,6 +378,46 @@ export class HybridStreamWriter {
 				partType: delta.partType,
 				metadata: delta.metadata,
 			});
+
+			// Also update the message parts directly based on the delta type
+			if (delta.partType === "text") {
+				await this.ctx.runMutation(internal.messages.addTextPart, {
+					messageId: this.messageId,
+					text: delta.text,
+				});
+			} else if (delta.partType === "reasoning") {
+				await this.ctx.runMutation(internal.messages.addReasoningPart, {
+					messageId: this.messageId,
+					text: delta.text,
+					providerMetadata: delta.metadata?.providerMetadata,
+				});
+			} else if (delta.partType === "tool-call" && delta.metadata) {
+				// Check if this is a result update or a new tool call
+				if (delta.metadata.state === "result" && delta.metadata.result !== undefined) {
+					// Update existing tool call with result
+					await this.ctx.runMutation(internal.messages.updateToolCallPart, {
+						messageId: this.messageId,
+						toolCallId: String(delta.metadata.toolCallId || ""),
+						result: delta.metadata.result,
+						state: "result",
+					});
+				} else {
+					// Add new tool call
+					await this.ctx.runMutation(internal.messages.addToolCallPart, {
+						messageId: this.messageId,
+						toolCallId: String(delta.metadata.toolCallId || ""),
+						toolName: String(delta.metadata.toolName || ""),
+						args: delta.metadata.args || {},
+						state: (delta.metadata.state as "partial-call" | "call" | "result") || "call",
+					});
+				}
+			} else if (delta.partType === "error") {
+				await this.ctx.runMutation(internal.messages.addErrorPart, {
+					messageId: this.messageId,
+					errorMessage: delta.text,
+					errorDetails: delta.metadata,
+				});
+			}
 		}
 
 		// Clear accumulated state
