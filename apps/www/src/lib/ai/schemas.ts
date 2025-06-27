@@ -190,12 +190,8 @@ export const MODELS = {
 			streaming: true,
 			functionCalling: true,
 			vision: true,
-			thinking: true,
+			thinking: false, // Base model - use -thinking variant for visible reasoning
 			pdfSupport: true,
-		},
-		thinkingConfig: {
-			enabled: true,
-			defaultBudgetTokens: 20000,
 		},
 		hidden: true,
 	}),
@@ -211,12 +207,8 @@ export const MODELS = {
 			streaming: true,
 			functionCalling: true,
 			vision: true,
-			thinking: true,
+			thinking: false, // Base model - use -thinking variant for visible reasoning
 			pdfSupport: true,
-		},
-		thinkingConfig: {
-			enabled: true,
-			defaultBudgetTokens: 12000,
 		},
 	}),
 	"claude-3-7-sonnet-20250219": ModelConfigSchema.parse({
@@ -231,12 +223,8 @@ export const MODELS = {
 			streaming: true,
 			functionCalling: true,
 			vision: true,
-			thinking: true,
+			thinking: false, // Base model - use -thinking variant for visible reasoning
 			pdfSupport: true,
-		},
-		thinkingConfig: {
-			enabled: true,
-			defaultBudgetTokens: 12000,
 		},
 	}),
 	"claude-3-5-sonnet-20241022": ModelConfigSchema.parse({
