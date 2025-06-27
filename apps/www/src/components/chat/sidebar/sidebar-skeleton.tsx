@@ -11,23 +11,25 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@lightfast/ui/components/ui/sidebar";
-import { Plus } from "lucide-react";
+import { MessageSquarePlus } from "lucide-react";
 
 // Skeleton loader for the sidebar - provides instant visual feedback
 export function SidebarSkeleton() {
 	return (
-		<Sidebar variant="inset" className="w-64 max-w-64">
-			<SidebarHeader className="p-4">
-				<div className="flex items-center gap-3">
-					{/* Logo skeleton - match the actual logo dimensions */}
-					<div className="w-6 h-6 flex items-center justify-center">
-						<div className="w-full h-4 bg-muted animate-pulse rounded" />
+		<Sidebar variant="inset" collapsible="icon" className="w-64 max-w-64">
+			<SidebarHeader className="p-0">
+				<SidebarGroup className="p-2">
+					{/* Platform sidebar trigger skeleton */}
+					<div className="flex items-center gap-3">
+						<div className="w-6 h-6 flex items-center justify-center">
+							<div className="w-full h-4 bg-muted animate-pulse rounded" />
+						</div>
 					</div>
-				</div>
+				</SidebarGroup>
 			</SidebarHeader>
 
 			<SidebarContent>
-				<SidebarGroup>
+				<SidebarGroup className="p-2">
 					<SidebarGroupContent>
 						<SidebarMenu>
 							<SidebarMenuItem>
@@ -36,10 +38,10 @@ export function SidebarSkeleton() {
 									size="default"
 									className="w-full max-w-full min-w-0 overflow-hidden"
 								>
-									<div className="w-full max-w-full min-w-0 flex items-center overflow-hidden">
-										<Plus className="w-4 h-4" />
-										<span>New Chat</span>
-									</div>
+									<MessageSquarePlus className="w-4 h-4" />
+									<span className="group-data-[collapsible=icon]:hidden text-xs">
+										New Chat
+									</span>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
 						</SidebarMenu>
@@ -47,7 +49,7 @@ export function SidebarSkeleton() {
 				</SidebarGroup>
 
 				{/* Threads list container - match the actual implementation */}
-				<div className="w-full min-w-0">
+				<div className="w-full min-w-0 group-data-[collapsible=icon]:hidden">
 					<ScrollArea className="flex-1">
 						{/* Loading skeleton for threads */}
 						<SidebarGroup>
@@ -104,20 +106,34 @@ export function SidebarSkeleton() {
 						</SidebarGroup>
 					</ScrollArea>
 				</div>
+
+				{/* Hover expand zone - fills the space between threads and user menu */}
+				<div className="flex-1 relative group-data-[collapsible=icon]:block hidden">
+					{/* Hover expand skeleton */}
+					<div className="w-full h-full bg-transparent" />
+				</div>
 			</SidebarContent>
 
-			<SidebarFooter>
-				{/* User dropdown skeleton - match UserDropdown button styling */}
-				<div className="w-full h-10 px-2 flex items-center justify-between bg-muted/50 animate-pulse rounded-md">
-					<div className="flex items-center gap-2">
-						{/* Avatar skeleton */}
-						<div className="w-8 h-8 bg-muted animate-pulse rounded-full" />
-						{/* Username skeleton */}
-						<div className="w-20 h-4 bg-muted animate-pulse rounded" />
-					</div>
-					{/* Chevron icon skeleton */}
-					<div className="w-4 h-4 bg-muted animate-pulse rounded" />
-				</div>
+			<SidebarFooter className="p-0">
+				<SidebarGroup className="p-2">
+					<SidebarGroupContent>
+						<SidebarMenu>
+							<SidebarMenuItem className="overflow-visible">
+								{/* User dropdown skeleton - match SidebarUserMenu styling */}
+								<div className="w-full h-10 px-2 flex items-center justify-between bg-muted/50 animate-pulse rounded-md">
+									<div className="flex items-center gap-2">
+										{/* Avatar skeleton */}
+										<div className="w-8 h-8 bg-muted animate-pulse rounded-full" />
+										{/* Username skeleton */}
+										<div className="w-20 h-4 bg-muted animate-pulse rounded" />
+									</div>
+									{/* Chevron icon skeleton */}
+									<div className="w-4 h-4 bg-muted animate-pulse rounded" />
+								</div>
+							</SidebarMenuItem>
+						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
 			</SidebarFooter>
 		</Sidebar>
 	);
