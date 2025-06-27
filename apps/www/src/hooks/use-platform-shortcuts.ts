@@ -45,9 +45,9 @@ export function usePlatformShortcuts() {
 				}[platform];
 			case "openSettings":
 				return {
-					mac: { modifier: "⌘", key: ",", display: "⌘," },
-					windows: { modifier: "Ctrl", key: ",", display: "Ctrl+," },
-					linux: { modifier: "Ctrl", key: ",", display: "Ctrl+," },
+					mac: { modifier: "⌘⇧", key: "S", display: "⌘⇧S" },
+					windows: { modifier: "Ctrl+Shift", key: "S", display: "Ctrl+Shift+S" },
+					linux: { modifier: "Ctrl+Shift", key: "S", display: "Ctrl+Shift+S" },
 				}[platform];
 			default:
 				return { modifier: "", key: "", display: "" };
