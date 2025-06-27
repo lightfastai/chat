@@ -1747,3 +1747,85 @@ export const generateAIResponse = internalAction({
 		return null;
 	},
 });
+
+// HTTP Streaming mutations for 200ms batching optimization
+
+export const create = internalMutation({
+	args: {
+		threadId: v.id("threads"),
+		role: messageTypeValidator,
+		body: v.string(),
+		modelId: v.optional(modelIdValidator),
+		isStreaming: v.optional(v.boolean()),
+	},
+	returns: v.id("messages"),
+	handler: async (ctx, args) => {
+		const now = Date.now();
+		return await ctx.db.insert("messages", {
+			threadId: args.threadId,
+			body: args.body,
+			timestamp: now,
+			messageType: args.role,
+			modelId: args.modelId,
+			isStreaming: args.isStreaming || false,
+			isComplete: !args.isStreaming,
+			usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+		});
+	},
+});
+
+export const appendStreamingText = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		text: v.string(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) {
+			throw new Error("Message not found");
+		}
+
+		// Append text to existing body
+		const updatedBody = message.body + args.text;
+		
+		await ctx.db.patch(args.messageId, {
+			body: updatedBody,
+			streamVersion: (message.streamVersion || 0) + 1,
+		});
+
+		return null;
+	},
+});
+
+export const markComplete = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.messageId, {
+			isStreaming: false,
+			isComplete: true,
+		});
+
+		return null;
+	},
+});
+
+export const markError = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		error: v.string(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.messageId, {
+			isStreaming: false,
+			isComplete: true,
+			body: args.error,
+		});
+
+		return null;
+	},
+});
