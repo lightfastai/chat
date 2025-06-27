@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { env } from "@/env";
 
 interface StreamingMessage {
   _id: Id<"messages">;
@@ -46,9 +47,17 @@ export function useHTTPStreaming({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fallback to real-time messages for non-streaming content
-  const messages = useQuery(api.messages.list, { threadId });
+  const messages = useQuery(
+    api.messages.list, 
+    threadId && threadId !== "skip" ? { threadId } : "skip"
+  );
 
   const sendMessage = useCallback(async (content: string) => {
+    if (!threadId || threadId === "skip") {
+      console.error("Cannot send message without a valid thread ID");
+      return;
+    }
+
     try {
       setError(null);
       setIsStreaming(true);
@@ -61,10 +70,10 @@ export function useHTTPStreaming({
       // Create new abort controller
       abortControllerRef.current = new AbortController();
 
-      // Prepare messages for AI (simplified - would need proper context)
+      // Get fresh messages from Convex for the full conversation context
       const conversationMessages = [
-        ...(messages || []).map(msg => ({
-          role: msg.messageType,
+        ...(messages || []).reverse().map(msg => ({
+          role: msg.messageType as "user" | "assistant" | "system",
           content: msg.body,
         })),
         {
@@ -73,8 +82,9 @@ export function useHTTPStreaming({
         },
       ];
 
-      // Make HTTP streaming request
-      const response = await fetch("/stream-chat", {
+      // Make HTTP streaming request to Convex HTTP endpoint
+      const convexUrl = env.NEXT_PUBLIC_CONVEX_URL.replace('/api', '');
+      const response = await fetch(`${convexUrl}/stream-chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

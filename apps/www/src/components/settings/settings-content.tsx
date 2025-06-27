@@ -6,6 +6,7 @@ import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ApiKeysSection } from "./api-keys-section";
 import { ProfileSection } from "./profile-section";
+import { ExperimentalFeaturesSection } from "./experimental-features-section";
 
 interface SettingsContentProps {
 	preloadedUser: Preloaded<typeof api.users.current>;
@@ -31,6 +32,9 @@ type UserSettings = {
 	preferences?: {
 		defaultModel?: string;
 		preferredProvider?: string;
+		experimentalFeatures?: {
+			httpStreaming?: boolean;
+		};
 	};
 	createdAt: number;
 	updatedAt: number;
@@ -62,6 +66,7 @@ export function SettingsContent({
 		<div className="space-y-8 sm:space-y-12">
 			<ProfileSection user={user} userSettings={userSettings} />
 			<ApiKeysSection userSettings={userSettings} />
+			<ExperimentalFeaturesSection userSettings={userSettings} />
 		</div>
 	);
 }

@@ -10,9 +10,10 @@ import {
 	useQuery,
 } from "convex/react";
 import { usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
+import { useHTTPStreaming } from "./useHTTPStreaming";
 
 interface UseChatOptions {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
@@ -125,7 +126,7 @@ export function useChat(options: UseChatOptions = {}) {
 	// 2. Messages by clientId (for optimistic updates)
 	// 3. Messages by threadId (regular case)
 	// 4. Empty array fallback
-	const messages =
+	const baseMessages =
 		preloadedMessages ?? messagesByClientId ?? messagesByThreadId ?? [];
 
 	// Use preloaded user settings if available, otherwise query
@@ -140,6 +141,48 @@ export function useChat(options: UseChatOptions = {}) {
 
 	// Use whichever is available
 	const finalUserSettings = preloadedUserSettings ?? userSettings;
+
+	// Check if HTTP streaming is enabled
+	const httpStreamingEnabled = 
+		finalUserSettings?.preferences?.experimentalFeatures?.httpStreaming ?? false;
+
+	// Initialize HTTP streaming when enabled
+	const [httpStreamingModelId, setHttpStreamingModelId] = useState<string>("");
+	const httpStreaming = useHTTPStreaming({
+		threadId: currentThread?._id || ("skip" as Id<"threads">),
+		modelId: httpStreamingModelId,
+	});
+
+
+	// Merge HTTP streaming message with regular messages
+	const messages = useMemo(() => {
+		if (!httpStreamingEnabled || !httpStreaming.streamingMessage) {
+			return baseMessages;
+		}
+
+		// Convert HTTP streaming message to Doc<"messages"> format
+		const streamingDoc: Doc<"messages"> = {
+			_id: httpStreaming.streamingMessage._id,
+			_creationTime: httpStreaming.streamingMessage.timestamp,
+			threadId: httpStreaming.streamingMessage._id.includes("temp_") 
+				? currentThread?._id || ("" as Id<"threads">)
+				: currentThread?._id || ("" as Id<"threads">),
+			body: httpStreaming.streamingMessage.body,
+			messageType: httpStreaming.streamingMessage.messageType,
+			modelId: httpStreaming.streamingMessage.modelId as any,
+			timestamp: httpStreaming.streamingMessage.timestamp,
+			isStreaming: httpStreaming.streamingMessage.isStreaming,
+			isComplete: httpStreaming.streamingMessage.isComplete,
+		};
+
+		// If we have a real message ID from the server, replace any existing message with that ID
+		const filteredMessages = baseMessages.filter(
+			msg => msg._id !== httpStreaming.streamingMessage!._id
+		);
+
+		// Add streaming message at the beginning (newest first)
+		return [streamingDoc, ...filteredMessages];
+	}, [baseMessages, httpStreamingEnabled, httpStreaming.streamingMessage, currentThread]);
 
 	// Remove debug logging for production
 	// Uncomment the following for debugging message queries
@@ -405,6 +448,32 @@ export function useChat(options: UseChatOptions = {}) {
 		}
 
 		try {
+			// Check if we should use HTTP streaming
+			if (httpStreamingEnabled && currentThread && !attachments?.length && !webSearchEnabled) {
+				// Use HTTP streaming for simple text messages
+				setHttpStreamingModelId(modelId);
+				
+				// First send the user message via Convex (without AI response)
+				await sendMessage({
+					threadId: currentThread._id,
+					body: message,
+					modelId: modelId as ModelId,
+					attachments,
+					webSearchEnabled,
+					// This flag would need to be added to prevent AI response generation
+					// For now, the HTTP streaming will create its own response
+				});
+
+				// Wait a moment for the message to be saved
+				await new Promise(resolve => setTimeout(resolve, 100));
+
+				// Then trigger HTTP streaming for the response
+				await httpStreaming.sendMessage(message);
+				
+				return;
+			}
+
+			// Standard Convex flow for new chats or when HTTP streaming is disabled
 			if (isNewChat) {
 				// 🚀 Generate client ID for new chat
 				const clientId = nanoid();
