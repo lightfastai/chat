@@ -423,126 +423,117 @@ export function useChat(options: UseChatOptions = {}) {
 				webSearchEnabled,
 			});
 
-			// Check if we can use hybrid streaming (real thread ID, no attachments/web search)
-			const hasRealThreadId = currentThread?._id?.startsWith("k");
-			const canUseHybridStreaming = false; // Temporarily disabled - use standard Convex flow for all messages
-				// currentThread &&
-				// hasRealThreadId &&
-				// !attachments?.length &&
-				// !webSearchEnabled;
-
-			if (canUseHybridStreaming) {
-				console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
-					threadId: currentThread._id,
-					modelId,
-				});
-
-				// For hybrid streaming:
-				// 1. Send user message to Convex for persistence
-				// 2. Simultaneously start HTTP stream for instant feedback
-				// This gives us the best of both: instant streaming + reliable persistence
-
-				// For hybrid streaming: Convex creates structures, HTTP handles AI generation
-				// 1. First, create user message and assistant placeholder via Convex
-				const convexResult = await sendMessage({
-					threadId: currentThread._id,
-					body: message,
-					modelId: modelId as ModelId,
-					attachments,
-					webSearchEnabled,
-					useHybridStreaming: true, // Use hybrid approach
-				});
-
-				// 2. Then trigger HTTP streaming with the created streamId and messageId
-				if (authToken && convexResult?.streamId && convexResult?.messageId) {
-					// Construct Convex HTTP endpoint URL
-					const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
-					let convexSiteUrl: string;
-					if (convexUrl.includes(".cloud")) {
-						convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
-					} else {
-						const url = new URL(convexUrl);
-						url.port = String(Number(url.port) + 1);
-						convexSiteUrl = url.toString();
-					}
-					const streamUrl = `${convexSiteUrl}/stream-chat`;
-
-					fetch(streamUrl, {
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							Authorization: `Bearer ${authToken}`,
-						},
-						body: JSON.stringify({
-							threadId: currentThread._id,
-							modelId: modelId,
-							messages: [], // Will be populated by the endpoint from thread
-							options: {
-								resumeFromStreamId: convexResult.streamId, // Use existing streamId
-								useExistingMessage: convexResult.messageId, // Use existing messageId
-								webSearchEnabled: webSearchEnabled,
-							},
-						}),
-					}).catch((error) => {
-						console.warn(
-							"HTTP streaming failed (falling back to Convex only):",
-							error,
-						);
-						// HTTP failure is non-fatal - Convex persistence will still work
-					});
-				}
-
-				// Don't return the result to maintain void return type for UI components
-				return;
-			}
-
-			// Standard Convex flow for new chats or complex requests
-			console.log("📡 Using standard Convex flow:", {
+			// Always use hybrid streaming for better performance
+			// HTTP streaming provides instant feedback while Convex handles persistence
+			console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
 				currentThread: !!currentThread,
-				hasAttachments: !!attachments?.length,
-				webSearchEnabled,
+				isNewChat,
+				currentClientId,
+				modelId,
 			});
 
-			if (isNewChat) {
-				// 🚀 Generate client ID for new chat
-				const clientId = nanoid();
+			// Helper function to start HTTP streaming
+			const startHttpStreaming = async (threadId: Id<"threads">, streamId: Id<"streams">, messageId: Id<"messages">) => {
+				if (!authToken) return;
 
-				// Update URL immediately without navigation events
-				// Using window.history.replaceState like Vercel's AI chatbot for smoothest UX
+				// Construct Convex HTTP endpoint URL
+				const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
+				let convexSiteUrl: string;
+				if (convexUrl.includes(".cloud")) {
+					convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
+				} else {
+					const url = new URL(convexUrl);
+					url.port = String(Number(url.port) + 1);
+					convexSiteUrl = url.toString();
+				}
+				const streamUrl = `${convexSiteUrl}/stream-chat`;
+
+				fetch(streamUrl, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${authToken}`,
+					},
+					body: JSON.stringify({
+						threadId: threadId,
+						modelId: modelId,
+						messages: [], // Will be populated by the endpoint from thread
+						options: {
+							resumeFromStreamId: streamId, // Use existing streamId
+							useExistingMessage: messageId, // Use existing messageId
+							webSearchEnabled: webSearchEnabled,
+						},
+					}),
+				}).catch((error) => {
+					console.warn(
+						"HTTP streaming failed (falling back to Convex only):",
+						error,
+					);
+					// HTTP failure is non-fatal - Convex persistence will still work
+				});
+			};
+
+			// Handle different cases with hybrid streaming
+			if (isNewChat) {
+				// New chat: Create thread + send message, then start HTTP streaming
+				const clientId = nanoid();
 				window.history.replaceState({}, "", `/chat/${clientId}`);
 
-				// Create thread + send message atomically with optimistic updates
-				await createThreadAndSend({
+				const convexResult = await createThreadAndSend({
 					title: "",
 					clientId: clientId,
 					body: message,
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
+					useHybridStreaming: true, // Enable hybrid streaming
 				});
+
+				// Start HTTP streaming if we got the necessary IDs
+				if (convexResult?.streamId && convexResult?.messageId && convexResult?.threadId) {
+					await startHttpStreaming(convexResult.threadId, convexResult.streamId, convexResult.messageId);
+				}
 
 				return;
 			}
 
 			if (currentClientId && !currentThread) {
-				// We have a clientId but thread doesn't exist yet, create it + send message
-				await createThreadAndSend({
+				// We have a clientId but thread doesn't exist yet
+				const convexResult = await createThreadAndSend({
 					title: "",
 					clientId: currentClientId,
 					body: message,
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
+					useHybridStreaming: true, // Enable hybrid streaming
 				});
-			} else if (currentThread) {
-				// Normal message sending with Convex optimistic update
-				await sendMessage({
+
+				// Start HTTP streaming if we got the necessary IDs
+				if (convexResult?.streamId && convexResult?.messageId && convexResult?.threadId) {
+					await startHttpStreaming(convexResult.threadId, convexResult.streamId, convexResult.messageId);
+				}
+
+				return;
+			}
+
+			if (currentThread) {
+				// Existing thread: Send message, then start HTTP streaming
+				const convexResult = await sendMessage({
 					threadId: currentThread._id,
 					body: message,
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
+					useHybridStreaming: true, // Enable hybrid streaming
 				});
+
+				// Start HTTP streaming if we got the necessary IDs
+				if (convexResult?.streamId && convexResult?.messageId) {
+					await startHttpStreaming(currentThread._id, convexResult.streamId, convexResult.messageId);
+				}
+
+				return;
 			}
 		} catch (error) {
 			console.error("Error sending message:", error);

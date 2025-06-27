@@ -586,11 +586,14 @@ export const createThreadAndSend = mutation({
 		modelId: v.optional(modelIdValidator),
 		attachments: v.optional(v.array(v.id("files"))), // Add attachments support
 		webSearchEnabled: v.optional(v.boolean()),
+		useHybridStreaming: v.optional(v.boolean()), // Use hybrid streaming (HTTP + Convex)
 	},
 	returns: v.object({
 		threadId: v.id("threads"),
 		userMessageId: v.id("messages"),
-		assistantMessageId: v.id("messages"),
+		assistantMessageId: v.optional(v.id("messages")), // Optional for hybrid streaming
+		streamId: v.optional(v.id("streams")), // For hybrid streaming
+		messageId: v.optional(v.id("messages")), // For hybrid streaming (assistant message)
 	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
@@ -648,40 +651,98 @@ export const createThreadAndSend = mutation({
 			attachments: args.attachments,
 		});
 
-		// Generate unique stream ID for assistant message
-		const streamId = generateStreamId();
+		let assistantMessageId: Id<"messages"> | undefined;
+		let streamId: Id<"streams"> | undefined;
 
-		// Create assistant message placeholder immediately
-		const assistantMessageId = await ctx.db.insert("messages", {
-			threadId,
-			body: "", // Will be updated as chunks arrive
-			timestamp: now + 1, // Ensure it comes after user message
-			messageType: "assistant",
-			model: provider,
-			modelId: modelId,
-			isStreaming: true,
-			streamId: streamId,
-			isComplete: false,
-			thinkingStartedAt: now,
-			streamVersion: 0, // Initialize version counter
-			parts: [], // Initialize empty parts array for tool calls
-			usage: undefined, // Initialize usage tracking
-		});
+		// Handle AI response based on streaming type
+		if (args.useHybridStreaming) {
+			// Hybrid streaming: Create stream and assistant message for HTTP streaming
+			const streamResult: Id<"streams"> = await ctx.runMutation(
+				internal.streams.create,
+				{
+					userId,
+					metadata: { threadId, modelId },
+				},
+			);
+			streamId = streamResult;
 
-		// Schedule AI response with the pre-created message ID
-		await ctx.scheduler.runAfter(
-			0,
-			internal.messages.generateAIResponseWithMessage,
-			{
+			// Get user's API keys for the AI generation
+			const userApiKeys = (await ctx.runMutation(
+				internal.userSettings.getDecryptedApiKeys,
+				{ userId },
+			)) as {
+				anthropic?: string;
+				openai?: string;
+				openrouter?: string;
+			} | null;
+
+			// Determine if we'll use user's API key
+			const willUseUserApiKey =
+				(provider === "anthropic" && userApiKeys?.anthropic) ||
+				(provider === "openai" && userApiKeys?.openai) ||
+				(provider === "openrouter" && userApiKeys?.openrouter);
+
+			// Create assistant message with streamId
+			assistantMessageId = await ctx.db.insert("messages", {
 				threadId,
-				userMessage: args.body,
+				body: "",
+				timestamp: now + 1,
+				messageType: "assistant",
+				model: provider,
 				modelId: modelId,
-				attachments: args.attachments,
-				webSearchEnabled: args.webSearchEnabled,
-				messageId: assistantMessageId,
+				isStreaming: true,
+				streamId,
+				isComplete: false,
+				thinkingStartedAt: now,
+				usedUserApiKey: !!willUseUserApiKey,
+			});
+
+			// For hybrid streaming, we only create the database structures
+			// The HTTP endpoint will handle both AI generation and persistence
+		} else {
+			// Standard AI response (non-hybrid streaming)
+			// Create stream for assistant message
+			const streamResult: Id<"streams"> = await ctx.runMutation(
+				internal.streams.create,
+				{
+					userId,
+					metadata: { threadId, modelId },
+				},
+			);
+			streamId = streamResult;
+
+			// Create assistant message placeholder immediately
+			assistantMessageId = await ctx.db.insert("messages", {
+				threadId,
+				body: "", // Will be updated as chunks arrive
+				timestamp: now + 1, // Ensure it comes after user message
+				messageType: "assistant",
+				model: provider,
+				modelId: modelId,
+				isStreaming: true,
 				streamId: streamId,
-			},
-		);
+				isComplete: false,
+				thinkingStartedAt: now,
+				streamVersion: 0, // Initialize version counter
+				parts: [], // Initialize empty parts array for tool calls
+				usage: undefined, // Initialize usage tracking
+			});
+
+			// Schedule AI response with the pre-created message ID
+			await ctx.scheduler.runAfter(
+				0,
+				internal.messages.generateAIResponseWithMessage,
+				{
+					threadId,
+					userMessage: args.body,
+					modelId: modelId,
+					attachments: args.attachments,
+					webSearchEnabled: args.webSearchEnabled,
+					messageId: assistantMessageId,
+					streamId: streamId,
+				},
+			);
+		}
 
 		// Schedule title generation (this is the first message)
 		await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
@@ -693,6 +754,8 @@ export const createThreadAndSend = mutation({
 			threadId,
 			userMessageId,
 			assistantMessageId,
+			streamId,
+			messageId: assistantMessageId, // For consistency with send function
 		};
 	},
 });
