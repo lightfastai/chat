@@ -441,39 +441,43 @@ export function useChat(options: UseChatOptions = {}) {
 				// 2. Simultaneously start HTTP stream for instant feedback
 				// This gives us the best of both: instant streaming + reliable persistence
 
-				// Start both operations simultaneously
-				await Promise.all([
-					// 1. Convex mutation for persistence and database updates
-					sendMessage({
-						threadId: currentThread._id,
-						body: message,
-						modelId: modelId as ModelId,
-						attachments,
-						webSearchEnabled,
-						useHybridStreaming: true, // Use hybrid approach
-					}),
-					// 2. HTTP streaming for instant feedback (fire and forget)
-					authToken
-						? fetch("/api/convex/httpStreaming/streamChatResponse", {
-								method: "POST",
-								headers: {
-									"Content-Type": "application/json",
-									Authorization: `Bearer ${authToken}`,
-								},
-								body: JSON.stringify({
-									threadId: currentThread._id,
-									modelId: modelId,
-									messages: [], // Will be populated by the endpoint from thread
-								}),
-							}).catch((error) => {
-								console.warn(
-									"HTTP streaming failed (falling back to Convex only):",
-									error,
-								);
-								// HTTP failure is non-fatal - Convex persistence will still work
-							})
-						: Promise.resolve(),
-				]);
+				// For hybrid streaming: Convex creates structures, HTTP handles AI generation
+				// 1. First, create user message and assistant placeholder via Convex
+				const convexResult = await sendMessage({
+					threadId: currentThread._id,
+					body: message,
+					modelId: modelId as ModelId,
+					attachments,
+					webSearchEnabled,
+					useHybridStreaming: true, // Use hybrid approach
+				});
+
+				// 2. Then trigger HTTP streaming with the created streamId and messageId
+				if (authToken && convexResult?.streamId && convexResult?.messageId) {
+					fetch("/api/convex/httpStreaming/streamChatResponse", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${authToken}`,
+						},
+						body: JSON.stringify({
+							threadId: currentThread._id,
+							modelId: modelId,
+							messages: [], // Will be populated by the endpoint from thread
+							options: {
+								resumeFromStreamId: convexResult.streamId, // Use existing streamId
+								useExistingMessage: convexResult.messageId, // Use existing messageId
+								webSearchEnabled: webSearchEnabled,
+							},
+						}),
+					}).catch((error) => {
+						console.warn(
+							"HTTP streaming failed (falling back to Convex only):",
+							error,
+						);
+						// HTTP failure is non-fatal - Convex persistence will still work
+					});
+				}
 
 				// Don't return the result to maintain void return type for UI components
 				return;

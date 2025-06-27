@@ -89,12 +89,14 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 		// Parse request body with type
 		const body = (await request.json()) as HTTPStreamingRequest;
-		const { threadId, modelId, messages } = body;
+		const { threadId, modelId, messages, options } = body;
 
 		console.log("HTTP Streaming request:", {
 			threadId,
 			modelId,
 			messageCount: messages?.length,
+			useExistingMessage: options?.useExistingMessage,
+			resumeFromStreamId: options?.resumeFromStreamId,
 		});
 
 		// Verify thread exists and user has access
@@ -103,34 +105,53 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			return new Response("Thread not found", { status: 404 });
 		}
 
-		// Create a stream first
-		const streamId = await ctx.runMutation(internal.streams.create, {
-			userId: thread.userId,
-			metadata: { threadId, modelId },
-		});
+		let streamId: Id<"streams">;
+		let messageId: Id<"messages">;
 
-		// Create initial AI message with streamId
-		const messageId = await ctx.runMutation(internal.messages.create, {
-			threadId,
-			messageType: "assistant",
-			body: "",
-			modelId: modelId as ModelId,
-			isStreaming: true,
-			streamId,
-		});
-
-		// Schedule the AI response generation using the stream system
-		await ctx.scheduler.runAfter(
-			0,
-			internal.generateAIResponseWithStreams.generateAIResponseWithStreams,
-			{
-				threadId,
-				messageId,
+		// Use existing stream and message for hybrid streaming, or create new ones
+		if (options?.resumeFromStreamId && options?.useExistingMessage) {
+			// Hybrid streaming mode - use existing structures
+			streamId = options.resumeFromStreamId;
+			messageId = options.useExistingMessage;
+			
+			console.log("Using existing stream and message for hybrid streaming:", {
 				streamId,
+				messageId,
+			});
+		} else {
+			// Regular HTTP streaming mode - create new structures
+			streamId = await ctx.runMutation(internal.streams.create, {
+				userId: thread.userId,
+				metadata: { threadId, modelId },
+			});
+
+			messageId = await ctx.runMutation(internal.messages.create, {
+				threadId,
+				messageType: "assistant",
+				body: "",
 				modelId: modelId as ModelId,
-				webSearchEnabled: false, // Can be configured from request
-			},
-		);
+				isStreaming: true,
+				streamId,
+			});
+
+			console.log("Created new stream and message:", {
+				streamId,
+				messageId,
+			});
+		}
+
+		// For hybrid streaming, we handle AI generation directly in the HTTP endpoint
+		// This ensures single AI generation with dual writing (HTTP + database)
+		
+		// Get user's API keys for AI generation
+		const userApiKeys = (await ctx.runMutation(
+			internal.userSettings.getDecryptedApiKeys,
+			{ userId: thread.userId },
+		)) as {
+			anthropic?: string;
+			openai?: string;
+			openrouter?: string;
+		} | null;
 
 		// Create HTTP streaming response using HybridStreamWriter
 		const stream = new ReadableStream({
@@ -155,7 +176,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						streamId,
 						modelId: modelId as ModelId,
 						hybridWriter: writer,
-						webSearchEnabled: false, // Can be configured from request
+						userApiKeys: userApiKeys || undefined,
+						webSearchEnabled: options?.webSearchEnabled ?? false,
 					});
 
 					// AI generation completes and writer is automatically cleaned up

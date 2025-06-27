@@ -89,7 +89,7 @@ export class HybridStreamWriter {
 	async writeToolCall(toolCall: {
 		toolCallId: string;
 		toolName: string;
-		args?: Record<string, unknown>;
+		args?: Record<string, unknown> | string;
 		result?: unknown;
 		state: "partial-call" | "call" | "result";
 	}): Promise<void> {

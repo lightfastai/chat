@@ -483,7 +483,7 @@ export const send = mutation({
 		const provider = getProviderFromModelId(modelId as ModelId);
 
 		// Insert user message after setting generation flag
-		const messageId = await ctx.db.insert("messages", {
+		const userMessageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			body: args.body,
 			timestamp: Date.now(),
@@ -494,6 +494,7 @@ export const send = mutation({
 		});
 
 		let streamId: Id<"streams"> | undefined;
+		let messageId: Id<"messages"> = userMessageId; // Default to user message
 
 		// Handle AI response based on system type
 		if (args.useHybridStreaming) {
@@ -540,25 +541,14 @@ export const send = mutation({
 				usedUserApiKey: !!willUseUserApiKey,
 			});
 
-			// For hybrid streaming, we trigger BOTH:
-			// 1. HTTP streaming for instant feedback
-			// 2. Convex streaming for persistence
-			// This is done by the client calling both the HTTP endpoint AND this mutation
-			// The HTTP endpoint provides instant streaming, Convex provides reliable persistence
-
-			// Schedule Convex-side AI response generation for persistence
-			await ctx.scheduler.runAfter(
-				0,
-				internal.messages.generateAIResponseHybrid,
-				{
-					threadId: args.threadId,
-					messageId: assistantMessageId,
-					streamId,
-					modelId,
-					userApiKeys: userApiKeys || undefined,
-					webSearchEnabled: args.webSearchEnabled ?? false,
-				},
-			);
+			// For hybrid streaming, return the assistant message ID for the HTTP endpoint
+			messageId = assistantMessageId;
+			
+			// For hybrid streaming, we only create the database structures
+			// The HTTP endpoint will handle BOTH:
+			// 1. AI generation and HTTP streaming for instant feedback
+			// 2. Database persistence via HybridStreamWriter
+			// This ensures single AI generation with dual writing
 		} else if (args.useStreamSystem) {
 			// Create stream first
 			const streamResult: Id<"streams"> = await ctx.runMutation(
@@ -601,6 +591,9 @@ export const send = mutation({
 				thinkingStartedAt: now, // Enable thinking display for subsequent messages
 				usedUserApiKey: !!willUseUserApiKey,
 			});
+
+			// Return assistant message ID for streaming
+			messageId = assistantMessageId;
 
 			// Schedule AI response using the stream system (database-only mode)
 			await ctx.scheduler.runAfter(
