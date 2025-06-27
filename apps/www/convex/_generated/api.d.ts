@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
 import type * as files from "../files.js";
@@ -51,6 +52,7 @@ import type * as validators from "../validators.js";
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  crons: typeof crons;
   env: typeof env;
   feedback: typeof feedback;
   files: typeof files;
