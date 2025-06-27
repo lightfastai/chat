@@ -30,22 +30,20 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
     
     console.log("HTTP Streaming request:", { threadId, modelId, messageCount: messages?.length });
 
-  // Verify thread exists and user has access
-  const thread = await ctx.runQuery(api.threads.get, { threadId });
-  if (!thread) {
-    return new Response("Thread not found", { status: 404 });
-  }
+    // Verify thread exists and user has access
+    const thread = await ctx.runQuery(api.threads.get, { threadId });
+    if (!thread) {
+      return new Response("Thread not found", { status: 404 });
+    }
 
-  // Create initial AI message
-  const messageId = await ctx.runMutation(internal.messages.create, {
-    threadId,
-    role: "assistant",
-    body: "",
-    modelId,
-    isStreaming: true,
-  });
-
-  try {
+    // Create initial AI message
+    const messageId = await ctx.runMutation(internal.messages.create, {
+      threadId,
+      messageType: "assistant",
+      body: "",
+      modelId,
+      isStreaming: true,
+    });
     // Set up AI streaming
     const aiClient = createAIClient(modelId);
     const result = streamText({
@@ -189,17 +187,14 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
   } catch (error) {
     console.error("HTTP streaming setup error:", error);
     
-    // Mark message as errored
-    await ctx.runMutation(internal.messages.markError, {
-      messageId,
-      error: error instanceof Error ? error.message : "Setup error",
-    });
-
     return new Response(
       JSON.stringify({ error: "Failed to start streaming" }),
       { 
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
       }
     );
   }
