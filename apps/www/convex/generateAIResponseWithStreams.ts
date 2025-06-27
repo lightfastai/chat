@@ -1,4 +1,9 @@
-import { type TextStreamPart, type ToolSet, streamText, type CoreMessage } from "ai";
+import {
+	type CoreMessage,
+	type TextStreamPart,
+	type ToolSet,
+	streamText,
+} from "ai";
 import { stepCountIs } from "ai";
 import { v } from "convex/values";
 import {
@@ -7,6 +12,7 @@ import {
 	getProviderFromModelId,
 } from "../src/lib/ai/schemas";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { type ActionCtx, internalAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
@@ -14,7 +20,6 @@ import { createSystemPrompt } from "./lib/message_builder";
 import { handleAIResponseError } from "./messages/helpers";
 import { formatUsageData } from "./messages/types";
 import { modelIdValidator } from "./validators";
-import type { Id } from "./_generated/dataModel";
 
 // Helper function to build conversation messages for stream-based AI responses
 async function buildConversationMessagesForStreams(
@@ -116,11 +121,10 @@ export const generateAIResponseWithStreams = internalAction({
 			);
 
 			// Prepare generation options
-			const generationOptions: any = {
+			const generationOptions: Parameters<typeof streamText>[0] = {
 				model: aiClient,
 				messages,
 				temperature: 0.7, // Default temperature
-				maxTokens: model.maxTokens,
 			};
 
 			// Add tools if supported and enabled

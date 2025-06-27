@@ -157,9 +157,10 @@ export function useChat(options: UseChatOptions = {}) {
 	// Initialize HTTP streaming when enabled
 	// Only use HTTP streaming if we have a real thread ID
 	const httpStreaming = useHTTPStreaming({
-		threadId: currentThread?._id && !isOptimisticThreadId 
-			? currentThread._id 
-			: ("skip" as Id<"threads">),
+		threadId:
+			currentThread?._id && !isOptimisticThreadId
+				? currentThread._id
+				: ("skip" as Id<"threads">),
 		modelId: "", // No longer used for this old HTTP streaming approach
 	});
 
@@ -178,7 +179,7 @@ export function useChat(options: UseChatOptions = {}) {
 				: currentThread?._id || ("" as Id<"threads">),
 			body: httpStreaming.streamingMessage.body,
 			messageType: httpStreaming.streamingMessage.messageType,
-			modelId: httpStreaming.streamingMessage.modelId as any,
+			modelId: httpStreaming.streamingMessage.modelId as ModelId,
 			timestamp: httpStreaming.streamingMessage.timestamp,
 			isStreaming: httpStreaming.streamingMessage.isStreaming,
 			isComplete: httpStreaming.streamingMessage.isComplete,

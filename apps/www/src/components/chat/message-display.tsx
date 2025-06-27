@@ -30,7 +30,11 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
 	const hasRealMessageId = message._id.startsWith("k");
 	const hasRealStreamId = message.streamId?.startsWith("k");
 	const streamState = useMessageStream(
-		message.streamId && hasRealStreamId && message.isStreaming && !message.isComplete && hasRealMessageId
+		message.streamId &&
+			hasRealStreamId &&
+			message.isStreaming &&
+			!message.isComplete &&
+			hasRealMessageId
 			? message._id
 			: undefined,
 		true, // driven = true for the client that initiated streaming

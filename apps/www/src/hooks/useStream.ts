@@ -50,7 +50,8 @@ export function useStream({
 	);
 
 	// Determine if we should use HTTP streaming
-	const shouldUseHttp = driven && !!streamId && isValidStreamId && httpStatus !== "error";
+	const shouldUseHttp =
+		driven && !!streamId && isValidStreamId && httpStatus !== "error";
 
 	// Start HTTP streaming if we're the driven client
 	useEffect(() => {
@@ -166,7 +167,15 @@ export function useStream({
 			text: streamBody.text,
 			status: streamBody.status,
 		};
-	}, [driven, streamId, isValidStreamId, httpStatus, httpText, httpError, streamBody]);
+	}, [
+		driven,
+		streamId,
+		isValidStreamId,
+		httpStatus,
+		httpText,
+		httpError,
+		streamBody,
+	]);
 }
 
 /**

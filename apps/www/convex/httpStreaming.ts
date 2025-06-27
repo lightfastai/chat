@@ -78,13 +78,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				let pollCount = 0;
 
 				// Send initial response with streamId and messageId
-				const initChunk =
-					JSON.stringify({
-						type: "init",
-						streamId,
-						messageId,
-						timestamp: Date.now(),
-					}) + "\n";
+				const initChunk = `${JSON.stringify({
+					type: "init",
+					streamId,
+					messageId,
+					timestamp: Date.now(),
+				})}\n`;
 				controller.enqueue(encoder.encode(initChunk));
 
 				// Poll for stream updates
@@ -106,7 +105,18 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						for (const chunk of newChunks) {
 							lastChunkIndex++;
 
-							let chunkData: any = {
+							let chunkData: {
+								type: string;
+								text?: string;
+								messageId: Id<"messages">;
+								streamId: Id<"streams">;
+								timestamp: number;
+								toolCallId?: string;
+								toolName?: string;
+								args?: unknown;
+								result?: unknown;
+								error?: string;
+							} = {
 								type: "text-delta",
 								text: chunk.text,
 								messageId,
@@ -144,7 +154,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								};
 							}
 
-							const line = JSON.stringify(chunkData) + "\n";
+							const line = `${JSON.stringify(chunkData)}\n`;
 							controller.enqueue(encoder.encode(line));
 						}
 
@@ -327,25 +337,23 @@ export const streamContinue = httpAction(async (ctx, request) => {
 						};
 					}
 
-					const line = JSON.stringify(chunkData) + "\n";
+					const line = `${JSON.stringify(chunkData)}\n`;
 					controller.enqueue(encoder.encode(line));
 				}
 
 				// Send completion if stream is done
 				if (streamData.stream.status === "done") {
-					const completionChunk =
-						JSON.stringify({
-							type: "completion",
-							timestamp: Date.now(),
-						}) + "\n";
+					const completionChunk = `${JSON.stringify({
+						type: "completion",
+						timestamp: Date.now(),
+					})}\n`;
 					controller.enqueue(encoder.encode(completionChunk));
 				} else if (streamData.stream.status === "error") {
-					const errorChunk =
-						JSON.stringify({
-							type: "error",
-							error: streamData.stream.error || "Stream error",
-							timestamp: Date.now(),
-						}) + "\n";
+					const errorChunk = `${JSON.stringify({
+						type: "error",
+						error: streamData.stream.error || "Stream error",
+						timestamp: Date.now(),
+					})}\n`;
 					controller.enqueue(encoder.encode(errorChunk));
 				}
 

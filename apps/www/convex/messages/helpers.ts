@@ -419,7 +419,7 @@ export async function streamAIResponse(
 				}
 				break;
 
-			case "tool-result":
+			case "tool-result": {
 				// Handle tool results
 				const toolResult = part.output;
 				await ctx.runMutation(internal.messages.updateToolCallPart, {
@@ -429,6 +429,7 @@ export async function streamAIResponse(
 					result: toolResult,
 				});
 				break;
+			}
 
 			case "finish":
 				// Handle completion

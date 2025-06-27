@@ -10,7 +10,11 @@ export type TextPart = {
 export type ReasoningPart = {
 	type: "reasoning";
 	text: string;
-	providerMetadata?: any;
+	providerMetadata?: {
+		reasoningTokens?: number;
+		totalTokens?: number;
+		[key: string]: unknown;
+	};
 };
 
 // Official Vercel AI SDK v5 compliant ToolCallPart
@@ -18,8 +22,8 @@ export type ToolCallPart = {
 	type: "tool-call";
 	toolCallId: string;
 	toolName: string;
-	args?: any;
-	result?: any;
+	args?: Record<string, unknown>;
+	result?: unknown;
 	state: "partial-call" | "call" | "result"; // Official SDK states only
 	step?: number; // Official SDK step tracking for multi-step calls
 };

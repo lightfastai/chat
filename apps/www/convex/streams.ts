@@ -297,7 +297,7 @@ export const cleanupExpiredStreams = internalMutation({
 				// If the stream has a messageId, mark the message as complete (no longer streaming)
 				if (stream.messageId) {
 					const message = await ctx.db.get(stream.messageId);
-					if (message && message.isStreaming) {
+					if (message?.isStreaming) {
 						await ctx.db.patch(stream.messageId, {
 							isStreaming: false,
 							isComplete: true,

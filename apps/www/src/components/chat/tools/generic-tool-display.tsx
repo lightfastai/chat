@@ -66,7 +66,7 @@ export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
 						</div>
 					)}
 
-					{toolCall.state === "result" && toolCall.result && (
+					{toolCall.state === "result" && toolCall.result !== undefined && (
 						<div>
 							<p className="text-xs font-medium text-muted-foreground">
 								Result:

@@ -162,7 +162,7 @@ export const logShareAccess = mutation({
 			const recentAttempts = await ctx.db
 				.query("shareAccess")
 				.withIndex("by_ip_time", (q) =>
-					q.eq("ipHash", args.clientInfo!.ipHash).gte("accessedAt", hourAgo),
+					q.eq("ipHash", args.clientInfo?.ipHash).gte("accessedAt", hourAgo),
 				)
 				.collect();
 
