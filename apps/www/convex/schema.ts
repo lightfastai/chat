@@ -133,10 +133,10 @@ export default defineSchema({
 	streams: defineTable({
 		status: v.union(
 			v.literal("pending"),
-			v.literal("streaming"), 
+			v.literal("streaming"),
 			v.literal("done"),
 			v.literal("error"),
-			v.literal("timeout")
+			v.literal("timeout"),
 		),
 		messageId: v.optional(v.id("messages")), // Associated message
 		userId: v.optional(v.id("users")), // Owner of the stream
@@ -152,12 +152,17 @@ export default defineSchema({
 	chunks: defineTable({
 		streamId: v.id("streams"),
 		text: v.string(),
-		type: v.optional(v.union(
-			v.literal("text"),
-			v.literal("tool_call"),
-			v.literal("tool_result"),
-			v.literal("reasoning")
-		)),
+		type: v.optional(
+			v.union(
+				v.literal("text"),
+				v.literal("tool_call"),
+				v.literal("tool_result"),
+				v.literal("reasoning"),
+				v.literal("error"),
+				v.literal("control"),
+				v.literal("step"),
+			),
+		),
 		metadata: v.optional(v.any()), // For tool data, etc.
 		createdAt: v.optional(v.number()),
 	})

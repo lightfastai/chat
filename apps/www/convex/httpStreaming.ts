@@ -1,285 +1,381 @@
-import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import { createAIClient } from "./lib/ai_client";
-import { streamText } from "ai";
-import { Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
+import { httpAction } from "./_generated/server";
 
 export const streamChatResponse = httpAction(async (ctx, request) => {
-  console.log("HTTP Streaming endpoint called");
-  
-  // Handle CORS preflight
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Max-Age": "86400",
-      },
-    });
-  }
-  
-  try {
-    // Get authentication from header
-    const authHeader = request.headers.get("Authorization");
-    console.log("Auth header present:", !!authHeader);
-    
-    // Parse request body
-    const body = await request.json();
-    const { threadId, modelId, messages } = body;
-    
-    console.log("HTTP Streaming request:", { threadId, modelId, messageCount: messages?.length });
+	console.log("HTTP Streaming endpoint called");
 
-    // Verify thread exists and user has access
-    const thread = await ctx.runQuery(api.threads.get, { threadId });
-    if (!thread) {
-      return new Response("Thread not found", { status: 404 });
-    }
+	// Handle CORS preflight
+	if (request.method === "OPTIONS") {
+		return new Response(null, {
+			status: 200,
+			headers: {
+				"Access-Control-Allow-Origin": "*",
+				"Access-Control-Allow-Methods": "POST, OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				"Access-Control-Max-Age": "86400",
+			},
+		});
+	}
 
-    // Create a stream first
-    const streamId = await ctx.runMutation(internal.streams.create, {
-      userId: thread.userId,
-      metadata: { threadId, modelId },
-    });
+	try {
+		// Get authentication from header
+		const authHeader = request.headers.get("Authorization");
+		console.log("Auth header present:", !!authHeader);
 
-    // Create initial AI message with streamId
-    const messageId = await ctx.runMutation(internal.messages.create, {
-      threadId,
-      messageType: "assistant",
-      body: "",
-      modelId,
-      isStreaming: true,
-      streamId,
-    });
-    // Set up AI streaming
-    const aiClient = createAIClient(modelId);
-    const result = streamText({
-      model: aiClient,
-      messages,
-      temperature: 0.7,
-    });
+		// Parse request body
+		const body = await request.json();
+		const { threadId, modelId, messages } = body;
 
-    // Create HTTP streaming response with sentence-based batching
-    const stream = new ReadableStream({
-      async start(controller) {
-        let textBuffer = "";
-        let pendingBuffer = ""; // Buffer for incomplete sentences
-        const SENTENCE_DELIMITERS = /[.!?\n]/;
-        const MAX_BUFFER_SIZE = 200; // Max chars before forced flush
-        
-        // Stats for logging
-        let chunkCount = 0;
-        let totalChars = 0;
-        const startTime = Date.now();
+		console.log("HTTP Streaming request:", {
+			threadId,
+			modelId,
+			messageCount: messages?.length,
+		});
 
-        const encoder = new TextEncoder();
+		// Verify thread exists and user has access
+		const thread = await ctx.runQuery(api.threads.get, { threadId });
+		if (!thread) {
+			return new Response("Thread not found", { status: 404 });
+		}
 
-        const flushBuffer = async (force = false) => {
-          const toFlush = force ? textBuffer + pendingBuffer : textBuffer;
-          
-          if (toFlush.length > 0) {
-            chunkCount++;
-            console.log(`🔄 HTTP Streaming Chunk #${chunkCount}:`, {
-              chunkSize: toFlush.length,
-              type: force ? "forced" : "sentence",
-              totalElapsed: Date.now() - startTime,
-            });
-            
-            // Send to client immediately via HTTP stream
-            const chunk = JSON.stringify({
-              type: "text-delta",
-              text: toFlush,
-              messageId,
-              streamId,
-              timestamp: Date.now(),
-            }) + "\n";
-            controller.enqueue(encoder.encode(chunk));
+		// Create a stream first
+		const streamId = await ctx.runMutation(internal.streams.create, {
+			userId: thread.userId,
+			metadata: { threadId, modelId },
+		});
 
-            // Add chunk to database
-            await ctx.runMutation(internal.streams.addChunk, {
-              streamId,
-              text: toFlush,
-              type: "text",
-            });
+		// Create initial AI message with streamId
+		const messageId = await ctx.runMutation(internal.messages.create, {
+			threadId,
+			messageType: "assistant",
+			body: "",
+			modelId,
+			isStreaming: true,
+			streamId,
+		});
 
-            textBuffer = "";
-            if (force) {
-              pendingBuffer = "";
-            }
-          }
-        };
+		// Schedule the AI response generation using the stream system
+		await ctx.scheduler.runAfter(
+			0,
+			internal.generateAIResponseWithStreams.generateAIResponseWithStreams,
+			{
+				threadId,
+				messageId,
+				streamId,
+				modelId,
+				messages,
+				webSearchEnabled: false, // Can be configured from request
+			},
+		);
 
-        try {
-          for await (const part of result.fullStream) {
-            if (part.type === "text") {
-              pendingBuffer += part.text;
-              totalChars += part.text.length;
+		// Create HTTP streaming response that polls the stream for updates
+		const stream = new ReadableStream({
+			async start(controller) {
+				const encoder = new TextEncoder();
+				let lastChunkIndex = -1;
+				const pollInterval = 100; // Poll every 100ms
+				const maxPolls = 600; // Max 60 seconds
+				let pollCount = 0;
 
-              // Look for sentence boundaries
-              let lastDelimiterIndex = -1;
-              for (let i = 0; i < pendingBuffer.length; i++) {
-                if (SENTENCE_DELIMITERS.test(pendingBuffer[i])) {
-                  lastDelimiterIndex = i;
-                }
-              }
+				// Send initial response with streamId and messageId
+				const initChunk =
+					JSON.stringify({
+						type: "init",
+						streamId,
+						messageId,
+						timestamp: Date.now(),
+					}) + "\n";
+				controller.enqueue(encoder.encode(initChunk));
 
-              // If we found a sentence boundary, move complete sentences to textBuffer
-              if (lastDelimiterIndex !== -1) {
-                textBuffer += pendingBuffer.substring(0, lastDelimiterIndex + 1);
-                pendingBuffer = pendingBuffer.substring(lastDelimiterIndex + 1);
-                await flushBuffer();
-              }
+				// Poll for stream updates
+				const pollStream = async () => {
+					try {
+						const streamData = await ctx.runQuery(
+							internal.streams.getStreamWithChunks,
+							{
+								streamId,
+							},
+						);
 
-              // Force flush if buffer is too large
-              if (pendingBuffer.length >= MAX_BUFFER_SIZE) {
-                textBuffer = pendingBuffer;
-                pendingBuffer = "";
-                await flushBuffer(true);
-              }
-            } else if (part.type === "tool-call") {
-              // Flush any pending text first
-              textBuffer = pendingBuffer;
-              pendingBuffer = "";
-              await flushBuffer(true);
+						if (!streamData) {
+							throw new Error("Stream not found");
+						}
 
-              // Send tool call as a separate chunk
-              const toolChunk = JSON.stringify({
-                type: "tool-call",
-                toolName: part.toolName,
-                toolCallId: part.toolCallId,
-                args: part.args,
-                messageId,
-                streamId,
-                timestamp: Date.now(),
-              }) + "\n";
-              controller.enqueue(encoder.encode(toolChunk));
+						// Send any new chunks since last poll
+						const newChunks = streamData.chunks.slice(lastChunkIndex + 1);
+						for (const chunk of newChunks) {
+							lastChunkIndex++;
 
-              // Store tool call in database
-              await ctx.runMutation(internal.streams.addChunk, {
-                streamId,
-                text: JSON.stringify(part.args),
-                type: "tool_call",
-                metadata: {
-                  toolName: part.toolName,
-                  toolCallId: part.toolCallId,
-                },
-              });
+							let chunkData: any = {
+								type: "text-delta",
+								text: chunk.text,
+								messageId,
+								streamId,
+								timestamp: chunk.createdAt || chunk._creationTime,
+							};
 
-            } else if (part.type === "tool-result") {
-              // Send tool result
-              const resultChunk = JSON.stringify({
-                type: "tool-result",
-                toolName: part.toolName,
-                toolCallId: part.toolCallId,
-                result: part.result,
-                messageId,
-                streamId,
-                timestamp: Date.now(),
-              }) + "\n";
-              controller.enqueue(encoder.encode(resultChunk));
+							if (chunk.type === "tool_call") {
+								chunkData = {
+									type: "tool-call",
+									toolName: chunk.metadata?.toolName,
+									toolCallId: chunk.metadata?.toolCallId,
+									args: JSON.parse(chunk.text),
+									messageId,
+									streamId,
+									timestamp: chunk.createdAt || chunk._creationTime,
+								};
+							} else if (chunk.type === "tool_result") {
+								chunkData = {
+									type: "tool-result",
+									toolName: chunk.metadata?.toolName,
+									toolCallId: chunk.metadata?.toolCallId,
+									result: JSON.parse(chunk.text),
+									messageId,
+									streamId,
+									timestamp: chunk.createdAt || chunk._creationTime,
+								};
+							} else if (chunk.type === "error") {
+								chunkData = {
+									type: "error",
+									error: chunk.text,
+									messageId,
+									streamId,
+									timestamp: chunk.createdAt || chunk._creationTime,
+								};
+							}
 
-              // Store tool result
-              await ctx.runMutation(internal.streams.addChunk, {
-                streamId,
-                text: JSON.stringify(part.result),
-                type: "tool_result",
-                metadata: {
-                  toolName: part.toolName,
-                  toolCallId: part.toolCallId,
-                },
-              });
+							const line = JSON.stringify(chunkData) + "\n";
+							controller.enqueue(encoder.encode(line));
+						}
 
-            } else if (part.type === "finish") {
-              // Flush any remaining text
-              textBuffer = pendingBuffer;
-              pendingBuffer = "";
-              await flushBuffer(true);
-              
-              console.log("✅ HTTP Streaming Complete:", {
-                totalChunks: chunkCount,
-                totalChars,
-                totalTime: Date.now() - startTime,
-                avgChunkSize: totalChars / chunkCount,
-              });
+						// Check if stream is complete
+						if (streamData.stream.status === "done") {
+							const completionChunk =
+								JSON.stringify({
+									type: "completion",
+									messageId,
+									streamId,
+									timestamp: Date.now(),
+								}) + "\n";
+							controller.enqueue(encoder.encode(completionChunk));
+							controller.close();
+							return;
+						} else if (streamData.stream.status === "error") {
+							const errorChunk =
+								JSON.stringify({
+									type: "error",
+									error: streamData.stream.error || "Stream error",
+									messageId,
+									streamId,
+									timestamp: Date.now(),
+								}) + "\n";
+							controller.enqueue(encoder.encode(errorChunk));
+							controller.close();
+							return;
+						} else if (streamData.stream.status === "timeout") {
+							const timeoutChunk =
+								JSON.stringify({
+									type: "error",
+									error: "Stream timed out",
+									messageId,
+									streamId,
+									timestamp: Date.now(),
+								}) + "\n";
+							controller.enqueue(encoder.encode(timeoutChunk));
+							controller.close();
+							return;
+						}
 
-              // Mark stream as complete
-              await ctx.runMutation(internal.streams.markComplete, {
-                streamId,
-              });
+						// Continue polling if not done
+						pollCount++;
+						if (pollCount < maxPolls) {
+							setTimeout(pollStream, pollInterval);
+						} else {
+							// Timeout after max polls
+							const timeoutChunk =
+								JSON.stringify({
+									type: "error",
+									error: "Polling timeout",
+									messageId,
+									streamId,
+									timestamp: Date.now(),
+								}) + "\n";
+							controller.enqueue(encoder.encode(timeoutChunk));
+							controller.close();
+						}
+					} catch (error) {
+						console.error("Polling error:", error);
+						const errorChunk =
+							JSON.stringify({
+								type: "error",
+								error: error instanceof Error ? error.message : "Unknown error",
+								messageId,
+								streamId,
+								timestamp: Date.now(),
+							}) + "\n";
+						controller.enqueue(encoder.encode(errorChunk));
+						controller.close();
+					}
+				};
 
-              // Send completion signal
-              const completionChunk = JSON.stringify({
-                type: "completion",
-                messageId,
-                streamId,
-                timestamp: Date.now(),
-              }) + "\n";
-              controller.enqueue(encoder.encode(completionChunk));
-            } else if (part.type === "error") {
-              // Handle streaming errors
-              const errorMessage = part.error instanceof Error ? part.error.message : "Unknown error";
-              
-              // Mark stream as errored
-              await ctx.runMutation(internal.streams.markError, {
-                streamId,
-                error: errorMessage,
-              });
+				// Start polling
+				setTimeout(pollStream, pollInterval);
+			},
+		});
 
-              const errorChunk = JSON.stringify({
-                type: "error",
-                messageId,
-                streamId,
-                error: errorMessage,
-                timestamp: Date.now(),
-              }) + "\n";
-              controller.enqueue(encoder.encode(errorChunk));
-            }
-          }
-        } catch (error) {
-          console.error("Streaming error:", error);
-          
-          // Mark stream as errored
-          await ctx.runMutation(internal.streams.markError, {
-            streamId,
-            error: error instanceof Error ? error.message : "Unknown error",
-          });
+		return new Response(stream, {
+			headers: {
+				"Content-Type": "application/x-ndjson",
+				"Transfer-Encoding": "chunked",
+				"Access-Control-Allow-Origin": "*",
+				"Access-Control-Allow-Methods": "POST",
+				"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				"Cache-Control": "no-cache",
+			},
+		});
+	} catch (error) {
+		console.error("HTTP streaming setup error:", error);
 
-          const errorChunk = JSON.stringify({
-            type: "error",
-            messageId,
-            error: error instanceof Error ? error.message : "Unknown error",
-            timestamp: Date.now(),
-          }) + "\n";
-          controller.enqueue(encoder.encode(errorChunk));
-        } finally {
-          controller.close();
-        }
-      },
-    });
+		return new Response(
+			JSON.stringify({ error: "Failed to start streaming" }),
+			{
+				status: 500,
+				headers: {
+					"Content-Type": "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			},
+		);
+	}
+});
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "application/x-ndjson",
-        "Transfer-Encoding": "chunked",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Cache-Control": "no-cache",
-      },
-    });
-  } catch (error) {
-    console.error("HTTP streaming setup error:", error);
-    
-    return new Response(
-      JSON.stringify({ error: "Failed to start streaming" }),
-      { 
-        status: 500,
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
-    );
-  }
+// HTTP endpoint for continuing a stream (used by useStream hook)
+export const streamContinue = httpAction(async (ctx, request) => {
+	console.log("Stream continue endpoint called");
+
+	// Handle CORS preflight
+	if (request.method === "OPTIONS") {
+		return new Response(null, {
+			status: 200,
+			headers: {
+				"Access-Control-Allow-Origin": "*",
+				"Access-Control-Allow-Methods": "GET, OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				"Access-Control-Max-Age": "86400",
+			},
+		});
+	}
+
+	try {
+		// Extract streamId from URL path
+		const url = new URL(request.url);
+		const pathMatch = url.pathname.match(/\/stream-continue\/(.+)$/);
+		const streamId = pathMatch ? pathMatch[1] : null;
+
+		if (!streamId) {
+			return new Response("Stream ID required", { status: 400 });
+		}
+
+		console.log("Continuing stream:", streamId);
+
+		// Get stream data
+		const streamData = await ctx.runQuery(
+			internal.streams.getStreamWithChunks,
+			{
+				streamId: streamId as Id<"streams">,
+			},
+		);
+
+		if (!streamData) {
+			return new Response("Stream not found", { status: 404 });
+		}
+
+		// Create HTTP streaming response that sends existing chunks
+		const stream = new ReadableStream({
+			async start(controller) {
+				const encoder = new TextEncoder();
+
+				// Send all existing chunks immediately
+				for (const chunk of streamData.chunks) {
+					let chunkData: any = {
+						type: "text-delta",
+						text: chunk.text,
+						timestamp: chunk.createdAt || chunk._creationTime,
+					};
+
+					if (chunk.type === "tool_call") {
+						chunkData = {
+							type: "tool-call",
+							toolName: chunk.metadata?.toolName,
+							toolCallId: chunk.metadata?.toolCallId,
+							args: JSON.parse(chunk.text),
+							timestamp: chunk.createdAt || chunk._creationTime,
+						};
+					} else if (chunk.type === "tool_result") {
+						chunkData = {
+							type: "tool-result",
+							toolName: chunk.metadata?.toolName,
+							toolCallId: chunk.metadata?.toolCallId,
+							result: JSON.parse(chunk.text),
+							timestamp: chunk.createdAt || chunk._creationTime,
+						};
+					} else if (chunk.type === "error") {
+						chunkData = {
+							type: "error",
+							error: chunk.text,
+							timestamp: chunk.createdAt || chunk._creationTime,
+						};
+					}
+
+					const line = JSON.stringify(chunkData) + "\n";
+					controller.enqueue(encoder.encode(line));
+				}
+
+				// Send completion if stream is done
+				if (streamData.stream.status === "done") {
+					const completionChunk =
+						JSON.stringify({
+							type: "completion",
+							timestamp: Date.now(),
+						}) + "\n";
+					controller.enqueue(encoder.encode(completionChunk));
+				} else if (streamData.stream.status === "error") {
+					const errorChunk =
+						JSON.stringify({
+							type: "error",
+							error: streamData.stream.error || "Stream error",
+							timestamp: Date.now(),
+						}) + "\n";
+					controller.enqueue(encoder.encode(errorChunk));
+				}
+
+				// Close the stream
+				controller.close();
+			},
+		});
+
+		return new Response(stream, {
+			headers: {
+				"Content-Type": "application/x-ndjson",
+				"Cache-Control": "no-cache",
+				Connection: "keep-alive",
+				"Access-Control-Allow-Origin": "*",
+			},
+		});
+	} catch (error) {
+		console.error("Stream continue error:", error);
+		return new Response(
+			JSON.stringify({
+				error: error instanceof Error ? error.message : "Internal server error",
+			}),
+			{
+				status: 500,
+				headers: {
+					"Content-Type": "application/json",
+					"Access-Control-Allow-Origin": "*",
+				},
+			},
+		);
+	}
 });

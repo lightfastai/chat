@@ -143,9 +143,10 @@ export function useChat(options: UseChatOptions = {}) {
 	const finalUserSettings = preloadedUserSettings ?? userSettings;
 
 	// Check if HTTP streaming is enabled
-	const httpStreamingEnabled = 
-		finalUserSettings?.preferences?.experimentalFeatures?.httpStreaming ?? false;
-	
+	const httpStreamingEnabled =
+		finalUserSettings?.preferences?.experimentalFeatures?.httpStreaming ??
+		false;
+
 	console.log("🔍 HTTP Streaming Debug:", {
 		finalUserSettings,
 		preferences: finalUserSettings?.preferences,
@@ -160,7 +161,6 @@ export function useChat(options: UseChatOptions = {}) {
 		modelId: httpStreamingModelId,
 	});
 
-
 	// Merge HTTP streaming message with regular messages
 	const messages = useMemo(() => {
 		if (!httpStreamingEnabled || !httpStreaming.streamingMessage) {
@@ -171,7 +171,7 @@ export function useChat(options: UseChatOptions = {}) {
 		const streamingDoc: Doc<"messages"> = {
 			_id: httpStreaming.streamingMessage._id,
 			_creationTime: httpStreaming.streamingMessage.timestamp,
-			threadId: httpStreaming.streamingMessage._id.includes("temp_") 
+			threadId: httpStreaming.streamingMessage._id.includes("temp_")
 				? currentThread?._id || ("" as Id<"threads">)
 				: currentThread?._id || ("" as Id<"threads">),
 			body: httpStreaming.streamingMessage.body,
@@ -184,12 +184,17 @@ export function useChat(options: UseChatOptions = {}) {
 
 		// If we have a real message ID from the server, replace any existing message with that ID
 		const filteredMessages = baseMessages.filter(
-			msg => msg._id !== httpStreaming.streamingMessage!._id
+			(msg) => msg._id !== httpStreaming.streamingMessage!._id,
 		);
 
 		// Add streaming message at the beginning (newest first)
 		return [streamingDoc, ...filteredMessages];
-	}, [baseMessages, httpStreamingEnabled, httpStreaming.streamingMessage, currentThread]);
+	}, [
+		baseMessages,
+		httpStreamingEnabled,
+		httpStreaming.streamingMessage,
+		currentThread,
+	]);
 
 	// Remove debug logging for production
 	// Uncomment the following for debugging message queries
@@ -332,7 +337,8 @@ export function useChat(options: UseChatOptions = {}) {
 			timestamp: now + 1,
 			isStreaming: true,
 			isComplete: false,
-			streamId: `stream_${clientId}_${now}`,
+			// Don't set streamId in optimistic update - it must be a real Convex ID
+			// streamId will be set when the real message is created
 			// Don't set thinkingStartedAt to prevent premature "Thinking" display
 			usedUserApiKey: willUseUserApiKey,
 		};
@@ -464,18 +470,23 @@ export function useChat(options: UseChatOptions = {}) {
 				hasAttachments: !!attachments?.length,
 				webSearchEnabled,
 			});
-			
+
 			// Check if we should use HTTP streaming
-			if (httpStreamingEnabled && currentThread && !attachments?.length && !webSearchEnabled) {
+			if (
+				httpStreamingEnabled &&
+				currentThread &&
+				!attachments?.length &&
+				!webSearchEnabled
+			) {
 				console.log("🚀 Using HTTP streaming mode for message:", {
 					threadId: currentThread._id,
 					modelId,
 					httpStreamingEnabled,
 				});
-				
+
 				// Use HTTP streaming for simple text messages
 				setHttpStreamingModelId(modelId);
-				
+
 				// First send the user message via Convex (without AI response)
 				await sendMessage({
 					threadId: currentThread._id,
@@ -487,11 +498,11 @@ export function useChat(options: UseChatOptions = {}) {
 				});
 
 				// Wait a moment for the message to be saved
-				await new Promise(resolve => setTimeout(resolve, 100));
+				await new Promise((resolve) => setTimeout(resolve, 100));
 
 				// Then trigger HTTP streaming for the response
 				await httpStreaming.sendMessage(message);
-				
+
 				return;
 			}
 
@@ -502,7 +513,7 @@ export function useChat(options: UseChatOptions = {}) {
 				hasAttachments: !!attachments?.length,
 				webSearchEnabled,
 			});
-			
+
 			if (isNewChat) {
 				// 🚀 Generate client ID for new chat
 				const clientId = nanoid();

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMessageStream } from "@/hooks/useStream";
 import { getModelDisplayName } from "@/lib/ai";
 import { useQuery } from "convex/react";
 import { useState } from "react";
@@ -23,6 +24,17 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 	const isAI = message.messageType === "assistant";
+
+	// Use stream hook if message has streamId and is streaming
+	// Only use if we have real Convex IDs (not optimistic)
+	const hasRealMessageId = message._id.startsWith("k");
+	const hasRealStreamId = message.streamId?.startsWith("k");
+	const streamState = useMessageStream(
+		message.streamId && hasRealStreamId && message.isStreaming && !message.isComplete && hasRealMessageId
+			? message._id
+			: undefined,
+		true, // driven = true for the client that initiated streaming
+	);
 
 	// Model name for AI messages
 	const modelName = isAI
@@ -71,9 +83,13 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
 				showActions={true}
 				isReadOnly={false}
 				modelName={modelName}
-				streamingText={message.body}
-				isStreaming={!!message.isStreaming}
-				isComplete={message.isComplete !== false}
+				streamingText={streamState.text || message.body}
+				isStreaming={
+					streamState.status === "streaming" || !!message.isStreaming
+				}
+				isComplete={
+					streamState.status === "done" || message.isComplete !== false
+				}
 				actions={actions}
 				forceActionsVisible={isDropdownOpen}
 			/>

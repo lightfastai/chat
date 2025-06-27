@@ -5,8 +5,8 @@ import type { Preloaded } from "convex/react";
 import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ApiKeysSection } from "./api-keys-section";
-import { ProfileSection } from "./profile-section";
 import { ExperimentalFeaturesSection } from "./experimental-features-section";
+import { ProfileSection } from "./profile-section";
 
 interface SettingsContentProps {
 	preloadedUser: Preloaded<typeof api.users.current>;

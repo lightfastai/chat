@@ -91,6 +91,32 @@ export type {
 
 // ===== QUERIES =====
 
+export const get = query({
+	args: {
+		messageId: v.id("messages"),
+	},
+	returns: v.union(v.null(), messageReturnValidator),
+	handler: async (ctx, args) => {
+		const userId = await getAuthUserId(ctx);
+		if (!userId) {
+			return null;
+		}
+
+		const message = await ctx.db.get(args.messageId);
+		if (!message) {
+			return null;
+		}
+
+		// Verify the user owns the thread this message belongs to
+		const thread = await ctx.db.get(message.threadId);
+		if (!thread || thread.userId !== userId) {
+			return null;
+		}
+
+		return message;
+	},
+});
+
 export const listByClientId = query({
 	args: {
 		clientId: clientIdValidator,
@@ -412,9 +438,11 @@ export const send = mutation({
 		attachments: v.optional(v.array(v.id("files"))), // Add attachments support
 		webSearchEnabled: v.optional(v.boolean()),
 		skipAIResponse: v.optional(v.boolean()), // Skip AI response for HTTP streaming
+		useStreamSystem: v.optional(v.boolean()), // Use new stream system
 	},
 	returns: v.object({
 		messageId: v.id("messages"),
+		streamId: v.optional(v.id("streams")),
 	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
@@ -460,8 +488,48 @@ export const send = mutation({
 			attachments: args.attachments,
 		});
 
-		// Schedule AI response using the modelId (unless using HTTP streaming)
-		if (!args.skipAIResponse) {
+		let streamId: Id<"streams"> | undefined;
+
+		// Handle AI response based on system type
+		if (args.useStreamSystem) {
+			// Create stream first
+			const streamResult: Id<"streams"> = await ctx.runMutation(
+				internal.streams.create,
+				{
+					userId,
+					metadata: { threadId: args.threadId, modelId },
+				},
+			);
+			streamId = streamResult;
+
+			// Create assistant message with streamId
+			const assistantMessageId = await ctx.db.insert("messages", {
+				threadId: args.threadId,
+				body: "",
+				timestamp: Date.now(),
+				messageType: "assistant",
+				model: provider,
+				modelId: modelId,
+				isStreaming: true,
+				streamId,
+				isComplete: false,
+			});
+
+			// Schedule AI response using the stream system
+			await ctx.scheduler.runAfter(
+				0,
+				internal.generateAIResponseWithStreams.generateAIResponseWithStreams,
+				{
+					threadId: args.threadId,
+					messageId: assistantMessageId,
+					streamId,
+					modelId,
+					messages: [], // Will be populated by the action
+					webSearchEnabled: args.webSearchEnabled ?? false,
+				},
+			);
+		} else if (!args.skipAIResponse) {
+			// Original non-stream AI response
 			await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
 				threadId: args.threadId,
 				userMessage: args.body,
@@ -491,7 +559,7 @@ export const send = mutation({
 			});
 		}
 
-		return { messageId };
+		return { messageId, streamId };
 	},
 });
 
@@ -1772,27 +1840,29 @@ export const create = internalMutation({
 	handler: async (ctx, args) => {
 		const now = Date.now();
 		const messageType = args.messageType || args.role || "assistant";
-		
+
 		const messageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			body: args.body,
 			timestamp: now,
 			messageType,
 			modelId: args.modelId,
-			model: args.modelId ? getProviderFromModelId(args.modelId as ModelId) : undefined,
+			model: args.modelId
+				? getProviderFromModelId(args.modelId as ModelId)
+				: undefined,
 			isStreaming: args.isStreaming || false,
 			isComplete: !args.isStreaming,
 			streamId: args.streamId,
 			usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
 		});
-		
+
 		// Link the stream to this message
 		if (args.streamId) {
 			await ctx.db.patch(args.streamId, {
 				messageId,
 			});
 		}
-		
+
 		return messageId;
 	},
 });
@@ -1811,7 +1881,7 @@ export const appendStreamingText = internalMutation({
 
 		// Append text to existing body
 		const updatedBody = message.body + args.text;
-		
+
 		await ctx.db.patch(args.messageId, {
 			body: updatedBody,
 			streamVersion: (message.streamVersion || 0) + 1,
@@ -1861,50 +1931,113 @@ export const syncMessageFromStream = internalMutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const streamData = await ctx.runQuery(internal.streams.getStreamWithChunks, {
-			streamId: args.streamId,
-		});
-		
+		const streamData = await ctx.runQuery(
+			internal.streams.getStreamWithChunks,
+			{
+				streamId: args.streamId,
+			},
+		);
+
 		if (!streamData) {
 			throw new Error("Stream not found");
 		}
-		
-		// Build message body from chunks
+
+		// Build message body and parts from chunks
 		let body = "";
 		const parts: any[] = [];
-		
+
+		// Process chunks in order to build message content
 		for (const chunk of streamData.chunks) {
-			if (chunk.type === "text" || chunk.type === "reasoning") {
-				body += chunk.text;
-				parts.push({
-					type: "text",
-					text: chunk.text,
-				});
-			} else if (chunk.type === "tool_call") {
-				parts.push({
-					type: "tool-call",
-					toolCallId: chunk.metadata?.toolCallId,
-					toolName: chunk.metadata?.toolName,
-					args: JSON.parse(chunk.text),
-				});
-			} else if (chunk.type === "tool_result") {
-				parts.push({
-					type: "tool-result",
-					toolCallId: chunk.metadata?.toolCallId,
-					toolName: chunk.metadata?.toolName,
-					result: JSON.parse(chunk.text),
-				});
+			switch (chunk.type) {
+				case "text":
+					body += chunk.text;
+					parts.push({
+						type: "text",
+						text: chunk.text,
+					});
+					break;
+
+				case "reasoning":
+					// Reasoning text is included in body
+					body += chunk.text;
+					parts.push({
+						type: "reasoning",
+						text: chunk.text,
+						providerMetadata: chunk.metadata?.providerMetadata,
+					});
+					break;
+
+				case "tool_call":
+					// Tool calls are not part of the body text
+					parts.push({
+						type: "tool-call",
+						toolCallId: chunk.metadata?.toolCallId,
+						toolName: chunk.metadata?.toolName,
+						args: JSON.parse(chunk.text),
+						state: chunk.metadata?.state || "call",
+					});
+					break;
+
+				case "tool_result":
+					// Find the corresponding tool call and update it
+					const toolCallIndex = parts.findIndex(
+						(p) =>
+							p.type === "tool-call" &&
+							p.toolCallId === chunk.metadata?.toolCallId,
+					);
+					if (toolCallIndex !== -1) {
+						parts[toolCallIndex].result = JSON.parse(chunk.text);
+						parts[toolCallIndex].state = "result";
+					}
+					break;
+
+				case "control":
+					// Handle control chunks
+					if (chunk.metadata?.controlType) {
+						parts.push({
+							type: "control",
+							controlType: chunk.metadata.controlType,
+							finishReason: chunk.metadata.finishReason,
+							totalUsage: chunk.metadata.totalUsage,
+							metadata: chunk.metadata,
+						});
+					}
+					break;
+
+				case "error":
+					// Handle error chunks
+					parts.push({
+						type: "error",
+						errorMessage: chunk.text,
+						errorDetails: chunk.metadata,
+					});
+					break;
+
+				case "step":
+					// Handle step chunks for multi-step generation
+					parts.push({
+						type: "step",
+						stepType: chunk.metadata?.stepType || chunk.text,
+					});
+					break;
 			}
 		}
-		
+
 		// Update message with final content
-		await ctx.db.patch(args.messageId, {
+		const updateData: any = {
 			body,
 			parts: parts.length > 0 ? parts : undefined,
 			isStreaming: streamData.stream.status === "streaming",
 			isComplete: streamData.stream.status === "done",
 			streamVersion: (streamData.chunks.length || 0) + 1,
-		});
+		};
+
+		// If stream has an error, mark message accordingly
+		if (streamData.stream.status === "error" && streamData.stream.error) {
+			updateData.error = streamData.stream.error;
+		}
+
+		await ctx.db.patch(args.messageId, updateData);
 
 		return null;
 	},

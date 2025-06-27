@@ -18,6 +18,7 @@ import type * as crons from "../crons.js";
 import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
 import type * as files from "../files.js";
+import type * as generateAIResponseWithStreams from "../generateAIResponseWithStreams.js";
 import type * as http from "../http.js";
 import type * as httpStreaming from "../httpStreaming.js";
 import type * as lib_ai_client from "../lib/ai_client.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   feedback: typeof feedback;
   files: typeof files;
+  generateAIResponseWithStreams: typeof generateAIResponseWithStreams;
   http: typeof http;
   httpStreaming: typeof httpStreaming;
   "lib/ai_client": typeof lib_ai_client;

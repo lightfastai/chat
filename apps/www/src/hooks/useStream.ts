@@ -1,172 +1,190 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import type { Id } from "@/convex/_generated/dataModel";
 import { env } from "@/env";
 import { useAuthToken } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface UseStreamOptions {
-  streamId: Id<"streams"> | undefined;
-  messageId: Id<"messages"> | undefined;
-  driven: boolean; // Is this the client that initiated the stream?
-  onError?: (error: string) => void;
+	streamId: Id<"streams"> | undefined;
+	messageId: Id<"messages"> | undefined;
+	driven: boolean; // Is this the client that initiated the stream?
+	onError?: (error: string) => void;
 }
 
 interface StreamState {
-  text: string;
-  status: "pending" | "streaming" | "done" | "error" | "timeout";
-  error?: string;
+	text: string;
+	status: "pending" | "streaming" | "done" | "error" | "timeout";
+	error?: string;
 }
 
 /**
  * React hook for persistent text streaming following the Convex pattern.
- * 
+ *
  * - If `driven` is true and we have a streamId, this client will initiate HTTP streaming
  * - If `driven` is false, this client will just read from the database
  * - Automatically falls back to database on HTTP failure
  */
 export function useStream({
-  streamId,
-  messageId,
-  driven,
-  onError,
+	streamId,
+	messageId,
+	driven,
+	onError,
 }: UseStreamOptions): StreamState {
-  const [httpText, setHttpText] = useState("");
-  const [httpStatus, setHttpStatus] = useState<"idle" | "streaming" | "done" | "error">("idle");
-  const [httpError, setHttpError] = useState<string | null>(null);
-  const streamStarted = useRef(false);
-  const authToken = useAuthToken();
+	const [httpText, setHttpText] = useState("");
+	const [httpStatus, setHttpStatus] = useState<
+		"idle" | "streaming" | "done" | "error"
+	>("idle");
+	const [httpError, setHttpError] = useState<string | null>(null);
+	const streamStarted = useRef(false);
+	const authToken = useAuthToken();
 
-  // Query stream body from database
-  const streamBody = useQuery(
-    api.streams.getStreamBody,
-    streamId ? { streamId } : "skip"
-  );
+	// Query stream body from database
+	// Only query if we have a valid Convex stream ID
+	const isValidStreamId = streamId?.startsWith("k");
+	const streamBody = useQuery(
+		api.streams.getStreamBody,
+		streamId && isValidStreamId ? { streamId } : "skip",
+	);
 
-  // Determine if we should use HTTP streaming
-  const shouldUseHttp = driven && streamId && httpStatus !== "error";
+	// Determine if we should use HTTP streaming
+	const shouldUseHttp = driven && !!streamId && isValidStreamId && httpStatus !== "error";
 
-  // Start HTTP streaming if we're the driven client
-  useEffect(() => {
-    if (!shouldUseHttp || streamStarted.current || !messageId) return;
+	// Start HTTP streaming if we're the driven client
+	useEffect(() => {
+		if (!shouldUseHttp || streamStarted.current || !messageId) return;
 
-    const startStreaming = async () => {
-      try {
-        streamStarted.current = true;
-        setHttpStatus("streaming");
+		const startStreaming = async () => {
+			try {
+				streamStarted.current = true;
+				setHttpStatus("streaming");
 
-        // Construct stream URL
-        const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
-        let convexSiteUrl: string;
-        if (convexUrl.includes(".cloud")) {
-          convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
-        } else {
-          const url = new URL(convexUrl);
-          url.port = String(Number(url.port) + 1);
-          convexSiteUrl = url.toString();
-        }
-        const streamUrl = `${convexSiteUrl}/stream-continue/${streamId}`;
+				// Construct stream URL
+				const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
+				let convexSiteUrl: string;
+				if (convexUrl.includes(".cloud")) {
+					convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
+				} else {
+					const url = new URL(convexUrl);
+					url.port = String(Number(url.port) + 1);
+					convexSiteUrl = url.toString();
+				}
+				const streamUrl = `${convexSiteUrl}/stream-continue/${streamId}`;
 
-        // Make streaming request
-        const response = await fetch(streamUrl, {
-          method: "GET",
-          headers: {
-            ...(authToken && { Authorization: `Bearer ${authToken}` }),
-          },
-        });
+				// Make streaming request
+				const response = await fetch(streamUrl, {
+					method: "GET",
+					headers: {
+						...(authToken && { Authorization: `Bearer ${authToken}` }),
+					},
+				});
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+				}
 
-        if (!response.body) {
-          throw new Error("No response body");
-        }
+				if (!response.body) {
+					throw new Error("No response body");
+				}
 
-        // Process streaming response
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+				// Process streaming response
+				const reader = response.body.getReader();
+				const decoder = new TextDecoder();
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
 
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n").filter(line => line.trim());
+					const chunk = decoder.decode(value, { stream: true });
+					const lines = chunk.split("\n").filter((line) => line.trim());
 
-          for (const line of lines) {
-            try {
-              const data = JSON.parse(line);
+					for (const line of lines) {
+						try {
+							const data = JSON.parse(line);
 
-              if (data.type === "text-delta" && data.text) {
-                setHttpText(prev => prev + data.text);
-              } else if (data.type === "completion") {
-                setHttpStatus("done");
-              } else if (data.type === "error") {
-                throw new Error(data.error || "Stream error");
-              }
-            } catch (parseError) {
-              console.warn("Failed to parse streaming chunk:", line, parseError);
-            }
-          }
-        }
+							if (data.type === "text-delta" && data.text) {
+								setHttpText((prev) => prev + data.text);
+							} else if (data.type === "completion") {
+								setHttpStatus("done");
+							} else if (data.type === "error") {
+								throw new Error(data.error || "Stream error");
+							}
+						} catch (parseError) {
+							console.warn(
+								"Failed to parse streaming chunk:",
+								line,
+								parseError,
+							);
+						}
+					}
+				}
 
-        setHttpStatus("done");
-      } catch (error) {
-        console.error("HTTP streaming error:", error);
-        setHttpError(error instanceof Error ? error.message : "Unknown error");
-        setHttpStatus("error");
-        onError?.(error instanceof Error ? error.message : "Unknown error");
-      }
-    };
+				setHttpStatus("done");
+			} catch (error) {
+				console.error("HTTP streaming error:", error);
+				setHttpError(error instanceof Error ? error.message : "Unknown error");
+				setHttpStatus("error");
+				onError?.(error instanceof Error ? error.message : "Unknown error");
+			}
+		};
 
-    startStreaming();
-  }, [shouldUseHttp, streamId, messageId, authToken, onError]);
+		startStreaming();
+	}, [shouldUseHttp, streamId, messageId, authToken, onError]);
 
-  // Combine HTTP and database state
-  return useMemo(() => {
-    // If we're using HTTP and it's working, use that
-    if (shouldUseHttp && httpStatus !== "error") {
-      return {
-        text: httpText,
-        status: httpStatus === "idle" ? "pending" : httpStatus === "streaming" ? "streaming" : "done",
-        error: httpError || undefined,
-      };
-    }
+	// Combine HTTP and database state
+	return useMemo(() => {
+		// If we're using HTTP, use that
+		if (driven && streamId && isValidStreamId) {
+			// Check if we had an HTTP error
+			if (httpStatus === "error") {
+				// Fall through to database
+			} else {
+				return {
+					text: httpText,
+					status:
+						httpStatus === "idle"
+							? "pending"
+							: httpStatus === "streaming"
+								? "streaming"
+								: "done",
+					error: httpError || undefined,
+				};
+			}
+		}
 
-    // Otherwise use database
-    if (!streamBody) {
-      return {
-        text: "",
-        status: "pending",
-      };
-    }
+		// Otherwise use database
+		if (!streamBody) {
+			return {
+				text: "",
+				status: "pending",
+			};
+		}
 
-    return {
-      text: streamBody.text,
-      status: streamBody.status,
-    };
-  }, [shouldUseHttp, httpStatus, httpText, httpError, streamBody]);
+		return {
+			text: streamBody.text,
+			status: streamBody.status,
+		};
+	}, [driven, streamId, isValidStreamId, httpStatus, httpText, httpError, streamBody]);
 }
 
 /**
  * Hook specifically for message streaming that handles the message<->stream relationship
  */
 export function useMessageStream(
-  messageId: Id<"messages"> | undefined,
-  driven: boolean
+	messageId: Id<"messages"> | undefined,
+	driven: boolean,
 ): StreamState {
-  // Get the message to find its streamId
-  const message = useQuery(
-    api.messages.get,
-    messageId ? { messageId } : "skip"
-  );
+	// Get the message to find its streamId
+	const message = useQuery(
+		api.messages.get,
+		messageId ? { messageId } : "skip",
+	);
 
-  return useStream({
-    streamId: message?.streamId as Id<"streams"> | undefined,
-    messageId,
-    driven,
-  });
+	return useStream({
+		streamId: message?.streamId as Id<"streams"> | undefined,
+		messageId,
+		driven,
+	});
 }
