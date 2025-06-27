@@ -15,6 +15,7 @@ import type { MessagePart, StreamEnvelope } from "./validators";
 export class HybridStreamWriter {
 	private sequence = 0;
 	private pendingText = "";
+	private pendingReasoning = "";
 	private pendingDeltas: Array<{
 		text: string;
 		partType: string;
@@ -138,6 +139,8 @@ export class HybridStreamWriter {
 
 		await this.sendHttpChunk(part);
 
+		// Accumulate reasoning text similar to regular text
+		this.pendingReasoning += text;
 		this.pendingDeltas.push({
 			text,
 			partType: "reasoning",
@@ -364,7 +367,7 @@ export class HybridStreamWriter {
 	private async flushToDatabase(): Promise<void> {
 		if (this.pendingDeltas.length === 0) return;
 
-		// Write all pending deltas in sequence
+		// First, write all deltas to streamDeltas for history
 		for (const delta of this.pendingDeltas) {
 			await this.ctx.runMutation(internal.streamDeltas.addDelta, {
 				messageId: this.messageId,
@@ -378,22 +381,34 @@ export class HybridStreamWriter {
 				partType: delta.partType,
 				metadata: delta.metadata,
 			});
+		}
 
-			// Also update the message parts directly based on the delta type
-			if (delta.partType === "text") {
-				await this.ctx.runMutation(internal.messages.addTextPart, {
-					messageId: this.messageId,
-					text: delta.text,
-				});
-			} else if (delta.partType === "reasoning") {
-				await this.ctx.runMutation(internal.messages.addReasoningPart, {
-					messageId: this.messageId,
-					text: delta.text,
-					providerMetadata: delta.metadata?.providerMetadata,
-				});
-			} else if (delta.partType === "tool-call" && delta.metadata) {
+		// Then update message parts with accumulated content
+		// Add accumulated text as a single part if any
+		if (this.pendingText) {
+			await this.ctx.runMutation(internal.messages.addTextPart, {
+				messageId: this.messageId,
+				text: this.pendingText,
+			});
+		}
+
+		// Add accumulated reasoning as a single part if any
+		if (this.pendingReasoning) {
+			await this.ctx.runMutation(internal.messages.addReasoningPart, {
+				messageId: this.messageId,
+				text: this.pendingReasoning,
+				providerMetadata: undefined, // Could track metadata if needed
+			});
+		}
+
+		// Process non-accumulated deltas (tool calls, errors)
+		for (const delta of this.pendingDeltas) {
+			if (delta.partType === "tool-call" && delta.metadata) {
 				// Check if this is a result update or a new tool call
-				if (delta.metadata.state === "result" && delta.metadata.result !== undefined) {
+				if (
+					delta.metadata.state === "result" &&
+					delta.metadata.result !== undefined
+				) {
 					// Update existing tool call with result
 					await this.ctx.runMutation(internal.messages.updateToolCallPart, {
 						messageId: this.messageId,
@@ -408,7 +423,9 @@ export class HybridStreamWriter {
 						toolCallId: String(delta.metadata.toolCallId || ""),
 						toolName: String(delta.metadata.toolName || ""),
 						args: delta.metadata.args || {},
-						state: (delta.metadata.state as "partial-call" | "call" | "result") || "call",
+						state:
+							(delta.metadata.state as "partial-call" | "call" | "result") ||
+							"call",
 					});
 				}
 			} else if (delta.partType === "error") {
@@ -422,6 +439,7 @@ export class HybridStreamWriter {
 
 		// Clear accumulated state
 		this.pendingText = "";
+		this.pendingReasoning = "";
 		this.pendingDeltas = [];
 		this.lastDbWrite = Date.now();
 	}

@@ -1,28 +1,28 @@
 import {
-  type CoreMessage,
-  type TextStreamPart,
-  type ToolSet,
-  smoothStream,
-  streamText,
+	type CoreMessage,
+	type TextStreamPart,
+	type ToolSet,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import {
-  type ModelId,
-  getModelById,
-  getModelConfig,
-  getProviderFromModelId,
-  isThinkingMode,
+	type ModelId,
+	getModelById,
+	getModelConfig,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { type ActionCtx } from "./_generated/server";
+import type { ActionCtx } from "./_generated/server";
 import type { HybridStreamWriter } from "./hybridStreamWriter";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
 import { createSystemPrompt } from "./lib/message_builder";
+import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
 import { formatUsageData } from "./messages/types";
-import { getModelStreamingDelay } from "./lib/streaming_config";
 
 // Helper function to build conversation messages for stream-based AI responses
 async function buildConversationMessagesForStreams(
@@ -132,20 +132,20 @@ export async function streamAIText(
 			}),
 		};
 
-    if (provider === "anthropic" && isThinkingMode(args.modelId as ModelId)){
-				const modelConfig = getModelConfig(args.modelId as ModelId);
-				if (modelConfig.thinkingConfig) {
-					// Add thinking configuration for Anthropic models
-					generationOptions.providerOptions = {
-						anthropic: {
-							thinking: {
-								type: "enabled",
-								budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
-							},
+		if (provider === "anthropic" && isThinkingMode(args.modelId as ModelId)) {
+			const modelConfig = getModelConfig(args.modelId as ModelId);
+			if (modelConfig.thinkingConfig) {
+				// Add thinking configuration for Anthropic models
+				generationOptions.providerOptions = {
+					anthropic: {
+						thinking: {
+							type: "enabled",
+							budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
 						},
-					};
-				}
+					},
+				};
 			}
+		}
 
 		// Add tools if supported and enabled
 		if (model.features.functionCalling && args.webSearchEnabled) {
