@@ -163,32 +163,45 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		let fullText = "";
 		let updateTimer: NodeJS.Timeout | null = null;
 
-		// Helper to update database
+		// Helper to update text content
+		const updateTextContent = async () => {
+			if (!pendingText) return;
+
+			// Update the message body for display
+			await ctx.runMutation(internal.messages.updateStreamingMessage, {
+				messageId,
+				content: fullText,
+			});
+
+			// Add text part to parts array
+			await ctx.runMutation(internal.messages.addTextPart, {
+				messageId,
+				text: pendingText,
+			});
+
+			pendingText = "";
+		};
+
+		// Helper to update reasoning content
+		const updateReasoningContent = async () => {
+			if (!pendingReasoning) return;
+
+			// Add reasoning part to parts array
+			await ctx.runMutation(internal.messages.addReasoningPart, {
+				messageId,
+				text: pendingReasoning,
+				providerMetadata: undefined,
+			});
+
+			pendingReasoning = "";
+		};
+
+		// Combined update helper for backward compatibility
 		const updateDatabase = async () => {
-			if (pendingText) {
-				// Update the message body for display
-				await ctx.runMutation(internal.messages.updateStreamingMessage, {
-					messageId,
-					content: fullText,
-				});
-
-				// Add text part if not already added
-				await ctx.runMutation(internal.messages.addTextPart, {
-					messageId,
-					text: pendingText,
-				});
-				pendingText = "";
-			}
-
-			if (pendingReasoning) {
-				// Add reasoning part
-				await ctx.runMutation(internal.messages.addReasoningPart, {
-					messageId,
-					text: pendingReasoning,
-					providerMetadata: undefined,
-				});
-				pendingReasoning = "";
-			}
+			await Promise.all([
+				updateTextContent(),
+				updateReasoningContent(),
+			]);
 		};
 
 		// Set up periodic database updates (50ms)
@@ -207,34 +220,97 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					chunking: "word",
 				}),
 				onChunk: async ({ chunk }) => {
-					if (chunk.type === "text" && chunk.text) {
-						pendingText += chunk.text;
-						fullText += chunk.text;
-					} else if (chunk.type === "reasoning" && chunk.text) {
-						pendingReasoning += chunk.text;
-					} else if (chunk.type === "tool-call") {
-						// Flush pending text before tool call
-						await updateDatabase();
+					// Handle Vercel AI SDK v5 chunk types
+					// Supported types: "text" | "reasoning" | "source" | "raw" | "tool-call" | "tool-result" | "tool-call-streaming-start" | "tool-call-delta"
+					switch (chunk.type) {
+						case "text":
+							if (chunk.text) {
+								pendingText += chunk.text;
+								fullText += chunk.text;
+							}
+							break;
 
-						// Add tool call to database
-						await ctx.runMutation(internal.messages.addToolCallPart, {
-							messageId,
-							toolCallId: chunk.toolCallId,
-							toolName: chunk.toolName,
-							args: chunk.input || {},
-							state: "call",
-						});
-					} else if (chunk.type === "tool-result") {
-						// Update tool call with result
-						await ctx.runMutation(internal.messages.updateToolCallPart, {
-							messageId,
-							toolCallId: chunk.toolCallId,
-							result: chunk.output,
-							state: "result",
-						});
+						case "reasoning":
+							if (chunk.text) {
+								pendingReasoning += chunk.text;
+							}
+							break;
+
+						case "source":
+							// Flush pending content before source
+							await updateDatabase();
+
+							// Add source part to database - handle different source types
+							if (chunk.sourceType === "url") {
+								await ctx.runMutation(internal.messages.addSourcePart, {
+									messageId,
+									sourceId: chunk.id || "",
+									sourceType: "url",
+									title: chunk.title || "",
+									url: chunk.url,
+									filename: undefined,
+									mediaType: undefined,
+									providerMetadata: chunk.providerMetadata,
+								});
+							} else {
+								// Document type source
+								await ctx.runMutation(internal.messages.addSourcePart, {
+									messageId,
+									sourceId: chunk.id || "",
+									sourceType: "document",
+									title: chunk.title || "",
+									url: undefined,
+									filename: "filename" in chunk ? chunk.filename : undefined,
+									mediaType: chunk.mediaType,
+									providerMetadata: chunk.providerMetadata,
+								});
+							}
+							break;
+
+						case "raw":
+							// Add raw part for unstructured data
+							await ctx.runMutation(internal.messages.addRawPart, {
+								messageId,
+								rawValue: chunk,
+							});
+							break;
+
+						case "tool-call":
+							// Flush pending content before tool call
+							await updateDatabase();
+
+							// Add tool call to database
+							await ctx.runMutation(internal.messages.addToolCallPart, {
+								messageId,
+								toolCallId: chunk.toolCallId,
+								toolName: chunk.toolName,
+								args: chunk.input || {},
+								state: "call",
+							});
+							break;
+
+						case "tool-result":
+							// Update tool call with result
+							await ctx.runMutation(internal.messages.updateToolCallPart, {
+								messageId,
+								toolCallId: chunk.toolCallId,
+								result: chunk.output,
+								state: "result",
+							});
+							break;
+
+						case "tool-call-streaming-start":
+						case "tool-call-delta":
+							// These are intermediate streaming states for tools
+							// We handle the complete tool call in the 'tool-call' case
+							break;
+
+						default:
+							// This should never happen with the known types
+							console.warn(`Unexpected chunk type`, chunk);
 					}
 				},
-				onFinish: async () => {
+				onFinish: async (result) => {
 					// Clear timer
 					if (updateTimer) {
 						clearInterval(updateTimer);
@@ -243,10 +319,22 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					// Final database update
 					await updateDatabase();
 
-					// Update the message to mark it as complete
-					await ctx.runMutation(internal.messages.updateStreamingMessage, {
+					// Extract usage data if available
+					let usage = undefined;
+					if (result.usage) {
+						usage = {
+							inputTokens: result.usage.inputTokens || 0,
+							outputTokens: result.usage.outputTokens || 0,
+							totalTokens: result.usage.totalTokens || 0,
+							reasoningTokens: result.usage.reasoningTokens || 0,
+							cachedInputTokens: result.usage.cachedInputTokens || 0,
+						};
+					}
+
+					// Mark message as complete with usage data
+					await ctx.runMutation(internal.messages.markComplete, {
 						messageId,
-						content: fullText,
+						usage,
 					});
 
 					// Clear generation flag
@@ -254,7 +342,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						threadId,
 					});
 
-					console.log(`Streaming completed for message ${messageId}`);
+					console.log(`Streaming completed for message ${messageId}`, {
+						fullTextLength: fullText.length,
+						usage,
+					});
 				},
 			};
 

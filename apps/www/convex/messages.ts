@@ -38,7 +38,8 @@ import {
   modelProviderValidator,
   shareIdValidator,
   shareSettingsValidator,
-  threadUsageValidator
+  threadUsageValidator,
+  tokenUsageValidator
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
@@ -456,7 +457,7 @@ export const send = mutation({
 		const provider = getProviderFromModelId(modelId as ModelId);
 
 		// Insert user message after setting generation flag
-		const userMessageId = await ctx.db.insert("messages", {
+		await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			body: args.body,
 			timestamp: Date.now(),
@@ -466,7 +467,17 @@ export const send = mutation({
 			attachments: args.attachments,
 		});
 
-		let messageId: Id<"messages"> = userMessageId; // Default to user message
+		// Create assistant message placeholder for HTTP streaming
+		const assistantMessageId = await ctx.db.insert("messages", {
+			threadId: args.threadId,
+			body: "",
+			timestamp: Date.now() + 1,
+			messageType: "assistant",
+			model: provider,
+			modelId: modelId,
+			isStreaming: true,
+			isComplete: false,
+		});
 
 		// Schedule AI response generation
 		await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
@@ -493,7 +504,7 @@ export const send = mutation({
 			});
 		}
 
-		return { messageId };
+		return { messageId: assistantMessageId };
 	},
 });
 
@@ -569,7 +580,17 @@ export const createThreadAndSend = mutation({
 			attachments: args.attachments,
 		});
 
-		let assistantMessageId: Id<"messages"> | undefined;
+		// Create assistant message placeholder for HTTP streaming
+		const assistantMessageId = await ctx.db.insert("messages", {
+			threadId,
+			body: "",
+			timestamp: now + 1,
+			messageType: "assistant",
+			model: provider,
+			modelId: modelId,
+			isStreaming: true,
+			isComplete: false,
+		});
 
 		// Schedule AI response generation
 		await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
@@ -594,7 +615,7 @@ export const createThreadAndSend = mutation({
 			threadId,
 			userMessageId,
 			assistantMessageId,
-			messageId: userMessageId, // Return user message ID since we don't create assistant message upfront
+			messageId: assistantMessageId, // Return assistant message ID for HTTP streaming
 		};
 	},
 });
@@ -1208,7 +1229,8 @@ export const generateAIResponse = internalAction({
 				openrouter?: string;
 			} | null;
 
-			// Create streaming message
+			// Create new streaming message
+			// Note: In HTTP streaming mode, the assistant message is pre-created by send/createThreadAndSend mutations
 			messageId = await ctx.runMutation(internal.messages.create, {
 				threadId: args.threadId,
 				messageType: "assistant",
@@ -1336,13 +1358,20 @@ export const appendStreamingText = internalMutation({
 export const markComplete = internalMutation({
 	args: {
 		messageId: v.id("messages"),
+		usage: v.optional(tokenUsageValidator),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.messageId, {
+		const updateData: any = {
 			isStreaming: false,
 			isComplete: true,
-		});
+		};
+
+		if (args.usage) {
+			updateData.usage = args.usage;
+		}
+
+		await ctx.db.patch(args.messageId, updateData);
 
 		return null;
 	},
