@@ -1,0 +1,55 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "internal/*"
+  - "vendor/*"
+  - "tooling/*"
+
+catalog:
+  # Build tools and shared utilities
+  "@biomejs/biome": "^1.9.4"
+  "@turbo/gen": "^2.5.0"
+  "turbo": "^2.5.4"
+  "typescript": "^5.8.3"
+  
+  # Core AI and backend
+  "@ai-sdk/anthropic": "alpha"
+  "@ai-sdk/openai": "alpha"
+  "@ai-sdk/react": "alpha"
+  "@convex-dev/auth": "^0.0.87"
+  "ai": "alpha"
+  "convex": "^1.24.8"
+  "convex-helpers": "^0.1.93"
+  
+  # Environment and configuration
+  "@t3-oss/env-core": "^0.13.8"
+  "@t3-oss/env-nextjs": "^0.12.0"
+  
+  # Core Next.js and framework
+  "next": "15.4.0-canary.77"
+  "next-themes": "^0.4.6"
+  
+  # Shared utilities
+  "date-fns": "^4.1.0"
+  "nanoid": "^5.1.5"
+  "zod": "^3.25.58"
+  
+  # Analytics and monitoring
+  "@vercel/analytics": "^1.5.0"
+  "@vercel/speed-insights": "^1.2.0"
+
+catalogs:
+  react19:
+    react: "^19.1.0"
+    react-dom: "^19.1.0"
+    "@types/react": "^19.1.7"
+    "@types/react-dom": "^19.1.6"
+  tailwind4:
+    tailwindcss: "^4.1.10"
+    "@tailwindcss/postcss": "^4.1.10"
+
+pnpm:
+  onlyBuiltDependencies:
+    - "esbuild"
+    - "@sentry/cli"
+    - "turbo"

@@ -2,7 +2,8 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "lint": {
       "cache": false
@@ -10,8 +11,15 @@
     "format": {
       "cache": false
     },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "cache": false
+    },
     "dev": {
       "persistent": true,
+      "cache": false
+    },
+    "clean": {
       "cache": false
     },
     "convex:dev": {

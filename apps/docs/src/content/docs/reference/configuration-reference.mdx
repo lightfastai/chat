@@ -1,0 +1,830 @@
+---
+title: Configuration Reference
+description: Complete reference for all configuration options
+---
+
+# Configuration Reference
+
+This reference documents every configuration option available in Lightfast Chat.
+
+## Environment Variables
+
+### Required Variables
+
+These environment variables must be set for the application to function.
+
+#### `NEXT_PUBLIC_CONVEX_URL`
+- **Type**: `string`
+- **Required**: Yes
+- **Description**: URL of your Convex deployment
+- **Example**: `https://thankful-cat-123.convex.cloud`
+
+#### `CONVEX_DEPLOY_KEY`
+- **Type**: `string`
+- **Required**: Yes
+- **Description**: Deploy key for Convex backend
+- **Example**: `prod_abc123def456...`
+
+#### `JWT_PRIVATE_KEY`
+- **Type**: `string` (base64 encoded)
+- **Required**: Yes
+- **Description**: Private key for JWT signing
+- **Generation**:
+  ```bash
+  openssl genrsa -out private.pem 2048
+  base64 -i private.pem | tr -d '\n'
+  ```
+
+#### `JWKS`
+- **Type**: `JSON string`
+- **Required**: Yes
+- **Description**: JSON Web Key Set for JWT verification
+- **Example**: `{"keys":[{"kty":"RSA","n":"...","e":"AQAB"}]}`
+
+### AI Provider Variables
+
+At least one AI provider must be configured.
+
+#### `ANTHROPIC_API_KEY`
+- **Type**: `string`
+- **Required**: Conditional
+- **Description**: API key for Anthropic Claude models
+- **Format**: `sk-ant-api03-...`
+
+#### `OPENAI_API_KEY`
+- **Type**: `string`
+- **Required**: Conditional
+- **Description**: API key for OpenAI GPT models
+- **Format**: `sk-...`
+
+#### `OPENROUTER_API_KEY`
+- **Type**: `string`
+- **Required**: Conditional
+- **Description**: API key for OpenRouter
+- **Format**: `sk-or-v1-...`
+
+### Optional Variables
+
+#### Authentication
+
+##### `AUTH_GITHUB_ID`
+- **Type**: `string`
+- **Description**: GitHub OAuth app client ID
+- **Format**: `Iv1.abc123...`
+
+##### `AUTH_GITHUB_SECRET`
+- **Type**: `string`
+- **Description**: GitHub OAuth app client secret
+- **Format**: `abc123def456...`
+
+##### `AUTH_GOOGLE_ID`
+- **Type**: `string`
+- **Description**: Google OAuth client ID
+- **Format**: `123456-abc.apps.googleusercontent.com`
+
+##### `AUTH_GOOGLE_SECRET`
+- **Type**: `string`
+- **Description**: Google OAuth client secret
+- **Format**: `GOCSPX-...`
+
+#### Site Configuration
+
+##### `SITE_URL`
+- **Type**: `string`
+- **Default**: `http://localhost:3000`
+- **Description**: Full URL of your deployment
+- **Example**: `https://chat.example.com`
+
+##### `DOCS_URL`
+- **Type**: `string`
+- **Description**: URL for documentation site
+- **Example**: `https://docs.example.com`
+
+#### Analytics & Monitoring
+
+##### `NEXT_PUBLIC_POSTHOG_KEY`
+- **Type**: `string`
+- **Description**: PostHog project API key
+- **Format**: `phc_...`
+
+##### `NEXT_PUBLIC_POSTHOG_HOST`
+- **Type**: `string`
+- **Default**: `https://app.posthog.com`
+- **Description**: PostHog API endpoint
+
+##### `SENTRY_DSN`
+- **Type**: `string`
+- **Description**: Sentry error tracking DSN
+- **Format**: `https://...@sentry.io/...`
+
+##### `SENTRY_AUTH_TOKEN`
+- **Type**: `string`
+- **Description**: Sentry auth token for source maps
+- **Format**: `sntrys_...`
+
+#### External Services
+
+##### `EXA_API_KEY`
+- **Type**: `string`
+- **Description**: Exa API key for web search
+- **Format**: `exa_...`
+
+##### `UPLOADTHING_SECRET`
+- **Type**: `string`
+- **Description**: UploadThing secret key
+- **Format**: `sk_live_...`
+
+##### `UPLOADTHING_APP_ID`
+- **Type**: `string`
+- **Description**: UploadThing application ID
+- **Format**: `app_...`
+
+#### Development
+
+##### `SKIP_ENV_VALIDATION`
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: Skip environment validation at build time
+- **Usage**: `SKIP_ENV_VALIDATION=true pnpm run build`
+
+##### `ANALYZE`
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: Enable bundle analysis
+- **Usage**: `ANALYZE=true pnpm run build`
+
+##### `NODE_ENV`
+- **Type**: `development | production | test`
+- **Default**: `development`
+- **Description**: Node.js environment
+
+##### `DEBUG`
+- **Type**: `string`
+- **Description**: Enable debug logging
+- **Example**: `DEBUG=* pnpm run dev`
+
+## Site Configuration File
+
+Located at `apps/www/src/lib/site-config.ts`
+
+### Basic Configuration
+
+```typescript
+export const siteConfig = {
+  // Site Identity
+  name: "Lightfast Chat",
+  description: "AI-powered chat application",
+  url: "https://chat.lightfast.ai",
+  
+  // SEO
+  ogImage: "https://chat.lightfast.ai/og.jpg",
+  creator: "@lightfastai",
+  keywords: ["ai", "chat", "claude", "gpt"],
+  
+  // Social Links
+  links: {
+    github: "https://github.com/lightfastai/chat",
+    discord: "https://discord.gg/lightfast",
+    twitter: "https://twitter.com/lightfastai",
+  },
+}
+```
+
+### Feature Flags
+
+```typescript
+export const features = {
+  // Core Features
+  auth: {
+    enabled: true,
+    providers: ["github", "google"],
+    requireVerification: false,
+  },
+  
+  // Chat Features
+  chat: {
+    maxMessageLength: 4000,
+    maxConversations: 100,
+    allowDelete: true,
+    allowEdit: true,
+    editTimeLimit: 300000, // 5 minutes
+  },
+  
+  // File Upload
+  fileUpload: {
+    enabled: true,
+    maxSize: 10 * 1024 * 1024, // 10MB
+    maxFiles: 5,
+    allowedTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
+      "text/plain",
+    ],
+  },
+  
+  // Sharing
+  sharing: {
+    enabled: true,
+    requireAuth: false,
+    expirationDays: 30,
+  },
+  
+  // Analytics
+  analytics: {
+    enabled: process.env.NODE_ENV === "production",
+    providers: ["posthog", "google"],
+  },
+}
+```
+
+### Rate Limits
+
+```typescript
+export const rateLimits = {
+  // Message Limits
+  messages: {
+    windowMs: 60 * 1000,     // 1 minute
+    max: 20,                 // requests
+    message: "Too many messages, please slow down",
+  },
+  
+  // API Limits
+  api: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,                 // requests
+    standardHeaders: true,
+    legacyHeaders: false,
+  },
+  
+  // File Upload Limits
+  uploads: {
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 50,                  // uploads
+    maxSize: 100 * 1024 * 1024, // 100MB total
+  },
+  
+  // Auth Limits
+  auth: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5,                   // attempts
+    skipSuccessfulRequests: true,
+  },
+}
+```
+
+## Model Configuration
+
+Located at `apps/www/src/lib/models.ts`
+
+### Model Registry
+
+```typescript
+export const models = {
+  // Anthropic Models
+  "claude-3-5-sonnet": {
+    id: "claude-3-5-sonnet-20241022",
+    name: "Claude 3.5 Sonnet",
+    provider: "anthropic",
+    category: "balanced",
+    contextWindow: 200000,
+    maxOutput: 8192,
+    vision: true,
+    functions: false,
+    pricing: {
+      input: 0.003,   // per 1K tokens
+      output: 0.015,  // per 1K tokens
+    },
+  },
+  
+  // OpenAI Models
+  "gpt-4o": {
+    id: "gpt-4o",
+    name: "GPT-4o",
+    provider: "openai",
+    category: "multimodal",
+    contextWindow: 128000,
+    maxOutput: 4096,
+    vision: true,
+    functions: true,
+    pricing: {
+      input: 0.005,
+      output: 0.015,
+    },
+  },
+  
+  // Custom Models
+  "custom-model": {
+    id: "custom/model-id",
+    name: "Custom Model",
+    provider: "custom",
+    category: "specialized",
+    contextWindow: 32000,
+    maxOutput: 2048,
+    endpoint: "https://api.custom.ai/v1/chat",
+    headers: {
+      "X-API-Version": "2024-01",
+    },
+  },
+}
+```
+
+### Model Settings
+
+```typescript
+export const modelSettings = {
+  // Default Model
+  defaultModel: "claude-3-5-sonnet",
+  
+  // Model Categories
+  categories: {
+    fast: ["claude-3-haiku", "gpt-3.5-turbo"],
+    balanced: ["claude-3-5-sonnet", "gpt-4o"],
+    quality: ["claude-3-opus", "gpt-4-turbo"],
+    specialized: ["code-llama", "med-palm"],
+  },
+  
+  // Fallback Chain
+  fallbackChain: [
+    "claude-3-5-sonnet",
+    "gpt-4o",
+    "claude-3-haiku",
+    "gpt-3.5-turbo",
+  ],
+  
+  // Temperature Presets
+  temperatures: {
+    creative: 0.9,
+    balanced: 0.7,
+    precise: 0.3,
+  },
+}
+```
+
+## Build Configuration
+
+### Next.js Configuration
+
+Located at `apps/www/next.config.ts`
+
+```typescript
+export default {
+  // React Configuration
+  reactStrictMode: true,
+  
+  // Experimental Features
+  experimental: {
+    ppr: true,                    // Partial Prerendering
+    optimizePackageImports: [     // Optimize imports
+      "@repo/ui",
+      "lucide-react",
+    ],
+  },
+  
+  // Image Configuration
+  images: {
+    domains: [
+      "convex.cloud",
+      "github.com",
+      "googleusercontent.com",
+    ],
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [640, 750, 828, 1080, 1200],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+  },
+  
+  // Headers
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+        ],
+      },
+    ]
+  },
+  
+  // Redirects
+  async redirects() {
+    return [
+      {
+        source: "/docs",
+        destination: process.env.DOCS_URL || "/",
+        permanent: false,
+      },
+    ]
+  },
+}
+```
+
+### Turborepo Configuration
+
+Located at `turbo.json`
+
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "dist/**"],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "CONVEX_*",
+        "NODE_ENV"
+      ]
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false,
+      "env": ["*"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    }
+  }
+}
+```
+
+### TypeScript Configuration
+
+Located at `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "ES2022"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/hooks/*": ["./src/hooks/*"]
+    }
+  }
+}
+```
+
+### Biome Configuration
+
+Located at `biome.json`
+
+```json
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "warn"
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+        "noParameterAssign": "error"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  }
+}
+```
+
+## Database Schema
+
+### Convex Schema Configuration
+
+Located at `apps/www/convex/schema.ts`
+
+```typescript
+export default defineSchema({
+  // Users Table
+  users: defineTable({
+    email: v.string(),
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    role: v.union(v.literal("user"), v.literal("admin")),
+    settings: v.optional(v.object({
+      theme: v.string(),
+      defaultModel: v.string(),
+      language: v.string(),
+    })),
+    createdAt: v.number(),
+    lastActiveAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_created", ["createdAt"]),
+  
+  // Conversations Table
+  conversations: defineTable({
+    userId: v.string(),
+    title: v.string(),
+    model: v.string(),
+    isPublic: v.boolean(),
+    shareId: v.optional(v.string()),
+    settings: v.optional(v.object({
+      temperature: v.number(),
+      maxTokens: v.number(),
+      systemPrompt: v.optional(v.string()),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId", "updatedAt"])
+    .index("by_share", ["shareId"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["userId"],
+    }),
+  
+  // Messages Table
+  messages: defineTable({
+    conversationId: v.id("conversations"),
+    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+    content: v.string(),
+    model: v.optional(v.string()),
+    attachments: v.optional(v.array(v.object({
+      storageId: v.string(),
+      type: v.string(),
+      name: v.string(),
+      size: v.number(),
+    }))),
+    metadata: v.optional(v.object({
+      tokens: v.number(),
+      processingTime: v.number(),
+      error: v.optional(v.string()),
+    })),
+    createdAt: v.number(),
+    editedAt: v.optional(v.number()),
+  })
+    .index("by_conversation", ["conversationId", "createdAt"])
+    .searchIndex("search_content", {
+      searchField: "content",
+      filterFields: ["conversationId"],
+    }),
+})
+```
+
+## Deployment Configuration
+
+### Vercel Configuration
+
+Located at `vercel.json`
+
+```json
+{
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "apps/www/.next",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "apps/www/app/api/ai/route.ts": {
+      "maxDuration": 300
+    },
+    "apps/www/app/api/webhook/[provider]/route.ts": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}
+```
+
+### Docker Configuration
+
+Located at `Dockerfile`
+
+```dockerfile
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy lockfile and package files
+COPY pnpm-lock.yaml package.json ./
+COPY apps/www/package.json ./apps/www/
+COPY packages/*/package.json ./packages/*/
+
+# Install dependencies
+RUN corepack enable && pnpm install --frozen-lockfile
+
+# Copy source
+COPY . .
+
+# Build application
+ARG SKIP_ENV_VALIDATION=true
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm run build
+
+# Runtime stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Copy built application
+COPY --from=builder /app/apps/www/.next ./apps/www/.next
+COPY --from=builder /app/apps/www/public ./apps/www/public
+COPY --from=builder /app/apps/www/package.json ./apps/www/
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+
+# Install production dependencies
+RUN corepack enable && pnpm install --production
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+USER nextjs
+
+EXPOSE 3000
+ENV PORT=3000
+
+CMD ["pnpm", "run", "start"]
+```
+
+## Security Configuration
+
+### Content Security Policy
+
+```typescript
+export const cspHeader = `
+  default-src 'self';
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.convex.cloud;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' blob: data: https:;
+  font-src 'self' data:;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
+`
+```
+
+### CORS Configuration
+
+```typescript
+export const corsConfig = {
+  origin: process.env.SITE_URL || "http://localhost:3000",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["X-Total-Count"],
+  maxAge: 86400, // 24 hours
+}
+```
+
+## Performance Configuration
+
+### Cache Configuration
+
+```typescript
+export const cacheConfig = {
+  // Static Assets
+  static: {
+    maxAge: 31536000,  // 1 year
+    immutable: true,
+  },
+  
+  // API Responses
+  api: {
+    conversations: 60,   // 1 minute
+    messages: 300,      // 5 minutes
+    user: 3600,        // 1 hour
+  },
+  
+  // Page Cache
+  pages: {
+    home: 3600,        // 1 hour
+    conversation: 0,   // No cache (real-time)
+    profile: 300,      // 5 minutes
+  },
+}
+```
+
+### Optimization Settings
+
+```typescript
+export const optimization = {
+  // Image Optimization
+  images: {
+    quality: 85,
+    formats: ["webp", "avif"],
+    sizes: [640, 750, 828, 1080, 1200, 1920],
+  },
+  
+  // Code Splitting
+  chunks: {
+    maxSize: 250000,    // 250KB
+    minSize: 20000,     // 20KB
+  },
+  
+  // Prefetching
+  prefetch: {
+    enabled: true,
+    strategy: "viewport",
+    throttle: 2,
+  },
+}
+```
+
+## Monitoring Configuration
+
+### Logging
+
+```typescript
+export const logging = {
+  level: process.env.LOG_LEVEL || "info",
+  format: process.env.NODE_ENV === "production" ? "json" : "pretty",
+  
+  // Log Targets
+  targets: {
+    console: true,
+    file: process.env.LOG_FILE,
+    remote: process.env.LOG_REMOTE_URL,
+  },
+  
+  // Redaction
+  redact: [
+    "password",
+    "apiKey",
+    "token",
+    "secret",
+  ],
+}
+```
+
+### Metrics
+
+```typescript
+export const metrics = {
+  enabled: process.env.NODE_ENV === "production",
+  
+  // Custom Metrics
+  custom: {
+    messagesSent: "counter",
+    activeUsers: "gauge",
+    responseTime: "histogram",
+    errorRate: "counter",
+  },
+  
+  // Export Interval
+  exportInterval: 60000, // 1 minute
+}
+```
+
+## Migration Notes
+
+When updating configuration:
+
+1. **Environment Variables**: Add new variables to `.env.example`
+2. **Type Safety**: Update types in `env.ts`
+3. **Documentation**: Update this reference
+4. **Migration Guide**: Add to changelog if breaking
+
+## Next Steps
+
+- Apply configuration in [Installation](/docs/installation)
+- Set up for [Deployment](/docs/deployment)
+- Configure for [Self-Hosting](/docs/self-hosting)
