@@ -1,8 +1,10 @@
 "use client";
 
+import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
 import { getProviderFromModelId } from "@/lib/ai";
 import { isClientId, nanoid } from "@/lib/nanoid";
+import { useAuthToken } from "@convex-dev/auth/react";
 import {
 	type Preloaded,
 	useMutation,
@@ -13,6 +15,7 @@ import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
+// Removed old useHTTPStreaming import
 
 interface UseChatOptions {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
@@ -23,6 +26,7 @@ interface UseChatOptions {
 
 export function useChat(options: UseChatOptions = {}) {
 	const pathname = usePathname();
+	const authToken = useAuthToken();
 
 	// Store the temporary thread ID to maintain consistency across URL changes
 
@@ -125,7 +129,7 @@ export function useChat(options: UseChatOptions = {}) {
 	// 2. Messages by clientId (for optimistic updates)
 	// 3. Messages by threadId (regular case)
 	// 4. Empty array fallback
-	const messages =
+	const baseMessages =
 		preloadedMessages ?? messagesByClientId ?? messagesByThreadId ?? [];
 
 	// Use preloaded user settings if available, otherwise query
@@ -140,6 +144,10 @@ export function useChat(options: UseChatOptions = {}) {
 
 	// Use whichever is available
 	const finalUserSettings = preloadedUserSettings ?? userSettings;
+
+	// For true hybrid streaming, we always use both HTTP and Convex
+	// No settings toggle needed - hybrid streaming is always on
+	const messages = baseMessages;
 
 	// Remove debug logging for production
 	// Uncomment the following for debugging message queries
@@ -282,7 +290,8 @@ export function useChat(options: UseChatOptions = {}) {
 			timestamp: now + 1,
 			isStreaming: true,
 			isComplete: false,
-			streamId: `stream_${clientId}_${now}`,
+			// Don't set streamId in optimistic update - it must be a real Convex ID
+			// streamId will be set when the real message is created
 			// Don't set thinkingStartedAt to prevent premature "Thinking" display
 			usedUserApiKey: willUseUserApiKey,
 		};
@@ -405,46 +414,153 @@ export function useChat(options: UseChatOptions = {}) {
 		}
 
 		try {
-			if (isNewChat) {
-				// 🚀 Generate client ID for new chat
-				const clientId = nanoid();
+			console.log("🎯 handleSendMessage called:", {
+				hasCurrentThread: !!currentThread,
+				currentThreadId: currentThread?._id,
+				isNewChat,
+				currentClientId,
+				hasAttachments: !!attachments?.length,
+				webSearchEnabled,
+			});
 
-				// Update URL immediately without navigation events
-				// Using window.history.replaceState like Vercel's AI chatbot for smoothest UX
+			// Always use hybrid streaming for better performance
+			// HTTP streaming provides instant feedback while Convex handles persistence
+			console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
+				currentThread: !!currentThread,
+				isNewChat,
+				currentClientId,
+				modelId,
+			});
+
+			// Helper function to start HTTP streaming
+			const startHttpStreaming = async (
+				threadId: Id<"threads">,
+				streamId: Id<"streams">,
+				messageId: Id<"messages">,
+			) => {
+				if (!authToken) return;
+
+				// Construct Convex HTTP endpoint URL
+				const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
+				let convexSiteUrl: string;
+				if (convexUrl.includes(".cloud")) {
+					convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
+				} else {
+					const url = new URL(convexUrl);
+					url.port = String(Number(url.port) + 1);
+					convexSiteUrl = url.toString().replace(/\/$/, ""); // Remove trailing slash
+				}
+				console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
+					convexSiteUrl,
+				});
+				const streamUrl = `${convexSiteUrl}/stream-chat`;
+
+				fetch(streamUrl, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${authToken}`,
+					},
+					body: JSON.stringify({
+						threadId: threadId,
+						modelId: modelId,
+						messages: [], // Will be populated by the endpoint from thread
+						options: {
+							resumeFromStreamId: streamId, // Use existing streamId
+							useExistingMessage: messageId, // Use existing messageId
+							webSearchEnabled: webSearchEnabled,
+						},
+					}),
+				}).catch((error) => {
+					console.warn(
+						"HTTP streaming failed (falling back to Convex only):",
+						error,
+					);
+					// HTTP failure is non-fatal - Convex persistence will still work
+				});
+			};
+
+			// Handle different cases with hybrid streaming
+			if (isNewChat) {
+				// New chat: Create thread + send message, then start HTTP streaming
+				const clientId = nanoid();
 				window.history.replaceState({}, "", `/chat/${clientId}`);
 
-				// Create thread + send message atomically with optimistic updates
-				await createThreadAndSend({
+				const convexResult = await createThreadAndSend({
 					title: "",
 					clientId: clientId,
 					body: message,
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
+					useHybridStreaming: true, // Enable hybrid streaming
 				});
+
+				// Start HTTP streaming if we got the necessary IDs
+				if (
+					convexResult?.streamId &&
+					convexResult?.messageId &&
+					convexResult?.threadId
+				) {
+					await startHttpStreaming(
+						convexResult.threadId,
+						convexResult.streamId,
+						convexResult.messageId,
+					);
+				}
 
 				return;
 			}
 
 			if (currentClientId && !currentThread) {
-				// We have a clientId but thread doesn't exist yet, create it + send message
-				await createThreadAndSend({
+				// We have a clientId but thread doesn't exist yet
+				const convexResult = await createThreadAndSend({
 					title: "",
 					clientId: currentClientId,
 					body: message,
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
+					useHybridStreaming: true, // Enable hybrid streaming
 				});
-			} else if (currentThread) {
-				// Normal message sending with Convex optimistic update
-				await sendMessage({
+
+				// Start HTTP streaming if we got the necessary IDs
+				if (
+					convexResult?.streamId &&
+					convexResult?.messageId &&
+					convexResult?.threadId
+				) {
+					await startHttpStreaming(
+						convexResult.threadId,
+						convexResult.streamId,
+						convexResult.messageId,
+					);
+				}
+
+				return;
+			}
+
+			if (currentThread) {
+				// Existing thread: Send message, then start HTTP streaming
+				const convexResult = await sendMessage({
 					threadId: currentThread._id,
 					body: message,
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
+					useHybridStreaming: true, // Enable hybrid streaming
 				});
+
+				// Start HTTP streaming if we got the necessary IDs
+				if (convexResult?.streamId && convexResult?.messageId) {
+					await startHttpStreaming(
+						currentThread._id,
+						convexResult.streamId,
+						convexResult.messageId,
+					);
+				}
+
+				return;
 			}
 		} catch (error) {
 			console.error("Error sending message:", error);

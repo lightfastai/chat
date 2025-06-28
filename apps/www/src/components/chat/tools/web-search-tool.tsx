@@ -26,7 +26,8 @@ export function WebSearchTool({ toolCall }: WebSearchToolProps) {
 	const searchQuery = toolCall.args?.query as string | undefined;
 
 	// Extract search results from the tool result
-	const searchResults = toolCall.result?.results as SearchResult[] | undefined;
+	const searchResults = (toolCall.result as { results?: SearchResult[] })
+		?.results;
 
 	const resultCount = searchResults?.length || 0;
 	const accordionValue = `search-${toolCall.toolCallId}`;

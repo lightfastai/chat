@@ -20,14 +20,36 @@ const getHighlighter = async (): Promise<Highlighter> => {
 	if (sharedHighlighter) {
 		return sharedHighlighter;
 	}
-	
+
 	if (!highlighterPromise) {
 		highlighterPromise = createHighlighter({
 			themes: ["github-light", "github-dark"],
-			langs: ["javascript", "typescript", "jsx", "tsx", "python", "bash", "json", "markdown", "css", "html", "yaml", "sql", "rust", "go", "java", "cpp", "c", "php", "ruby", "xml", "plaintext"],
+			langs: [
+				"javascript",
+				"typescript",
+				"jsx",
+				"tsx",
+				"python",
+				"bash",
+				"json",
+				"markdown",
+				"css",
+				"html",
+				"yaml",
+				"sql",
+				"rust",
+				"go",
+				"java",
+				"cpp",
+				"c",
+				"php",
+				"ruby",
+				"xml",
+				"plaintext",
+			],
 		});
 	}
-	
+
 	sharedHighlighter = await highlighterPromise;
 	return sharedHighlighter;
 };
@@ -41,7 +63,9 @@ interface CodeBlockProps {
 export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 	const { theme } = useTheme();
 	const [copied, setCopied] = useState(false);
-	const [highlightedCode, setHighlightedCode] = useState<string>(`<pre><code>${code}</code></pre>`);
+	const [highlightedCode, setHighlightedCode] = useState<string>(
+		`<pre><code>${code}</code></pre>`,
+	);
 	// TODO: Re-enable scroll mode once overflow container issues are resolved
 	// For now, we only support text wrapping to prevent overflow beyond message bounds
 	// const [isWrapped, setIsWrapped] = useState(true)

@@ -96,7 +96,7 @@ export function MessageItem({
 									// Create a unique key based on part content
 									const partKey =
 										part.type === "tool-call"
-											? `tool-call-${(part as any).toolCallId}`
+											? `tool-call-${part.toolCallId}`
 											: `text-${index}`;
 
 									switch (part.type) {
@@ -125,23 +125,22 @@ export function MessageItem({
 								})}
 							</div>
 						);
-					} else {
-						// Legacy text rendering for messages without parts
-						return displayText ? (
-							<>
-								{isAssistant ? (
-									<Markdown className="text-sm">{displayText}</Markdown>
-								) : (
-									<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-										{displayText}
-									</div>
-								)}
-								{isStreaming && !isComplete && (
-									<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-								)}
-							</>
-						) : null;
 					}
+					// Legacy text rendering for messages without parts
+					return displayText ? (
+						<>
+							{isAssistant ? (
+								<Markdown className="text-sm">{displayText}</Markdown>
+							) : (
+								<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+									{displayText}
+								</div>
+							)}
+							{isStreaming && !isComplete && (
+								<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
+							)}
+						</>
+					) : null;
 				})()}
 			</div>
 		</div>
