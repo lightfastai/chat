@@ -18,7 +18,6 @@ import {
 	shareIdValidator,
 	shareSettingsValidator,
 	storageIdValidator,
-	streamIdValidator,
 	threadUsageValidator,
 	titleValidator,
 	tokenUsageValidator,
@@ -86,7 +85,6 @@ export default defineSchema({
 		// Attachments - array of file IDs
 		attachments: v.optional(v.array(v.id("files"))),
 		isStreaming: v.optional(v.boolean()),
-		streamId: v.optional(streamIdValidator),
 		isComplete: v.optional(v.boolean()),
 		thinkingStartedAt: v.optional(v.number()),
 		thinkingCompletedAt: v.optional(v.number()),
@@ -101,8 +99,7 @@ export default defineSchema({
 		// Stores text, tool calls, and tool results in chronological order
 		parts: v.optional(messagePartsValidator),
 	})
-		.index("by_thread", ["threadId"])
-		.index("by_stream_id", ["streamId"]),
+		.index("by_thread", ["threadId"]),
 
 	feedback: defineTable({
 		messageId: v.id("messages"),
@@ -128,58 +125,4 @@ export default defineSchema({
 		.index("by_share_id", ["shareId"])
 		.index("by_share_time", ["shareId", "accessedAt"])
 		.index("by_ip_time", ["ipHash", "accessedAt"]),
-
-	// Persistent text streaming tables
-	streams: defineTable({
-		status: v.union(
-			v.literal("pending"),
-			v.literal("streaming"),
-			v.literal("done"),
-			v.literal("error"),
-			v.literal("timeout"),
-		),
-		messageId: v.optional(v.id("messages")), // Associated message
-		userId: v.optional(v.id("users")), // Owner of the stream
-		createdAt: v.optional(v.number()),
-		updatedAt: v.optional(v.number()),
-		error: v.optional(v.string()), // Error message if status is "error"
-		metadata: v.optional(v.any()), // Flexible metadata field
-	})
-		.index("by_message", ["messageId"])
-		.index("by_user", ["userId"])
-		.index("by_status", ["status"]),
-
-	chunks: defineTable({
-		streamId: v.id("streams"),
-		text: v.string(),
-		type: v.optional(
-			v.union(
-				v.literal("text"),
-				v.literal("tool_call"),
-				v.literal("tool_result"),
-				v.literal("reasoning"),
-				v.literal("error"),
-				v.literal("control"),
-				v.literal("step"),
-			),
-		),
-		metadata: v.optional(v.any()), // For tool data, etc.
-		createdAt: v.optional(v.number()),
-	})
-		.index("by_stream", ["streamId"])
-		.index("by_stream_created", ["streamId", "createdAt"]),
-
-	// Hybrid streaming: Delta-based reactivity for multi-client sync
-	streamDeltas: defineTable({
-		messageId: v.id("messages"),
-		streamId: v.id("streams"),
-		sequence: v.number(), // Order tracking (0, 1, 2...)
-		text: v.string(), // Text chunk content
-		timestamp: v.number(), // When delta was created
-		partType: v.optional(v.string()), // "text" | "tool-call" | "reasoning" | "error"
-		metadata: v.optional(v.any()), // Additional part metadata (toolName, toolCallId, etc.)
-	})
-		.index("by_message", ["messageId", "sequence"])
-		.index("by_stream", ["streamId", "sequence"])
-		.index("by_message_timestamp", ["messageId", "timestamp"]),
 });

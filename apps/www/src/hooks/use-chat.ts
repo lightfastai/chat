@@ -145,8 +145,7 @@ export function useChat(options: UseChatOptions = {}) {
 	// Use whichever is available
 	const finalUserSettings = preloadedUserSettings ?? userSettings;
 
-	// For true hybrid streaming, we always use both HTTP and Convex
-	// No settings toggle needed - hybrid streaming is always on
+	// Messages are returned directly from Convex queries
 	const messages = baseMessages;
 
 	// Remove debug logging for production
@@ -290,8 +289,7 @@ export function useChat(options: UseChatOptions = {}) {
 			timestamp: now + 1,
 			isStreaming: true,
 			isComplete: false,
-			// Don't set streamId in optimistic update - it must be a real Convex ID
-			// streamId will be set when the real message is created
+			// Message will be created with a real ID when the mutation completes
 			// Don't set thinkingStartedAt to prevent premature "Thinking" display
 			usedUserApiKey: willUseUserApiKey,
 		};
@@ -423,9 +421,8 @@ export function useChat(options: UseChatOptions = {}) {
 				webSearchEnabled,
 			});
 
-			// Always use hybrid streaming for better performance
-			// HTTP streaming provides instant feedback while Convex handles persistence
-			console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
+			// Use HTTP streaming for instant feedback
+			console.log("🚀 Using HTTP streaming:", {
 				currentThread: !!currentThread,
 				isNewChat,
 				currentClientId,
@@ -435,7 +432,6 @@ export function useChat(options: UseChatOptions = {}) {
 			// Helper function to start HTTP streaming
 			const startHttpStreaming = async (
 				threadId: Id<"threads">,
-				streamId: Id<"streams">,
 				messageId: Id<"messages">,
 			) => {
 				if (!authToken) return;
@@ -450,7 +446,7 @@ export function useChat(options: UseChatOptions = {}) {
 					url.port = String(Number(url.port) + 1);
 					convexSiteUrl = url.toString().replace(/\/$/, ""); // Remove trailing slash
 				}
-				console.log("🚀 Using hybrid streaming (HTTP + Convex):", {
+				console.log("🚀 Starting HTTP streaming:", {
 					convexSiteUrl,
 				});
 				const streamUrl = `${convexSiteUrl}/stream-chat`;
@@ -466,7 +462,6 @@ export function useChat(options: UseChatOptions = {}) {
 						modelId: modelId,
 						messages: [], // Will be populated by the endpoint from thread
 						options: {
-							resumeFromStreamId: streamId, // Use existing streamId
 							useExistingMessage: messageId, // Use existing messageId
 							webSearchEnabled: webSearchEnabled,
 						},
@@ -480,7 +475,7 @@ export function useChat(options: UseChatOptions = {}) {
 				});
 			};
 
-			// Handle different cases with hybrid streaming
+			// Handle different cases with HTTP streaming
 			if (isNewChat) {
 				// New chat: Create thread + send message, then start HTTP streaming
 				const clientId = nanoid();
@@ -493,18 +488,15 @@ export function useChat(options: UseChatOptions = {}) {
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
-					useHybridStreaming: true, // Enable hybrid streaming
 				});
 
 				// Start HTTP streaming if we got the necessary IDs
 				if (
-					convexResult?.streamId &&
 					convexResult?.messageId &&
 					convexResult?.threadId
 				) {
 					await startHttpStreaming(
 						convexResult.threadId,
-						convexResult.streamId,
 						convexResult.messageId,
 					);
 				}
@@ -521,18 +513,15 @@ export function useChat(options: UseChatOptions = {}) {
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
-					useHybridStreaming: true, // Enable hybrid streaming
 				});
 
 				// Start HTTP streaming if we got the necessary IDs
 				if (
-					convexResult?.streamId &&
 					convexResult?.messageId &&
 					convexResult?.threadId
 				) {
 					await startHttpStreaming(
 						convexResult.threadId,
-						convexResult.streamId,
 						convexResult.messageId,
 					);
 				}
@@ -548,14 +537,12 @@ export function useChat(options: UseChatOptions = {}) {
 					modelId: modelId as ModelId,
 					attachments,
 					webSearchEnabled,
-					useHybridStreaming: true, // Enable hybrid streaming
 				});
 
 				// Start HTTP streaming if we got the necessary IDs
-				if (convexResult?.streamId && convexResult?.messageId) {
+				if (convexResult?.messageId) {
 					await startHttpStreaming(
 						currentThread._id,
-						convexResult.streamId,
 						convexResult.messageId,
 					);
 				}

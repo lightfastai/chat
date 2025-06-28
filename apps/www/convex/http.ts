@@ -1,7 +1,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { auth } from "./auth";
-import { streamChatResponse, streamContinue } from "./httpStreaming";
+import { streamChatResponse } from "./httpStreaming";
 
 const http = httpRouter();
 
@@ -34,13 +34,6 @@ http.route({
 	path: "/stream-chat",
 	method: "OPTIONS",
 	handler: streamChatResponse, // Same handler handles OPTIONS internally
-});
-
-// HTTP streaming continuation endpoint (for resuming streams)
-http.route({
-	path: "/stream-continue/:streamId",
-	method: "GET",
-	handler: streamContinue,
 });
 
 export default http;

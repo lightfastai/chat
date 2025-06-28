@@ -3,7 +3,6 @@ import type { Doc } from "../../convex/_generated/dataModel";
 import type {
 	messagePartValidator,
 	reasoningPartValidator,
-	streamControlPartValidator,
 	textPartValidator,
 	toolCallPartValidator,
 } from "../../convex/validators";
@@ -20,8 +19,6 @@ export type ReasoningPart = Infer<typeof reasoningPartValidator>;
 // Official Vercel AI SDK v5 compliant ToolCallPart
 export type ToolCallPart = Infer<typeof toolCallPartValidator>;
 
-// Stream control part for start/finish/metadata events
-export type StreamControlPart = Infer<typeof streamControlPartValidator>;
 
 // Union type for all message parts
 export type MessagePart = Infer<typeof messagePartValidator>;

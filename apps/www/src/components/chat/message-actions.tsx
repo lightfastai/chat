@@ -160,7 +160,6 @@ export function MessageActions({
 					timestamp: now + 1,
 					isStreaming: true,
 					isComplete: false,
-					streamId: `stream_${clientId}_${now}`,
 					thinkingStartedAt: now,
 				};
 

@@ -4,7 +4,6 @@ import {
 	messageTypeValidator,
 	modelIdValidator,
 	modelProviderValidator,
-	streamIdValidator,
 	tokenUsageValidator,
 } from "../validators.js";
 
@@ -19,7 +18,6 @@ export const messageReturnValidator = v.object({
 	model: v.optional(modelProviderValidator),
 	modelId: v.optional(modelIdValidator),
 	isStreaming: v.optional(v.boolean()),
-	streamId: v.optional(streamIdValidator),
 	isComplete: v.optional(v.boolean()),
 	thinkingStartedAt: v.optional(v.number()),
 	thinkingCompletedAt: v.optional(v.number()),

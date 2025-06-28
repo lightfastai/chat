@@ -9,71 +9,48 @@
 
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
-	type CoreMessage,
-	type TextStreamPart,
-	type ToolSet,
-	smoothStream,
-	stepCountIs,
-	streamText,
+  type CoreMessage
 } from "ai";
 import { v } from "convex/values";
-import type { Infer } from "convex/values";
 import {
-	type ModelId,
-	getModelById,
-	getModelConfig,
-	getProviderFromModelId,
-	isThinkingMode,
+  type ModelId,
+  getModelById, getProviderFromModelId
 } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import {
-	type ActionCtx,
-	internalAction,
-	internalMutation,
-	internalQuery,
-	mutation,
-	query,
+  type ActionCtx,
+  internalAction,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server.js";
-import { HybridStreamWriter } from "./hybridStreamWriter.js";
-import { createAIClient } from "./lib/ai_client.js";
-import { createWebSearchTool } from "./lib/ai_tools.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { enforceModelCapabilities } from "./lib/capability_guards.js";
-import { getOrThrow, getWithOwnership } from "./lib/database.js";
+import { getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
-import { getModelStreamingDelay } from "./lib/streaming_config.js";
-import { streamAIText } from "./streamAIText.js";
 import {
-	branchInfoValidator,
-	clientIdValidator,
-	type messagePartValidator,
-	messageTypeValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	shareIdValidator,
-	shareSettingsValidator,
-	streamIdValidator,
-	threadUsageValidator,
-	tokenUsageValidator,
+  branchInfoValidator,
+  clientIdValidator, messageTypeValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  shareIdValidator,
+  shareSettingsValidator,
+  threadUsageValidator
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
 import {
-	clearGenerationFlagUtil,
-	createStreamingMessageUtil,
-	generateStreamId,
-	handleAIResponseError,
-	streamAIResponse,
-	updateThreadUsage,
-	updateThreadUsageUtil,
+  clearGenerationFlagUtil,
+  handleAIResponseError,
+  streamAIResponse,
+  updateThreadUsage,
+  updateThreadUsageUtil,
 } from "./messages/helpers.js";
 import {
-	type AISDKUsage,
-	type MessageUsageUpdate,
-	formatUsageData,
-	messageReturnValidator,
+  type MessageUsageUpdate, messageReturnValidator
 } from "./messages/types.js";
 
 // Type definitions for multimodal content
@@ -441,11 +418,9 @@ export const send = mutation({
 		modelId: v.optional(modelIdValidator), // Use the validated modelId
 		attachments: v.optional(v.array(v.id("files"))), // Add attachments support
 		webSearchEnabled: v.optional(v.boolean()),
-		useHybridStreaming: v.optional(v.boolean()), // Use hybrid streaming (HTTP + Convex)
 	},
 	returns: v.object({
 		messageId: v.id("messages"),
-		streamId: v.optional(v.id("streams")),
 	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
@@ -491,72 +466,17 @@ export const send = mutation({
 			attachments: args.attachments,
 		});
 
-		let streamId: Id<"streams"> | undefined;
 		let messageId: Id<"messages"> = userMessageId; // Default to user message
 
-		// Handle AI response based on system type
-		if (args.useHybridStreaming) {
-			// Hybrid streaming: Both HTTP and Convex persistence
-			// Create stream first for hybrid approach
-			const streamResult: Id<"streams"> = await ctx.runMutation(
-				internal.streams.create,
-				{
-					userId,
-					metadata: { threadId: args.threadId, modelId },
-				},
-			);
-			streamId = streamResult;
+		// Schedule AI response generation
+		await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
+			threadId: args.threadId,
+			userMessage: args.body,
+			modelId: modelId,
+			attachments: args.attachments,
+			webSearchEnabled: args.webSearchEnabled,
+		});
 
-			// Get user's API keys for the AI generation
-			const userApiKeys = (await ctx.runMutation(
-				internal.userSettings.getDecryptedApiKeys,
-				{ userId },
-			)) as {
-				anthropic?: string;
-				openai?: string;
-				openrouter?: string;
-			} | null;
-
-			// Determine if we'll use user's API key
-			const willUseUserApiKey =
-				(provider === "anthropic" && userApiKeys?.anthropic) ||
-				(provider === "openai" && userApiKeys?.openai) ||
-				(provider === "openrouter" && userApiKeys?.openrouter);
-
-			// Create assistant message with streamId
-			const now = Date.now();
-			const assistantMessageId = await ctx.db.insert("messages", {
-				threadId: args.threadId,
-				body: "",
-				timestamp: now,
-				messageType: "assistant",
-				model: provider,
-				modelId: modelId,
-				isStreaming: true,
-				streamId,
-				isComplete: false,
-				thinkingStartedAt: now,
-				usedUserApiKey: !!willUseUserApiKey,
-			});
-
-			// For hybrid streaming, return the assistant message ID for the HTTP endpoint
-			messageId = assistantMessageId;
-
-			// For hybrid streaming, we only create the database structures
-			// The HTTP endpoint will handle BOTH:
-			// 1. AI generation and HTTP streaming for instant feedback
-			// 2. Database persistence via HybridStreamWriter
-			// This ensures single AI generation with dual writing
-		} else {
-			// Standard AI response (non-hybrid streaming)
-			await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
-				threadId: args.threadId,
-				userMessage: args.body,
-				modelId: modelId,
-				attachments: args.attachments,
-				webSearchEnabled: args.webSearchEnabled,
-			});
-		}
 
 		// Check if this is the first user message in the thread (for title generation)
 		const userMessages = await ctx.db
@@ -573,7 +493,7 @@ export const send = mutation({
 			});
 		}
 
-		return { messageId, streamId };
+		return { messageId };
 	},
 });
 
@@ -586,14 +506,12 @@ export const createThreadAndSend = mutation({
 		modelId: v.optional(modelIdValidator),
 		attachments: v.optional(v.array(v.id("files"))), // Add attachments support
 		webSearchEnabled: v.optional(v.boolean()),
-		useHybridStreaming: v.optional(v.boolean()), // Use hybrid streaming (HTTP + Convex)
 	},
 	returns: v.object({
 		threadId: v.id("threads"),
 		userMessageId: v.id("messages"),
-		assistantMessageId: v.optional(v.id("messages")), // Optional for hybrid streaming
-		streamId: v.optional(v.id("streams")), // For hybrid streaming
-		messageId: v.optional(v.id("messages")), // For hybrid streaming (assistant message)
+		assistantMessageId: v.optional(v.id("messages")),
+		messageId: v.optional(v.id("messages")), // The assistant message ID
 	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
@@ -652,97 +570,19 @@ export const createThreadAndSend = mutation({
 		});
 
 		let assistantMessageId: Id<"messages"> | undefined;
-		let streamId: Id<"streams"> | undefined;
 
-		// Handle AI response based on streaming type
-		if (args.useHybridStreaming) {
-			// Hybrid streaming: Create stream and assistant message for HTTP streaming
-			const streamResult: Id<"streams"> = await ctx.runMutation(
-				internal.streams.create,
-				{
-					userId,
-					metadata: { threadId, modelId },
-				},
-			);
-			streamId = streamResult;
+		// Schedule AI response generation
+		await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
+			threadId,
+			userMessage: args.body,
+			modelId: modelId,
+			attachments: args.attachments,
+			webSearchEnabled: args.webSearchEnabled,
+		});
 
-			// Get user's API keys for the AI generation
-			const userApiKeys = (await ctx.runMutation(
-				internal.userSettings.getDecryptedApiKeys,
-				{ userId },
-			)) as {
-				anthropic?: string;
-				openai?: string;
-				openrouter?: string;
-			} | null;
 
-			// Determine if we'll use user's API key
-			const willUseUserApiKey =
-				(provider === "anthropic" && userApiKeys?.anthropic) ||
-				(provider === "openai" && userApiKeys?.openai) ||
-				(provider === "openrouter" && userApiKeys?.openrouter);
 
-			// Create assistant message with streamId
-			assistantMessageId = await ctx.db.insert("messages", {
-				threadId,
-				body: "",
-				timestamp: now + 1,
-				messageType: "assistant",
-				model: provider,
-				modelId: modelId,
-				isStreaming: true,
-				streamId,
-				isComplete: false,
-				thinkingStartedAt: now,
-				usedUserApiKey: !!willUseUserApiKey,
-			});
 
-			// For hybrid streaming, we only create the database structures
-			// The HTTP endpoint will handle both AI generation and persistence
-		} else {
-			// Standard AI response (non-hybrid streaming)
-			// Create stream for assistant message
-			const streamResult: Id<"streams"> = await ctx.runMutation(
-				internal.streams.create,
-				{
-					userId,
-					metadata: { threadId, modelId },
-				},
-			);
-			streamId = streamResult;
-
-			// Create assistant message placeholder immediately
-			assistantMessageId = await ctx.db.insert("messages", {
-				threadId,
-				body: "", // Will be updated as chunks arrive
-				timestamp: now + 1, // Ensure it comes after user message
-				messageType: "assistant",
-				model: provider,
-				modelId: modelId,
-				isStreaming: true,
-				streamId: streamId,
-				isComplete: false,
-				thinkingStartedAt: now,
-				streamVersion: 0, // Initialize version counter
-				parts: [], // Initialize empty parts array for tool calls
-				usage: undefined, // Initialize usage tracking
-			});
-
-			// Schedule AI response with the pre-created message ID
-			await ctx.scheduler.runAfter(
-				0,
-				internal.messages.generateAIResponseWithMessage,
-				{
-					threadId,
-					userMessage: args.body,
-					modelId: modelId,
-					attachments: args.attachments,
-					webSearchEnabled: args.webSearchEnabled,
-					messageId: assistantMessageId,
-					streamId: streamId,
-				},
-			);
-		}
 
 		// Schedule title generation (this is the first message)
 		await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
@@ -754,42 +594,11 @@ export const createThreadAndSend = mutation({
 			threadId,
 			userMessageId,
 			assistantMessageId,
-			streamId,
-			messageId: assistantMessageId, // For consistency with send function
+			messageId: userMessageId, // Return user message ID since we don't create assistant message upfront
 		};
 	},
 });
 
-// Internal mutation to create initial streaming message
-export const createStreamingMessage = internalMutation({
-	args: {
-		threadId: v.id("threads"),
-		streamId: streamIdValidator,
-		provider: modelProviderValidator,
-		modelId: modelIdValidator,
-		usedUserApiKey: v.optional(v.boolean()),
-	},
-	returns: v.id("messages"),
-	handler: async (ctx, args) => {
-		const now = Date.now();
-		return await ctx.db.insert("messages", {
-			threadId: args.threadId,
-			body: "", // Will be updated as chunks arrive
-			timestamp: now,
-			messageType: "assistant",
-			model: args.provider,
-			isStreaming: true,
-			streamId: args.streamId,
-			isComplete: false,
-			thinkingStartedAt: now,
-			streamVersion: 0, // Initialize version counter
-			modelId: args.modelId,
-			usedUserApiKey: args.usedUserApiKey,
-			parts: [], // Initialize empty parts array for tool calls
-			usage: undefined, // Initialize usage tracking
-		});
-	},
-});
 
 // Internal mutation to update streaming message content
 export const updateStreamingMessage = internalMutation({
@@ -873,83 +682,13 @@ export const updateMessageError = internalMutation({
 	},
 });
 
-// Internal mutation to mark streaming as complete (original version)
-export const completeStreamingMessageLegacy = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		usage: tokenUsageValidator,
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		// Verify the message exists
-		await getOrThrow(ctx.db, "messages", args.messageId);
-
-		// Update the message with completion status and usage
-		await ctx.db.patch(args.messageId, {
-			isStreaming: false,
-			isComplete: true,
-			thinkingCompletedAt: Date.now(),
-			usage: args.usage,
-		});
-
-		// Thread usage has already been updated via updateUsage during streaming
-		// No need to update again here to avoid double counting
-
-		return null;
-	},
-});
 
 // Internal mutation to mark streaming as complete and update thread usage
-export const completeStreamingMessage = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		streamId: streamIdValidator,
-		fullText: v.string(),
-		usage: tokenUsageValidator,
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		// Verify the message exists and get current parts
-		const message = await getOrThrow(ctx.db, "messages", args.messageId);
-
-		// Combine consecutive text parts to reduce storage
-		const currentParts = message.parts || [];
-		const combinedParts: typeof currentParts = [];
-
-		for (const part of currentParts) {
-			const lastPart = combinedParts[combinedParts.length - 1];
-
-			// If current part is text and last part is also text, combine them
-			if (part.type === "text" && lastPart?.type === "text") {
-				lastPart.text += part.text;
-			} else {
-				// Otherwise, add the part as is
-				combinedParts.push(part);
-			}
-		}
-
-		// Update the message with completion status, full text, and combined parts
-		await ctx.db.patch(args.messageId, {
-			body: args.fullText,
-			parts: combinedParts,
-			isStreaming: false,
-			isComplete: true,
-			thinkingCompletedAt: Date.now(),
-			usage: args.usage,
-		});
-
-		// Thread usage has already been updated via updateUsage during streaming
-		// No need to update again here to avoid double counting
-
-		return null;
-	},
-});
 
 // Internal mutation to create error message
 export const createErrorMessage = internalMutation({
 	args: {
 		threadId: v.id("threads"),
-		streamId: streamIdValidator,
 		provider: modelProviderValidator,
 		modelId: v.optional(modelIdValidator),
 		errorMessage: v.string(),
@@ -965,7 +704,6 @@ export const createErrorMessage = internalMutation({
 			model: args.provider,
 			modelId: args.modelId,
 			isStreaming: false,
-			streamId: args.streamId,
 			isComplete: true,
 			thinkingStartedAt: now,
 			thinkingCompletedAt: now,
@@ -1430,366 +1168,6 @@ async function buildConversationMessages(
 }
 
 // New action that uses pre-created message ID
-export const generateAIResponseWithMessage = internalAction({
-	args: {
-		threadId: v.id("threads"),
-		userMessage: v.string(),
-		modelId: modelIdValidator,
-		attachments: v.optional(v.array(v.id("files"))),
-		webSearchEnabled: v.optional(v.boolean()),
-		messageId: v.id("messages"), // Pre-created message ID
-		streamId: streamIdValidator, // Pre-generated stream ID
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		try {
-			// Since this is called from createThreadAndSend, we know the thread exists
-			// We just need to get the userId for API key retrieval
-			const thread = (await ctx.runQuery(internal.messages.getThreadById, {
-				threadId: args.threadId,
-			})) as { userId: Id<"users"> } | null;
-			requireResource(thread, "Thread");
-
-			// Validate model capabilities against attachments before processing
-			await enforceModelCapabilities(
-				ctx,
-				args.modelId as ModelId,
-				args.attachments,
-			);
-
-			// Derive provider from modelId
-			const provider = getProviderFromModelId(args.modelId as ModelId);
-
-			// Get user's API keys if available
-			const userApiKeys = (await ctx.runMutation(
-				internal.userSettings.getDecryptedApiKeys,
-				{ userId: thread.userId },
-			)) as {
-				anthropic?: string;
-				openai?: string;
-				openrouter?: string;
-			} | null;
-
-			// Determine if we'll use user's API key
-			const willUseUserApiKey =
-				(provider === "anthropic" && userApiKeys && userApiKeys.anthropic) ||
-				(provider === "openai" && userApiKeys && userApiKeys.openai) ||
-				(provider === "openrouter" && userApiKeys && userApiKeys.openrouter);
-
-			// Update the pre-created message with API key status
-			await ctx.runMutation(internal.messages.updateMessageApiKeyStatus, {
-				messageId: args.messageId,
-				usedUserApiKey: !!willUseUserApiKey,
-			});
-
-			// Build conversation messages
-			const messages = await buildConversationMessages(
-				ctx,
-				args.threadId,
-				args.modelId as ModelId,
-				args.attachments,
-				args.webSearchEnabled,
-			);
-
-			// Update token usage function
-			const updateUsage = async (usage: AISDKUsage) => {
-				const formattedUsage = formatUsageData(usage);
-				if (formattedUsage) {
-					await ctx.runMutation(internal.messages.updateThreadUsageMutation, {
-						threadId: args.threadId,
-						usage: {
-							promptTokens: formattedUsage.inputTokens,
-							completionTokens: formattedUsage.outputTokens,
-							totalTokens: formattedUsage.totalTokens,
-							reasoningTokens: formattedUsage.reasoningTokens,
-							cachedTokens: formattedUsage.cachedInputTokens,
-							modelId: args.modelId,
-						},
-					});
-				}
-			};
-
-			// Create AI client using shared utility
-			const ai = createAIClient(args.modelId as ModelId, userApiKeys);
-
-			// Prepare generation options
-			const generationOptions: Parameters<typeof streamText>[0] = {
-				model: ai,
-				messages: messages,
-				experimental_transform: smoothStream({
-					delayInMs: getModelStreamingDelay(args.modelId),
-					chunking: "word", // Stream word by word
-				}),
-				// Usage will be updated after streaming completes
-			};
-
-			// Apply thinking configuration for Anthropic models if enabled
-			if (provider === "anthropic" && isThinkingMode(args.modelId as ModelId)) {
-				const modelConfig = getModelConfig(args.modelId as ModelId);
-				if (modelConfig.thinkingConfig) {
-					// Add thinking configuration for Anthropic models
-					generationOptions.providerOptions = {
-						anthropic: {
-							thinking: {
-								type: "enabled",
-								budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
-							},
-						},
-					};
-				}
-			}
-
-			// Add web search tool if enabled
-			if (args.webSearchEnabled) {
-				generationOptions.tools = {
-					web_search: createWebSearchTool(),
-				};
-				// Enable iterative tool calling with stopWhen
-				generationOptions.stopWhen = stepCountIs(5); // Allow up to 5 iterations
-			}
-
-			// Use the AI SDK v5 streamText
-			const result = streamText(generationOptions);
-
-			let fullText = "";
-			let hasContent = false;
-
-			// Use fullStream as the unified interface (works with or without tools)
-			for await (const streamPart of result.fullStream) {
-				// Use the official AI SDK TextStreamPart type
-				const part: TextStreamPart<ToolSet> = streamPart;
-				switch (part.type) {
-					case "text":
-						// Handle complete text blocks (in addition to text-delta)
-						if (part.text) {
-							fullText += part.text;
-							hasContent = true;
-
-							// Add text part to the parts array
-							await ctx.runMutation(internal.messages.addTextPart, {
-								messageId: args.messageId,
-								text: part.text,
-							});
-						}
-						break;
-
-					case "reasoning":
-						// Handle Claude thinking/reasoning content
-						if (part.type === "reasoning" && part.text) {
-							await ctx.runMutation(internal.messages.addReasoningPart, {
-								messageId: args.messageId,
-								text: part.text,
-								providerMetadata: part.providerMetadata,
-							});
-						}
-						break;
-
-					case "reasoning-part-finish":
-						// Mark reasoning section as complete
-						await ctx.runMutation(internal.messages.addStreamControlPart, {
-							messageId: args.messageId,
-							controlType: "reasoning-part-finish",
-						});
-						break;
-
-					case "file":
-						// Handle generated file content
-						if (part.type === "file" && part.file) {
-							const file = part.file;
-							await ctx.runMutation(internal.messages.addFilePart, {
-								messageId: args.messageId,
-								url: undefined, // Files don't have URLs in AI SDK
-								mediaType: file.mediaType || "application/octet-stream",
-								data: file.base64 || file.uint8Array || null,
-								filename: undefined, // Files in AI SDK don't have explicit filenames
-							});
-						}
-						break;
-
-					case "source":
-						// Handle citation/source references
-						if (
-							part.type === "source" &&
-							part.sourceType === "url" &&
-							part.url
-						) {
-							await ctx.runMutation(internal.messages.addSourcePart, {
-								messageId: args.messageId,
-								sourceType: "url",
-								sourceId: part.id || `source_${Date.now()}`,
-								url: part.url,
-								title: part.title,
-								providerMetadata: part.providerMetadata,
-							});
-						}
-						break;
-
-					case "tool-call":
-						// Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
-						await ctx.runMutation(internal.messages.updateToolCallPart, {
-							messageId: args.messageId,
-							toolCallId: part.toolCallId,
-							args: part.input,
-							state: "call",
-						});
-						break;
-
-					case "tool-call-delta":
-						// Update tool call part with streaming arguments
-						if (
-							part.type === "tool-call-delta" &&
-							part.toolCallId &&
-							part.inputTextDelta
-						) {
-							await ctx.runMutation(internal.messages.updateToolCallPart, {
-								messageId: args.messageId,
-								toolCallId: part.toolCallId,
-								args: part.inputTextDelta,
-								state: "partial-call",
-							});
-						}
-						break;
-
-					case "tool-call-streaming-start":
-						// Add tool call part in "partial-call" state
-						if (
-							part.type === "tool-call-streaming-start" &&
-							part.toolCallId &&
-							part.toolName
-						) {
-							await ctx.runMutation(internal.messages.addToolCallPart, {
-								messageId: args.messageId,
-								toolCallId: part.toolCallId,
-								toolName: part.toolName,
-								state: "partial-call",
-							});
-						}
-						break;
-
-					case "tool-result": {
-						// The AI SDK uses 'output' field for tool results, not 'result'
-						const toolResult = part.output;
-
-						// Update the tool call part with the result
-						await ctx.runMutation(internal.messages.updateToolCallPart, {
-							messageId: args.messageId,
-							toolCallId: part.toolCallId,
-							state: "result",
-							result: toolResult,
-						});
-						break;
-					}
-
-					case "start":
-						// Handle generation start event
-						break;
-
-					case "finish":
-						// Handle generation completion event
-						if (part.type === "finish") {
-							await ctx.runMutation(internal.messages.addStreamControlPart, {
-								messageId: args.messageId,
-								controlType: "finish",
-								finishReason: part.finishReason,
-								totalUsage: part.totalUsage,
-							});
-						}
-						break;
-
-					case "start-step":
-						// Handle multi-step generation start (step boundary marker)
-						await ctx.runMutation(internal.messages.addStepPart, {
-							messageId: args.messageId,
-							stepType: "start-step",
-						});
-						break;
-
-					case "finish-step":
-						// Handle multi-step generation completion
-						await ctx.runMutation(internal.messages.addStepPart, {
-							messageId: args.messageId,
-							stepType: "finish-step",
-						});
-						break;
-
-					case "error":
-						// Handle stream errors explicitly
-						if (part.type === "error") {
-							const errorMessage =
-								part.error instanceof Error
-									? part.error.message
-									: String(part.error || "Unknown stream error");
-							console.error("Stream error:", errorMessage);
-
-							// Save error as part for debugging
-							await ctx.runMutation(internal.messages.addErrorPart, {
-								messageId: args.messageId,
-								errorMessage: errorMessage,
-								errorDetails: part.error,
-							});
-
-							throw new Error(`Stream error: ${errorMessage}`);
-						}
-						break;
-
-					case "raw":
-						// Handle raw provider responses for debugging
-						if (part.type === "raw") {
-							await ctx.runMutation(internal.messages.addRawPart, {
-								messageId: args.messageId,
-								rawValue: part.rawValue,
-							});
-						}
-						break;
-
-					// Handle unknown part types (should never happen with proper AI SDK types)
-					default: {
-						// This should be unreachable with proper TextStreamPart typing
-						const _exhaustiveCheck: never = part;
-						console.warn(
-							"Unknown stream part type:",
-							(_exhaustiveCheck as { type: string }).type,
-							_exhaustiveCheck,
-						);
-						break;
-					}
-				}
-			}
-
-			// Get final usage with optional chaining
-			const finalUsage = await result.usage;
-			if (finalUsage) {
-				await updateUsage(finalUsage);
-			}
-
-			// If we have streamed content, mark the message as complete
-			if (hasContent) {
-				// Format usage data for the message
-				const formattedUsage = formatUsageData(finalUsage);
-
-				await ctx.runMutation(internal.messages.completeStreamingMessage, {
-					messageId: args.messageId,
-					streamId: args.streamId,
-					fullText,
-					usage: formattedUsage,
-				});
-			}
-
-			// Clear generation flag
-			await ctx.runMutation(internal.messages.clearGenerationFlag, {
-				threadId: args.threadId,
-			});
-		} catch (error) {
-			await handleAIResponseError(ctx, error, args.threadId, args.messageId, {
-				modelId: args.modelId,
-				provider: getProviderFromModelId(args.modelId as ModelId),
-				useStreamingUpdate: true,
-			});
-		}
-
-		return null;
-	},
-});
 
 // Internal action to generate AI response using AI SDK v5
 export const generateAIResponse = internalAction({
@@ -1830,19 +1208,14 @@ export const generateAIResponse = internalAction({
 				openrouter?: string;
 			} | null;
 
-			// Generate unique stream ID and create streaming message
-			const streamId = generateStreamId();
-			messageId = await createStreamingMessageUtil(
-				ctx,
-				args.threadId,
-				args.modelId as ModelId,
-				streamId,
-				!!(
-					(provider === "anthropic" && userApiKeys?.anthropic) ||
-					(provider === "openai" && userApiKeys?.openai) ||
-					(provider === "openrouter" && userApiKeys?.openrouter)
-				),
-			);
+			// Create streaming message
+			messageId = await ctx.runMutation(internal.messages.create, {
+				threadId: args.threadId,
+				messageType: "assistant",
+				body: "",
+				modelId: args.modelId as ModelId,
+				isStreaming: true,
+			});
 
 			// Build conversation messages
 			const messages = await buildConversationMessages(
@@ -1880,11 +1253,12 @@ export const generateAIResponse = internalAction({
 			}
 
 			// Complete the streaming message
-			await ctx.runMutation(internal.messages.completeStreamingMessage, {
+			await ctx.runMutation(internal.messages.updateStreamingMessage, {
 				messageId,
-				streamId,
-				fullText,
-				usage: finalUsage ? formatUsageData(finalUsage) : undefined,
+				content: fullText,
+			});
+			await ctx.runMutation(internal.messages.markComplete, {
+				messageId,
 			});
 		} catch (error) {
 			await handleAIResponseError(ctx, error, args.threadId, messageId, {
@@ -1911,7 +1285,6 @@ export const create = internalMutation({
 		body: v.string(),
 		modelId: v.optional(modelIdValidator),
 		isStreaming: v.optional(v.boolean()),
-		streamId: v.optional(v.id("streams")),
 	},
 	returns: v.id("messages"),
 	handler: async (ctx, args) => {
@@ -1929,16 +1302,8 @@ export const create = internalMutation({
 				: undefined,
 			isStreaming: args.isStreaming || false,
 			isComplete: !args.isStreaming,
-			streamId: args.streamId,
 			usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
 		});
-
-		// Link the stream to this message
-		if (args.streamId) {
-			await ctx.db.patch(args.streamId, {
-				messageId,
-			});
-		}
 
 		return messageId;
 	},
@@ -2001,180 +1366,3 @@ export const markError = internalMutation({
 });
 
 // Sync message body from stream chunks (new stream system)
-export const syncMessageFromStream = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		streamId: v.id("streams"),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const streamData = await ctx.runQuery(
-			internal.streams.getStreamWithChunks,
-			{
-				streamId: args.streamId,
-			},
-		);
-
-		if (!streamData) {
-			throw new Error("Stream not found");
-		}
-
-		// Build message body and parts from chunks
-		let body = "";
-		const parts: Infer<typeof messagePartValidator>[] = [];
-
-		// Process chunks in order to build message content
-		for (const chunk of streamData.chunks) {
-			switch (chunk.type) {
-				case "text":
-					body += chunk.text;
-					parts.push({
-						type: "text",
-						text: chunk.text,
-					});
-					break;
-
-				case "reasoning":
-					// Reasoning text is included in body
-					body += chunk.text;
-					parts.push({
-						type: "reasoning",
-						text: chunk.text,
-						providerMetadata: chunk.metadata?.providerMetadata,
-					});
-					break;
-
-				case "tool_call":
-					// Tool calls are not part of the body text
-					parts.push({
-						type: "tool-call",
-						toolCallId: chunk.metadata?.toolCallId,
-						toolName: chunk.metadata?.toolName,
-						args: JSON.parse(chunk.text),
-						state: chunk.metadata?.state || "call",
-					});
-					break;
-
-				case "tool_result": {
-					// Find the corresponding tool call and update it
-					const toolCallIndex = parts.findIndex(
-						(p) =>
-							p.type === "tool-call" &&
-							p.toolCallId === chunk.metadata?.toolCallId,
-					);
-					if (toolCallIndex !== -1) {
-						const toolCallPart = parts[toolCallIndex];
-						if (toolCallPart.type === "tool-call") {
-							toolCallPart.result = JSON.parse(chunk.text);
-							toolCallPart.state = "result";
-						}
-					}
-					break;
-				}
-
-				case "control":
-					// Handle control chunks
-					if (chunk.metadata?.controlType) {
-						parts.push({
-							type: "control",
-							controlType: chunk.metadata.controlType,
-							finishReason: chunk.metadata.finishReason,
-							totalUsage: chunk.metadata.totalUsage,
-							metadata: chunk.metadata,
-						});
-					}
-					break;
-
-				case "error":
-					// Handle error chunks
-					parts.push({
-						type: "error",
-						errorMessage: chunk.text,
-						errorDetails: chunk.metadata,
-					});
-					break;
-
-				case "step":
-					// Handle step chunks for multi-step generation
-					parts.push({
-						type: "step",
-						stepType: chunk.metadata?.stepType || chunk.text,
-					});
-					break;
-			}
-		}
-
-		// Update message with final content
-		const updateData: any = {
-			body,
-			parts: parts.length > 0 ? parts : undefined,
-			isStreaming: streamData.stream.status === "streaming",
-			isComplete: streamData.stream.status === "done",
-			streamVersion: (streamData.chunks.length || 0) + 1,
-		};
-
-		// If stream has an error, mark message accordingly
-		if (streamData.stream.status === "error" && streamData.stream.error) {
-			updateData.error = streamData.stream.error;
-		}
-
-		await ctx.db.patch(args.messageId, updateData);
-
-		return null;
-	},
-});
-
-/**
- * Hybrid streaming action - uses HybridStreamWriter for dual-write strategy
- * This action runs AI generation with both HTTP streaming and database throttling
- */
-export const generateAIResponseHybrid = internalAction({
-	args: {
-		threadId: v.id("threads"),
-		messageId: v.id("messages"),
-		streamId: v.id("streams"),
-		modelId: modelIdValidator,
-		userApiKeys: v.optional(
-			v.object({
-				anthropic: v.optional(v.string()),
-				openai: v.optional(v.string()),
-				openrouter: v.optional(v.string()),
-			}),
-		),
-		webSearchEnabled: v.optional(v.boolean()),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		console.log("🚀 Starting hybrid streaming for message:", args.messageId);
-
-		// Create a HybridStreamWriter without HTTP controller (database-only mode)
-		// This provides the dual-write benefits without HTTP streaming
-		const hybridWriter = new HybridStreamWriter(
-			ctx,
-			args.messageId,
-			args.streamId,
-			undefined, // No HTTP controller in mutation context
-		);
-
-		try {
-			// Use the inline AI generation with HybridStreamWriter
-			await streamAIText(ctx, {
-				threadId: args.threadId,
-				messageId: args.messageId,
-				streamId: args.streamId,
-				modelId: args.modelId as ModelId,
-				hybridWriter,
-				userApiKeys: args.userApiKeys,
-				webSearchEnabled: args.webSearchEnabled,
-			});
-
-			console.log("✅ Hybrid streaming completed successfully");
-		} catch (error) {
-			console.error("❌ Hybrid streaming failed:", error);
-			// Error handling is done by generateAIResponseInline
-			throw error;
-		}
-
-		return null;
-	},
-});

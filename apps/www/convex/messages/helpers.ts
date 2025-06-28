@@ -135,19 +135,7 @@ export function getFullModelId(model: string): string {
 	}
 }
 
-/**
- * Generates a unique stream ID for message streaming
- */
-export function generateStreamId(): string {
-	return `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
 
-/**
- * Generates a unique chunk ID for stream chunks
- */
-export function generateChunkId(): string {
-	return `chunk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
 
 /**
  * Handle errors in AI response generation with proper cleanup
@@ -184,7 +172,7 @@ export async function handleAIResponseError(
 				messageId,
 				content: errorMessage,
 			});
-			await ctx.runMutation(internal.messages.completeStreamingMessageLegacy, {
+			await ctx.runMutation(internal.messages.markComplete, {
 				messageId,
 			});
 		} else if (messageId) {
@@ -195,10 +183,8 @@ export async function handleAIResponseError(
 			});
 		} else if (options?.provider) {
 			// Create new error message
-			const streamId = generateStreamId();
 			await ctx.runMutation(internal.messages.createErrorMessage, {
 				threadId,
-				streamId,
 				provider: options.provider as Infer<typeof modelProviderValidator>,
 				modelId: options.modelId as Infer<typeof modelIdValidator>,
 				errorMessage,
@@ -223,23 +209,6 @@ export async function handleAIResponseError(
 /**
  * Create initial streaming message (moved from lib/message_service.ts)
  */
-export async function createStreamingMessageUtil(
-	ctx: ActionCtx,
-	threadId: Id<"threads">,
-	modelId: ModelId,
-	streamId: string,
-	usedUserApiKey: boolean,
-): Promise<Id<"messages">> {
-	const provider = getProviderFromModelId(modelId);
-
-	return await ctx.runMutation(internal.messages.createStreamingMessage, {
-		threadId,
-		streamId,
-		provider,
-		modelId,
-		usedUserApiKey,
-	});
-}
 
 /**
  * Update thread usage with retry logic (moved from lib/message_service.ts)

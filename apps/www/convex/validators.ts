@@ -9,10 +9,9 @@ import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
  * 1. Core Model & ID Validators - Basic types used throughout
  * 2. User & Auth Validators - User settings and authentication
  * 3. Message Parts Validators (Vercel AI SDK v5) - The canonical message structure
- * 4. Streaming Infrastructure - How we wrap and deliver message parts
- * 5. Database Storage - How data is persisted
- * 6. HTTP Protocol - Wire format for client-server communication
- * 7. Helper Functions - Type guards and utilities
+ * 4. Database Storage - How data is persisted
+ * 5. HTTP Protocol - Wire format for client-server communication
+ * 6. Helper Functions - Type guards and utilities
  *
  * IMPORTANT: The messagePartValidator is the single source of truth for
  * message content structure, following Vercel AI SDK v5 exactly.
@@ -36,11 +35,6 @@ export const clientIdValidator = v.string();
 // Share ID validator (nanoid format, 24 chars for security)
 export const shareIdValidator = v.string();
 
-// Stream ID validator (format: stream_<timestamp>_<random>)
-export const streamIdValidator = v.string();
-
-// Chunk ID validator (format: chunk_<timestamp>_<random>)
-export const chunkIdValidator = v.string();
 
 // Storage ID validator for Convex file storage
 export const storageIdValidator = v.string();
@@ -263,17 +257,6 @@ export const stepPartValidator = v.object({
 });
 
 // Stream control part validator - for start/finish/metadata events
-export const streamControlPartValidator = v.object({
-	type: v.literal("control"),
-	controlType: v.union(
-		v.literal("start"),
-		v.literal("finish"),
-		v.literal("reasoning-part-finish"),
-	),
-	finishReason: v.optional(v.string()),
-	totalUsage: v.optional(v.any()),
-	metadata: v.optional(v.any()),
-});
 
 // Tool call part validator - Official Vercel AI SDK v5 compliant
 export const toolCallPartValidator = v.object({
@@ -290,6 +273,22 @@ export const toolCallPartValidator = v.object({
 	step: v.optional(v.number()), // Official SDK step tracking for multi-step calls
 });
 
+// Control part validator - for streaming control messages
+export const controlPartValidator = v.object({
+	type: v.literal("control"),
+	controlType: v.string(), // e.g. "finish"
+	finishReason: v.optional(v.string()), // e.g. "stop"
+	totalUsage: v.optional(
+		v.object({
+			inputTokens: v.number(),
+			outputTokens: v.number(),
+			totalTokens: v.number(),
+			reasoningTokens: v.number(),
+			cachedInputTokens: v.number(),
+		}),
+	),
+});
+
 // Message part union validator - represents any type of message part
 export const messagePartValidator = v.union(
 	textPartValidator,
@@ -299,96 +298,14 @@ export const messagePartValidator = v.union(
 	errorPartValidator,
 	rawPartValidator,
 	stepPartValidator,
-	streamControlPartValidator,
 	toolCallPartValidator,
+	controlPartValidator,
 );
 
 // Array of message parts validator
 export const messagePartsValidator = v.array(messagePartValidator);
 
-// =========================================================================
-// SECTION 4: STREAMING INFRASTRUCTURE
-// =========================================================================
-/**
- * The streaming infrastructure wraps Vercel AI SDK message parts with
- * metadata needed for reliable, resumable streaming. The key principle:
- *
- * 1. Message parts (from Section 3) define WHAT content is streamed
- * 2. Streaming infrastructure (this section) defines HOW it's delivered
- *
- * This separation allows us to:
- * - Stream any message part type without modification
- * - Add streaming-specific metadata (IDs, timestamps, sequence numbers)
- * - Handle control events (init, complete, error) separately from content
- * - Support resumption and replay of streams
- */
-
-// ===== Stream Envelope Validators =====
-// These wrap message parts with streaming context
-
-/**
- * Metadata attached to every streamed item
- * This enables ordering, deduplication, and resumption
- */
-export const streamEnvelopeValidator = v.object({
-	// Identity
-	streamId: v.id("streams"),
-	messageId: v.id("messages"),
-
-	// Ordering and deduplication
-	sequence: v.number(), // Monotonically increasing
-	timestamp: v.number(), // Unix timestamp in ms
-
-	// Content - exactly one of these will be present
-	part: v.optional(messagePartValidator), // A message part from Vercel AI SDK
-	event: v.optional(
-		v.union(
-			// Lifecycle events
-			v.object({ type: v.literal("stream-start"), metadata: v.any() }),
-			v.object({ type: v.literal("stream-end"), metadata: v.any() }),
-			v.object({
-				type: v.literal("stream-error"),
-				error: v.string(),
-				code: v.optional(v.string()),
-			}),
-
-			// Progress events
-			v.object({ type: v.literal("token-usage"), usage: tokenUsageValidator }),
-			v.object({ type: v.literal("metrics"), metrics: v.any() }),
-		),
-	),
-});
-
-/**
- * Simplified chunk format for HTTP streaming
- * This is what actually goes over the wire
- */
-export const streamContentChunkValidator = v.object({
-	type: v.literal("content"),
-	envelope: streamEnvelopeValidator,
-});
-
-export const streamControlChunkValidator = v.object({
-	type: v.literal("control"),
-	action: v.union(
-		v.literal("ping"), // Keepalive
-		v.literal("abort"), // Client-initiated abort
-		v.literal("ack"), // Acknowledgment
-	),
-	data: v.optional(v.any()),
-});
-
-// HTTP Stream chunk validator - the wire format for streaming
-export const httpStreamChunkValidator = v.union(
-	streamContentChunkValidator,
-	streamControlChunkValidator,
-);
-
-// Type alias for easier migration
-export type StreamChunk = Infer<typeof httpStreamChunkValidator>;
-
-// =========================================================================
-// SECTION 5: DATABASE STORAGE VALIDATORS
+// SECTION 4: DATABASE STORAGE VALIDATORS
 // =========================================================================
 /**
  * These validators define how streaming data is persisted in the database.
@@ -398,90 +315,7 @@ export type StreamChunk = Infer<typeof httpStreamChunkValidator>;
  * 3. Final messages - complete messages with parts array
  */
 
-// ===== Stream State Management =====
-
-/**
- * Stream status - tracks lifecycle of a stream
- */
-export const streamStatusValidator = v.union(
-	v.literal("pending"), // Created but not started
-	v.literal("streaming"), // Actively receiving content
-	v.literal("done"), // Completed successfully
-	v.literal("error"), // Failed with error
-	v.literal("timeout"), // Timed out
-);
-
-/**
- * Stream record - stored in 'streams' table
- * Tracks the overall state of one AI response generation
- */
-export const streamRecordValidator = v.object({
-	status: streamStatusValidator,
-	messageId: v.optional(v.id("messages")), // Associated message
-	userId: v.optional(v.id("users")), // Owner
-	createdAt: v.optional(v.number()),
-	updatedAt: v.optional(v.number()),
-	error: v.optional(v.string()), // Error message if failed
-	metadata: v.optional(
-		v.object({
-			threadId: v.optional(v.id("threads")),
-			modelId: v.optional(v.string()),
-			parentStreamId: v.optional(v.id("streams")), // For retries
-			attempt: v.optional(v.number()), // Retry attempt number
-		}),
-	),
-});
-
-// ===== Chunk Storage =====
-
-/**
- * Chunk types that can be stored
- * These map to message part types but use simpler names for storage
- */
-export const storedChunkTypeValidator = v.union(
-	v.literal("text"), // Text content
-	v.literal("tool_call"), // Tool invocation
-	v.literal("tool_result"), // Tool response
-	v.literal("reasoning"), // Model reasoning/thinking
-	v.literal("error"), // Error during generation
-	v.literal("control"), // Control events (start/stop)
-	v.literal("step"), // Multi-step boundaries
-);
-
-/**
- * Stored chunk - how chunks are persisted in the 'chunks' table
- * These are converted to message parts when the stream completes
- */
-export const storedChunkValidator = v.object({
-	streamId: v.id("streams"),
-	text: v.string(), // Content (may be JSON for complex types)
-	type: v.optional(storedChunkTypeValidator),
-	metadata: v.optional(
-		v.object({
-			// For tool calls/results
-			toolName: v.optional(v.string()),
-			toolCallId: v.optional(v.string()),
-
-			// For text deltas
-			isComplete: v.optional(v.boolean()), // Is this a complete part?
-
-			// For reasoning
-			thinkingStartedAt: v.optional(v.number()),
-			thinkingCompletedAt: v.optional(v.number()),
-
-			// Ordering
-			sequence: v.optional(v.number()),
-
-			// Performance
-			tokenCount: v.optional(v.number()),
-			processingTimeMs: v.optional(v.number()),
-		}),
-	),
-	createdAt: v.optional(v.number()),
-});
-
-// =========================================================================
-// SECTION 6: HTTP PROTOCOL VALIDATORS
+// SECTION 5: HTTP PROTOCOL VALIDATORS
 // =========================================================================
 /**
  * These validators define the HTTP API for streaming.
@@ -523,29 +357,14 @@ export const httpStreamingRequestValidator = v.object({
 				),
 			),
 
-			// Resume from previous attempt
-			resumeFromStreamId: v.optional(v.id("streams")),
 
-			// For hybrid streaming - use existing structures
+			// Use existing structures for the response
 			useExistingMessage: v.optional(v.id("messages")),
 			webSearchEnabled: v.optional(v.boolean()),
 		}),
 	),
 });
 
-/**
- * Request to continue/resume an existing stream
- */
-export const httpStreamContinuationValidator = v.object({
-	streamId: v.id("streams"),
-	fromSequence: v.optional(v.number()), // Resume from specific point
-	options: v.optional(
-		v.object({
-			includeHistory: v.optional(v.boolean()), // Include past chunks
-			maxHistoryChunks: v.optional(v.number()), // Limit history
-		}),
-	),
-});
 
 // ===== Response Validators =====
 
@@ -563,9 +382,6 @@ export const streamingMessageValidator = v.object({
 	messageType: messageTypeValidator,
 	modelId: v.optional(v.string()),
 
-	// Streaming metadata
-	streamId: v.optional(v.id("streams")),
-	streamStatus: v.optional(streamStatusValidator),
 
 	// Progress tracking
 	metrics: v.optional(
@@ -583,7 +399,7 @@ export const streamingMessageValidator = v.object({
 });
 
 // =========================================================================
-// SECTION 7: STREAMING ARCHITECTURE
+// SECTION 6: TYPE EXPORTS AND HELPERS
 // =========================================================================
 /**
  * The streaming architecture follows a clean separation of concerns:
@@ -605,7 +421,6 @@ export const streamingMessageValidator = v.object({
  */
 
 // =========================================================================
-// SECTION 8: TYPE EXPORTS AND HELPERS
 // =========================================================================
 /**
  * TypeScript types and helper functions for working with validators
@@ -613,18 +428,13 @@ export const streamingMessageValidator = v.object({
 
 // ===== Core Types =====
 export type MessagePart = Infer<typeof messagePartValidator>;
-export type StreamEnvelope = Infer<typeof streamEnvelopeValidator>;
-export type StreamStatus = Infer<typeof streamStatusValidator>;
-export type StreamingMessage = Infer<typeof streamingMessageValidator>;
 export type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
-export type StoredChunk = Infer<typeof storedChunkValidator>;
 
 // ===== Message Part Types =====
 export type TextPart = Infer<typeof textPartValidator>;
 export type ToolCallPart = Infer<typeof toolCallPartValidator>;
 export type ReasoningPart = Infer<typeof reasoningPartValidator>;
 export type ErrorPart = Infer<typeof errorPartValidator>;
-export type ControlPart = Infer<typeof streamControlPartValidator>;
 
 // ===== Type Guards =====
 
@@ -645,9 +455,6 @@ export function isErrorPart(part: MessagePart): part is ErrorPart {
 	return part.type === "error";
 }
 
-export function isControlPart(part: MessagePart): part is ControlPart {
-	return part.type === "control";
-}
 
 // Tool call state guards
 export function isToolCallInProgress(part: MessagePart): boolean {
@@ -691,17 +498,3 @@ export function isStreamablePart(part: MessagePart): boolean {
 /**
  * Convert stored chunk type to message part type
  */
-export function chunkTypeToPartType(
-	chunkType: Infer<typeof storedChunkTypeValidator>,
-): MessagePart["type"] | null {
-	const mapping: Record<string, MessagePart["type"]> = {
-		text: "text",
-		tool_call: "tool-call",
-		tool_result: "tool-call", // Tool results are part of tool-call parts
-		reasoning: "reasoning",
-		error: "error",
-		control: "control",
-		step: "step",
-	};
-	return mapping[chunkType] || null;
-}

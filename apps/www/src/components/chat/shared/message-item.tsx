@@ -85,9 +85,9 @@ export function MessageItem({
 						// The grouping function handles both streaming and completed states
 						const parts = getMessageParts(message);
 
-						// Filter out reasoning and control parts since they're handled separately
+						// Filter out reasoning parts since they're handled separately
 						const displayParts = parts.filter(
-							(part) => part.type !== "reasoning" && part.type !== "control",
+							(part) => part.type !== "reasoning",
 						);
 
 						return (

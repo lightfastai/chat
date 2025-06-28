@@ -1,69 +1,83 @@
-import type { FunctionReturnType } from "convex/server";
+import { type CoreMessage, smoothStream, streamText, } from "ai";
+import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
+import {
+  getModelById,
+  getModelConfig,
+  getProviderFromModelId,
+  isThinkingMode,
+} from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { httpAction } from "./_generated/server";
-import { HybridStreamWriter } from "./hybridStreamWriter";
-import { streamAIText } from "./streamAIText";
-import type {
-	MessagePart,
-	StreamEnvelope,
-	httpStreamingRequestValidator,
-} from "./validators";
+import { type ActionCtx, httpAction } from "./_generated/server";
+import { createAIClient } from "./lib/ai_client";
+import { createWebSearchTool } from "./lib/ai_tools";
+import { createSystemPrompt } from "./lib/message_builder";
+import { getModelStreamingDelay } from "./lib/streaming_config";
+import { handleAIResponseError } from "./messages/helpers";
+import type { httpStreamingRequestValidator } from "./validators";
 
 // Types from validators
-type StreamWithChunks = NonNullable<
-	FunctionReturnType<typeof internal.streams.getStreamWithChunks>
->;
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
 
-// Helper to convert database chunks to message parts
-function chunkToMessagePart(
-	chunk: StreamWithChunks["chunks"][0],
-): MessagePart | null {
-	if (chunk.type === "text" || !chunk.type) {
-		return {
-			type: "text",
-			text: chunk.text,
-		};
+// Helper function to build conversation messages for stream-based AI responses
+async function buildConversationMessagesForStreams(
+	ctx: ActionCtx,
+	threadId: Id<"threads">,
+	modelId: ModelId,
+	webSearchEnabled?: boolean,
+): Promise<CoreMessage[]> {
+	// Get recent conversation context
+	const recentMessages: Array<{
+		body: string;
+		messageType: "user" | "assistant" | "system";
+		attachments?: Id<"files">[];
+	}> = await ctx.runQuery(internal.messages.getRecentContext, { threadId });
+
+	const provider = getProviderFromModelId(modelId);
+	const systemPrompt = createSystemPrompt(modelId, webSearchEnabled);
+
+	// Prepare messages for AI SDK v5 with multimodal support
+	const messages: CoreMessage[] = [
+		{
+			role: "system",
+			content: systemPrompt,
+		},
+	];
+
+	// Build conversation history with attachments
+	for (const msg of recentMessages) {
+		// Skip system messages as we already have system prompt
+		if (msg.messageType === "system") continue;
+
+		// Build message content with attachments using mutation
+		const content = await ctx.runMutation(
+			internal.messages.buildMessageContent,
+			{
+				text: msg.body,
+				attachmentIds: msg.attachments,
+				provider,
+				modelId,
+			},
+		);
+
+		if (msg.messageType === "user") {
+			messages.push({
+				role: "user",
+				content,
+			});
+		} else if (msg.messageType === "assistant") {
+			// Assistant messages should only have text content
+			const textContent = typeof content === "string" ? content : msg.body;
+			messages.push({
+				role: "assistant",
+				content: textContent,
+			});
+		}
 	}
 
-	if (chunk.type === "tool_call") {
-		return {
-			type: "tool-call",
-			toolCallId: chunk.metadata?.toolCallId || "unknown",
-			toolName: chunk.metadata?.toolName || "unknown",
-			args: JSON.parse(chunk.text),
-			state: "call",
-		};
-	}
-
-	if (chunk.type === "tool_result") {
-		return {
-			type: "tool-call",
-			toolCallId: chunk.metadata?.toolCallId || "unknown",
-			toolName: chunk.metadata?.toolName || "unknown",
-			result: JSON.parse(chunk.text),
-			state: "result",
-		};
-	}
-
-	if (chunk.type === "reasoning") {
-		return {
-			type: "reasoning",
-			text: chunk.text,
-		};
-	}
-
-	if (chunk.type === "error") {
-		return {
-			type: "error",
-			errorMessage: chunk.text,
-		};
-	}
-
-	return null;
+	return messages;
 }
 
 export const streamChatResponse = httpAction(async (ctx, request) => {
@@ -83,67 +97,41 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 	}
 
 	try {
-		// Get authentication from header
-		const authHeader = request.headers.get("Authorization");
-		console.log("Auth header present:", !!authHeader);
-
-		// Parse request body with type
+		// Parse request body
 		const body = (await request.json()) as HTTPStreamingRequest;
-		const { threadId, modelId, messages, options } = body;
+		const { threadId, modelId, options } = body;
 
 		console.log("HTTP Streaming request:", {
 			threadId,
 			modelId,
-			messageCount: messages?.length,
 			useExistingMessage: options?.useExistingMessage,
-			resumeFromStreamId: options?.resumeFromStreamId,
 		});
 
-		// Verify thread exists and user has access
+		// Verify thread exists
 		const thread = await ctx.runQuery(api.threads.get, { threadId });
 		if (!thread) {
 			return new Response("Thread not found", { status: 404 });
 		}
 
-		let streamId: Id<"streams">;
 		let messageId: Id<"messages">;
 
-		// Use existing stream and message for hybrid streaming, or create new ones
-		if (options?.resumeFromStreamId && options?.useExistingMessage) {
-			// Hybrid streaming mode - use existing structures
-			streamId = options.resumeFromStreamId;
+		// Use existing message or create new one
+		if (options?.useExistingMessage) {
 			messageId = options.useExistingMessage;
-
-			console.log("Using existing stream and message for hybrid streaming:", {
-				streamId,
-				messageId,
-			});
+			console.log("Using existing message:", messageId);
 		} else {
-			// Regular HTTP streaming mode - create new structures
-			streamId = await ctx.runMutation(internal.streams.create, {
-				userId: thread.userId,
-				metadata: { threadId, modelId },
-			});
-
+			// Create new message
 			messageId = await ctx.runMutation(internal.messages.create, {
 				threadId,
 				messageType: "assistant",
 				body: "",
 				modelId: modelId as ModelId,
 				isStreaming: true,
-				streamId,
 			});
-
-			console.log("Created new stream and message:", {
-				streamId,
-				messageId,
-			});
+			console.log("Created new message:", messageId);
 		}
 
-		// For hybrid streaming, we handle AI generation directly in the HTTP endpoint
-		// This ensures single AI generation with dual writing (HTTP + database)
-
-		// Get user's API keys for AI generation
+		// Get user's API keys
 		const userApiKeys = (await ctx.runMutation(
 			internal.userSettings.getDecryptedApiKeys,
 			{ userId: thread.userId },
@@ -153,210 +141,175 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			openrouter?: string;
 		} | null;
 
-		// Create HTTP streaming response using HybridStreamWriter
-		const stream = new ReadableStream({
-			async start(controller) {
-				try {
-					// Create hybrid writer for direct streaming
-					const writer = new HybridStreamWriter(
-						ctx,
-						messageId,
-						streamId,
-						controller,
-					);
-
-					// Send stream start event
-					await writer.sendStreamStart({ modelId });
-
-					// Run AI generation inline with direct HybridStreamWriter access
-					// This keeps the writer in the same execution context, solving the global state issue
-					await streamAIText(ctx, {
-						threadId,
-						messageId,
-						streamId,
-						modelId: modelId as ModelId,
-						hybridWriter: writer,
-						userApiKeys: userApiKeys || undefined,
-						webSearchEnabled: options?.webSearchEnabled ?? false,
-					});
-
-					// AI generation completes and writer is automatically cleaned up
-				} catch (error) {
-					console.error("Stream setup error:", error);
-					const writer = new HybridStreamWriter(
-						ctx,
-						messageId,
-						streamId,
-						controller,
-					);
-					await writer.handleError(
-						error instanceof Error ? error.message : "Stream setup failed",
-						"setup_error",
-					);
-				}
-			},
-
-			// Handle client disconnection
-			cancel(reason) {
-				console.log(
-					`HTTP connection cancelled for stream ${streamId}:`,
-					reason,
-				);
-				// The inline execution means the writer will be garbage collected
-				// and database writes will complete naturally in the background
-			},
-		});
-
-		return new Response(stream, {
-			headers: {
-				"Content-Type": "application/x-ndjson",
-				"Transfer-Encoding": "chunked",
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "POST",
-				"Access-Control-Allow-Headers": "Content-Type, Authorization",
-				"Cache-Control": "no-cache",
-			},
-		});
-	} catch (error) {
-		console.error("HTTP streaming setup error:", error);
-
-		return new Response(
-			JSON.stringify({ error: "Failed to start streaming" }),
-			{
-				status: 500,
-				headers: {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*",
-				},
-			},
-		);
-	}
-});
-
-// HTTP endpoint for continuing a stream (used by useStream hook)
-export const streamContinue = httpAction(async (ctx, request) => {
-	console.log("Stream continue endpoint called");
-
-	// Handle CORS preflight
-	if (request.method === "OPTIONS") {
-		return new Response(null, {
-			status: 200,
-			headers: {
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "GET, OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type, Authorization",
-				"Access-Control-Max-Age": "86400",
-			},
-		});
-	}
-
-	try {
-		// Extract streamId from URL path
-		const url = new URL(request.url);
-		const pathMatch = url.pathname.match(/\/stream-continue\/(.+)$/);
-		const streamId = pathMatch ? pathMatch[1] : null;
-
-		if (!streamId) {
-			return new Response("Stream ID required", { status: 400 });
-		}
-
-		console.log("Continuing stream:", streamId);
-
-		// Get stream data
-		const streamData: StreamWithChunks | null = await ctx.runQuery(
-			internal.streams.getStreamWithChunks,
-			{
-				streamId: streamId as Id<"streams">,
-			},
+		// Build conversation messages
+		const messages = await buildConversationMessagesForStreams(
+			ctx,
+			threadId,
+			modelId as ModelId,
+			options?.webSearchEnabled,
 		);
 
-		if (!streamData) {
-			return new Response("Stream not found", { status: 404 });
-		}
+		const provider = getProviderFromModelId(modelId as ModelId);
+		const model = getModelById(modelId as ModelId);
 
-		// Create HTTP streaming response that sends existing chunks
-		const stream = new ReadableStream({
-			async start(controller) {
-				const encoder = new TextEncoder();
+		console.log(`Starting AI generation with ${provider} model ${model.id}`);
 
-				// Send all existing chunks immediately using new envelope format
-				streamData.chunks.forEach((chunk, index) => {
-					const part = chunkToMessagePart(chunk);
-					if (part) {
-						const envelope: StreamEnvelope = {
-							streamId: streamData.stream._id,
-							messageId: streamData.stream.messageId as Id<"messages">,
-							sequence: index,
-							timestamp: chunk.createdAt || chunk._creationTime,
-							part,
-						};
+		// Create AI client
+		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
 
-						const streamChunk = {
-							type: "content",
-							envelope,
-						};
+		// Track state for database updates
+		let pendingText = "";
+		let pendingReasoning = "";
+		let fullText = "";
+		let updateTimer: NodeJS.Timeout | null = null;
 
-						controller.enqueue(
-							encoder.encode(`${JSON.stringify(streamChunk)}\n`),
-						);
-					}
+		// Helper to update database
+		const updateDatabase = async () => {
+			if (pendingText) {
+				// Update the message body for display
+				await ctx.runMutation(internal.messages.updateStreamingMessage, {
+					messageId,
+					content: fullText,
 				});
 
-				// Send completion or error if stream is done
-				if (streamData.stream.status === "done") {
-					const endEnvelope: StreamEnvelope = {
-						streamId: streamData.stream._id,
-						messageId: streamData.stream.messageId as Id<"messages">,
-						sequence: streamData.chunks.length,
-						timestamp: Date.now(),
-						event: {
-							type: "stream-end",
-							metadata: {},
+				// Add text part if not already added
+				await ctx.runMutation(internal.messages.addTextPart, {
+					messageId,
+					text: pendingText,
+				});
+				pendingText = "";
+			}
+
+			if (pendingReasoning) {
+				// Add reasoning part
+				await ctx.runMutation(internal.messages.addReasoningPart, {
+					messageId,
+					text: pendingReasoning,
+					providerMetadata: undefined,
+				});
+				pendingReasoning = "";
+			}
+		};
+
+		// Set up periodic database updates (50ms)
+		updateTimer = setInterval(() => {
+			updateDatabase().catch(console.error);
+		}, 50);
+
+		try {
+			// Prepare generation options
+			const generationOptions: Parameters<typeof streamText>[0] = {
+				model: ai,
+				messages,
+				temperature: 0.7,
+				experimental_transform: smoothStream({
+					delayInMs: getModelStreamingDelay(modelId as ModelId),
+					chunking: "word",
+				}),
+				onChunk: async ({ chunk }) => {
+					if (chunk.type === "text" && chunk.text) {
+						pendingText += chunk.text;
+						fullText += chunk.text;
+					} else if (chunk.type === "reasoning" && chunk.text) {
+						pendingReasoning += chunk.text;
+					} else if (chunk.type === "tool-call") {
+						// Flush pending text before tool call
+						await updateDatabase();
+
+						// Add tool call to database
+						await ctx.runMutation(internal.messages.addToolCallPart, {
+							messageId,
+							toolCallId: chunk.toolCallId,
+							toolName: chunk.toolName,
+							args: chunk.input || {},
+							state: "call",
+						});
+					} else if (chunk.type === "tool-result") {
+						// Update tool call with result
+						await ctx.runMutation(internal.messages.updateToolCallPart, {
+							messageId,
+							toolCallId: chunk.toolCallId,
+							result: chunk.output,
+							state: "result",
+						});
+					}
+				},
+				onFinish: async () => {
+					// Clear timer
+					if (updateTimer) {
+						clearInterval(updateTimer);
+					}
+
+					// Final database update
+					await updateDatabase();
+
+					// Update the message to mark it as complete
+					await ctx.runMutation(internal.messages.updateStreamingMessage, {
+						messageId,
+						content: fullText,
+					});
+
+					// Clear generation flag
+					await ctx.runMutation(internal.messages.clearGenerationFlag, {
+						threadId,
+					});
+
+					console.log(`Streaming completed for message ${messageId}`);
+				},
+			};
+
+			if (provider === "anthropic" && isThinkingMode(modelId as ModelId)) {
+				const modelConfig = getModelConfig(modelId as ModelId);
+				if (modelConfig.thinkingConfig) {
+					generationOptions.providerOptions = {
+						anthropic: {
+							thinking: {
+								type: "enabled",
+								budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
+							},
 						},
 					};
-					const endChunk = {
-						type: "content",
-						envelope: endEnvelope,
-					};
-					controller.enqueue(encoder.encode(`${JSON.stringify(endChunk)}\n`));
-				} else if (streamData.stream.status === "error") {
-					const errorEnvelope: StreamEnvelope = {
-						streamId: streamData.stream._id,
-						messageId: streamData.stream.messageId as Id<"messages">,
-						sequence: streamData.chunks.length,
-						timestamp: Date.now(),
-						event: {
-							type: "stream-error",
-							error: streamData.stream.error || "Stream error",
-							code: "stream_error",
-						},
-					};
-					const errorChunk = {
-						type: "content",
-						envelope: errorEnvelope,
-					};
-					controller.enqueue(encoder.encode(`${JSON.stringify(errorChunk)}\n`));
 				}
+			}
 
-				// Close the stream
-				controller.close();
-			},
-		});
+			// Add tools if supported
+			if (model.features.functionCalling && options?.webSearchEnabled) {
+				generationOptions.tools = {
+					web_search: createWebSearchTool(),
+				};
+				generationOptions.stopWhen = stepCountIs(5);
+			}
 
-		return new Response(stream, {
-			headers: {
-				"Content-Type": "application/x-ndjson",
-				"Cache-Control": "no-cache",
-				Connection: "keep-alive",
-				"Access-Control-Allow-Origin": "*",
-			},
-		});
+			// Stream the text and return UI message stream response
+			const result = streamText(generationOptions);
+
+			return result.toUIMessageStreamResponse({
+				headers: {
+					"Access-Control-Allow-Origin": "*",
+					"Access-Control-Allow-Methods": "POST",
+					"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				},
+			});
+		} catch (error) {
+			// Clean up timer on error
+			if (updateTimer) {
+				clearInterval(updateTimer);
+			}
+
+			console.error("Streaming error:", error);
+
+			await handleAIResponseError(ctx, error, threadId, messageId, {
+				modelId: modelId as ModelId,
+				provider: getProviderFromModelId(modelId as ModelId),
+				useStreamingUpdate: true,
+			});
+
+			throw error;
+		}
 	} catch (error) {
-		console.error("Stream continue error:", error);
+		console.error("HTTP streaming setup error:", error);
 		return new Response(
-			JSON.stringify({
-				error: error instanceof Error ? error.message : "Internal server error",
-			}),
+			JSON.stringify({ error: "Failed to start streaming" }),
 			{
 				status: 500,
 				headers: {
