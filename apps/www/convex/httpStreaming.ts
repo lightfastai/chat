@@ -1,11 +1,29 @@
+import {
+	type CoreMessage,
+	type TextStreamPart,
+	type ToolSet,
+	smoothStream,
+	stepCountIs,
+	streamText,
+} from "ai";
 import type { FunctionReturnType } from "convex/server";
 import type { Infer } from "convex/values";
-import type { ModelId } from "../src/lib/ai/schemas";
+import {
+	type ModelId,
+	getModelById,
+	getModelConfig,
+	getProviderFromModelId,
+	isThinkingMode,
+} from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
-import { HybridStreamWriter } from "./hybridStreamWriter";
-import { streamAIText } from "./streamAIText";
+import { createAIClient } from "./lib/ai_client";
+import { createWebSearchTool } from "./lib/ai_tools";
+import { createSystemPrompt } from "./lib/message_builder";
+import { getModelStreamingDelay } from "./lib/streaming_config";
+import { handleAIResponseError } from "./messages/helpers";
+import { formatUsageData } from "./messages/types";
 import type {
 	MessagePart,
 	StreamEnvelope,
@@ -17,6 +35,77 @@ type StreamWithChunks = NonNullable<
 	FunctionReturnType<typeof internal.streams.getStreamWithChunks>
 >;
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
+
+// Helper function to determine when to update database
+function hasDelimiter(text: string): boolean {
+	return (
+		text.includes("\n") ||
+		text.includes(".") ||
+		text.includes("?") ||
+		text.includes("!") ||
+		text.includes(",") ||
+		text.length > 100
+	);
+}
+
+// Helper function to build conversation messages
+async function buildConversationMessages(
+	ctx: { runQuery: any; runMutation: any },
+	threadId: Id<"threads">,
+	modelId: ModelId,
+	webSearchEnabled?: boolean,
+): Promise<CoreMessage[]> {
+	// Get recent conversation context
+	const recentMessages: Array<{
+		body: string;
+		messageType: "user" | "assistant" | "system";
+		attachments?: Id<"files">[];
+	}> = await ctx.runQuery(internal.messages.getRecentContext, { threadId });
+
+	const provider = getProviderFromModelId(modelId);
+	const systemPrompt = createSystemPrompt(modelId, webSearchEnabled);
+
+	// Prepare messages for AI SDK v5 with multimodal support
+	const messages: CoreMessage[] = [
+		{
+			role: "system",
+			content: systemPrompt,
+		},
+	];
+
+	// Build conversation history with attachments
+	for (const msg of recentMessages) {
+		// Skip system messages as we already have system prompt
+		if (msg.messageType === "system") continue;
+
+		// Build message content with attachments using mutation
+		const content = await ctx.runMutation(
+			internal.messages.buildMessageContent,
+			{
+				text: msg.body,
+				attachmentIds: msg.attachments,
+				provider,
+				modelId,
+			},
+		);
+
+		if (msg.messageType === "user") {
+			messages.push({
+				role: "user",
+				content,
+			});
+		} else if (msg.messageType === "assistant") {
+			// Assistant messages should only have text content
+			const textContent = typeof content === "string" ? content : msg.body;
+			messages.push({
+				role: "assistant",
+				content: textContent,
+			});
+		}
+	}
+
+	return messages;
+}
 
 // Helper to convert database chunks to message parts
 function chunkToMessagePart(
@@ -153,61 +242,444 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			openrouter?: string;
 		} | null;
 
-		// Create HTTP streaming response using HybridStreamWriter
-		const stream = new ReadableStream({
-			async start(controller) {
-				try {
-					// Create hybrid writer for direct streaming
-					const writer = new HybridStreamWriter(
-						ctx,
-						messageId,
-						streamId,
-						controller,
-					);
+		// Create TransformStream for better control
+		const { readable, writable } = new TransformStream();
+		const writer = writable.getWriter();
+		const encoder = new TextEncoder();
 
-					// Send stream start event
-					await writer.sendStreamStart({ modelId });
+		// Start async streaming
+		const streamData = async () => {
+			let fullText = "";
+			let pendingText = "";
+			let pendingReasoning = "";
+			let sequence = 0;
 
-					// Run AI generation inline with direct HybridStreamWriter access
-					// This keeps the writer in the same execution context, solving the global state issue
-					await streamAIText(ctx, {
-						threadId,
+			try {
+				// Send stream start event
+				await writer.write(
+					encoder.encode(
+						JSON.stringify({
+							type: "content",
+							envelope: {
+								streamId,
+								messageId,
+								sequence: sequence++,
+								timestamp: Date.now(),
+								event: {
+									type: "stream-start",
+									metadata: { modelId },
+								},
+							},
+						}) + "\n",
+					),
+				);
+
+				// Build messages and create AI client
+				const messages = await buildConversationMessages(
+					ctx,
+					threadId,
+					modelId as ModelId,
+					options?.webSearchEnabled,
+				);
+
+				const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
+				const model = getModelById(modelId as ModelId);
+				const provider = getProviderFromModelId(modelId as ModelId);
+
+				console.log(
+					`AI SDK v5: Starting inline streaming with ${provider} model ${model.id}, messages: ${messages.length}`,
+				);
+
+				// Prepare generation options
+				const generationOptions: Parameters<typeof streamText>[0] = {
+					model: ai,
+					messages,
+					temperature: 0.7,
+					experimental_transform: smoothStream({
+						delayInMs: getModelStreamingDelay(modelId as ModelId),
+						chunking: "word",
+					}),
+				};
+
+				// Add thinking mode configuration
+				if (provider === "anthropic" && isThinkingMode(modelId as ModelId)) {
+					const modelConfig = getModelConfig(modelId as ModelId);
+					if (modelConfig.thinkingConfig) {
+						generationOptions.providerOptions = {
+							anthropic: {
+								thinking: {
+									type: "enabled",
+									budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
+								},
+							},
+						};
+					}
+				}
+
+				// Add tools if supported
+				if (model.features.functionCalling && options?.webSearchEnabled) {
+					generationOptions.tools = {
+						web_search: createWebSearchTool(),
+					};
+					generationOptions.stopWhen = stepCountIs(5);
+				}
+
+				// Stream text from AI
+				const result = streamText(generationOptions);
+
+				// Process stream
+				for await (const streamPart of result.fullStream) {
+					const part: TextStreamPart<ToolSet> = streamPart;
+
+					switch (part.type) {
+						case "text":
+							if (part.text) {
+								// Send to client immediately
+								await writer.write(
+									encoder.encode(
+										JSON.stringify({
+											type: "content",
+											envelope: {
+												streamId,
+												messageId,
+												sequence: sequence++,
+												timestamp: Date.now(),
+												part: {
+													type: "text",
+													text: part.text,
+												},
+											},
+										}) + "\n",
+									),
+								);
+
+								// Accumulate for DB
+								fullText += part.text;
+								pendingText += part.text;
+
+								// Update DB periodically
+								if (hasDelimiter(pendingText)) {
+									await ctx.runMutation(
+										internal.messages.updateStreamingMessage,
+										{
+											messageId,
+											content: fullText,
+										},
+									);
+
+									await ctx.runMutation(internal.messages.addTextPart, {
+										messageId,
+										text: pendingText,
+									});
+
+									await ctx.runMutation(internal.streamDeltas.addDelta, {
+										messageId,
+										streamId,
+										sequence: sequence - 1,
+										text: pendingText,
+										timestamp: Date.now(),
+										partType: "text",
+									});
+
+									pendingText = "";
+								}
+							}
+							break;
+
+						case "reasoning":
+							if (part.text) {
+								// Send to client immediately
+								await writer.write(
+									encoder.encode(
+										JSON.stringify({
+											type: "content",
+											envelope: {
+												streamId,
+												messageId,
+												sequence: sequence++,
+												timestamp: Date.now(),
+												part: {
+													type: "reasoning",
+													text: part.text,
+												},
+											},
+										}) + "\n",
+									),
+								);
+
+								// Accumulate for DB
+								pendingReasoning += part.text;
+
+								if (pendingReasoning.length > 100) {
+									await ctx.runMutation(internal.messages.addReasoningPart, {
+										messageId,
+										text: pendingReasoning,
+										providerMetadata: undefined,
+									});
+
+									await ctx.runMutation(internal.streamDeltas.addDelta, {
+										messageId,
+										streamId,
+										sequence: sequence - 1,
+										text: pendingReasoning,
+										timestamp: Date.now(),
+										partType: "reasoning",
+									});
+
+									pendingReasoning = "";
+								}
+							}
+							break;
+
+						case "tool-call":
+							await writer.write(
+								encoder.encode(
+									JSON.stringify({
+										type: "content",
+										envelope: {
+											streamId,
+											messageId,
+											sequence: sequence++,
+											timestamp: Date.now(),
+											part: {
+												type: "tool-call",
+												toolCallId: part.toolCallId,
+												toolName: part.toolName,
+												args: part.input,
+												state: "call",
+											},
+										},
+									}) + "\n",
+								),
+							);
+
+							await ctx.runMutation(internal.messages.addToolCallPart, {
+								messageId,
+								toolCallId: part.toolCallId,
+								toolName: part.toolName,
+								args: part.input,
+								state: "call",
+							});
+
+							await ctx.runMutation(internal.streamDeltas.addDelta, {
+								messageId,
+								streamId,
+								sequence: sequence - 1,
+								text: JSON.stringify({
+									toolCallId: part.toolCallId,
+									toolName: part.toolName,
+									args: part.input,
+								}),
+								timestamp: Date.now(),
+								partType: "tool-call",
+								metadata: {
+									toolCallId: part.toolCallId,
+									toolName: part.toolName,
+									args: part.input,
+									state: "call",
+								},
+							});
+							break;
+
+						case "tool-result":
+							await writer.write(
+								encoder.encode(
+									JSON.stringify({
+										type: "content",
+										envelope: {
+											streamId,
+											messageId,
+											sequence: sequence++,
+											timestamp: Date.now(),
+											part: {
+												type: "tool-call",
+												toolCallId: part.toolCallId,
+												toolName: part.toolName,
+												result: part.output,
+												state: "result",
+											},
+										},
+									}) + "\n",
+								),
+							);
+
+							await ctx.runMutation(internal.messages.updateToolCallPart, {
+								messageId,
+								toolCallId: part.toolCallId,
+								result: part.output,
+								state: "result",
+							});
+
+							await ctx.runMutation(internal.streamDeltas.addDelta, {
+								messageId,
+								streamId,
+								sequence: sequence - 1,
+								text: JSON.stringify({
+									toolCallId: part.toolCallId,
+									toolName: part.toolName,
+									result: part.output,
+								}),
+								timestamp: Date.now(),
+								partType: "tool_result",
+								metadata: {
+									toolCallId: part.toolCallId,
+									toolName: part.toolName,
+									result: part.output,
+									state: "result",
+								},
+							});
+							break;
+
+						case "error":
+							const errorMessage =
+								part.error instanceof Error
+									? part.error.message
+									: String(part.error || "Unknown stream error");
+							throw new Error(errorMessage);
+
+						case "start":
+						case "start-step":
+							// AI SDK generation events - no action needed
+							break;
+
+						default:
+							console.warn(
+								"Unhandled stream part type:",
+								(part as { type: string }).type,
+							);
+							break;
+					}
+				}
+
+				// Flush any remaining content
+				if (pendingText) {
+					await ctx.runMutation(internal.messages.addTextPart, {
 						messageId,
-						streamId,
-						modelId: modelId as ModelId,
-						hybridWriter: writer,
-						userApiKeys: userApiKeys || undefined,
-						webSearchEnabled: options?.webSearchEnabled ?? false,
+						text: pendingText,
 					});
 
-					// AI generation completes and writer is automatically cleaned up
-				} catch (error) {
-					console.error("Stream setup error:", error);
-					const writer = new HybridStreamWriter(
-						ctx,
+					await ctx.runMutation(internal.streamDeltas.addDelta, {
 						messageId,
 						streamId,
-						controller,
-					);
-					await writer.handleError(
-						error instanceof Error ? error.message : "Stream setup failed",
-						"setup_error",
-					);
+						sequence: sequence++,
+						text: pendingText,
+						timestamp: Date.now(),
+						partType: "text",
+					});
 				}
-			},
 
-			// Handle client disconnection
-			cancel(reason) {
-				console.log(
-					`HTTP connection cancelled for stream ${streamId}:`,
-					reason,
+				if (pendingReasoning) {
+					await ctx.runMutation(internal.messages.addReasoningPart, {
+						messageId,
+						text: pendingReasoning,
+						providerMetadata: undefined,
+					});
+
+					await ctx.runMutation(internal.streamDeltas.addDelta, {
+						messageId,
+						streamId,
+						sequence: sequence++,
+						text: pendingReasoning,
+						timestamp: Date.now(),
+						partType: "reasoning",
+					});
+				}
+
+				// Complete the message
+				const usage = await result.usage;
+				if (usage) {
+					const formattedUsage = formatUsageData(usage);
+					await ctx.runMutation(internal.messages.completeStreamingMessage, {
+						messageId,
+						streamId,
+						fullText,
+						usage: formattedUsage,
+					});
+				} else if (fullText.length > 0) {
+					await ctx.runMutation(internal.messages.completeStreamingMessage, {
+						messageId,
+						streamId,
+						fullText,
+						usage: undefined,
+					});
+				}
+
+				// Mark stream as complete
+				await ctx.runMutation(internal.streams.markComplete, {
+					streamId,
+				});
+
+				// Send completion event
+				await writer.write(
+					encoder.encode(
+						JSON.stringify({
+							type: "content",
+							envelope: {
+								streamId,
+								messageId,
+								sequence: sequence++,
+								timestamp: Date.now(),
+								event: {
+									type: "stream-end",
+									metadata: {},
+								},
+							},
+						}) + "\n",
+					),
 				);
-				// The inline execution means the writer will be garbage collected
-				// and database writes will complete naturally in the background
-			},
-		});
+			} catch (error) {
+				console.error("Streaming error:", error);
 
-		return new Response(stream, {
+				const errorMsg =
+					error instanceof Error ? error.message : "Unknown error";
+
+				// Send error to client
+				await writer.write(
+					encoder.encode(
+						JSON.stringify({
+							type: "content",
+							envelope: {
+								streamId,
+								messageId,
+								sequence: sequence++,
+								timestamp: Date.now(),
+								event: {
+									type: "stream-error",
+									error: errorMsg,
+									code: "generation_error",
+								},
+							},
+						}) + "\n",
+					),
+				);
+
+				// Update message with error
+				await handleAIResponseError(ctx, error, threadId, messageId, {
+					modelId: modelId as ModelId,
+					provider: getProviderFromModelId(modelId as ModelId),
+					useStreamingUpdate: true,
+				});
+
+				// Mark stream as error
+				await ctx.runMutation(internal.streams.markError, {
+					streamId,
+					error: errorMsg,
+				});
+			} finally {
+				// Always cleanup
+				await writer.close();
+
+				// Clear generation flag
+				await ctx.runMutation(internal.messages.clearGenerationFlag, {
+					threadId,
+				});
+			}
+		};
+
+		// Start streaming in background
+		void streamData();
+
+		return new Response(readable, {
 			headers: {
 				"Content-Type": "application/x-ndjson",
 				"Transfer-Encoding": "chunked",

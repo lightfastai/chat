@@ -35,7 +35,6 @@ import {
 	mutation,
 	query,
 } from "./_generated/server.js";
-import { HybridStreamWriter } from "./hybridStreamWriter.js";
 import { createAIClient } from "./lib/ai_client.js";
 import { createWebSearchTool } from "./lib/ai_tools.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
@@ -44,7 +43,6 @@ import { getOrThrow, getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
 import { getModelStreamingDelay } from "./lib/streaming_config.js";
-import { streamAIText } from "./streamAIText.js";
 import {
 	branchInfoValidator,
 	clientIdValidator,
@@ -2125,8 +2123,8 @@ export const syncMessageFromStream = internalMutation({
 });
 
 /**
- * Hybrid streaming action - uses HybridStreamWriter for dual-write strategy
- * This action runs AI generation with both HTTP streaming and database throttling
+ * Hybrid streaming action - DEPRECATED: Replaced by inline HTTP streaming
+ * This function is kept for backward compatibility but is no longer used
  */
 export const generateAIResponseHybrid = internalAction({
 	args: {
@@ -2144,37 +2142,12 @@ export const generateAIResponseHybrid = internalAction({
 		webSearchEnabled: v.optional(v.boolean()),
 	},
 	returns: v.null(),
-	handler: async (ctx, args) => {
-		console.log("🚀 Starting hybrid streaming for message:", args.messageId);
-
-		// Create a HybridStreamWriter without HTTP controller (database-only mode)
-		// This provides the dual-write benefits without HTTP streaming
-		const hybridWriter = new HybridStreamWriter(
-			ctx,
-			args.messageId,
-			args.streamId,
-			undefined, // No HTTP controller in mutation context
+	handler: async (_ctx, _args) => {
+		console.error(
+			"❌ generateAIResponseHybrid is deprecated. Use HTTP streaming endpoint instead.",
 		);
-
-		try {
-			// Use the inline AI generation with HybridStreamWriter
-			await streamAIText(ctx, {
-				threadId: args.threadId,
-				messageId: args.messageId,
-				streamId: args.streamId,
-				modelId: args.modelId as ModelId,
-				hybridWriter,
-				userApiKeys: args.userApiKeys,
-				webSearchEnabled: args.webSearchEnabled,
-			});
-
-			console.log("✅ Hybrid streaming completed successfully");
-		} catch (error) {
-			console.error("❌ Hybrid streaming failed:", error);
-			// Error handling is done by generateAIResponseInline
-			throw error;
-		}
-
-		return null;
+		throw new Error(
+			"generateAIResponseHybrid is deprecated. Use HTTP streaming endpoint instead.",
+		);
 	},
 });
