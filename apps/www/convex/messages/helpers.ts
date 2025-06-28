@@ -135,8 +135,6 @@ export function getFullModelId(model: string): string {
 	}
 }
 
-
-
 /**
  * Handle errors in AI response generation with proper cleanup
  * Ensures generation flag is always cleared to prevent thread lock

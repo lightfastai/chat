@@ -19,7 +19,6 @@ export type ReasoningPart = Infer<typeof reasoningPartValidator>;
 // Official Vercel AI SDK v5 compliant ToolCallPart
 export type ToolCallPart = Infer<typeof toolCallPartValidator>;
 
-
 // Union type for all message parts
 export type MessagePart = Infer<typeof messagePartValidator>;
 

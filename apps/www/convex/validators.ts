@@ -35,7 +35,6 @@ export const clientIdValidator = v.string();
 // Share ID validator (nanoid format, 24 chars for security)
 export const shareIdValidator = v.string();
 
-
 // Storage ID validator for Convex file storage
 export const storageIdValidator = v.string();
 
@@ -357,14 +356,12 @@ export const httpStreamingRequestValidator = v.object({
 				),
 			),
 
-
 			// Use existing structures for the response
 			useExistingMessage: v.optional(v.id("messages")),
 			webSearchEnabled: v.optional(v.boolean()),
 		}),
 	),
 });
-
 
 // ===== Response Validators =====
 
@@ -381,7 +378,6 @@ export const streamingMessageValidator = v.object({
 	timestamp: v.number(),
 	messageType: messageTypeValidator,
 	modelId: v.optional(v.string()),
-
 
 	// Progress tracking
 	metrics: v.optional(
@@ -454,7 +450,6 @@ export function isReasoningPart(part: MessagePart): part is ReasoningPart {
 export function isErrorPart(part: MessagePart): part is ErrorPart {
 	return part.type === "error";
 }
-
 
 // Tool call state guards
 export function isToolCallInProgress(part: MessagePart): boolean {

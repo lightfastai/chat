@@ -1,12 +1,12 @@
-import { type CoreMessage, smoothStream, streamText, } from "ai";
+import { type CoreMessage, smoothStream, streamText } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -198,10 +198,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 		// Combined update helper for backward compatibility
 		const updateDatabase = async () => {
-			await Promise.all([
-				updateTextContent(),
-				updateReasoningContent(),
-			]);
+			await Promise.all([updateTextContent(), updateReasoningContent()]);
 		};
 
 		// Set up periodic database updates (50ms)

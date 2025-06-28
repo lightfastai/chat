@@ -2,28 +2,28 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
-  branchInfoValidator,
-  clientIdValidator,
-  commentValidator,
-  feedbackRatingValidator,
-  feedbackReasonsValidator,
-  fileMetadataValidator,
-  fileNameValidator,
-  ipHashValidator,
-  messagePartsValidator,
-  messageTypeValidator,
-  mimeTypeValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  shareIdValidator,
-  shareSettingsValidator,
-  storageIdValidator,
-  threadUsageValidator,
-  titleValidator,
-  tokenUsageValidator,
-  userAgentValidator,
-  userApiKeysValidator,
-  userPreferencesValidator,
+	branchInfoValidator,
+	clientIdValidator,
+	commentValidator,
+	feedbackRatingValidator,
+	feedbackReasonsValidator,
+	fileMetadataValidator,
+	fileNameValidator,
+	ipHashValidator,
+	messagePartsValidator,
+	messageTypeValidator,
+	mimeTypeValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	shareIdValidator,
+	shareSettingsValidator,
+	storageIdValidator,
+	threadUsageValidator,
+	titleValidator,
+	tokenUsageValidator,
+	userAgentValidator,
+	userApiKeysValidator,
+	userPreferencesValidator,
 } from "./validators.js";
 
 export default defineSchema({
@@ -98,8 +98,7 @@ export default defineSchema({
 		// Message parts array following Vercel AI SDK v5 structure
 		// Stores text, tool calls, and tool results in chronological order
 		parts: v.optional(messagePartsValidator),
-	})
-		.index("by_thread", ["threadId"]),
+	}).index("by_thread", ["threadId"]),
 
 	feedback: defineTable({
 		messageId: v.id("messages"),

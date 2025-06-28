@@ -8,23 +8,22 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
-import {
-  type CoreMessage
-} from "ai";
+import type { CoreMessage } from "ai";
 import { v } from "convex/values";
 import {
-  type ModelId,
-  getModelById, getProviderFromModelId
+	type ModelId,
+	getModelById,
+	getProviderFromModelId,
 } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import {
-  type ActionCtx,
-  internalAction,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
+	type ActionCtx,
+	internalAction,
+	internalMutation,
+	internalQuery,
+	mutation,
+	query,
 } from "./_generated/server.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { enforceModelCapabilities } from "./lib/capability_guards.js";
@@ -32,26 +31,28 @@ import { getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
 import {
-  branchInfoValidator,
-  clientIdValidator, messageTypeValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  shareIdValidator,
-  shareSettingsValidator,
-  threadUsageValidator,
-  tokenUsageValidator
+	branchInfoValidator,
+	clientIdValidator,
+	messageTypeValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	shareIdValidator,
+	shareSettingsValidator,
+	threadUsageValidator,
+	tokenUsageValidator,
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
 import {
-  clearGenerationFlagUtil,
-  handleAIResponseError,
-  streamAIResponse,
-  updateThreadUsage,
-  updateThreadUsageUtil,
+	clearGenerationFlagUtil,
+	handleAIResponseError,
+	streamAIResponse,
+	updateThreadUsage,
+	updateThreadUsageUtil,
 } from "./messages/helpers.js";
 import {
-  type MessageUsageUpdate, messageReturnValidator
+	type MessageUsageUpdate,
+	messageReturnValidator,
 } from "./messages/types.js";
 
 // Type definitions for multimodal content
@@ -479,15 +480,8 @@ export const send = mutation({
 			isComplete: false,
 		});
 
-		// Schedule AI response generation
-		await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
-			threadId: args.threadId,
-			userMessage: args.body,
-			modelId: modelId,
-			attachments: args.attachments,
-			webSearchEnabled: args.webSearchEnabled,
-		});
-
+		// HTTP streaming will handle AI response generation
+		// No need to schedule generateAIResponse anymore
 
 		// Check if this is the first user message in the thread (for title generation)
 		const userMessages = await ctx.db
@@ -592,18 +586,8 @@ export const createThreadAndSend = mutation({
 			isComplete: false,
 		});
 
-		// Schedule AI response generation
-		await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
-			threadId,
-			userMessage: args.body,
-			modelId: modelId,
-			attachments: args.attachments,
-			webSearchEnabled: args.webSearchEnabled,
-		});
-
-
-
-
+		// HTTP streaming will handle AI response generation
+		// No need to schedule generateAIResponse anymore
 
 		// Schedule title generation (this is the first message)
 		await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
@@ -619,7 +603,6 @@ export const createThreadAndSend = mutation({
 		};
 	},
 });
-
 
 // Internal mutation to update streaming message content
 export const updateStreamingMessage = internalMutation({
@@ -702,7 +685,6 @@ export const updateMessageError = internalMutation({
 		return null;
 	},
 });
-
 
 // Internal mutation to mark streaming as complete and update thread usage
 

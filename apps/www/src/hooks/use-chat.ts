@@ -491,10 +491,7 @@ export function useChat(options: UseChatOptions = {}) {
 				});
 
 				// Start HTTP streaming if we got the necessary IDs
-				if (
-					convexResult?.messageId &&
-					convexResult?.threadId
-				) {
+				if (convexResult?.messageId && convexResult?.threadId) {
 					await startHttpStreaming(
 						convexResult.threadId,
 						convexResult.messageId,
@@ -516,10 +513,7 @@ export function useChat(options: UseChatOptions = {}) {
 				});
 
 				// Start HTTP streaming if we got the necessary IDs
-				if (
-					convexResult?.messageId &&
-					convexResult?.threadId
-				) {
+				if (convexResult?.messageId && convexResult?.threadId) {
 					await startHttpStreaming(
 						convexResult.threadId,
 						convexResult.messageId,
@@ -541,10 +535,7 @@ export function useChat(options: UseChatOptions = {}) {
 
 				// Start HTTP streaming if we got the necessary IDs
 				if (convexResult?.messageId) {
-					await startHttpStreaming(
-						currentThread._id,
-						convexResult.messageId,
-					);
+					await startHttpStreaming(currentThread._id, convexResult.messageId);
 				}
 
 				return;
