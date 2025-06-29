@@ -6,7 +6,6 @@ const http = httpRouter();
 
 auth.addHttpRoutes(http);
 
-
 // HTTP streaming endpoint with modern AI SDK v5 support
 http.route({
 	path: "/stream-chat",

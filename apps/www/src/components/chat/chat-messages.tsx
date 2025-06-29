@@ -1,14 +1,12 @@
 "use client";
 
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
+import type { UIMessage } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Doc } from "../../../convex/_generated/dataModel";
 import { MessageDisplay } from "./message-display";
 
-type Message = Doc<"messages">;
-
 interface ChatMessagesProps {
-	messages: Message[];
+	messages: UIMessage[];
 	isLoading?: boolean;
 	emptyState?: {
 		icon?: React.ReactNode;
@@ -102,9 +100,13 @@ export function ChatMessages({
 		lastMessageCountRef.current = messages.length;
 
 		// Check if any message is currently streaming
-		const hasStreamingMessage = messages.some(
-			(msg) => msg.isStreaming && !msg.isComplete,
-		);
+		// For UIMessages, check if there's an assistant message with incomplete parts
+		const hasStreamingMessage = messages.some((msg) => {
+			if (msg.role !== "assistant") return false;
+			// Check if the message has metadata indicating streaming
+			const metadata = msg.metadata as any;
+			return metadata?.isStreaming && !metadata?.isComplete;
+		});
 
 		// Auto-scroll if:
 		// 1. User is NOT actively scrolling
@@ -121,7 +123,7 @@ export function ChatMessages({
 
 		// If there's a new message and user is scrolling, reset the user scrolling flag
 		// This ensures they see their own messages
-		if (hasNewMessage && messages[0]?.messageType === "user") {
+		if (hasNewMessage && messages[0]?.role === "user") {
 			setIsUserScrolling(false);
 			scrollToBottom(false);
 		}
@@ -140,7 +142,7 @@ export function ChatMessages({
 						?.slice()
 						.reverse()
 						.map((msg) => (
-							<MessageDisplay key={msg._id} message={msg} userName="User" />
+							<MessageDisplay key={msg.id} message={msg} userName="User" />
 						))}
 
 					{isLoading && (

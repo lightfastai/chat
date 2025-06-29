@@ -210,7 +210,11 @@ function uiPartsToConvexParts(parts: any[]): MessagePart[] {
 				toolCallId: string;
 				input: Record<string, unknown>;
 				output: unknown;
-				state: "input-streaming" | "input-available" | "output-available" | "output-error";
+				state:
+					| "input-streaming"
+					| "input-available"
+					| "output-available"
+					| "output-error";
 			};
 
 			convexParts.push({
@@ -359,4 +363,44 @@ export function hasToolCalls(message: UIMessage): boolean {
  */
 export function hasReasoningContent(message: UIMessage): boolean {
 	return message.parts.some((part) => part.type === "reasoning");
+}
+
+/**
+ * Convert a UIMessage to a Convex-like message format for display compatibility
+ * This allows existing components to work with UIMessages
+ */
+export function uiMessageToDisplayMessage(
+	uiMessage: UIMessage,
+): Doc<"messages"> {
+	const metadata = (uiMessage.metadata as any) || {};
+	const body = extractTextFromParts(uiMessage.parts);
+	const parts = uiPartsToConvexParts(uiMessage.parts);
+
+	// Create a Convex-like message object
+	return {
+		_id: uiMessage.id as Id<"messages">,
+		_creationTime: metadata.timestamp || Date.now(),
+		threadId: metadata.threadId || ("temp" as Id<"threads">),
+		body,
+		messageType:
+			uiMessage.role === "user"
+				? "user"
+				: uiMessage.role === "assistant"
+					? "assistant"
+					: "system",
+		timestamp: metadata.timestamp || Date.now(),
+		parts,
+		model: metadata.model,
+		modelId: metadata.modelId,
+		usage: metadata.usage,
+		isStreaming: metadata.isStreaming || false,
+		isComplete: metadata.isComplete !== false,
+		thinkingContent: metadata.thinkingContent,
+		isThinking: metadata.isThinking || false,
+		hasThinkingContent: metadata.hasThinkingContent || false,
+		thinkingStartedAt: metadata.thinkingStartedAt,
+		thinkingCompletedAt: metadata.thinkingCompletedAt,
+		usedUserApiKey: metadata.usedUserApiKey,
+		attachments: metadata.attachments,
+	} as Doc<"messages">;
 }
