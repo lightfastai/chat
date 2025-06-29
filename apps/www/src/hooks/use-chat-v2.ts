@@ -210,8 +210,13 @@ export function useChat(options: UseChatOptions = {}) {
 		});
 	}, [streamUrl, authToken, modelId, webSearchEnabled]);
 
-	// Determine the chat ID - use clientId for optimistic updates, thread ID when available, or "new"
-	const chatId = currentClientId || currentThread?._id || "new";
+	// Pre-generate clientId for new chats to ensure consistent ID throughout the request
+	const preGeneratedClientId = useMemo(() => {
+		return isNewChat ? nanoid() : null;
+	}, [isNewChat]);
+
+	// Determine the chat ID - use clientId for optimistic updates, thread ID when available, or pre-generated clientId for new chats
+	const chatId = currentClientId || currentThread?._id || preGeneratedClientId || "new";
 
 	// Use Vercel AI SDK's useChat
 	const {
@@ -255,15 +260,14 @@ export function useChat(options: UseChatOptions = {}) {
 			const finalModelId = messageModelId || modelId;
 
 			// For new chats, create thread first then update URL
-			if (isNewChat) {
-				const clientId = nanoid();
-				// Create thread with clientId for instant navigation
+			if (isNewChat && preGeneratedClientId) {
+				// Create thread with pre-generated clientId for instant navigation
 				createThread({
 					title: "",
-					clientId,
+					clientId: preGeneratedClientId,
 				});
 				// Navigate to clientId immediately for optimistic update
-				router.replace(`/chat/${clientId}`);
+				router.replace(`/chat/${preGeneratedClientId}`);
 			}
 
 			// Let Vercel AI SDK handle everything through the transport
@@ -283,6 +287,7 @@ export function useChat(options: UseChatOptions = {}) {
 		},
 		[
 			isNewChat,
+			preGeneratedClientId,
 			modelId,
 			webSearchEnabled,
 			vercelSendMessage,
