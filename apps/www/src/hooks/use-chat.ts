@@ -2,20 +2,31 @@
 
 import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
-import { getProviderFromModelId } from "@/lib/ai";
+import {
+	convexMessagesToUIMessages,
+	mergeMessagesWithStreamingState,
+} from "@/lib/ai/message-converters";
 import { isClientId, nanoid } from "@/lib/nanoid";
+import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
+import { DefaultChatTransport } from "ai";
 import {
 	type Preloaded,
 	useMutation,
 	usePreloadedQuery,
 	useQuery,
 } from "convex/react";
-import { usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useMemo, useRef } from "react";
 import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
-// Removed old useHTTPStreaming import
+import type { Id } from "../../convex/_generated/dataModel";
+
+// Types for the transport request body
+interface ChatTransportBody {
+	modelId?: string;
+	webSearchEnabled?: boolean;
+	attachments?: Id<"files">[];
+}
 
 interface UseChatOptions {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
@@ -26,9 +37,8 @@ interface UseChatOptions {
 
 export function useChat(options: UseChatOptions = {}) {
 	const pathname = usePathname();
+	const router = useRouter();
 	const authToken = useAuthToken();
-
-	// Store the temporary thread ID to maintain consistency across URL changes
 
 	// Extract current thread info from pathname with clientId support
 	const pathInfo = useMemo(() => {
@@ -89,7 +99,7 @@ export function useChat(options: UseChatOptions = {}) {
 			: "skip",
 	);
 
-	// Determine the actual thread to use - prefer preloaded, then fallback to queries
+	// Determine the actual thread to use
 	const currentThread = preloadedThread || threadByClientId || threadById;
 
 	// Get messages for current thread
@@ -104,478 +114,292 @@ export function useChat(options: UseChatOptions = {}) {
 		? usePreloadedQuery(options.preloadedMessages)
 		: null;
 
-	// Query messages by clientId if we have one (for optimistic updates)
-	const messagesByClientId = useQuery(
-		api.messages.listByClientId,
-		currentClientId && !preloadedMessages
-			? { clientId: currentClientId }
-			: "skip",
-	);
-
-	// Query messages by threadId for regular threads
-	const messagesByThreadId = useQuery(
+	// Get messages for current thread (skip if preloaded or optimistic)
+	const convexMessages = useQuery(
 		api.messages.list,
-		// Skip query if we have an optimistic thread ID to avoid validation errors
-		messageThreadId &&
-			!preloadedMessages &&
-			!isOptimisticThreadId &&
-			!currentClientId
+		messageThreadId && !isOptimisticThreadId && !preloadedMessages
 			? { threadId: messageThreadId }
 			: "skip",
 	);
 
-	// Use messages in this priority order:
-	// 1. Preloaded messages (SSR)
-	// 2. Messages by clientId (for optimistic updates)
-	// 3. Messages by threadId (regular case)
-	// 4. Empty array fallback
-	const baseMessages =
-		preloadedMessages ?? messagesByClientId ?? messagesByThreadId ?? [];
+	const messages = preloadedMessages || convexMessages;
 
-	// Use preloaded user settings if available, otherwise query
-	const preloadedUserSettings = options.preloadedUserSettings
+	// Get user settings
+	const userSettings = options.preloadedUserSettings
 		? usePreloadedQuery(options.preloadedUserSettings)
-		: null;
+		: useQuery(api.userSettings.getUserSettings);
 
-	const userSettings = useQuery(
-		api.userSettings.getUserSettings,
-		preloadedUserSettings ? "skip" : {},
-	);
+	const modelId =
+		userSettings?.preferences?.defaultModel || ("gpt-4o-mini" as ModelId);
+	const webSearchEnabled = false; // TODO: Add web search preference to user settings
 
-	// Use whichever is available
-	const finalUserSettings = preloadedUserSettings ?? userSettings;
+	// Mutations (only keep the ones we still need)
+	const createThread = useMutation(api.threads.create);
+	const deleteThread = useMutation(api.threads.deleteThread);
+	// const clearHistory = useMutation(api.threads.clearAll);
+	const updateThreadTitle = useMutation(api.threads.updateTitle);
+	// const retryLastAssistant = useMutation(api.messages.retry);
+	const branchThreadMutation = useMutation(api.threads.branchFromMessage);
+	// const editMessageMutation = useMutation(api.messages.edit);
+	const submitFeedback = useMutation(api.feedback.submitFeedback);
+	const shareThread = useMutation(api.share.shareThread);
+	const unshareThread = useMutation(api.share.unshareThread);
 
-	// Messages are returned directly from Convex queries
-	const messages = baseMessages;
+	// Get sharing status
+	const shareId = currentThread?.shareId;
+	const isShared = currentThread?.isPublic === true && !!shareId;
 
-	// Remove debug logging for production
-	// Uncomment the following for debugging message queries
-	// useEffect(() => {
-	//   console.log("🔍 useChat debug:", {
-	//     pathname,
-	//     currentClientId,
-	//     currentThread: currentThread?._id,
-	//     isOptimisticThreadId,
-	//     messageThreadId,
-	//     messageCount: messages.length,
-	//     messagesByClientIdCount: messagesByClientId?.length,
-	//     messagesByThreadIdCount: messagesByThreadId?.length,
-	//     firstMessage: messages[0]?.body?.slice(0, 50),
-	//     pathInfo,
-	//   })
-	// }, [
-	//   pathname,
-	//   currentClientId,
-	//   currentThread?._id,
-	//   isOptimisticThreadId,
-	//   messageThreadId,
-	//   messages.length,
-	//   messagesByClientId?.length,
-	//   messagesByThreadId?.length,
-	//   pathInfo,
-	// ])
+	// Track last assistant message ID
+	const lastAssistantMessageId = useRef<Id<"messages"> | null>(null);
 
-	// Mutations with proper Convex optimistic updates
-	const createThreadAndSend = useMutation(
-		api.messages.createThreadAndSend,
-	).withOptimisticUpdate((localStore, args) => {
-		const { title, clientId, body, modelId } = args;
-		const now = Date.now();
+	// Construct Convex HTTP endpoint URL
+	const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
+	let convexSiteUrl: string;
+	if (convexUrl.includes(".cloud")) {
+		convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
+	} else {
+		const url = new URL(convexUrl);
+		url.port = String(Number(url.port) + 1);
+		convexSiteUrl = url.toString().replace(/\/$/, "");
+	}
+	const streamUrl = `${convexSiteUrl}/stream-chat`;
 
-		// Create optimistic thread with a temporary ID that looks like a Convex ID
-		// This will be replaced by the real thread ID when the mutation completes
-		// Use a format that starts with 'k' to pass our optimistic ID checks
-		const optimisticThreadId = crypto.randomUUID() as Id<"threads">;
+	// Convert preloaded Convex messages to UIMessages
+	const initialMessages = useMemo(() => {
+		if (messages) {
+			return convexMessagesToUIMessages(messages);
+		}
+		return [];
+	}, [messages]);
 
-		// Create optimistic thread for sidebar display and message association
-		const optimisticThread: Partial<Doc<"threads">> & {
-			_id: Id<"threads">;
-			clientId: string;
-		} = {
-			_id: optimisticThreadId,
-			_creationTime: now,
-			clientId,
-			title,
-			userId: "optimistic" as Id<"users">,
-			createdAt: now,
-			lastMessageAt: now,
-			isTitleGenerating: true,
-			isGenerating: true,
-			// Initialize usage field to match the server-side thread creation
-			usage: {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: {},
+	// Create transport with request transformation
+	const transport = useMemo(() => {
+		if (!authToken) return undefined;
+
+		return new DefaultChatTransport({
+			api: streamUrl,
+			headers: {
+				Authorization: `Bearer ${authToken}`,
 			},
-		};
+			prepareSendMessagesRequest: ({
+				id,
+				messages,
+				body,
+				headers,
+				credentials,
+				api,
+				trigger,
+			}) => {
+				// Type the body parameter properly
+				const typedBody = body as ChatTransportBody | undefined;
 
-		// Get existing threads from the store
-		const existingThreads = localStore.getQuery(api.threads.list, {}) || [];
-
-		// Add the new thread at the beginning of the list for sidebar display
-		localStore.setQuery(api.threads.list, {}, [
-			optimisticThread as Doc<"threads">,
-			...existingThreads,
-		]);
-
-		// Also set the thread by clientId so it can be found while optimistic
-		localStore.setQuery(
-			api.threads.getByClientId,
-			{ clientId },
-			optimisticThread as Doc<"threads">,
-		);
-
-		// Create optimistic user message
-		const optimisticUserMessage: Doc<"messages"> = {
-			_id: crypto.randomUUID() as Id<"messages">,
-			_creationTime: now,
-			threadId: optimisticThreadId,
-			body,
-			messageType: "user",
-			modelId,
-			timestamp: now,
-			isStreaming: false,
-			isComplete: true,
-		};
-
-		// Determine if user will use their own API key
-		const provider = getProviderFromModelId(modelId as ModelId);
-		const userSettingsData = localStore.getQuery(
-			api.userSettings.getUserSettings,
-			{},
-		);
-
-		// Default to false if settings not loaded yet
-		// The actual determination will happen server-side
-		let willUseUserApiKey = false;
-
-		// Only determine API key usage if settings are loaded
-		if (userSettingsData !== undefined) {
-			if (provider === "anthropic" && userSettingsData?.hasAnthropicKey) {
-				willUseUserApiKey = true;
-			} else if (provider === "openai" && userSettingsData?.hasOpenAIKey) {
-				willUseUserApiKey = true;
-			} else if (
-				provider === "openrouter" &&
-				userSettingsData?.hasOpenRouterKey
-			) {
-				willUseUserApiKey = true;
-			}
-		}
-
-		// Log for debugging (can be removed in production)
-		if (process.env.NODE_ENV === "development") {
-			console.log("Optimistic update API key inference:", {
-				provider,
-				hasUserSettings: userSettingsData !== undefined,
-				willUseUserApiKey,
-			});
-		}
-
-		// Create optimistic assistant message placeholder
-		// Important: Don't set thinkingStartedAt to avoid "Thinking" → "Thought for X.Xs" jump
-		const optimisticAssistantMessage: Doc<"messages"> = {
-			_id: crypto.randomUUID() as Id<"messages">,
-			_creationTime: now + 1,
-			threadId: optimisticThreadId,
-			body: "", // Empty body for streaming
-			messageType: "assistant",
-			model: provider, // Add model field to match server structure
-			modelId,
-			timestamp: now + 1,
-			isStreaming: true,
-			isComplete: false,
-			// Message will be created with a real ID when the mutation completes
-			// Don't set thinkingStartedAt to prevent premature "Thinking" display
-			usedUserApiKey: willUseUserApiKey,
-		};
-
-		// Set optimistic messages for this thread
-		// We use the optimistic thread ID here, which will be replaced when the real data arrives
-		// Messages are returned in descending order (newest first) by the backend
-		localStore.setQuery(api.messages.list, { threadId: optimisticThreadId }, [
-			optimisticAssistantMessage, // Assistant message has timestamp now + 1
-			optimisticUserMessage, // User message has timestamp now
-		]);
-
-		// IMPORTANT: Also set messages by clientId so they can be queried immediately
-		localStore.setQuery(api.messages.listByClientId, { clientId }, [
-			optimisticAssistantMessage, // Assistant message has timestamp now + 1
-			optimisticUserMessage, // User message has timestamp now
-		]);
-	});
-
-	const sendMessage = useMutation(api.messages.send).withOptimisticUpdate(
-		(localStore, args) => {
-			const { threadId, body, modelId } = args;
-			const existingMessages = localStore.getQuery(api.messages.list, {
-				threadId,
-			});
-
-			// If we've loaded the messages for this thread, add optimistic message
-			if (existingMessages !== undefined) {
-				const now = Date.now();
-				const optimisticMessage: Doc<"messages"> = {
-					_id: crypto.randomUUID() as Id<"messages">,
-					_creationTime: now,
-					threadId,
-					body,
-					messageType: "user",
-					modelId,
-					timestamp: now,
-					isStreaming: false,
-					isComplete: true,
+				// Transform the request to match Convex HTTP streaming format
+				const convexBody = {
+					// For new chats or clientIds, send null threadId
+					// If it's a clientId, send it separately so the backend can look up the thread
+					threadId: id === "new" || isClientId(id) ? null : id,
+					clientId: isClientId(id) ? id : undefined,
+					modelId: typedBody?.modelId || modelId,
+					messages: messages, // Send UIMessages directly
+					options: {
+						webSearchEnabled: typedBody?.webSearchEnabled ?? webSearchEnabled,
+						trigger, // Pass through the trigger type
+						// Additional options that might be needed
+						attachments: typedBody?.attachments,
+					},
 				};
 
-				// Create new array with optimistic message at the beginning
-				// (since backend returns messages in desc order - newest first)
-				localStore.setQuery(api.messages.list, { threadId }, [
-					optimisticMessage,
-					...existingMessages,
-				]);
+				return {
+					api: api,
+					headers: headers,
+					body: convexBody,
+					credentials: credentials,
+				};
+			},
+		});
+	}, [streamUrl, authToken, modelId]);
 
-				// Also update messages by clientId if we have one
-				// This ensures optimistic updates work for threads accessed by clientId
-				if (currentClientId) {
-					const existingMessagesByClientId = localStore.getQuery(
-						api.messages.listByClientId,
-						{ clientId: currentClientId },
-					);
-					if (existingMessagesByClientId !== undefined) {
-						localStore.setQuery(
-							api.messages.listByClientId,
-							{ clientId: currentClientId },
-							[optimisticMessage, ...existingMessagesByClientId],
-						);
-					}
-				}
+	// Pre-generate clientId for new chats to ensure consistent ID throughout the request
+	const preGeneratedClientId = useMemo(() => {
+		return isNewChat ? nanoid() : null;
+	}, [isNewChat]);
 
-				// Also update thread to show it's generating a response
-				const existingThread = localStore.getQuery(api.threads.get, {
-					threadId,
-				});
-				if (existingThread) {
-					localStore.setQuery(
-						api.threads.get,
-						{ threadId },
-						{
-							...existingThread,
-							isGenerating: true,
-							lastMessageAt: now,
-						},
-					);
-				}
+	// Determine the chat ID - use clientId for optimistic updates, thread ID when available, or pre-generated clientId for new chats
+	const chatId =
+		currentClientId || currentThread?._id || preGeneratedClientId || "new";
 
-				// Update threads list to move this thread to the top and show generating state
-				const existingThreadsList = localStore.getQuery(api.threads.list, {});
-				if (existingThreadsList) {
-					const threadIndex = existingThreadsList.findIndex(
-						(t) => t._id === threadId,
-					);
-					if (threadIndex >= 0) {
-						const updatedThread = {
-							...existingThreadsList[threadIndex],
-							isGenerating: true,
-							lastMessageAt: now,
-						};
-						// Move thread to front and update its state
-						const newThreadsList = [
-							updatedThread,
-							...existingThreadsList.filter((_, i) => i !== threadIndex),
-						];
-						localStore.setQuery(api.threads.list, {}, newThreadsList);
-					}
-				}
+	// Use Vercel AI SDK's useChat
+	const {
+		messages: uiMessages,
+		sendMessage: vercelSendMessage,
+		stop,
+		error,
+		status,
+		regenerate,
+		setMessages: setUIMessages,
+	} = useVercelChat({
+		id: chatId,
+		transport,
+		messages: initialMessages,
+		generateId: () => nanoid(), // Use our nanoid for consistency
+		onFinish: async ({ message }) => {
+			// Track the assistant message ID
+			if (message.role === "assistant") {
+				lastAssistantMessageId.current = message.id as Id<"messages">;
 			}
 		},
+	});
+
+	// Merge Convex real-time messages with Vercel streaming state
+	const mergedMessages = useMemo(() => {
+		return mergeMessagesWithStreamingState(messages, uiMessages);
+	}, [messages, uiMessages]);
+
+	// Custom send message handler - creates thread first if needed
+	const handleSendMessage = useCallback(
+		async ({
+			message,
+			modelId: messageModelId,
+			attachments,
+		}: {
+			message: string;
+			modelId?: ModelId;
+			attachments?: Id<"files">[];
+			isRetry?: boolean;
+		}) => {
+			const finalModelId = messageModelId || modelId;
+
+			// For new chats, create thread first then update URL
+			if (isNewChat && preGeneratedClientId) {
+				// Create thread with pre-generated clientId for instant navigation
+				// Pass the first user message for title generation
+				createThread({
+					title: "",
+					clientId: preGeneratedClientId,
+					firstUserMessage: message, // Pass user message for title generation
+				});
+				// Navigate to clientId immediately for optimistic update
+				router.replace(`/chat/${preGeneratedClientId}`);
+			}
+
+			// Let Vercel AI SDK handle everything through the transport
+			await vercelSendMessage(
+				{
+					role: "user",
+					parts: [{ type: "text", text: message }],
+				},
+				{
+					body: {
+						modelId: finalModelId,
+						attachments,
+						webSearchEnabled,
+					},
+				},
+			);
+		},
+		[
+			isNewChat,
+			preGeneratedClientId,
+			modelId,
+			vercelSendMessage,
+			router,
+			createThread,
+		],
 	);
 
-	const handleSendMessage = async (
-		message: string,
-		modelId: string,
-		attachments?: Id<"files">[],
-		webSearchEnabled?: boolean,
-	) => {
-		if (!message.trim()) return;
+	// Edit message handler (currently disabled)
+	const handleEditMessage = useCallback(
+		async (messageId: Id<"messages">, newContent: string) => {
+			// TODO: Implement edit message functionality
+			console.log("Edit message not implemented", { messageId, newContent });
+		},
+		[],
+	);
 
-		// Ensure user settings are loaded before sending
-		// This helps ensure the optimistic update has the data it needs
-		if (finalUserSettings === undefined) {
-			console.warn("User settings not loaded yet, waiting...");
-			// In practice, this should rarely happen because we preload settings
-			// But this ensures we don't create incorrect optimistic updates
-			return;
-		}
+	// Branch thread handler
+	const handleBranchThread = useCallback(
+		async (messageId: Id<"messages">) => {
+			if (!currentThread) return null;
 
-		try {
-			console.log("🎯 handleSendMessage called:", {
-				hasCurrentThread: !!currentThread,
-				currentThreadId: currentThread?._id,
-				isNewChat,
-				currentClientId,
-				hasAttachments: !!attachments?.length,
-				webSearchEnabled,
+			const newThreadId = await branchThreadMutation({
+				originalThreadId: currentThread._id,
+				branchFromMessageId: messageId,
+				modelId: modelId,
 			});
 
-			// Use HTTP streaming for instant feedback
-			console.log("🚀 Using HTTP streaming:", {
-				currentThread: !!currentThread,
-				isNewChat,
-				currentClientId,
-				modelId,
-			});
-
-			// Helper function to start HTTP streaming
-			const startHttpStreaming = async (
-				threadId: Id<"threads">,
-				messageId: Id<"messages">,
-			) => {
-				if (!authToken) return;
-
-				// Construct Convex HTTP endpoint URL
-				const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
-				let convexSiteUrl: string;
-				if (convexUrl.includes(".cloud")) {
-					convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
-				} else {
-					const url = new URL(convexUrl);
-					url.port = String(Number(url.port) + 1);
-					convexSiteUrl = url.toString().replace(/\/$/, ""); // Remove trailing slash
-				}
-				console.log("🚀 Starting HTTP streaming:", {
-					convexSiteUrl,
-				});
-				const streamUrl = `${convexSiteUrl}/stream-chat`;
-
-				fetch(streamUrl, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${authToken}`,
-					},
-					body: JSON.stringify({
-						threadId: threadId,
-						modelId: modelId,
-						messages: [], // Will be populated by the endpoint from thread
-						options: {
-							useExistingMessage: messageId, // Use existing messageId
-							webSearchEnabled: webSearchEnabled,
-						},
-					}),
-				}).catch((error) => {
-					console.warn(
-						"HTTP streaming failed (falling back to Convex only):",
-						error,
-					);
-					// HTTP failure is non-fatal - Convex persistence will still work
-				});
-			};
-
-			// Handle different cases with HTTP streaming
-			if (isNewChat) {
-				// New chat: Create thread + send message, then start HTTP streaming
-				const clientId = nanoid();
-				window.history.replaceState({}, "", `/chat/${clientId}`);
-
-				const convexResult = await createThreadAndSend({
-					title: "",
-					clientId: clientId,
-					body: message,
-					modelId: modelId as ModelId,
-					attachments,
-					webSearchEnabled,
-				});
-
-				// Start HTTP streaming if we got the necessary IDs
-				if (convexResult?.messageId && convexResult?.threadId) {
-					await startHttpStreaming(
-						convexResult.threadId,
-						convexResult.messageId,
-					);
-				}
-
-				return;
+			if (newThreadId) {
+				router.push(`/chat/${newThreadId}`);
 			}
 
-			if (currentClientId && !currentThread) {
-				// We have a clientId but thread doesn't exist yet
-				const convexResult = await createThreadAndSend({
-					title: "",
-					clientId: currentClientId,
-					body: message,
-					modelId: modelId as ModelId,
-					attachments,
-					webSearchEnabled,
-				});
+			return newThreadId;
+		},
+		[currentThread, branchThreadMutation, router, modelId],
+	);
 
-				// Start HTTP streaming if we got the necessary IDs
-				if (convexResult?.messageId && convexResult?.threadId) {
-					await startHttpStreaming(
-						convexResult.threadId,
-						convexResult.messageId,
-					);
-				}
+	// Delete thread handler
+	const handleDeleteThread = useCallback(async () => {
+		if (!currentThread) return;
 
-				return;
-			}
+		await deleteThread({ threadId: currentThread._id });
+		router.push("/chat");
+	}, [currentThread, deleteThread, router]);
 
-			if (currentThread) {
-				// Existing thread: Send message, then start HTTP streaming
-				const convexResult = await sendMessage({
-					threadId: currentThread._id,
-					body: message,
-					modelId: modelId as ModelId,
-					attachments,
-					webSearchEnabled,
-				});
+	// Clear history handler (currently disabled)
+	const handleClearHistory = useCallback(async () => {
+		// TODO: Implement clear history functionality
+		console.log("Clear history not implemented");
+		router.push("/chat");
+	}, [router]);
 
-				// Start HTTP streaming if we got the necessary IDs
-				if (convexResult?.messageId) {
-					await startHttpStreaming(currentThread._id, convexResult.messageId);
-				}
+	// Share/unshare handlers
+	const handleShareThread = useCallback(async () => {
+		if (!currentThread) return null;
+		return await shareThread({ threadId: currentThread._id });
+	}, [currentThread, shareThread]);
 
-				return;
-			}
-		} catch (error) {
-			console.error("Error sending message:", error);
-			throw error;
-		}
-	};
-
-	const getEmptyStateTitle = () => {
-		if (isNewChat) {
-			return "Welcome to AI Chat";
-		}
-		if (currentClientId && !currentThread) {
-			return "";
-		}
-		return currentThread?.title || "";
-	};
-
-	const getEmptyStateDescription = () => {
-		if (isNewChat) {
-			return "Start a conversation with our AI assistant. Messages stream in real-time!";
-		}
-		if (currentClientId && !currentThread) {
-			return "";
-		}
-		return "";
-	};
+	const handleUnshareThread = useCallback(async () => {
+		if (!currentThread) return;
+		await unshareThread({ threadId: currentThread._id });
+	}, [currentThread, unshareThread]);
 
 	return {
-		messages,
+		// Thread state
 		currentThread,
 		isNewChat,
-		handleSendMessage,
-		emptyState: {
-			title: getEmptyStateTitle(),
-			description: getEmptyStateDescription(),
-		},
-		isDisabled: currentThread === null && !isNewChat && !currentClientId,
-		userSettings: finalUserSettings,
+		isSettingsPage,
+		shareId,
+		isShared,
+
+		// Messages - return original Convex messages for compatibility
+		messages: messages || [],
+		// Also expose UI messages for components that need them
+		uiMessages: mergedMessages,
+		setMessages: setUIMessages,
+
+		// User settings
+		modelId,
+		webSearchEnabled,
+		userSettings,
+
+		// Streaming state
+		status,
+		error,
+		stop,
+
+		// Actions
+		sendMessage: handleSendMessage,
+		regenerate,
+		editMessage: handleEditMessage,
+		branchThread: handleBranchThread,
+		deleteThread: handleDeleteThread,
+		clearHistory: handleClearHistory,
+		updateThreadTitle,
+		submitFeedback,
+		shareThread: handleShareThread,
+		unshareThread: handleUnshareThread,
+		retryLastAssistant: () => console.log("Retry not implemented"),
+
+		// References
+		lastAssistantMessageId: lastAssistantMessageId.current,
 	};
 }

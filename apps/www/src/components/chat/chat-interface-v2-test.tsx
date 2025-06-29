@@ -1,6 +1,6 @@
 "use client";
 
-import { useChat } from "@/hooks/use-chat-v2";
+import { useChat } from "@/hooks/use-chat";
 import type { Preloaded } from "convex/react";
 import { useEffect, useState } from "react";
 import type { api } from "../../../convex/_generated/api";

@@ -5,7 +5,6 @@ import type { Preloaded } from "convex/react";
 import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ApiKeysSection } from "./api-keys-section";
-import { ExperimentalFeaturesSection } from "./experimental-features-section";
 import { ProfileSection } from "./profile-section";
 
 interface SettingsContentProps {
@@ -63,7 +62,6 @@ export function SettingsContent({
 		<div className="space-y-8 sm:space-y-12">
 			<ProfileSection user={user} userSettings={userSettings} />
 			<ApiKeysSection userSettings={userSettings} />
-			<ExperimentalFeaturesSection />
 		</div>
 	);
 }
