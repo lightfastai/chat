@@ -223,22 +223,35 @@ export function useChat(options: UseChatOptions = {}) {
 			attachments?: Id<"files">[];
 			isRetry?: boolean;
 		}) => {
+			console.log("[use-chat-v2] handleSendMessage called:", {
+				message: message.substring(0, 50) + "...",
+				modelId: messageModelId,
+				hasAttachments: !!attachments,
+				isNewChat,
+				currentThread: currentThread?._id,
+				currentClientId,
+			});
+			
 			const finalModelId = messageModelId || modelId;
 
 			// For new chats, create thread first then update URL
 			if (isNewChat) {
 				const clientId = nanoid();
+				console.log("[use-chat-v2] Creating new thread with clientId:", clientId);
+				
 				// Create thread with clientId for instant navigation
 				createThread({
 					title: "",
 					clientId,
 				});
 				// Navigate to clientId immediately for optimistic update
+				console.log("[use-chat-v2] Navigating to:", `/chat/${clientId}`);
 				router.replace(`/chat/${clientId}`);
 			}
 
 			// Let Vercel AI SDK handle everything through the transport
 			// Vercel AI SDK v5 expects a UIMessage or content string
+			console.log("[use-chat-v2] Sending message via Vercel AI SDK");
 			await vercelSendMessage(
 				{
 					role: "user",
@@ -252,6 +265,7 @@ export function useChat(options: UseChatOptions = {}) {
 					},
 				},
 			);
+			console.log("[use-chat-v2] Message sent to Vercel AI SDK");
 		},
 		[
 			isNewChat,

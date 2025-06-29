@@ -158,10 +158,13 @@ async function buildConversationMessagesFromThread(
 }
 
 export const streamChatResponseV2 = httpAction(async (ctx, request) => {
-	console.log("HTTP Streaming V2 endpoint called");
+	console.log("[HTTP Streaming V2] ===== REQUEST START =====");
+	console.log("[HTTP Streaming V2] Method:", request.method);
+	console.log("[HTTP Streaming V2] URL:", request.url);
 
 	// Handle CORS preflight
 	if (request.method === "OPTIONS") {
+		console.log("[HTTP Streaming V2] Handling CORS preflight");
 		return new Response(null, {
 			status: 200,
 			headers: {
@@ -175,7 +178,11 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 
 	try {
 		// Parse and validate request body
+		console.log("[HTTP Streaming V2] Parsing request body...");
 		const body = (await request.json()) as HTTPStreamingRequest;
+		
+		console.log("[HTTP Streaming V2] Raw body:", JSON.stringify(body, null, 2));
+		
 		const {
 			threadId: requestThreadId,
 			clientId,
@@ -184,7 +191,7 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			options,
 		} = body;
 
-		console.log("HTTP Streaming V2 request:", {
+		console.log("[HTTP Streaming V2] Parsed request:", {
 			threadId: requestThreadId,
 			clientId,
 			modelId,
@@ -192,13 +199,32 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			messageCount: uiMessages?.length,
 			options,
 		});
+		
+		if (uiMessages && uiMessages.length > 0) {
+			console.log("[HTTP Streaming V2] UI Messages:");
+			uiMessages.forEach((msg, idx) => {
+				console.log(`  [${idx}] Role: ${msg.role}, Parts: ${msg.parts?.length || 0}`);
+				if (msg.parts) {
+					msg.parts.forEach((part, partIdx) => {
+						if (part.type === "text") {
+							console.log(`    [${partIdx}] Text: ${(part as any).text.substring(0, 100)}...`);
+						} else {
+							console.log(`    [${partIdx}] Type: ${part.type}`);
+						}
+					});
+				}
+			});
+		}
 
 		// Handle thread creation for new chats
 		let threadId: Id<"threads">;
 		let thread: Doc<"threads"> | null;
 
+		console.log("[HTTP Streaming V2] Thread resolution - requestThreadId:", requestThreadId, "clientId:", clientId);
+
 		if (!requestThreadId && !clientId) {
 			// No thread ID or client ID provided
+			console.error("[HTTP Streaming V2] ERROR: No thread ID or client ID provided");
 			return new Response(
 				"Thread ID or client ID required",
 				{ status: 400 },
@@ -207,19 +233,26 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 
 		// Try to find thread by clientId first, then by threadId
 		if (clientId) {
+			console.log("[HTTP Streaming V2] Looking up thread by clientId:", clientId);
 			thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
 			if (!thread) {
+				console.error("[HTTP Streaming V2] ERROR: Thread not found by clientId:", clientId);
 				return new Response("Thread not found by client ID", { status: 404 });
 			}
 			threadId = thread._id;
+			console.log("[HTTP Streaming V2] Found thread by clientId. ThreadId:", threadId);
 		} else if (requestThreadId) {
 			threadId = requestThreadId;
+			console.log("[HTTP Streaming V2] Looking up thread by threadId:", threadId);
 			thread = await ctx.runQuery(api.threads.get, { threadId });
 			if (!thread) {
+				console.error("[HTTP Streaming V2] ERROR: Thread not found by threadId:", threadId);
 				return new Response("Thread not found", { status: 404 });
 			}
+			console.log("[HTTP Streaming V2] Found thread by threadId");
 		} else {
 			// This should never happen due to the check above
+			console.error("[HTTP Streaming V2] ERROR: Invalid request state");
 			return new Response("Invalid request", { status: 400 });
 		}
 
@@ -228,17 +261,23 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		// Use existing message or create new one
 		if (options?.useExistingMessage) {
 			messageId = options.useExistingMessage;
-			console.log("Using existing message:", messageId);
+			console.log("[HTTP Streaming V2] Using existing message:", messageId);
 		} else {
 			// Create new message
-			messageId = await ctx.runMutation(internal.messages.create, {
-				threadId,
-				messageType: "assistant",
-				body: "",
-				modelId: modelId as ModelId,
-				isStreaming: true,
-			});
-			console.log("Created new message:", messageId);
+			console.log("[HTTP Streaming V2] Creating new assistant message...");
+			try {
+				messageId = await ctx.runMutation(internal.messages.create, {
+					threadId,
+					messageType: "assistant",
+					body: "",
+					modelId: modelId as ModelId,
+					isStreaming: true,
+				});
+				console.log("[HTTP Streaming V2] Created new message:", messageId);
+			} catch (error) {
+				console.error("[HTTP Streaming V2] ERROR creating message:", error);
+				throw error;
+			}
 		}
 
 		// Get user's API keys
@@ -255,26 +294,30 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		let messages: CoreMessage[];
 		if (uiMessages && uiMessages.length > 0) {
 			// Use provided UIMessages
+			console.log("[HTTP Streaming V2] Converting UIMessages to CoreMessages...");
 			messages = await convertUIMessagesToCoreMessages(
 				ctx,
 				uiMessages,
 				modelId as ModelId,
 				options?.webSearchEnabled,
 			);
+			console.log("[HTTP Streaming V2] Converted messages count:", messages.length);
 		} else {
 			// Fallback to building from thread history
+			console.log("[HTTP Streaming V2] No UIMessages provided, building from thread history...");
 			messages = await buildConversationMessagesFromThread(
 				ctx,
 				threadId,
 				modelId as ModelId,
 				options?.webSearchEnabled,
 			);
+			console.log("[HTTP Streaming V2] Built messages from history, count:", messages.length);
 		}
 
 		const provider = getProviderFromModelId(modelId as ModelId);
 		const model = getModelById(modelId as ModelId);
 
-		console.log(`Starting AI generation with ${provider} model ${model.id}`);
+		console.log(`[HTTP Streaming V2] Starting AI generation with ${provider} model ${model.id}`);
 
 		// Create AI client
 		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
@@ -484,6 +527,7 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			}
 
 			// Stream the text and return UI message stream response
+			console.log("[HTTP Streaming V2] Starting streamText with", messages.length, "messages");
 			const result = streamText(generationOptions);
 
 			// Add thread ID to response headers for new chats
@@ -496,8 +540,10 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			// Include thread ID in headers for the client to update its state
 			if (!requestThreadId && threadId) {
 				responseHeaders["X-Thread-Id"] = threadId;
+				console.log("[HTTP Streaming V2] Including thread ID in response headers:", threadId);
 			}
 
+			console.log("[HTTP Streaming V2] Returning UI message stream response");
 			return result.toUIMessageStreamResponse({
 				headers: responseHeaders,
 			});

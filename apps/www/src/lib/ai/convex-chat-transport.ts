@@ -67,6 +67,13 @@ export class ConvexChatTransport implements ChatTransport<UIMessage> {
 	): Promise<ReadableStream<UIMessageStreamPart>> {
 		const { chatId, messages, abortSignal, trigger, body } = options;
 
+		console.log("[ConvexChatTransport] sendMessages called:", {
+			chatId,
+			messagesCount: messages.length,
+			trigger,
+			body,
+		});
+
 		// Transform the request to match Convex HTTP streaming format
 		const convexBody = {
 			// For new chats or clientIds, send null threadId
@@ -86,6 +93,10 @@ export class ConvexChatTransport implements ChatTransport<UIMessage> {
 			},
 		};
 
+		console.log("[ConvexChatTransport] Request body:", JSON.stringify(convexBody, null, 2));
+
+		console.log("[ConvexChatTransport] Making fetch request to:", this.streamUrl);
+		
 		const response = await this.fetch(this.streamUrl, {
 			method: "POST",
 			headers: {
@@ -96,8 +107,12 @@ export class ConvexChatTransport implements ChatTransport<UIMessage> {
 			signal: abortSignal,
 		});
 
+		console.log("[ConvexChatTransport] Response status:", response.status);
+
 		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
+			const errorText = await response.text();
+			console.error("[ConvexChatTransport] Response error:", errorText);
+			throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
 		}
 
 		if (!response.body) {
