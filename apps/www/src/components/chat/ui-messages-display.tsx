@@ -1,9 +1,9 @@
 "use client";
 
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
-import { Markdown } from "@lightfast/ui/components/ui/markdown";
-import { cn } from "@lightfast/ui/lib/utils";
 import type { UIMessage } from "@ai-sdk/react";
+import { Markdown } from "@lightfast/ui/components/ui/markdown";
+import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
+import { cn } from "@lightfast/ui/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UIMessagesDisplayProps {
@@ -93,7 +93,10 @@ export function UIMessagesDisplay({
 		const hasStreamingMessage = messages.some((msg) => {
 			// Check if the last part is still being added to
 			const lastPart = msg.parts?.[msg.parts.length - 1];
-			return lastPart?.type === "text" && !msg.parts?.some(p => p.type === "tool-call");
+			return (
+				lastPart?.type === "text" &&
+				!msg.parts?.some((p) => p.type === "tool-call")
+			);
 		});
 
 		if (
@@ -125,7 +128,10 @@ export function UIMessagesDisplay({
 		return message.parts.map((part, partIdx) => {
 			if (part.type === "text") {
 				return (
-					<div key={partIdx} className="prose prose-sm dark:prose-invert max-w-none">
+					<div
+						key={partIdx}
+						className="prose prose-sm dark:prose-invert max-w-none"
+					>
 						<Markdown>{(part as any).text}</Markdown>
 					</div>
 				);

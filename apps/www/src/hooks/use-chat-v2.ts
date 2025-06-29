@@ -2,7 +2,6 @@
 
 import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
-import { ConvexChatTransport } from "@/lib/ai/convex-chat-transport";
 import {
 	convexMessagesToUIMessages,
 	mergeMessagesWithStreamingState,
@@ -10,6 +9,7 @@ import {
 import { isClientId, nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
+import { DefaultChatTransport } from "ai";
 import {
 	type Preloaded,
 	useMutation,
@@ -165,18 +165,47 @@ export function useChat(options: UseChatOptions = {}) {
 		return [];
 	}, [messages]);
 
-	// Create custom transport
+	// Create transport with request transformation
 	const transport = useMemo(() => {
 		if (!authToken) return undefined;
 
-		return new ConvexChatTransport({
-			streamUrl,
+		return new DefaultChatTransport({
+			api: streamUrl,
 			headers: {
 				Authorization: `Bearer ${authToken}`,
 			},
-			convexOptions: {
-				modelId,
-				webSearchEnabled,
+			prepareSendMessagesRequest: ({
+				id,
+				messages,
+				body,
+				headers,
+				credentials,
+				api,
+				trigger,
+			}) => {
+				// Transform the request to match Convex HTTP streaming format
+				const convexBody = {
+					// For new chats or clientIds, send null threadId
+					// If it's a clientId, send it separately so the backend can look up the thread
+					threadId: id === "new" || isClientId(id) ? null : id,
+					clientId: isClientId(id) ? id : undefined,
+					modelId: (body as any)?.modelId || modelId,
+					messages: messages, // Send UIMessages directly
+					options: {
+						webSearchEnabled:
+							(body as any)?.webSearchEnabled || webSearchEnabled,
+						trigger, // Pass through the trigger type
+						// Additional options that might be needed
+						attachments: (body as any)?.attachments,
+					},
+				};
+
+				return {
+					api: api,
+					headers: headers,
+					body: convexBody,
+					credentials: credentials,
+				};
 			},
 		});
 	}, [streamUrl, authToken, modelId, webSearchEnabled]);
@@ -223,35 +252,21 @@ export function useChat(options: UseChatOptions = {}) {
 			attachments?: Id<"files">[];
 			isRetry?: boolean;
 		}) => {
-			console.log("[use-chat-v2] handleSendMessage called:", {
-				message: message.substring(0, 50) + "...",
-				modelId: messageModelId,
-				hasAttachments: !!attachments,
-				isNewChat,
-				currentThread: currentThread?._id,
-				currentClientId,
-			});
-			
 			const finalModelId = messageModelId || modelId;
 
 			// For new chats, create thread first then update URL
 			if (isNewChat) {
 				const clientId = nanoid();
-				console.log("[use-chat-v2] Creating new thread with clientId:", clientId);
-				
 				// Create thread with clientId for instant navigation
 				createThread({
 					title: "",
 					clientId,
 				});
 				// Navigate to clientId immediately for optimistic update
-				console.log("[use-chat-v2] Navigating to:", `/chat/${clientId}`);
 				router.replace(`/chat/${clientId}`);
 			}
 
 			// Let Vercel AI SDK handle everything through the transport
-			// Vercel AI SDK v5 expects a UIMessage or content string
-			console.log("[use-chat-v2] Sending message via Vercel AI SDK");
 			await vercelSendMessage(
 				{
 					role: "user",
@@ -265,7 +280,6 @@ export function useChat(options: UseChatOptions = {}) {
 					},
 				},
 			);
-			console.log("[use-chat-v2] Message sent to Vercel AI SDK");
 		},
 		[
 			isNewChat,

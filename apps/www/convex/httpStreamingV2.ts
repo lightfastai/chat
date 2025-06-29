@@ -180,9 +180,9 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		// Parse and validate request body
 		console.log("[HTTP Streaming V2] Parsing request body...");
 		const body = (await request.json()) as HTTPStreamingRequest;
-		
+
 		console.log("[HTTP Streaming V2] Raw body:", JSON.stringify(body, null, 2));
-		
+
 		const {
 			threadId: requestThreadId,
 			clientId,
@@ -199,15 +199,19 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			messageCount: uiMessages?.length,
 			options,
 		});
-		
+
 		if (uiMessages && uiMessages.length > 0) {
 			console.log("[HTTP Streaming V2] UI Messages:");
 			uiMessages.forEach((msg, idx) => {
-				console.log(`  [${idx}] Role: ${msg.role}, Parts: ${msg.parts?.length || 0}`);
+				console.log(
+					`  [${idx}] Role: ${msg.role}, Parts: ${msg.parts?.length || 0}`,
+				);
 				if (msg.parts) {
 					msg.parts.forEach((part, partIdx) => {
 						if (part.type === "text") {
-							console.log(`    [${partIdx}] Text: ${(part as any).text.substring(0, 100)}...`);
+							console.log(
+								`    [${partIdx}] Text: ${(part as any).text.substring(0, 100)}...`,
+							);
 						} else {
 							console.log(`    [${partIdx}] Type: ${part.type}`);
 						}
@@ -220,33 +224,52 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		let threadId: Id<"threads">;
 		let thread: Doc<"threads"> | null;
 
-		console.log("[HTTP Streaming V2] Thread resolution - requestThreadId:", requestThreadId, "clientId:", clientId);
+		console.log(
+			"[HTTP Streaming V2] Thread resolution - requestThreadId:",
+			requestThreadId,
+			"clientId:",
+			clientId,
+		);
 
 		if (!requestThreadId && !clientId) {
 			// No thread ID or client ID provided
-			console.error("[HTTP Streaming V2] ERROR: No thread ID or client ID provided");
-			return new Response(
-				"Thread ID or client ID required",
-				{ status: 400 },
+			console.error(
+				"[HTTP Streaming V2] ERROR: No thread ID or client ID provided",
 			);
+			return new Response("Thread ID or client ID required", { status: 400 });
 		}
 
 		// Try to find thread by clientId first, then by threadId
 		if (clientId) {
-			console.log("[HTTP Streaming V2] Looking up thread by clientId:", clientId);
+			console.log(
+				"[HTTP Streaming V2] Looking up thread by clientId:",
+				clientId,
+			);
 			thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
 			if (!thread) {
-				console.error("[HTTP Streaming V2] ERROR: Thread not found by clientId:", clientId);
+				console.error(
+					"[HTTP Streaming V2] ERROR: Thread not found by clientId:",
+					clientId,
+				);
 				return new Response("Thread not found by client ID", { status: 404 });
 			}
 			threadId = thread._id;
-			console.log("[HTTP Streaming V2] Found thread by clientId. ThreadId:", threadId);
+			console.log(
+				"[HTTP Streaming V2] Found thread by clientId. ThreadId:",
+				threadId,
+			);
 		} else if (requestThreadId) {
 			threadId = requestThreadId;
-			console.log("[HTTP Streaming V2] Looking up thread by threadId:", threadId);
+			console.log(
+				"[HTTP Streaming V2] Looking up thread by threadId:",
+				threadId,
+			);
 			thread = await ctx.runQuery(api.threads.get, { threadId });
 			if (!thread) {
-				console.error("[HTTP Streaming V2] ERROR: Thread not found by threadId:", threadId);
+				console.error(
+					"[HTTP Streaming V2] ERROR: Thread not found by threadId:",
+					threadId,
+				);
 				return new Response("Thread not found", { status: 404 });
 			}
 			console.log("[HTTP Streaming V2] Found thread by threadId");
@@ -294,30 +317,42 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		let messages: CoreMessage[];
 		if (uiMessages && uiMessages.length > 0) {
 			// Use provided UIMessages
-			console.log("[HTTP Streaming V2] Converting UIMessages to CoreMessages...");
+			console.log(
+				"[HTTP Streaming V2] Converting UIMessages to CoreMessages...",
+			);
 			messages = await convertUIMessagesToCoreMessages(
 				ctx,
 				uiMessages,
 				modelId as ModelId,
 				options?.webSearchEnabled,
 			);
-			console.log("[HTTP Streaming V2] Converted messages count:", messages.length);
+			console.log(
+				"[HTTP Streaming V2] Converted messages count:",
+				messages.length,
+			);
 		} else {
 			// Fallback to building from thread history
-			console.log("[HTTP Streaming V2] No UIMessages provided, building from thread history...");
+			console.log(
+				"[HTTP Streaming V2] No UIMessages provided, building from thread history...",
+			);
 			messages = await buildConversationMessagesFromThread(
 				ctx,
 				threadId,
 				modelId as ModelId,
 				options?.webSearchEnabled,
 			);
-			console.log("[HTTP Streaming V2] Built messages from history, count:", messages.length);
+			console.log(
+				"[HTTP Streaming V2] Built messages from history, count:",
+				messages.length,
+			);
 		}
 
 		const provider = getProviderFromModelId(modelId as ModelId);
 		const model = getModelById(modelId as ModelId);
 
-		console.log(`[HTTP Streaming V2] Starting AI generation with ${provider} model ${model.id}`);
+		console.log(
+			`[HTTP Streaming V2] Starting AI generation with ${provider} model ${model.id}`,
+		);
 
 		// Create AI client
 		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
@@ -527,7 +562,11 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			}
 
 			// Stream the text and return UI message stream response
-			console.log("[HTTP Streaming V2] Starting streamText with", messages.length, "messages");
+			console.log(
+				"[HTTP Streaming V2] Starting streamText with",
+				messages.length,
+				"messages",
+			);
 			const result = streamText(generationOptions);
 
 			// Add thread ID to response headers for new chats
@@ -540,7 +579,10 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			// Include thread ID in headers for the client to update its state
 			if (!requestThreadId && threadId) {
 				responseHeaders["X-Thread-Id"] = threadId;
-				console.log("[HTTP Streaming V2] Including thread ID in response headers:", threadId);
+				console.log(
+					"[HTTP Streaming V2] Including thread ID in response headers:",
+					threadId,
+				);
 			}
 
 			console.log("[HTTP Streaming V2] Returning UI message stream response");
