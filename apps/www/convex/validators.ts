@@ -438,7 +438,8 @@ export const uiMessagesValidator = v.array(uiMessageValidator);
  * HTTP request to start a new stream
  */
 export const httpStreamingRequestValidator = v.object({
-	threadId: v.id("threads"),
+	threadId: v.union(v.id("threads"), v.null()), // Can be null for new threads
+	clientId: v.optional(clientIdValidator), // Optional clientId for optimistic threads
 	modelId: modelIdValidator,
 	messages: v.optional(uiMessagesValidator), // Optional UIMessages array for v2
 	// Optional configuration

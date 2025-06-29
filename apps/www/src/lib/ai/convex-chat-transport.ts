@@ -7,6 +7,7 @@ import type {
 	UIMessage,
 	UIMessageStreamPart,
 } from "ai";
+import { isClientId } from "@/lib/nanoid";
 
 export interface ConvexChatTransportOptions {
 	/**
@@ -68,8 +69,10 @@ export class ConvexChatTransport implements ChatTransport<UIMessage> {
 
 		// Transform the request to match Convex HTTP streaming format
 		const convexBody = {
-			// For new chats, send a special marker that the endpoint will recognize
-			threadId: chatId === "new" ? null : chatId,
+			// For new chats or clientIds, send null threadId
+			// If it's a clientId, send it separately so the backend can look up the thread
+			threadId: chatId === "new" || isClientId(chatId) ? null : chatId,
+			clientId: isClientId(chatId) ? chatId : undefined,
 			modelId: (body as any)?.modelId || this.convexOptions?.modelId,
 			messages: messages, // Send UIMessages directly
 			options: {

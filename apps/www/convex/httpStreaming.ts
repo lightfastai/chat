@@ -108,6 +108,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		});
 
 		// Verify thread exists
+		if (!threadId) {
+			return new Response("Thread ID required", { status: 400 });
+		}
 		const thread = await ctx.runQuery(api.threads.get, { threadId });
 		if (!thread) {
 			return new Response("Thread not found", { status: 404 });

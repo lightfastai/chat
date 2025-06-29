@@ -181,8 +181,8 @@ export function useChat(options: UseChatOptions = {}) {
 		});
 	}, [streamUrl, authToken, modelId, webSearchEnabled]);
 
-	// Determine the chat ID - use actual thread ID if available
-	const chatId = currentThread?._id || "new";
+	// Determine the chat ID - use clientId for optimistic updates, thread ID when available, or "new"
+	const chatId = currentClientId || currentThread?._id || "new";
 
 	// Use Vercel AI SDK's useChat
 	const {
@@ -228,14 +228,13 @@ export function useChat(options: UseChatOptions = {}) {
 			// For new chats, create thread first then update URL
 			if (isNewChat) {
 				const clientId = nanoid();
-				const newThreadId = await createThread({
+				// Create thread with clientId for instant navigation
+				createThread({
 					title: "",
 					clientId,
 				});
-				router.replace(`/chat/${newThreadId}`);
-
-				// Wait a moment for the router to update
-				await new Promise((resolve) => setTimeout(resolve, 100));
+				// Navigate to clientId immediately for optimistic update
+				router.replace(`/chat/${clientId}`);
 			}
 
 			// Let Vercel AI SDK handle everything through the transport

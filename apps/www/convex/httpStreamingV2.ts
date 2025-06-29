@@ -178,6 +178,7 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		const body = (await request.json()) as HTTPStreamingRequest;
 		const {
 			threadId: requestThreadId,
+			clientId,
 			modelId,
 			messages: uiMessages,
 			options,
@@ -185,6 +186,7 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 
 		console.log("HTTP Streaming V2 request:", {
 			threadId: requestThreadId,
+			clientId,
 			modelId,
 			hasUIMessages: !!uiMessages,
 			messageCount: uiMessages?.length,
@@ -195,21 +197,30 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		let threadId: Id<"threads">;
 		let thread: Doc<"threads"> | null;
 
-		if (!requestThreadId) {
-			// For new threads, we need to get auth information to determine the user
-			// This is a temporary solution - ideally the client would handle thread creation
-			// and pass the threadId to this endpoint
+		if (!requestThreadId && !clientId) {
+			// No thread ID or client ID provided
 			return new Response(
-				"Thread creation not supported in streaming endpoint",
+				"Thread ID or client ID required",
 				{ status: 400 },
 			);
-		} else {
-			// Use existing thread
+		}
+
+		// Try to find thread by clientId first, then by threadId
+		if (clientId) {
+			thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
+			if (!thread) {
+				return new Response("Thread not found by client ID", { status: 404 });
+			}
+			threadId = thread._id;
+		} else if (requestThreadId) {
 			threadId = requestThreadId;
 			thread = await ctx.runQuery(api.threads.get, { threadId });
 			if (!thread) {
 				return new Response("Thread not found", { status: 404 });
 			}
+		} else {
+			// This should never happen due to the check above
+			return new Response("Invalid request", { status: 400 });
 		}
 
 		let messageId: Id<"messages">;
