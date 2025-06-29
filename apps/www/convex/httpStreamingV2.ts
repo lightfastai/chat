@@ -307,54 +307,38 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			});
 		}
 
-		// Save user messages from UIMessages to database
-		// Only save messages that don't already exist in the database
+		// Save the latest user message to database
+		// The HTTP streaming request is triggered by a new user message, so we only need to save the latest one
 		if (uiMessages && uiMessages.length > 0) {
-			console.log("[HTTP Streaming V2] Saving user messages to database...");
+			console.log("[HTTP Streaming V2] Looking for the latest user message to save...");
 
-			// Get existing messages to check what's already saved
-			const existingMessages = await ctx.runQuery(api.messages.list, {
-				threadId,
-			});
+			// Find the latest user message (the one that triggered this request)
+			const userMessages = uiMessages.filter(msg => msg.role === "user");
 			
-			// Create a set of existing message IDs for fast lookup
-			const existingMessageIds = new Set(existingMessages.map(msg => msg._id));
+			if (userMessages.length > 0) {
+				const latestUserMessage = userMessages[userMessages.length - 1];
+				
+				// Extract text content from the latest user message
+				const textParts = latestUserMessage.parts
+					.filter((part) => part.type === "text")
+					.map((part) => (part as any).text)
+					.join("\n");
 
-			for (const uiMessage of uiMessages) {
-				if (uiMessage.role === "user") {
-					// Check if this message ID already exists in the database
-					// This prevents saving the same UIMessage multiple times
-					const messageId = uiMessage.id as string;
-					
-					if (!existingMessageIds.has(messageId as any)) {
-						// Extract text content from UI message parts
-						const textParts = uiMessage.parts
-							.filter((part) => part.type === "text")
-							.map((part) => (part as any).text)
-							.join("\n");
-
-						if (textParts.trim()) {
-							// Save the user message - this is a new message not in DB
-							const savedMessageId = await ctx.runMutation(
-								internal.messages.create,
-								{
-									threadId,
-									messageType: "user",
-									body: textParts,
-									isStreaming: false,
-								},
-							);
-							console.log(
-								"[HTTP Streaming V2] Saved new user message with ID:",
-								savedMessageId,
-							);
-						}
-					} else {
-						console.log(
-							"[HTTP Streaming V2] Message already exists in database, skipping:",
-							messageId,
-						);
-					}
+				if (textParts.trim()) {
+					// Save only the latest user message
+					const savedMessageId = await ctx.runMutation(
+						internal.messages.create,
+						{
+							threadId,
+							messageType: "user",
+							body: textParts,
+							isStreaming: false,
+						},
+					);
+					console.log(
+						"[HTTP Streaming V2] Saved latest user message with ID:",
+						savedMessageId,
+					);
 				}
 			}
 		}
