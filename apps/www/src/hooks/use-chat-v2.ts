@@ -2,7 +2,6 @@
 
 import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
-import { getProviderFromModelId } from "@/lib/ai";
 import { ConvexChatTransport } from "@/lib/ai/convex-chat-transport";
 import {
 	convexMessagesToUIMessages,
@@ -11,7 +10,6 @@ import {
 import { isClientId, nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
-import type { UIMessage } from "ai";
 import {
 	type Preloaded,
 	useMutation,
@@ -21,7 +19,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef } from "react";
 import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../../convex/_generated/dataModel";
 
 interface UseChatOptions {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
@@ -124,12 +122,12 @@ export function useChat(options: UseChatOptions = {}) {
 		? usePreloadedQuery(options.preloadedUserSettings)
 		: useQuery(api.userSettings.getUserSettings);
 
-	const modelId = userSettings?.preferences?.defaultModel || ("gpt-4o-mini" as ModelId);
+	const modelId =
+		userSettings?.preferences?.defaultModel || ("gpt-4o-mini" as ModelId);
 	const webSearchEnabled = false; // TODO: Add web search preference to user settings
 
-	// Mutations
-	const createThreadAndSend = useMutation(api.messages.createThreadAndSend);
-	const sendMessageMutation = useMutation(api.messages.send);
+	// Mutations (only keep the ones we still need)
+	const createThread = useMutation(api.threads.create);
 	const deleteThread = useMutation(api.threads.deleteThread);
 	// const clearHistory = useMutation(api.threads.clearAll);
 	const updateThreadTitle = useMutation(api.threads.updateTitle);
@@ -183,6 +181,9 @@ export function useChat(options: UseChatOptions = {}) {
 		});
 	}, [streamUrl, authToken, modelId, webSearchEnabled]);
 
+	// Determine the chat ID - use actual thread ID if available
+	const chatId = currentThread?._id || "new";
+
 	// Use Vercel AI SDK's useChat
 	const {
 		messages: uiMessages,
@@ -193,7 +194,7 @@ export function useChat(options: UseChatOptions = {}) {
 		regenerate,
 		setMessages: setUIMessages,
 	} = useVercelChat({
-		id: currentThread?._id || currentClientId || "new",
+		id: chatId,
 		transport,
 		messages: initialMessages,
 		generateId: () => nanoid(), // Use our nanoid for consistency
@@ -210,13 +211,12 @@ export function useChat(options: UseChatOptions = {}) {
 		return mergeMessagesWithStreamingState(messages, uiMessages);
 	}, [messages, uiMessages]);
 
-	// Custom send message handler
+	// Custom send message handler - creates thread first if needed
 	const handleSendMessage = useCallback(
 		async ({
 			message,
 			modelId: messageModelId,
 			attachments,
-			isRetry = false,
 		}: {
 			message: string;
 			modelId?: ModelId;
@@ -224,104 +224,43 @@ export function useChat(options: UseChatOptions = {}) {
 			isRetry?: boolean;
 		}) => {
 			const finalModelId = messageModelId || modelId;
-			const provider = getProviderFromModelId(finalModelId);
 
+			// For new chats, create thread first then update URL
 			if (isNewChat) {
-				// New chat: Create thread + send message via Convex
 				const clientId = nanoid();
-				router.replace(`/chat/${clientId}`);
-
-				const convexResult = await createThreadAndSend({
+				const newThreadId = await createThread({
 					title: "",
-					clientId: clientId,
-					body: message,
-					modelId: finalModelId,
-					attachments,
-					webSearchEnabled,
+					clientId,
 				});
+				router.replace(`/chat/${newThreadId}`);
 
-				// Trigger HTTP streaming using Vercel AI SDK
-				if (convexResult?.threadId && convexResult?.assistantMessageId) {
-					// The transport will handle passing the threadId and existing message ID
-					await vercelSendMessage({
-						message: "", // Empty message as we're using existing assistant message
-						options: {
-							body: {
-								modelId: finalModelId,
-								webSearchEnabled,
-								useExistingMessage: convexResult.assistantMessageId,
-							},
-						},
-					});
-				}
-
-				return;
+				// Wait a moment for the router to update
+				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
 
-			if (currentClientId && !currentThread) {
-				// We have a clientId but thread doesn't exist yet
-				const convexResult = await createThreadAndSend({
-					title: "",
-					clientId: currentClientId,
-					body: message,
-					modelId: finalModelId,
-					attachments,
-					webSearchEnabled,
-				});
-
-				// Trigger HTTP streaming using Vercel AI SDK
-				if (convexResult?.threadId && convexResult?.assistantMessageId) {
-					await vercelSendMessage({
-						message: "", // Empty message as we're using existing assistant message
-						options: {
-							body: {
-								modelId: finalModelId,
-								webSearchEnabled,
-								useExistingMessage: convexResult.assistantMessageId,
-							},
-						},
-					});
-				}
-
-				return;
-			}
-
-			if (currentThread) {
-				// Existing thread: Send message via Convex
-				const convexResult = await sendMessageMutation({
-					threadId: currentThread._id,
-					body: message,
-					modelId: finalModelId,
-					attachments,
-					webSearchEnabled,
-				});
-
-				// Trigger HTTP streaming using Vercel AI SDK
-				if (convexResult?.messageId) {
-					await vercelSendMessage({
-						message: "", // Empty message as we're using existing assistant message
-						options: {
-							body: {
-								modelId: finalModelId,
-								webSearchEnabled,
-								useExistingMessage: convexResult.messageId,
-							},
-						},
-					});
-				}
-
-				return;
-			}
+			// Let Vercel AI SDK handle everything through the transport
+			// Vercel AI SDK v5 expects a UIMessage or content string
+			await vercelSendMessage(
+				{
+					role: "user",
+					parts: [{ type: "text", text: message }],
+				},
+				{
+					body: {
+						modelId: finalModelId,
+						attachments,
+						webSearchEnabled,
+					},
+				},
+			);
 		},
 		[
 			isNewChat,
-			currentClientId,
-			currentThread,
 			modelId,
 			webSearchEnabled,
-			createThreadAndSend,
-			sendMessageMutation,
+			vercelSendMessage,
 			router,
+			createThread,
 		],
 	);
 
@@ -341,7 +280,8 @@ export function useChat(options: UseChatOptions = {}) {
 
 			const newThreadId = await branchThreadMutation({
 				originalThreadId: currentThread._id,
-				branchPointMessageId: messageId,
+				branchFromMessageId: messageId,
+				modelId: modelId,
 			});
 
 			if (newThreadId) {
@@ -350,7 +290,7 @@ export function useChat(options: UseChatOptions = {}) {
 
 			return newThreadId;
 		},
-		[currentThread, branchThreadMutation, router],
+		[currentThread, branchThreadMutation, router, modelId],
 	);
 
 	// Delete thread handler

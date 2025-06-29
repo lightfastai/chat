@@ -64,18 +64,22 @@ export class ConvexChatTransport implements ChatTransport<UIMessage> {
 			messageId: string | undefined;
 		} & ChatRequestOptions,
 	): Promise<ReadableStream<UIMessageStreamPart>> {
-		const { chatId, messages, abortSignal, trigger, messageId, body } = options;
+		const { chatId, messages, abortSignal, trigger, body } = options;
 
 		// Transform the request to match Convex HTTP streaming format
 		const convexBody = {
-			threadId: chatId,
-			modelId: body?.modelId || this.convexOptions?.modelId,
+			// For new chats, send a special marker that the endpoint will recognize
+			threadId: chatId === "new" ? null : chatId,
+			modelId: (body as any)?.modelId || this.convexOptions?.modelId,
 			messages: messages, // Send UIMessages directly
 			options: {
 				webSearchEnabled:
-					body?.webSearchEnabled || this.convexOptions?.webSearchEnabled,
-				useExistingMessage: messageId,
+					(body as any)?.webSearchEnabled ||
+					this.convexOptions?.webSearchEnabled,
 				trigger, // Pass through the trigger type
+				// Additional options that might be needed
+				attachments: (body as any)?.attachments,
+				// Remove useExistingMessage - we'll let Vercel AI SDK manage messages
 			},
 		};
 
@@ -95,6 +99,13 @@ export class ConvexChatTransport implements ChatTransport<UIMessage> {
 
 		if (!response.body) {
 			throw new Error("Response body is null");
+		}
+
+		// Check if we got a thread ID header for new chats
+		const threadIdHeader = response.headers.get("X-Thread-Id");
+		if (threadIdHeader && chatId === "new") {
+			// The thread ID will be picked up by the streaming response
+			// We could potentially update the URL here, but let's handle it in the component
 		}
 
 		// Return the stream directly - Convex already returns UIMessageStreamPart format

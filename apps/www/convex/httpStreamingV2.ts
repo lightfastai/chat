@@ -9,14 +9,14 @@ import {
 	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
 import { createSystemPrompt } from "./lib/message_builder";
 import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
-import {
+import type {
 	httpStreamingRequestValidator,
 	uiMessageValidator,
 } from "./validators";
@@ -176,19 +176,40 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 	try {
 		// Parse and validate request body
 		const body = (await request.json()) as HTTPStreamingRequest;
-		const { threadId, modelId, messages: uiMessages, options } = body;
+		const {
+			threadId: requestThreadId,
+			modelId,
+			messages: uiMessages,
+			options,
+		} = body;
 
 		console.log("HTTP Streaming V2 request:", {
-			threadId,
+			threadId: requestThreadId,
 			modelId,
 			hasUIMessages: !!uiMessages,
-			useExistingMessage: options?.useExistingMessage,
+			messageCount: uiMessages?.length,
+			options,
 		});
 
-		// Verify thread exists
-		const thread = await ctx.runQuery(api.threads.get, { threadId });
-		if (!thread) {
-			return new Response("Thread not found", { status: 404 });
+		// Handle thread creation for new chats
+		let threadId: Id<"threads">;
+		let thread: Doc<"threads"> | null;
+
+		if (!requestThreadId) {
+			// For new threads, we need to get auth information to determine the user
+			// This is a temporary solution - ideally the client would handle thread creation
+			// and pass the threadId to this endpoint
+			return new Response(
+				"Thread creation not supported in streaming endpoint",
+				{ status: 400 },
+			);
+		} else {
+			// Use existing thread
+			threadId = requestThreadId;
+			thread = await ctx.runQuery(api.threads.get, { threadId });
+			if (!thread) {
+				return new Response("Thread not found", { status: 404 });
+			}
 		}
 
 		let messageId: Id<"messages">;
@@ -454,12 +475,20 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			// Stream the text and return UI message stream response
 			const result = streamText(generationOptions);
 
+			// Add thread ID to response headers for new chats
+			const responseHeaders: HeadersInit = {
+				"Access-Control-Allow-Origin": "*",
+				"Access-Control-Allow-Methods": "POST",
+				"Access-Control-Allow-Headers": "Content-Type, Authorization",
+			};
+
+			// Include thread ID in headers for the client to update its state
+			if (!requestThreadId && threadId) {
+				responseHeaders["X-Thread-Id"] = threadId;
+			}
+
 			return result.toUIMessageStreamResponse({
-				headers: {
-					"Access-Control-Allow-Origin": "*",
-					"Access-Control-Allow-Methods": "POST",
-					"Access-Control-Allow-Headers": "Content-Type, Authorization",
-				},
+				headers: responseHeaders,
 			});
 		} catch (error) {
 			// Clean up timer on error

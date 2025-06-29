@@ -5,7 +5,14 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
+  default:
+    '@ai-sdk/react':
+      specifier: alpha
+      version: 2.0.0-alpha.15
   tailwind4:
+    '@tailwindcss/postcss':
+      specifier: ^4.1.10
+      version: 4.1.10
     tailwindcss:
       specifier: ^4.1.10
       version: 4.1.10
@@ -112,7 +119,7 @@ importers:
         specifier: alpha
         version: 2.0.0-alpha.15(zod@3.25.67)
       '@ai-sdk/react':
-        specifier: alpha
+        specifier: 'catalog:'
         version: 2.0.0-alpha.15(react@19.1.0)(zod@3.25.67)
       '@auth/core':
         specifier: ^0.39.1

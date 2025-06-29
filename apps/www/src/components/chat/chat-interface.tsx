@@ -26,15 +26,7 @@ export function ChatInterface({
 	preloadedUserSettings,
 }: ChatInterfaceProps = {}) {
 	// Use custom chat hook with optimistic updates and preloaded data
-	const {
-		messages,
-		currentThread,
-		sendMessage,
-		isNewChat,
-		status,
-		modelId,
-		webSearchEnabled,
-	} = useChat({
+	const { messages, currentThread, sendMessage, isNewChat } = useChat({
 		preloadedThreadById,
 		preloadedThreadByClientId,
 		preloadedMessages,
@@ -47,7 +39,7 @@ export function ChatInterface({
 			message: string,
 			selectedModelId: string,
 			attachments?: Id<"files">[],
-			webSearchEnabledOverride?: boolean,
+			_webSearchEnabledOverride?: boolean,
 		) => {
 			await sendMessage({
 				message,
@@ -60,7 +52,8 @@ export function ChatInterface({
 	);
 
 	// Determine if chat is disabled
-	const isDisabled = status === "generating";
+	// For now, let's just check thread state
+	const isDisabled = currentThread?.isGenerating || false;
 
 	// Track if user has ever sent a message to prevent flicker
 	const hasEverSentMessage = useRef(false);
@@ -76,19 +69,9 @@ export function ChatInterface({
 
 	// Check if AI is currently generating
 	const isAIGenerating = useMemo(() => {
-		// With Vercel AI SDK, we use the status to determine if streaming
-		if (status === "generating") {
-			return true;
-		}
-
-		// For new chats, only check streaming status
-		if (isNewChat) {
-			return status === "generating";
-		}
-
-		// For existing chats, also check thread state
-		return currentThread?.isGenerating || status === "generating";
-	}, [currentThread, status, isNewChat]);
+		// For existing chats, check thread state
+		return currentThread?.isGenerating || false;
+	}, [currentThread]);
 
 	// Show centered layout only for truly new chats that have never had messages
 	if (isNewChat && !hasEverSentMessage.current) {

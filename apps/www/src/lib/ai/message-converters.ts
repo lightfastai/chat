@@ -1,4 +1,4 @@
-import type { UIMessage, UIMessagePart } from "ai";
+import type { UIMessage } from "ai";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import type { MessagePart } from "../../../convex/validators";
 
@@ -15,7 +15,7 @@ export function convexMessageToUIMessage(message: Doc<"messages">): UIMessage {
 				: "system";
 
 	// Convert parts or fallback to text-only
-	const parts: UIMessagePart[] = message.parts
+	const parts = message.parts
 		? convexPartsToUIParts(message.parts)
 		: [{ type: "text" as const, text: message.body }];
 
@@ -40,8 +40,8 @@ export function convexMessageToUIMessage(message: Doc<"messages">): UIMessage {
 /**
  * Convert an array of Convex message parts to UI message parts
  */
-function convexPartsToUIParts(parts: MessagePart[]): UIMessagePart[] {
-	const uiParts: UIMessagePart[] = [];
+function convexPartsToUIParts(parts: MessagePart[]): any[] {
+	const uiParts: any[] = [];
 
 	for (const part of parts) {
 		switch (part.type) {
@@ -170,7 +170,7 @@ export function uiMessageToConvexMessage(
 /**
  * Extract all text content from UI message parts
  */
-function extractTextFromParts(parts: UIMessagePart[]): string {
+function extractTextFromParts(parts: any[]): string {
 	const textParts: string[] = [];
 
 	for (const part of parts) {
@@ -188,7 +188,7 @@ function extractTextFromParts(parts: UIMessagePart[]): string {
 /**
  * Convert UI message parts to Convex message parts
  */
-function uiPartsToConvexParts(parts: UIMessagePart[]): MessagePart[] {
+function uiPartsToConvexParts(parts: any[]): MessagePart[] {
 	const convexParts: MessagePart[] = [];
 
 	for (const part of parts) {
@@ -309,8 +309,8 @@ export function mergeMessagesWithStreamingState(
 			return {
 				...streamingMsg,
 				metadata: {
-					...convexMsg.metadata,
-					...streamingMsg.metadata,
+					...(convexMsg.metadata || {}),
+					...(streamingMsg.metadata || {}),
 				},
 			};
 		}
