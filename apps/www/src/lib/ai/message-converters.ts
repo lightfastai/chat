@@ -301,8 +301,11 @@ export function mergeMessagesWithStreamingState(
 	// Create a map of streaming messages by ID for quick lookup
 	const streamingMap = new Map(streamingMessages.map((msg) => [msg.id, msg]));
 
-	// Merge messages, preferring streaming state for active messages
-	return convexUIMessages.map((convexMsg) => {
+	// Create a map of Convex messages by ID for quick lookup
+	const convexMap = new Map(convexUIMessages.map((msg) => [msg.id, msg]));
+
+	// Start with Convex messages and merge with streaming state
+	const mergedMessages = convexUIMessages.map((convexMsg) => {
 		const streamingMsg = streamingMap.get(convexMsg.id);
 		if (streamingMsg) {
 			// Merge metadata but use streaming parts for active messages
@@ -315,6 +318,20 @@ export function mergeMessagesWithStreamingState(
 			};
 		}
 		return convexMsg;
+	});
+
+	// Add any streaming messages that don't exist in Convex yet (like new user messages)
+	for (const streamingMsg of streamingMessages) {
+		if (!convexMap.has(streamingMsg.id)) {
+			mergedMessages.push(streamingMsg);
+		}
+	}
+
+	// Sort by timestamp to maintain message order
+	return mergedMessages.sort((a, b) => {
+		const aTime = (a.metadata as any)?.timestamp || 0;
+		const bTime = (b.metadata as any)?.timestamp || 0;
+		return aTime - bTime;
 	});
 }
 
