@@ -307,6 +307,42 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			});
 		}
 
+		// Save user messages from UIMessages to database
+		if (uiMessages && uiMessages.length > 0) {
+			console.log("[HTTP Streaming V2] Saving user messages to database...");
+			
+			// Get existing messages to check for duplicates
+			const existingMessages = await ctx.runQuery(api.messages.list, { threadId });
+			
+			for (const uiMessage of uiMessages) {
+				if (uiMessage.role === "user") {
+					// Extract text content from UI message parts
+					const textParts = uiMessage.parts
+						.filter((part) => part.type === "text")
+						.map((part) => (part as any).text)
+						.join("\n");
+
+					// Check if this exact message already exists (prevent duplicates)
+					const isDuplicate = existingMessages.some(
+						(msg) => msg.messageType === "user" && msg.body === textParts
+					);
+
+					if (!isDuplicate) {
+						// Save the user message (Convex will generate a new ID)
+						const savedMessageId = await ctx.runMutation(internal.messages.create, {
+							threadId,
+							messageType: "user",
+							body: textParts,
+							isStreaming: false,
+						});
+						console.log("[HTTP Streaming V2] Saved user message with ID:", savedMessageId);
+					} else {
+						console.log("[HTTP Streaming V2] User message already exists, skipping duplicate");
+					}
+				}
+			}
+		}
+
 		let messageId: Id<"messages">;
 
 		// Use existing message or create new one
