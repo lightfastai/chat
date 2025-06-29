@@ -249,9 +249,43 @@ export function useChat(options: UseChatOptions = {}) {
 		},
 	});
 
-	// Note: We're using pure uiMessages for now to fix streaming display
-	// The merging logic was causing "Thinking..." to show instead of streaming content
-	// TODO: Revisit merging if we need database-persisted message features
+	// Enhanced streaming state management inspired by Convex Stack example
+	// We maintain separate streaming and database state for optimal UX
+	const enhancedMessages = useMemo(() => {
+		if (!messages) return uiMessages;
+
+		// Create a map of database messages by ID for efficient lookup
+		const dbMessageMap = new Map(messages.map(msg => [msg._id, msg]));
+		
+		// Filter out any UI messages that have been persisted to database
+		const activeStreamingMessages = uiMessages.filter(uiMsg => {
+			// If this UI message has a corresponding complete database message, exclude it
+			const dbMessage = dbMessageMap.get(uiMsg.id as any);
+			return !dbMessage || !dbMessage.isComplete;
+		});
+
+		// Convert database messages to UI format and combine with active streaming
+		const dbUIMessages = convexMessagesToUIMessages(messages);
+		
+		// Merge: database messages + active streaming messages
+		// Database messages take precedence for completed content
+		const allMessages = [...dbUIMessages];
+		
+		// Add streaming messages that don't have database equivalents
+		for (const streamingMsg of activeStreamingMessages) {
+			const hasDbEquivalent = dbMessageMap.has(streamingMsg.id as any);
+			if (!hasDbEquivalent) {
+				allMessages.push(streamingMsg);
+			}
+		}
+
+		// Sort by timestamp to maintain chronological order
+		return allMessages.sort((a, b) => {
+			const aTime = (a.metadata as any)?.timestamp || 0;
+			const bTime = (b.metadata as any)?.timestamp || 0;
+			return aTime - bTime;
+		});
+	}, [messages, uiMessages]);
 
 	// Custom send message handler - creates thread first if needed
 	const handleSendMessage = useCallback(
@@ -370,8 +404,8 @@ export function useChat(options: UseChatOptions = {}) {
 
 		// Messages - return original Convex messages for compatibility
 		messages: messages || [],
-		// Also expose UI messages for components that need them
-		uiMessages: uiMessages, // Use pure Vercel AI SDK messages for real-time streaming
+		// Enhanced messages with smart streaming/database transition
+		uiMessages: enhancedMessages,
 		setMessages: setUIMessages,
 
 		// User settings
