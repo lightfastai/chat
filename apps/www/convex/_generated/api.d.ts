@@ -19,7 +19,7 @@ import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
-import type * as httpStreamingV2 from "../httpStreamingV2.js";
+import type * as httpStreaming from "../httpStreaming.js";
 import type * as lib_ai_client from "../lib/ai_client.js";
 import type * as lib_ai_tools from "../lib/ai_tools.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -56,7 +56,7 @@ declare const fullApi: ApiFromModules<{
   feedback: typeof feedback;
   files: typeof files;
   http: typeof http;
-  httpStreamingV2: typeof httpStreamingV2;
+  httpStreaming: typeof httpStreaming;
   "lib/ai_client": typeof lib_ai_client;
   "lib/ai_tools": typeof lib_ai_tools;
   "lib/auth": typeof lib_auth;

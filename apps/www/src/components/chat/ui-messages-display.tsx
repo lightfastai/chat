@@ -132,19 +132,20 @@ export function UIMessagesDisplay({
 						key={partIdx}
 						className="prose prose-sm dark:prose-invert max-w-none"
 					>
-						<Markdown>{(part as any).text}</Markdown>
+						<Markdown>{(part as { text: string }).text}</Markdown>
 					</div>
 				);
-			} else if (part.type === "tool-call") {
+			} else if (part.type.startsWith("tool-")) {
+				const toolName = part.type.substring(5); // Extract tool name from "tool-{name}"
 				return (
 					<div key={partIdx} className="text-xs text-muted-foreground">
-						Tool: {(part as any).name}
+						Tool: {toolName}
 					</div>
 				);
 			} else if (part.type === "reasoning") {
 				return (
 					<div key={partIdx} className="text-sm text-muted-foreground italic">
-						Thinking: {(part as any).content}
+						Thinking: {(part as { text: string }).text}
 					</div>
 				);
 			}

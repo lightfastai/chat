@@ -63,13 +63,13 @@ function convexPartsToUIParts(parts: MessagePart[]): any[] {
 			case "tool-call":
 				// Convert to Vercel AI SDK tool part format
 				uiParts.push({
-					type: `tool-${part.toolName}` as any,
+					type: `tool-${part.toolName}` as `tool-${string}`,
 					toolCallId: part.toolCallId,
 					state: mapToolState(part.state),
 					input: part.args || {},
 					output: part.result,
 					providerExecuted: false,
-				} as any);
+				});
 				break;
 
 			case "source":
@@ -206,7 +206,12 @@ function uiPartsToConvexParts(parts: any[]): MessagePart[] {
 		} else if (part.type.startsWith("tool-")) {
 			// Extract tool name from type
 			const toolName = part.type.substring(5);
-			const toolPart = part as any; // Type assertion needed for tool parts
+			const toolPart = part as {
+				toolCallId: string;
+				input: Record<string, unknown>;
+				output: unknown;
+				state: "input-streaming" | "input-available" | "output-available" | "output-error";
+			};
 
 			convexParts.push({
 				type: "tool-call",
@@ -329,8 +334,8 @@ export function mergeMessagesWithStreamingState(
 
 	// Sort by timestamp to maintain message order
 	return mergedMessages.sort((a, b) => {
-		const aTime = (a.metadata as any)?.timestamp || 0;
-		const bTime = (b.metadata as any)?.timestamp || 0;
+		const aTime = (a.metadata as { timestamp?: number })?.timestamp || 0;
+		const bTime = (b.metadata as { timestamp?: number })?.timestamp || 0;
 		return aTime - bTime;
 	});
 }

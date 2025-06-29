@@ -21,6 +21,13 @@ import { useCallback, useMemo, useRef } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
+// Types for the transport request body
+interface ChatTransportBody {
+	modelId?: string;
+	webSearchEnabled?: boolean;
+	attachments?: Id<"files">[];
+}
+
 interface UseChatOptions {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
 	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
@@ -155,7 +162,7 @@ export function useChat(options: UseChatOptions = {}) {
 		url.port = String(Number(url.port) + 1);
 		convexSiteUrl = url.toString().replace(/\/$/, "");
 	}
-	const streamUrl = `${convexSiteUrl}/stream-chat-v2`;
+	const streamUrl = `${convexSiteUrl}/stream-chat`;
 
 	// Convert preloaded Convex messages to UIMessages
 	const initialMessages = useMemo(() => {
@@ -183,20 +190,22 @@ export function useChat(options: UseChatOptions = {}) {
 				api,
 				trigger,
 			}) => {
+				// Type the body parameter properly
+				const typedBody = body as ChatTransportBody | undefined;
+
 				// Transform the request to match Convex HTTP streaming format
 				const convexBody = {
 					// For new chats or clientIds, send null threadId
 					// If it's a clientId, send it separately so the backend can look up the thread
 					threadId: id === "new" || isClientId(id) ? null : id,
 					clientId: isClientId(id) ? id : undefined,
-					modelId: (body as any)?.modelId || modelId,
+					modelId: typedBody?.modelId || modelId,
 					messages: messages, // Send UIMessages directly
 					options: {
-						webSearchEnabled:
-							(body as any)?.webSearchEnabled || webSearchEnabled,
+						webSearchEnabled: typedBody?.webSearchEnabled ?? webSearchEnabled,
 						trigger, // Pass through the trigger type
 						// Additional options that might be needed
-						attachments: (body as any)?.attachments,
+						attachments: typedBody?.attachments,
 					},
 				};
 
@@ -208,7 +217,7 @@ export function useChat(options: UseChatOptions = {}) {
 				};
 			},
 		});
-	}, [streamUrl, authToken, modelId, webSearchEnabled]);
+	}, [streamUrl, authToken, modelId]);
 
 	// Pre-generate clientId for new chats to ensure consistent ID throughout the request
 	const preGeneratedClientId = useMemo(() => {
@@ -292,7 +301,6 @@ export function useChat(options: UseChatOptions = {}) {
 			isNewChat,
 			preGeneratedClientId,
 			modelId,
-			webSearchEnabled,
 			vercelSendMessage,
 			router,
 			createThread,

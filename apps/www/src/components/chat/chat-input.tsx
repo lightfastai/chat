@@ -187,6 +187,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 			textarea.style.height = `${textarea.scrollHeight}px`;
 		}, []);
 
+		// biome-ignore lint/correctness/useExhaustiveDependencies: message dependency is intentional for textarea height adjustment
 		useEffect(() => {
 			adjustTextareaHeight();
 		}, [message, adjustTextareaHeight]);
@@ -363,20 +364,28 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
 			setIsSending(true);
 
+			// Clear the input immediately to provide instant feedback
+			const currentMessage = message;
+			const currentAttachments = [...attachments];
+			setMessage("");
+			setAttachments([]);
+
 			try {
-				const attachmentIds = attachments.map((att) => att.id);
+				const attachmentIds = currentAttachments.map((att) => att.id);
 				// Preprocess message to automatically wrap code blocks
-				const processedMessage = preprocessUserMessage(message);
+				const processedMessage = preprocessUserMessage(currentMessage);
 				await onSendMessage(
 					processedMessage,
 					selectedModelId,
 					attachmentIds.length > 0 ? attachmentIds : undefined,
 					webSearchEnabled,
 				);
-				setMessage("");
-				setAttachments([]);
 			} catch (error) {
 				console.error("Error sending message:", error);
+
+				// Restore the message and attachments on error
+				setMessage(currentMessage);
+				setAttachments(currentAttachments);
 
 				// Handle specific error types gracefully with toast notifications
 				if (error instanceof Error) {
