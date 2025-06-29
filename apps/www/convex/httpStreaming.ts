@@ -201,10 +201,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			await Promise.all([updateTextContent(), updateReasoningContent()]);
 		};
 
-		// Set up periodic database updates (50ms)
+		// Set up periodic database updates (250ms)
 		updateTimer = setInterval(() => {
 			updateDatabase().catch(console.error);
-		}, 50);
+		}, 250);
 
 		try {
 			// Prepare generation options
@@ -234,9 +234,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							break;
 
 						case "source":
-							// Flush pending content before source
-							await updateDatabase();
-
 							// Add source part to database - handle different source types
 							if (chunk.sourceType === "url") {
 								await ctx.runMutation(internal.messages.addSourcePart, {
@@ -273,9 +270,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							break;
 
 						case "tool-call":
-							// Flush pending content before tool call
-							await updateDatabase();
-
 							// Add tool call to database
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId,
