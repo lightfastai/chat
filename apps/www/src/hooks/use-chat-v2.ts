@@ -216,7 +216,8 @@ export function useChat(options: UseChatOptions = {}) {
 	}, [isNewChat]);
 
 	// Determine the chat ID - use clientId for optimistic updates, thread ID when available, or pre-generated clientId for new chats
-	const chatId = currentClientId || currentThread?._id || preGeneratedClientId || "new";
+	const chatId =
+		currentClientId || currentThread?._id || preGeneratedClientId || "new";
 
 	// Use Vercel AI SDK's useChat
 	const {
