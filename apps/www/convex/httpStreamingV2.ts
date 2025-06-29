@@ -308,31 +308,51 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		}
 
 		// Save user messages from UIMessages to database
+		// Only save messages that don't already exist in the database
 		if (uiMessages && uiMessages.length > 0) {
 			console.log("[HTTP Streaming V2] Saving user messages to database...");
 
+			// Get existing messages to check what's already saved
+			const existingMessages = await ctx.runQuery(api.messages.list, {
+				threadId,
+			});
+			
+			// Create a set of existing message IDs for fast lookup
+			const existingMessageIds = new Set(existingMessages.map(msg => msg._id));
+
 			for (const uiMessage of uiMessages) {
 				if (uiMessage.role === "user") {
-					// Extract text content from UI message parts
-					const textParts = uiMessage.parts
-						.filter((part) => part.type === "text")
-						.map((part) => (part as any).text)
-						.join("\n");
+					// Check if this message ID already exists in the database
+					// This prevents saving the same UIMessage multiple times
+					const messageId = uiMessage.id as string;
+					
+					if (!existingMessageIds.has(messageId as any)) {
+						// Extract text content from UI message parts
+						const textParts = uiMessage.parts
+							.filter((part) => part.type === "text")
+							.map((part) => (part as any).text)
+							.join("\n");
 
-					if (textParts.trim()) {
-						// Save the user message - let the database handle deduplication naturally
-						const savedMessageId = await ctx.runMutation(
-							internal.messages.create,
-							{
-								threadId,
-								messageType: "user",
-								body: textParts,
-								isStreaming: false,
-							},
-						);
+						if (textParts.trim()) {
+							// Save the user message - this is a new message not in DB
+							const savedMessageId = await ctx.runMutation(
+								internal.messages.create,
+								{
+									threadId,
+									messageType: "user",
+									body: textParts,
+									isStreaming: false,
+								},
+							);
+							console.log(
+								"[HTTP Streaming V2] Saved new user message with ID:",
+								savedMessageId,
+							);
+						}
+					} else {
 						console.log(
-							"[HTTP Streaming V2] Saved user message with ID:",
-							savedMessageId,
+							"[HTTP Streaming V2] Message already exists in database, skipping:",
+							messageId,
 						);
 					}
 				}
