@@ -48,7 +48,8 @@ export class ConvexChatTransport implements ChatTransport<UIMessage> {
 	constructor(options: ConvexChatTransportOptions) {
 		this.streamUrl = options.streamUrl;
 		this.headers = options.headers;
-		this.fetch = options.fetch || (globalThis.fetch as FetchFunction);
+		// Bind fetch to globalThis to maintain context
+		this.fetch = options.fetch || ((...args) => globalThis.fetch(...args)) as FetchFunction;
 		this.convexOptions = options.convexOptions;
 	}
 
