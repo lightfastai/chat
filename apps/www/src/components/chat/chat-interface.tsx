@@ -8,7 +8,7 @@ import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
-import { ChatMessages } from "./chat-messages";
+import { UIMessagesDisplay } from "./ui-messages-display";
 
 interface ChatInterfaceProps {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
@@ -26,7 +26,7 @@ export function ChatInterface({
 	preloadedUserSettings,
 }: ChatInterfaceProps = {}) {
 	// Use custom chat hook with optimistic updates and preloaded data
-	const { messages, currentThread, sendMessage, isNewChat } = useChat({
+	const { uiMessages, currentThread, sendMessage, isNewChat } = useChat({
 		preloadedThreadById,
 		preloadedThreadByClientId,
 		preloadedMessages,
@@ -60,12 +60,12 @@ export function ChatInterface({
 
 	// Reset when we're in a truly new chat, set when messages exist
 	useEffect(() => {
-		if (isNewChat && messages.length === 0) {
+		if (isNewChat && uiMessages.length === 0) {
 			hasEverSentMessage.current = false;
-		} else if (messages.length > 0) {
+		} else if (uiMessages.length > 0) {
 			hasEverSentMessage.current = true;
 		}
-	}, [isNewChat, messages.length]);
+	}, [isNewChat, uiMessages.length]);
 
 	// Check if AI is currently generating
 	const isAIGenerating = useMemo(() => {
@@ -87,7 +87,7 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages messages={messages} />
+			<UIMessagesDisplay messages={uiMessages} isLoading={isAIGenerating} />
 			<ChatInput
 				onSendMessage={handleSendMessage}
 				disabled={isDisabled}
