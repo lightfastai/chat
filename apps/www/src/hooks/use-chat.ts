@@ -4,7 +4,6 @@ import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
 import {
 	convexMessagesToUIMessages,
-	mergeMessagesWithStreamingState,
 } from "@/lib/ai/message-converters";
 import { isClientId, nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
@@ -250,10 +249,9 @@ export function useChat(options: UseChatOptions = {}) {
 		},
 	});
 
-	// Merge Convex real-time messages with Vercel streaming state
-	const mergedMessages = useMemo(() => {
-		return mergeMessagesWithStreamingState(messages, uiMessages);
-	}, [messages, uiMessages]);
+	// Note: We're using pure uiMessages for now to fix streaming display
+	// The merging logic was causing "Thinking..." to show instead of streaming content
+	// TODO: Revisit merging if we need database-persisted message features
 
 	// Custom send message handler - creates thread first if needed
 	const handleSendMessage = useCallback(
@@ -373,7 +371,7 @@ export function useChat(options: UseChatOptions = {}) {
 		// Messages - return original Convex messages for compatibility
 		messages: messages || [],
 		// Also expose UI messages for components that need them
-		uiMessages: mergedMessages,
+		uiMessages: uiMessages, // Use pure Vercel AI SDK messages for real-time streaming
 		setMessages: setUIMessages,
 
 		// User settings
