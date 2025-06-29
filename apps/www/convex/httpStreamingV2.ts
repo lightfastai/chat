@@ -1,4 +1,4 @@
-import { type CoreMessage, smoothStream, streamText } from "ai";
+import { type CoreMessage, smoothStream, streamText, convertToModelMessages } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
@@ -18,89 +18,11 @@ import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
 import type {
 	httpStreamingRequestValidator,
-	uiMessageValidator,
 } from "./validators";
 
 // Types from validators
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
-type UIMessage = Infer<typeof uiMessageValidator>;
 
-// Helper function to convert UIMessages to CoreMessages for AI SDK
-async function convertUIMessagesToCoreMessages(
-	ctx: ActionCtx,
-	uiMessages: UIMessage[],
-	modelId: ModelId,
-	webSearchEnabled?: boolean,
-): Promise<CoreMessage[]> {
-	const provider = getProviderFromModelId(modelId);
-	const systemPrompt = createSystemPrompt(modelId, webSearchEnabled);
-
-	const messages: CoreMessage[] = [
-		{
-			role: "system",
-			content: systemPrompt,
-		},
-	];
-
-	// Convert each UIMessage to CoreMessage
-	for (const uiMessage of uiMessages) {
-		if (uiMessage.role === "system") {
-			// Skip system messages as we already have system prompt
-			continue;
-		}
-
-		// Extract content from UI message parts
-		const content = await buildContentFromUIParts(
-			ctx,
-			uiMessage.parts,
-			provider,
-			modelId,
-		);
-
-		messages.push({
-			role: uiMessage.role,
-			content,
-		});
-	}
-
-	return messages;
-}
-
-// Helper to build content from UI message parts
-async function buildContentFromUIParts(
-	_ctx: ActionCtx,
-	parts: UIMessage["parts"],
-	_provider: string,
-	_modelId: ModelId,
-): Promise<string | any[]> {
-	// For text-only messages, return string content
-	const textParts = parts.filter((p) => p.type === "text");
-	if (parts.length === textParts.length) {
-		return textParts.map((p) => (p as any).text).join("");
-	}
-
-	// For multimodal messages, build content array
-	const contentParts: any[] = [];
-
-	for (const part of parts) {
-		if (part.type === "text") {
-			contentParts.push({
-				type: "text",
-				text: (part as any).text,
-			});
-		} else if (part.type === "file") {
-			// Handle file attachments by fetching from storage
-			// This would need to be implemented based on your file storage
-			contentParts.push({
-				type: "image",
-				image: (part as any).url, // Assuming URL is accessible
-			});
-		}
-		// Add other part type handling as needed
-	}
-
-	return contentParts;
-}
 
 // Helper function to build conversation messages from thread (fallback)
 async function buildConversationMessagesFromThread(
@@ -380,16 +302,24 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		// Build conversation messages
 		let messages: CoreMessage[];
 		if (uiMessages && uiMessages.length > 0) {
-			// Use provided UIMessages
+			// Use provided UIMessages with SDK's built-in conversion
 			console.log(
 				"[HTTP Streaming V2] Converting UIMessages to CoreMessages...",
 			);
-			messages = await convertUIMessagesToCoreMessages(
-				ctx,
-				uiMessages,
-				modelId as ModelId,
-				options?.webSearchEnabled,
-			);
+			
+			// Convert UIMessages to CoreMessages using SDK function
+			const convertedMessages = convertToModelMessages(uiMessages as any);
+			
+			// Add system prompt at the beginning
+			const systemPrompt = createSystemPrompt(modelId as ModelId, options?.webSearchEnabled);
+			messages = [
+				{
+					role: "system",
+					content: systemPrompt,
+				},
+				...convertedMessages,
+			];
+			
 			console.log(
 				"[HTTP Streaming V2] Converted messages count:",
 				messages.length,
