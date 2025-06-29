@@ -366,6 +366,29 @@ export function hasReasoningContent(message: UIMessage): boolean {
 }
 
 /**
+ * Check if an ID is a valid Convex document ID
+ * Convex IDs have a specific format that differs from nanoid
+ */
+export function isValidConvexId(id: string): boolean {
+	// Convex IDs are base64url encoded and have a specific length/format
+	// They typically start with specific patterns and are longer than nanoid
+	// For safety, we'll be conservative and check for known Convex ID patterns
+	
+	// Convex IDs are usually longer and have a different character set
+	// nanoid typically generates IDs like "2uzgm4cvlhhhczqngwlwo" (21 chars)
+	// Convex IDs are typically longer and may contain different patterns
+	
+	// Simple heuristic: if it looks like a temp ID or is too short, it's not a real Convex ID
+	if (id.startsWith("temp_") || id.startsWith("optimistic_") || id.length < 25) {
+		return false;
+	}
+	
+	// Additional validation could be added here based on Convex ID format
+	// For now, we'll assume anything that doesn't match our known temp patterns is valid
+	return true;
+}
+
+/**
  * Convert a UIMessage to a Convex-like message format for display compatibility
  * This allows existing components to work with UIMessages
  */
@@ -376,9 +399,21 @@ export function uiMessageToDisplayMessage(
 	const body = extractTextFromParts(uiMessage.parts);
 	const parts = uiPartsToConvexParts(uiMessage.parts);
 
+	// Convert UIMessage ID to valid Convex ID format if needed
+	// UIMessage IDs from Vercel AI SDK might not be valid Convex IDs
+	let convexId: Id<"messages">;
+	if (uiMessage.id.startsWith("k") && uiMessage.id.length > 10) {
+		// Looks like a real Convex ID, use as-is
+		convexId = uiMessage.id as Id<"messages">;
+	} else {
+		// Generate a fake Convex-like ID for UI display
+		// Use a consistent format so components don't crash
+		convexId = `temp_${uiMessage.id}` as Id<"messages">;
+	}
+
 	// Create a Convex-like message object
 	return {
-		_id: uiMessage.id as Id<"messages">,
+		_id: convexId,
 		_creationTime: metadata.timestamp || Date.now(),
 		threadId: metadata.threadId || ("temp" as Id<"threads">),
 		body,

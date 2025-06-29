@@ -1,6 +1,7 @@
 "use client";
 
 import type { ModelId } from "@/lib/ai";
+import { isValidConvexId } from "@/lib/ai/message-converters";
 import { nanoid } from "@/lib/nanoid";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { Badge } from "@lightfast/ui/components/ui/badge";
@@ -46,9 +47,13 @@ export function MessageActions({
 		onDropdownStateChange?.(isDropdownOpen);
 	}, [isDropdownOpen, onDropdownStateChange]);
 
-	const feedback = useQuery(api.feedback.getUserFeedbackForMessage, {
-		messageId: message._id,
-	});
+	// Check if the message has a valid Convex ID before querying
+	const hasValidConvexId = isValidConvexId(message._id);
+
+	const feedback = useQuery(
+		api.feedback.getUserFeedbackForMessage,
+		hasValidConvexId ? { messageId: message._id } : "skip"
+	);
 
 	const submitFeedback = useMutation(api.feedback.submitFeedback);
 	const removeFeedback = useMutation(api.feedback.removeFeedback);
@@ -190,6 +195,12 @@ export function MessageActions({
 	});
 
 	const handleFeedback = async (rating: "thumbs_up" | "thumbs_down") => {
+		// Skip feedback for streaming messages without valid Convex IDs
+		if (!hasValidConvexId) {
+			console.log("Feedback not available for streaming messages");
+			return;
+		}
+
 		if (rating === "thumbs_down") {
 			setShowFeedbackModal(true);
 			return;
@@ -214,6 +225,12 @@ export function MessageActions({
 	};
 
 	const handleBranch = async (modelId: ModelId) => {
+		// Skip branching for streaming messages without valid Convex IDs
+		if (!hasValidConvexId) {
+			console.log("Branching not available for streaming messages");
+			return;
+		}
+
 		try {
 			// 🚀 Generate client ID for instant navigation (like new chat)
 			const clientId = nanoid();
@@ -245,8 +262,10 @@ export function MessageActions({
 						"h-8 w-8 transition-colors",
 						feedback?.rating === "thumbs_up" &&
 							"text-green-600 hover:text-green-700",
+						!hasValidConvexId && "opacity-50 cursor-not-allowed"
 					)}
 					onClick={() => handleFeedback("thumbs_up")}
+					disabled={!hasValidConvexId}
 					aria-label="Like message"
 				>
 					<ThumbsUp className="h-4 w-4" />
@@ -258,8 +277,10 @@ export function MessageActions({
 						"h-8 w-8 transition-colors",
 						feedback?.rating === "thumbs_down" &&
 							"text-red-600 hover:text-red-700",
+						!hasValidConvexId && "opacity-50 cursor-not-allowed"
 					)}
 					onClick={() => handleFeedback("thumbs_down")}
+					disabled={!hasValidConvexId}
 					aria-label="Dislike message"
 				>
 					<ThumbsDown className="h-4 w-4" />
@@ -320,7 +341,7 @@ export function MessageActions({
 				</div>
 			</div>
 
-			{showFeedbackModal && (
+			{showFeedbackModal && hasValidConvexId && (
 				<FeedbackModal
 					isOpen={showFeedbackModal}
 					onClose={() => setShowFeedbackModal(false)}
