@@ -310,6 +310,23 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			// Convert UIMessages to CoreMessages using SDK function
 			const convertedMessages = convertToModelMessages(uiMessages as any);
 			
+			console.log("[HTTP Streaming V2] Raw converted messages:", JSON.stringify(convertedMessages, null, 2));
+			
+			// Filter out messages with empty content (Anthropic doesn't allow this)
+			const validMessages = convertedMessages.filter(msg => {
+				const hasValidContent = Array.isArray(msg.content) 
+					? msg.content.length > 0 
+					: msg.content && msg.content.trim().length > 0;
+				
+				if (!hasValidContent) {
+					console.log(`[HTTP Streaming V2] Filtering out message with empty content:`, JSON.stringify(msg, null, 2));
+				}
+				
+				return hasValidContent;
+			});
+			
+			console.log("[HTTP Streaming V2] Valid messages after filtering:", JSON.stringify(validMessages, null, 2));
+			
 			// Add system prompt at the beginning
 			const systemPrompt = createSystemPrompt(modelId as ModelId, options?.webSearchEnabled);
 			messages = [
@@ -317,7 +334,7 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 					role: "system",
 					content: systemPrompt,
 				},
-				...convertedMessages,
+				...validMessages,
 			];
 			
 			console.log(
