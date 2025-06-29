@@ -236,7 +236,14 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 			console.error(
 				"[HTTP Streaming V2] ERROR: No thread ID or client ID provided",
 			);
-			return new Response("Thread ID or client ID required", { status: 400 });
+			return new Response("Thread ID or client ID required", {
+				status: 400,
+				headers: {
+					"Access-Control-Allow-Origin": "*",
+					"Access-Control-Allow-Methods": "POST",
+					"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				},
+			});
 		}
 
 		// Try to find thread by clientId first, then by threadId
@@ -251,7 +258,14 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 					"[HTTP Streaming V2] ERROR: Thread not found by clientId:",
 					clientId,
 				);
-				return new Response("Thread not found by client ID", { status: 404 });
+				return new Response("Thread not found by client ID", {
+					status: 404,
+					headers: {
+						"Access-Control-Allow-Origin": "*",
+						"Access-Control-Allow-Methods": "POST",
+						"Access-Control-Allow-Headers": "Content-Type, Authorization",
+					},
+				});
 			}
 			threadId = thread._id;
 			console.log(
@@ -270,13 +284,27 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 					"[HTTP Streaming V2] ERROR: Thread not found by threadId:",
 					threadId,
 				);
-				return new Response("Thread not found", { status: 404 });
+				return new Response("Thread not found", {
+					status: 404,
+					headers: {
+						"Access-Control-Allow-Origin": "*",
+						"Access-Control-Allow-Methods": "POST",
+						"Access-Control-Allow-Headers": "Content-Type, Authorization",
+					},
+				});
 			}
 			console.log("[HTTP Streaming V2] Found thread by threadId");
 		} else {
 			// This should never happen due to the check above
 			console.error("[HTTP Streaming V2] ERROR: Invalid request state");
-			return new Response("Invalid request", { status: 400 });
+			return new Response("Invalid request", {
+				status: 400,
+				headers: {
+					"Access-Control-Allow-Origin": "*",
+					"Access-Control-Allow-Methods": "POST",
+					"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				},
+			});
 		}
 
 		let messageId: Id<"messages">;
