@@ -43,6 +43,7 @@ export const create = mutation({
 	args: {
 		title: titleValidator,
 		clientId: v.optional(clientIdValidator), // Allow client-generated ID for instant navigation
+		firstUserMessage: v.optional(v.string()), // Optional first user message for title generation
 	},
 	returns: v.id("threads"),
 	handler: async (ctx, args) => {
@@ -63,7 +64,7 @@ export const create = mutation({
 		}
 
 		const now = Date.now();
-		return await ctx.db.insert("threads", {
+		const threadId = await ctx.db.insert("threads", {
 			clientId: args.clientId,
 			title: args.title,
 			userId: userId,
@@ -81,6 +82,16 @@ export const create = mutation({
 				modelStats: {},
 			},
 		});
+
+		// If a first user message is provided, schedule title generation
+		if (args.firstUserMessage && args.firstUserMessage.trim()) {
+			await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
+				threadId,
+				userMessage: args.firstUserMessage,
+			});
+		}
+
+		return threadId;
 	},
 });
 

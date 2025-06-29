@@ -263,9 +263,11 @@ export function useChat(options: UseChatOptions = {}) {
 			// For new chats, create thread first then update URL
 			if (isNewChat && preGeneratedClientId) {
 				// Create thread with pre-generated clientId for instant navigation
+				// Pass the first user message for title generation
 				createThread({
 					title: "",
 					clientId: preGeneratedClientId,
+					firstUserMessage: message, // Pass user message for title generation
 				});
 				// Navigate to clientId immediately for optimistic update
 				router.replace(`/chat/${preGeneratedClientId}`);

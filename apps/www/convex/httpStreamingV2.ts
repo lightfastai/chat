@@ -308,18 +308,8 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 		}
 
 		// Save user messages from UIMessages to database
-		// Only save new user messages that aren't already in the database
 		if (uiMessages && uiMessages.length > 0) {
 			console.log("[HTTP Streaming V2] Saving user messages to database...");
-
-			// Get existing messages to check for duplicates
-			const existingMessages = await ctx.runQuery(api.messages.list, {
-				threadId,
-			});
-
-			// Track if we have a new user message for title generation
-			let hasNewUserMessage = false;
-			let firstUserMessageContent = "";
 
 			for (const uiMessage of uiMessages) {
 				if (uiMessage.role === "user") {
@@ -329,16 +319,8 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 						.map((part) => (part as any).text)
 						.join("\n");
 
-					// Check if this exact message content and timestamp combination already exists
-					// This prevents duplicate saves while allowing same content at different times
-					const messageAlreadyExists = existingMessages.some(
-						msg => msg.messageType === "user" && 
-						       msg.body === textParts && 
-						       Math.abs(msg.timestamp - ((uiMessage.metadata as any)?.timestamp || Date.now())) < 1000
-					);
-
-					if (!messageAlreadyExists && textParts.trim()) {
-						// Save the user message with normal create (Convex generates new ID)
+					if (textParts.trim()) {
+						// Save the user message - let the database handle deduplication naturally
 						const savedMessageId = await ctx.runMutation(
 							internal.messages.create,
 							{
@@ -352,30 +334,7 @@ export const streamChatResponseV2 = httpAction(async (ctx, request) => {
 							"[HTTP Streaming V2] Saved user message with ID:",
 							savedMessageId,
 						);
-
-						// Track for title generation
-						if (!hasNewUserMessage) {
-							hasNewUserMessage = true;
-							firstUserMessageContent = textParts;
-						}
-					} else if (messageAlreadyExists) {
-						console.log(
-							"[HTTP Streaming V2] User message already exists, skipping duplicate",
-						);
 					}
-				}
-			}
-
-			// If this is the first user message in the thread, schedule title generation
-			if (hasNewUserMessage) {
-				const userMessageCount = existingMessages.filter(msg => msg.messageType === "user").length;
-				// If we had no user messages before and now we have one, generate title
-				if (userMessageCount === 0) {
-					console.log("[HTTP Streaming V2] Scheduling title generation for first user message");
-					await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
-						threadId,
-						userMessage: firstUserMessageContent,
-					});
 				}
 			}
 		}
