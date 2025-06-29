@@ -1,9 +1,11 @@
 "use client";
 
-import { useChat } from "@/hooks/use-chat";
+import { useChat } from "@/hooks/use-chat-v2";
+import type { ModelId } from "@/lib/ai";
 import type { Preloaded } from "convex/react";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
@@ -24,13 +26,41 @@ export function ChatInterface({
 	preloadedUserSettings,
 }: ChatInterfaceProps = {}) {
 	// Use custom chat hook with optimistic updates and preloaded data
-	const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
-		useChat({
-			preloadedThreadById,
-			preloadedThreadByClientId,
-			preloadedMessages,
-			preloadedUserSettings,
-		});
+	const {
+		messages,
+		currentThread,
+		sendMessage,
+		isNewChat,
+		status,
+		modelId,
+		webSearchEnabled,
+	} = useChat({
+		preloadedThreadById,
+		preloadedThreadByClientId,
+		preloadedMessages,
+		preloadedUserSettings,
+	});
+
+	// Adapt sendMessage to match the expected onSendMessage signature
+	const handleSendMessage = useCallback(
+		async (
+			message: string,
+			selectedModelId: string,
+			attachments?: Id<"files">[],
+			webSearchEnabledOverride?: boolean,
+		) => {
+			await sendMessage({
+				message,
+				modelId: selectedModelId as ModelId,
+				attachments,
+				// Note: webSearchEnabled is handled by the hook internally
+			});
+		},
+		[sendMessage],
+	);
+
+	// Determine if chat is disabled
+	const isDisabled = status === "generating";
 
 	// Track if user has ever sent a message to prevent flicker
 	const hasEverSentMessage = useRef(false);
@@ -44,20 +74,21 @@ export function ChatInterface({
 		}
 	}, [isNewChat, messages.length]);
 
-	// Check if AI is currently generating (any message is streaming or thread is generating)
+	// Check if AI is currently generating
 	const isAIGenerating = useMemo(() => {
-		// For new chats, only check if there are active messages streaming
-		// Don't check currentThread?.isGenerating to avoid carrying over state from previous threads
-		if (isNewChat) {
-			return messages.some((msg) => msg.isStreaming && !msg.isComplete);
+		// With Vercel AI SDK, we use the status to determine if streaming
+		if (status === "generating") {
+			return true;
 		}
 
-		// For existing chats, check all conditions
-		return (
-			currentThread?.isGenerating ||
-			messages.some((msg) => msg.isStreaming && !msg.isComplete)
-		);
-	}, [currentThread, messages, isNewChat]);
+		// For new chats, only check streaming status
+		if (isNewChat) {
+			return status === "generating";
+		}
+
+		// For existing chats, also check thread state
+		return currentThread?.isGenerating || status === "generating";
+	}, [currentThread, status, isNewChat]);
 
 	// Show centered layout only for truly new chats that have never had messages
 	if (isNewChat && !hasEverSentMessage.current) {

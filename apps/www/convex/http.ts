@@ -2,6 +2,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { auth } from "./auth";
 import { streamChatResponse } from "./httpStreaming";
+import { streamChatResponseV2 } from "./httpStreamingV2";
 
 const http = httpRouter();
 
@@ -22,18 +23,32 @@ http.route({
 	}),
 });
 
-// HTTP streaming endpoint for chat responses
+// HTTP streaming endpoint for chat responses (legacy)
 http.route({
 	path: "/stream-chat",
 	method: "POST",
 	handler: streamChatResponse,
 });
 
-// CORS preflight for streaming endpoint
+// CORS preflight for streaming endpoint (legacy)
 http.route({
 	path: "/stream-chat",
 	method: "OPTIONS",
 	handler: streamChatResponse, // Same handler handles OPTIONS internally
+});
+
+// HTTP streaming endpoint v2 with UIMessage support
+http.route({
+	path: "/stream-chat-v2",
+	method: "POST",
+	handler: streamChatResponseV2,
+});
+
+// CORS preflight for streaming endpoint v2
+http.route({
+	path: "/stream-chat-v2",
+	method: "OPTIONS",
+	handler: streamChatResponseV2, // Same handler handles OPTIONS internally
 });
 
 export default http;

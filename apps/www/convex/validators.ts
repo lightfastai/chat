@@ -314,6 +314,113 @@ export const messagePartsValidator = v.array(messagePartValidator);
  * 3. Final messages - complete messages with parts array
  */
 
+// ===== Vercel AI SDK UIMessage Validators =====
+/**
+ * Validators for Vercel AI SDK v5 UIMessage types
+ * These are used when accepting UIMessages from the client
+ */
+
+// UIMessage text part validator
+export const uiTextPartValidator = v.object({
+	type: v.literal("text"),
+	text: v.string(),
+	state: v.optional(v.union(v.literal("streaming"), v.literal("done"))),
+});
+
+// UIMessage reasoning part validator
+export const uiReasoningPartValidator = v.object({
+	type: v.literal("reasoning"),
+	text: v.string(),
+	state: v.optional(v.union(v.literal("streaming"), v.literal("done"))),
+	providerMetadata: v.optional(v.any()),
+});
+
+// UIMessage source URL part validator
+export const uiSourceUrlPartValidator = v.object({
+	type: v.literal("source-url"),
+	sourceId: v.string(),
+	url: v.string(),
+	title: v.optional(v.string()),
+	providerMetadata: v.optional(v.any()),
+});
+
+// UIMessage source document part validator
+export const uiSourceDocumentPartValidator = v.object({
+	type: v.literal("source-document"),
+	sourceId: v.string(),
+	mediaType: v.string(),
+	title: v.string(),
+	filename: v.optional(v.string()),
+	providerMetadata: v.optional(v.any()),
+});
+
+// UIMessage file part validator
+export const uiFilePartValidator = v.object({
+	type: v.literal("file"),
+	mediaType: v.string(),
+	filename: v.optional(v.string()),
+	url: v.string(),
+});
+
+// UIMessage step start part validator
+export const uiStepStartPartValidator = v.object({
+	type: v.literal("step-start"),
+});
+
+// UIMessage tool part validator - generic for any tool
+export const uiToolPartValidator = v.object({
+	type: v.string(), // Will be "tool-{toolName}"
+	toolCallId: v.string(),
+	state: v.union(
+		v.literal("input-streaming"),
+		v.literal("input-available"),
+		v.literal("output-available"),
+		v.literal("output-error"),
+	),
+	input: v.any(),
+	output: v.optional(v.any()),
+	errorText: v.optional(v.string()),
+	providerExecuted: v.optional(v.boolean()),
+});
+
+// UIMessage data part validator - generic for any data type
+export const uiDataPartValidator = v.object({
+	type: v.string(), // Will be "data-{dataType}"
+	id: v.optional(v.string()),
+	data: v.any(),
+});
+
+// Union validator for all UI message parts
+export const uiMessagePartValidator = v.union(
+	uiTextPartValidator,
+	uiReasoningPartValidator,
+	uiSourceUrlPartValidator,
+	uiSourceDocumentPartValidator,
+	uiFilePartValidator,
+	uiStepStartPartValidator,
+	// For tool and data parts, we need a more flexible approach
+	v.object({
+		type: v.string(),
+		// Allow any additional properties
+		...Object.fromEntries(
+			Array(20)
+				.fill(null)
+				.map((_, i) => [`field${i}`, v.optional(v.any())]),
+		),
+	}),
+);
+
+// UIMessage validator
+export const uiMessageValidator = v.object({
+	id: v.string(),
+	role: v.union(v.literal("system"), v.literal("user"), v.literal("assistant")),
+	parts: v.array(uiMessagePartValidator),
+	metadata: v.optional(v.any()),
+});
+
+// Array of UIMessages validator
+export const uiMessagesValidator = v.array(uiMessageValidator);
+
 // SECTION 5: HTTP PROTOCOL VALIDATORS
 // =========================================================================
 /**
@@ -332,13 +439,8 @@ export const messagePartsValidator = v.array(messagePartValidator);
  */
 export const httpStreamingRequestValidator = v.object({
 	threadId: v.id("threads"),
-	modelId: v.string(),
-	messages: v.array(
-		v.object({
-			role: messageTypeValidator,
-			content: v.string(),
-		}),
-	),
+	modelId: modelIdValidator,
+	messages: v.optional(uiMessagesValidator), // Optional UIMessages array for v2
 	// Optional configuration
 	options: v.optional(
 		v.object({
@@ -359,6 +461,16 @@ export const httpStreamingRequestValidator = v.object({
 			// Use existing structures for the response
 			useExistingMessage: v.optional(v.id("messages")),
 			webSearchEnabled: v.optional(v.boolean()),
+
+			// Trigger type for reconnection/regeneration
+			trigger: v.optional(
+				v.union(
+					v.literal("submit-user-message"),
+					v.literal("resume-stream"),
+					v.literal("submit-tool-result"),
+					v.literal("regenerate-assistant-message"),
+				),
+			),
 		}),
 	),
 });
