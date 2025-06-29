@@ -4,6 +4,7 @@ import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
 import {
 	convexMessagesToUIMessages,
+	extractUIMessageText,
 } from "@/lib/ai/message-converters";
 import { isClientId, nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
@@ -249,38 +250,75 @@ export function useChat(options: UseChatOptions = {}) {
 		},
 	});
 
-	// Enhanced streaming state management inspired by Convex Stack example
-	// We maintain separate streaming and database state for optimal UX
+	// Enhanced streaming state management with robust deduplication
+	// Fixes duplication issue by using content-based matching as fallback
 	const enhancedMessages = useMemo(() => {
 		if (!messages) return uiMessages;
 
 		// Create a map of database messages by ID for efficient lookup
 		const dbMessageMap = new Map(messages.map(msg => [msg._id, msg]));
 		
-		// Filter out any UI messages that have been persisted to database
+		// Helper function to check if a UI message has a database equivalent
+		const hasDbEquivalent = (uiMsg: any) => {
+			// Primary: Check by ID match (works when IDs are consistent)
+			const directMatch = dbMessageMap.get(uiMsg.id as any);
+			if (directMatch) return { match: directMatch, reason: "id" };
+
+			// Fallback: Check by content and timestamp proximity (for ID mismatches)
+			const uiText = extractUIMessageText(uiMsg);
+			const uiTimestamp = (uiMsg.metadata as any)?.timestamp || 0;
+			
+			if (uiText.trim()) {
+				for (const dbMsg of messages) {
+					// Check if content matches and timestamps are close (within 10 seconds)
+					const dbText = dbMsg.body || "";
+					const dbTimestamp = dbMsg.timestamp || 0;
+					const timeDiff = Math.abs(uiTimestamp - dbTimestamp);
+					
+					if (dbText.includes(uiText.trim()) || uiText.includes(dbText.trim())) {
+						if (timeDiff < 10000) { // 10 second window
+							return { match: dbMsg, reason: "content" };
+						}
+					}
+				}
+			}
+
+			return null;
+		};
+
+		// Filter out UI messages that have database equivalents
 		const activeStreamingMessages = uiMessages.filter(uiMsg => {
-			// If this UI message has a corresponding complete database message, exclude it
-			const dbMessage = dbMessageMap.get(uiMsg.id as any);
-			return !dbMessage || !dbMessage.isComplete;
+			const equivalent = hasDbEquivalent(uiMsg);
+			if (equivalent) {
+				console.log(`[Enhanced Messages] Filtering out UI message (${equivalent.reason} match):`, uiMsg.id);
+				// Only filter if the database message is complete
+				return !equivalent.match.isComplete;
+			}
+			return true;
 		});
 
 		// Convert database messages to UI format and combine with active streaming
 		const dbUIMessages = convexMessagesToUIMessages(messages);
 		
 		// Merge: database messages + active streaming messages
-		// Database messages take precedence for completed content
-		const allMessages = [...dbUIMessages];
-		
-		// Add streaming messages that don't have database equivalents
-		for (const streamingMsg of activeStreamingMessages) {
-			const hasDbEquivalent = dbMessageMap.has(streamingMsg.id as any);
-			if (!hasDbEquivalent) {
-				allMessages.push(streamingMsg);
-			}
-		}
+		const allMessages = [...dbUIMessages, ...activeStreamingMessages];
+
+		// Final deduplication pass - remove any remaining duplicates by content
+		const deduplicatedMessages = allMessages.filter((msg, index, arr) => {
+			const msgText = extractUIMessageText(msg);
+			if (!msgText.trim()) return true; // Keep empty messages
+			
+			// Check if there's an earlier message with similar content
+			return !arr.slice(0, index).some(earlierMsg => {
+				const earlierText = extractUIMessageText(earlierMsg);
+				return earlierText.trim() && (
+					msgText.includes(earlierText.trim()) || earlierText.includes(msgText.trim())
+				);
+			});
+		});
 
 		// Sort by timestamp to maintain chronological order
-		return allMessages.sort((a, b) => {
+		return deduplicatedMessages.sort((a, b) => {
 			const aTime = (a.metadata as any)?.timestamp || 0;
 			const bTime = (b.metadata as any)?.timestamp || 0;
 			return aTime - bTime;
