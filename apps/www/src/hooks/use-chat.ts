@@ -39,30 +39,15 @@ export function useChat({
 	let messages = null;
 
 	if (preloadedThreadByClientId) {
-		try {
-			threadByClientId = usePreloadedQuery(preloadedThreadByClientId);
-		} catch (error) {
-			console.warn("Failed to extract preloaded thread by client ID:", error);
-			threadByClientId = null;
-		}
+		threadByClientId = usePreloadedQuery(preloadedThreadByClientId);
 	}
 
 	if (preloadedUserSettings) {
-		try {
-			userSettings = usePreloadedQuery(preloadedUserSettings);
-		} catch (error) {
-			console.warn("Failed to extract preloaded user settings:", error);
-			userSettings = null;
-		}
+		userSettings = usePreloadedQuery(preloadedUserSettings);
 	}
 
 	if (preloadedMessages) {
-		try {
-			messages = usePreloadedQuery(preloadedMessages);
-		} catch (error) {
-			console.warn("Failed to extract preloaded messages:", error);
-			messages = null;
-		}
+		messages = usePreloadedQuery(preloadedMessages);
 	}
 
 	// Extract client ID from pathname

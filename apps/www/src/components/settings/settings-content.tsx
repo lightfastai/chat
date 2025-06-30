@@ -43,16 +43,8 @@ export function SettingsContent({
 	preloadedUser,
 	preloadedUserSettings,
 }: SettingsContentProps) {
-	let user: User = null;
-	let userSettings: UserSettings = null;
-
-	try {
-		user = usePreloadedQuery(preloadedUser);
-		userSettings = usePreloadedQuery(preloadedUserSettings);
-	} catch (error) {
-		console.error("Error loading preloaded data:", error);
-		return null;
-	}
+	const user = usePreloadedQuery(preloadedUser);
+	const userSettings = usePreloadedQuery(preloadedUserSettings);
 
 	if (!user) {
 		return null;

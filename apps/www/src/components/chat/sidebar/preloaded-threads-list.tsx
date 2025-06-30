@@ -98,72 +98,95 @@ export function PreloadedThreadsList({
 	// Fallback to original implementation
 	const togglePinned = useMutation(api.threads.togglePinned);
 
-	try {
-		// Use preloaded data with reactivity - this provides instant loading with real-time updates
-		const threads = usePreloadedQuery(preloadedThreads);
+	// Use preloaded data with reactivity - this provides instant loading with real-time updates
+	const threads = usePreloadedQuery(preloadedThreads);
 
-		const { pinned, unpinned } = separatePinnedThreads(threads);
-		const groupedThreads = groupThreadsByDate(unpinned);
-		const categoryOrder = [
-			"Today",
-			"Yesterday",
-			"This Week",
-			"This Month",
-			"Older",
-		];
+	const { pinned, unpinned } = separatePinnedThreads(threads);
+	const groupedThreads = groupThreadsByDate(unpinned);
+	const categoryOrder = [
+		"Today",
+		"Yesterday",
+		"This Week",
+		"This Month",
+		"Older",
+	];
 
-		const handlePinToggle = useCallback(
-			async (threadId: Id<"threads">) => {
-				try {
-					await togglePinned.withOptimisticUpdate((localStore, args) => {
-						// Get the current threads list
-						const currentThreads = localStore.getQuery(api.threads.list);
-						if (!currentThreads) return;
+	const handlePinToggle = useCallback(
+		async (threadId: Id<"threads">) => {
+			try {
+				await togglePinned.withOptimisticUpdate((localStore, args) => {
+					// Get the current threads list
+					const currentThreads = localStore.getQuery(api.threads.list);
+					if (!currentThreads) return;
 
-						// Find the thread being toggled
-						const threadIndex = currentThreads.findIndex(
-							(t) => t._id === args.threadId,
-						);
-						if (threadIndex === -1) return;
+					// Find the thread being toggled
+					const threadIndex = currentThreads.findIndex(
+						(t) => t._id === args.threadId,
+					);
+					if (threadIndex === -1) return;
 
-						// Create a new array with the updated thread
-						const updatedThreads = [...currentThreads];
-						const thread = { ...updatedThreads[threadIndex] };
-						thread.pinned = !thread.pinned;
-						updatedThreads[threadIndex] = thread;
+					// Create a new array with the updated thread
+					const updatedThreads = [...currentThreads];
+					const thread = { ...updatedThreads[threadIndex] };
+					thread.pinned = !thread.pinned;
+					updatedThreads[threadIndex] = thread;
 
-						// Update the query result
-						localStore.setQuery(api.threads.list, {}, updatedThreads);
-					})({ threadId });
-				} catch (error) {
-					console.error("Failed to toggle pin:", error);
-					toast.error("Failed to update pin status. Please try again.");
-				}
-			},
-			[togglePinned],
-		);
+					// Update the query result
+					localStore.setQuery(api.threads.list, {}, updatedThreads);
+				})({ threadId });
+			} catch (error) {
+				console.error("Failed to toggle pin:", error);
+				toast.error("Failed to update pin status. Please try again.");
+			}
+		},
+		[togglePinned],
+	);
 
-		return (
-			<ScrollArea className="h-[calc(100vh-280px)] w-full">
-				<div className="w-full max-w-full min-w-0 overflow-hidden">
-					{threads.length === 0 ? (
-						<div className="px-3 py-8 text-center text-muted-foreground">
-							<p className="text-xs">No conversations yet</p>
-							<p className="text-xs mt-1 opacity-75">
-								Start a new chat to begin
-							</p>
-						</div>
-					) : (
-						<>
-							{/* Pinned threads section */}
-							{pinned.length > 0 && (
-								<SidebarGroup className="w-58">
+	return (
+		<ScrollArea className="h-[calc(100vh-280px)] w-full">
+			<div className="w-full max-w-full min-w-0 overflow-hidden">
+				{threads.length === 0 ? (
+					<div className="px-3 py-8 text-center text-muted-foreground">
+						<p className="text-xs">No conversations yet</p>
+						<p className="text-xs mt-1 opacity-75">Start a new chat to begin</p>
+					</div>
+				) : (
+					<>
+						{/* Pinned threads section */}
+						{pinned.length > 0 && (
+							<SidebarGroup className="w-58">
+								<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+									Pinned
+								</SidebarGroupLabel>
+								<SidebarGroupContent className="w-full max-w-full overflow-hidden">
+									<SidebarMenu className="space-y-0.5">
+										{pinned.map((thread) => (
+											<ThreadItem
+												key={thread._id}
+												thread={thread}
+												onPinToggle={handlePinToggle}
+											/>
+										))}
+									</SidebarMenu>
+								</SidebarGroupContent>
+							</SidebarGroup>
+						)}
+
+						{/* Regular threads grouped by date */}
+						{categoryOrder.map((category) => {
+							const categoryThreads = groupedThreads[category];
+							if (!categoryThreads || categoryThreads.length === 0) {
+								return null;
+							}
+
+							return (
+								<SidebarGroup key={category} className="w-58">
 									<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-										Pinned
+										{category}
 									</SidebarGroupLabel>
 									<SidebarGroupContent className="w-full max-w-full overflow-hidden">
 										<SidebarMenu className="space-y-0.5">
-											{pinned.map((thread) => (
+											{categoryThreads.map((thread) => (
 												<ThreadItem
 													key={thread._id}
 													thread={thread}
@@ -173,49 +196,11 @@ export function PreloadedThreadsList({
 										</SidebarMenu>
 									</SidebarGroupContent>
 								</SidebarGroup>
-							)}
-
-							{/* Regular threads grouped by date */}
-							{categoryOrder.map((category) => {
-								const categoryThreads = groupedThreads[category];
-								if (!categoryThreads || categoryThreads.length === 0) {
-									return null;
-								}
-
-								return (
-									<SidebarGroup key={category} className="w-58">
-										<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-											{category}
-										</SidebarGroupLabel>
-										<SidebarGroupContent className="w-full max-w-full overflow-hidden">
-											<SidebarMenu className="space-y-0.5">
-												{categoryThreads.map((thread) => (
-													<ThreadItem
-														key={thread._id}
-														thread={thread}
-														onPinToggle={handlePinToggle}
-													/>
-												))}
-											</SidebarMenu>
-										</SidebarGroupContent>
-									</SidebarGroup>
-								);
-							})}
-						</>
-					)}
-				</div>
-			</ScrollArea>
-		);
-	} catch (error) {
-		// If there's an error using preloaded data, show fallback
-		console.warn("Error using preloaded threads data:", error);
-		return (
-			<ScrollArea className="h-[calc(100vh-280px)] w-full max-w-full">
-				<div className="px-3 py-8 text-center text-muted-foreground">
-					<p className="text-sm">Unable to load conversations</p>
-					<p className="text-xs mt-1">Please refresh the page</p>
-				</div>
-			</ScrollArea>
-		);
-	}
+							);
+						})}
+					</>
+				)}
+			</div>
+		</ScrollArea>
+	);
 }

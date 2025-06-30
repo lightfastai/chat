@@ -36,13 +36,7 @@ export function CenteredChatStart({
 
 	// Use preloaded user data if available, otherwise fall back to regular auth hook
 	const preloadedUserData = preloadedUser
-		? (() => {
-				try {
-					return usePreloadedQuery(preloadedUser);
-				} catch {
-					return null; // Fallback to regular auth hook if preloaded data fails
-				}
-			})()
+		? usePreloadedQuery(preloadedUser)
 		: null;
 
 	const userName =
