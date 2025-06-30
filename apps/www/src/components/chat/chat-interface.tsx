@@ -2,10 +2,10 @@
 
 import { useSimplifiedChat } from "@/hooks/use-simplified-chat";
 import type { ModelId } from "@/lib/ai";
-import { isClientId } from "@/lib/nanoid";
+import { isClientId, nanoid } from "@/lib/nanoid";
 import type { Preloaded } from "convex/react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { CenteredChatStart } from "./centered-chat-start";
@@ -35,8 +35,15 @@ export function ChatInterface({
 		? (preloadedThreadByClientId as any)
 		: null;
 	const threadId = threadById?._id || threadByClientId?._id || null;
+	
+	// Generate a stable clientId for new chats
+	const [generatedClientId] = useState(() => nanoid());
+	
 	const clientId = (() => {
-		if (pathname === "/chat") return null;
+		if (pathname === "/chat") {
+			// For new chats, use the generated clientId
+			return generatedClientId;
+		}
 		const match = pathname.match(/^\/chat\/(.+)$/);
 		if (!match) return null;
 		const id = match[1];
