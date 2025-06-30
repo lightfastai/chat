@@ -29,7 +29,6 @@ function isReasoningPart(part: any): part is UIReasoningPart {
 export function convexMessageToUIMessage(message: Doc<"messages">): UIMessage {
 	console.log("[convexMessageToUIMessage] Converting message:", {
 		id: message._id,
-		body: message.body,
 		hasParts: !!message.parts,
 		partsLength: message.parts?.length,
 	});
@@ -42,10 +41,8 @@ export function convexMessageToUIMessage(message: Doc<"messages">): UIMessage {
 				? "assistant"
 				: "system";
 
-	// Convert parts or fallback to text-only
-	const parts = message.parts
-		? convexPartsToUIParts(message.parts)
-		: [{ type: "text" as const, text: message.body }];
+	// Convert parts - no fallback to body anymore
+	const parts = message.parts ? convexPartsToUIParts(message.parts) : [];
 
 	console.log("[convexMessageToUIMessage] Converted parts:", parts);
 
