@@ -30,7 +30,7 @@ interface StreamingTransportResult {
 /**
  * Streaming-only transport hook that uses Vercel AI SDK for streaming
  * but doesn't manage message state (Convex handles that)
- * 
+ *
  * This provides:
  * - HTTP streaming transport to our Convex endpoint
  * - Streaming status management
@@ -75,7 +75,11 @@ export function useStreamingTransport(): StreamingTransportResult {
 				// Transform the request to match Convex HTTP streaming format
 				const convexBody = {
 					// Handle both thread IDs and client IDs
-					threadId: id === "new" || isClientId(id) ? null : id,
+					// Skip the dummy "streaming-transport" ID
+					threadId:
+						id === "new" || id === "streaming-transport" || isClientId(id)
+							? null
+							: id,
 					clientId: isClientId(id) ? id : undefined,
 					modelId: (body as any)?.modelId,
 					messages: messages, // Send UIMessages directly
@@ -112,32 +116,41 @@ export function useStreamingTransport(): StreamingTransportResult {
 	});
 
 	// Stream message function that works with our Convex-first architecture
-	const streamMessage = useCallback(async ({
-		text,
-		options = {},
-	}: {
-		text: string;
-		options?: StreamingOptions;
-	}) => {
-		if (!text.trim()) return;
+	const streamMessage = useCallback(
+		async ({
+			threadId,
+			clientId,
+			text,
+			options = {},
+		}: {
+			threadId?: Id<"threads"> | null;
+			clientId?: string | null;
+			text: string;
+			options?: StreamingOptions;
+		}) => {
+			if (!text.trim()) return;
 
-		// Send the message through the streaming transport
-		// This will trigger HTTP streaming to our Convex endpoint
-		// The endpoint will handle saving to database and real-time updates
-		await vercelSendMessage(
-			{
-				role: "user",
-				parts: [{ type: "text", text }],
-			},
-			{
-				body: {
-					modelId: options.modelId,
-					webSearchEnabled: options.webSearchEnabled,
-					attachments: options.attachments,
+			// Send the message through the streaming transport
+			// This will trigger HTTP streaming to our Convex endpoint
+			// The endpoint will handle saving to database and real-time updates
+			await vercelSendMessage(
+				{
+					role: "user",
+					parts: [{ type: "text", text }],
 				},
-			}
-		);
-	}, [vercelSendMessage]);
+				{
+					body: {
+						threadId,
+						clientId,
+						modelId: options.modelId,
+						webSearchEnabled: options.webSearchEnabled,
+						attachments: options.attachments,
+					},
+				},
+			);
+		},
+		[vercelSendMessage],
+	);
 
 	return {
 		streamMessage,

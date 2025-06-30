@@ -14,7 +14,7 @@ interface SimplifiedChatExampleProps {
 
 /**
  * Example component demonstrating the new simplified chat architecture
- * 
+ *
  * Key benefits shown here:
  * 1. No complex useEffect synchronization
  * 2. Single source of truth (Convex)
@@ -71,9 +71,7 @@ export function SimplifiedChatExample({
 		<div className={`flex flex-col h-full ${className}`}>
 			{/* Header */}
 			<div className="border-b p-4 bg-background/50">
-				<h2 className="font-semibold">
-					{thread?.title || "New Chat"}
-				</h2>
+				<h2 className="font-semibold">{thread?.title || "New Chat"}</h2>
 				<p className="text-sm text-muted-foreground">
 					{totalMessages} messages • Thread: {threadId || clientId || "new"}
 				</p>
@@ -92,7 +90,11 @@ export function SimplifiedChatExample({
 					</div>
 				) : (
 					messages.map((messageWithStatus) => {
-						const { message, isStreaming: msgStreaming, isError } = messageWithStatus;
+						const {
+							message,
+							isStreaming: msgStreaming,
+							isError,
+						} = messageWithStatus;
 						const text = getMessageText(message);
 						const isUser = message.messageType === "user";
 
@@ -106,8 +108,8 @@ export function SimplifiedChatExample({
 										isUser
 											? "bg-primary text-primary-foreground"
 											: isError
-											? "bg-destructive/10 text-destructive border border-destructive/20"
-											: "bg-muted"
+												? "bg-destructive/10 text-destructive border border-destructive/20"
+												: "bg-muted"
 									}`}
 								>
 									<div className="flex items-center gap-2 mb-1">
@@ -124,7 +126,8 @@ export function SimplifiedChatExample({
 									{/* Debug info */}
 									{process.env.NODE_ENV === "development" && (
 										<div className="text-xs opacity-50 mt-1">
-											Status: {message.status} | Parts: {message.parts?.length || 0}
+											Status: {message.status} | Parts:{" "}
+											{message.parts?.length || 0}
 										</div>
 									)}
 								</div>
@@ -182,13 +185,13 @@ export function SimplifiedChatExample({
 
 /**
  * Usage examples:
- * 
+ *
  * // New chat
  * <SimplifiedChatExample />
- * 
+ *
  * // Existing thread
  * <SimplifiedChatExample threadId="k123..." />
- * 
+ *
  * // Optimistic new chat with clientId
  * <SimplifiedChatExample clientId="abc123" />
  */

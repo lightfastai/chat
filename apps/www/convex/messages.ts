@@ -730,7 +730,7 @@ export const addTextPart = internalMutation({
 		if (!message) return null;
 
 		const currentParts = message.parts || [];
-		
+
 		// Check if the last part is a text part - if so, merge with it
 		if (currentParts.length > 0) {
 			const lastPart = currentParts[currentParts.length - 1];
@@ -782,7 +782,7 @@ export const addReasoningPart = internalMutation({
 		if (!message) return null;
 
 		const currentParts = message.parts || [];
-		
+
 		// Check if the last part is a reasoning part - if so, merge with it
 		if (currentParts.length > 0) {
 			const lastPart = currentParts[currentParts.length - 1];
@@ -793,7 +793,8 @@ export const addReasoningPart = internalMutation({
 					{
 						type: "reasoning" as const,
 						text: lastPart.text + args.text, // Concatenate text
-						providerMetadata: args.providerMetadata || lastPart.providerMetadata,
+						providerMetadata:
+							args.providerMetadata || lastPart.providerMetadata,
 					},
 				];
 

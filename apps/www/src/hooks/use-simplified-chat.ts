@@ -15,7 +15,7 @@ interface UseSimplifiedChatOptions {
 
 /**
  * Combined hook that provides a complete chat experience with simplified architecture
- * 
+ *
  * This hook demonstrates the new approach:
  * - useMessages: Handles all message state through Convex (single source of truth)
  * - useStreamingTransport: Handles streaming transport only (no state management)
@@ -43,7 +43,7 @@ export function useSimplifiedChat(options: UseSimplifiedChatOptions = {}) {
 		webSearchEnabled,
 	});
 
-	// Streaming transport (Vercel AI SDK for HTTP streaming only)
+	// Streaming transport for triggering AI responses
 	const {
 		streamMessage,
 		isStreaming: transportStreaming,
@@ -51,55 +51,39 @@ export function useSimplifiedChat(options: UseSimplifiedChatOptions = {}) {
 		stop,
 	} = useStreamingTransport();
 
-	// Unified send message function that combines optimistic updates with streaming
-	const sendMessage = useCallback(async ({
-		text,
-		attachments,
-		modelId: messageModelId,
-	}: {
-		text: string;
-		attachments?: Id<"files">[];
-		modelId?: ModelId;
-	}) => {
-		if (!text.trim()) return;
+	// Send message function that triggers both optimistic updates and streaming
+	const sendMessage = useCallback(
+		async ({
+			text,
+			attachments,
+			modelId: messageModelId,
+		}: {
+			text: string;
+			attachments?: Id<"files">[];
+			modelId?: ModelId;
+		}) => {
+			if (!text.trim()) return;
 
-		try {
-			// Option 1: Use optimistic Convex mutation (for existing threads)
-			// This provides instant UI feedback while streaming happens in background
-			if (threadId) {
-				await convexSendMessage({
+			try {
+				// Use streaming transport which will trigger HTTP streaming endpoint
+				// The endpoint will handle saving messages and AI response generation
+				await streamMessage({
+					threadId,
+					clientId,
 					text,
-					attachments,
-					modelId: messageModelId,
+					options: {
+						modelId: messageModelId || modelId,
+						webSearchEnabled,
+						attachments,
+					},
 				});
-				
-				// Streaming will update the assistant message in real-time through Convex subscriptions
-				// No complex synchronization needed!
-				return;
+			} catch (error) {
+				console.error("Failed to send message:", error);
+				throw error;
 			}
-
-			// Option 2: For new threads, use the streaming transport
-			// This will create the thread and trigger streaming in one go
-			await streamMessage({
-				text,
-				options: {
-					modelId: messageModelId || modelId,
-					webSearchEnabled,
-					attachments,
-				},
-			});
-		} catch (error) {
-			console.error("Failed to send message:", error);
-			throw error;
-		}
-	}, [
-		threadId,
-		clientId,
-		modelId,
-		webSearchEnabled,
-		convexSendMessage,
-		streamMessage,
-	]);
+		},
+		[threadId, clientId, modelId, webSearchEnabled, streamMessage],
+	);
 
 	return {
 		// Message state (from Convex real-time subscriptions)
@@ -108,8 +92,8 @@ export function useSimplifiedChat(options: UseSimplifiedChatOptions = {}) {
 		hasStreamingMessage,
 		...messageState,
 
-		// Streaming state (from transport)
-		isStreaming: transportStreaming,
+		// Streaming state (combined from Convex and transport)
+		isStreaming: hasStreamingMessage || transportStreaming,
 		streamingError,
 
 		// Actions

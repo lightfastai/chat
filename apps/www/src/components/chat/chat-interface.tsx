@@ -3,8 +3,8 @@
 import { useSimplifiedChat } from "@/hooks/use-simplified-chat";
 import type { ModelId } from "@/lib/ai";
 import { isClientId } from "@/lib/nanoid";
-import { usePathname } from "next/navigation";
 import type { Preloaded } from "convex/react";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -31,7 +31,9 @@ export function ChatInterface({
 
 	// Extract thread/client ID from URL and preloaded data
 	const threadById = preloadedThreadById ? (preloadedThreadById as any) : null;
-	const threadByClientId = preloadedThreadByClientId ? (preloadedThreadByClientId as any) : null;
+	const threadByClientId = preloadedThreadByClientId
+		? (preloadedThreadByClientId as any)
+		: null;
 	const threadId = threadById?._id || threadByClientId?._id || null;
 	const clientId = (() => {
 		if (pathname === "/chat") return null;
@@ -42,7 +44,9 @@ export function ChatInterface({
 	})();
 
 	// Extract user settings safely
-	const userSettings = preloadedUserSettings ? (preloadedUserSettings as any) : null;
+	const userSettings = preloadedUserSettings
+		? (preloadedUserSettings as any)
+		: null;
 	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
 
 	// Use simplified chat hook - much cleaner than the old useChat
@@ -65,7 +69,7 @@ export function ChatInterface({
 	const uiMessages = useMemo(() => {
 		return messages.map((messageWithStatus) => {
 			const { message } = messageWithStatus;
-			
+
 			// Convert parts to be compatible with UIMessage format
 			const compatibleParts = (message.parts || []).map((part: any) => {
 				if (part.type === "source") {
