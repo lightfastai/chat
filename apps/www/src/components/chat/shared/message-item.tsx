@@ -8,6 +8,8 @@ import type React from "react";
 import { ToolCallRenderer } from "../tools/tool-call-renderer";
 import { AssistantMessageHeader } from "./assistant-message-header";
 import { MessageLayout } from "./message-layout";
+import { ThinkingIndicator } from "./thinking-indicator";
+import { isThinkingMode, type ModelId } from "@/lib/ai";
 
 // Helper to group consecutive text parts
 function groupConsecutiveTextParts(parts: any[]): any[] {
@@ -194,6 +196,15 @@ export function MessageItem({
 										};
 										return (
 											<ToolCallRenderer key={partKey} toolCall={toolCall} />
+										);
+									} else if (part.type === "thinking-indicator") {
+										// Show thinking indicator
+										const isThinkingModel = (part as any).isThinkingModel || false;
+										const label = isThinkingModel ? "Thinking" : "Thinking";
+										return (
+											<div key={partKey} className="mb-2">
+												<ThinkingIndicator label={label} />
+											</div>
 										);
 									}
 									return null;

@@ -123,14 +123,17 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 			value !== undefined ? onChange || (() => {}) : setInternalMessage;
 		const [isSending, setIsSending] = useState(false);
 
-		// Initialize selectedModelId from sessionStorage to persist across navigation
-		const [selectedModelId, setSelectedModelId] = useState<string>(() => {
-			if (typeof window !== "undefined") {
-				const storedModel = sessionStorage.getItem("selectedModelId");
-				return storedModel || DEFAULT_MODEL_ID;
+		// Initialize selectedModelId - load from sessionStorage after mount to avoid hydration issues
+		const [selectedModelId, setSelectedModelId] =
+			useState<string>(DEFAULT_MODEL_ID);
+
+		// Load persisted model selection after mount
+		useEffect(() => {
+			const storedModel = sessionStorage.getItem("selectedModelId");
+			if (storedModel) {
+				setSelectedModelId(storedModel);
 			}
-			return DEFAULT_MODEL_ID;
-		});
+		}, []);
 
 		const [attachments, setAttachments] = useState<FileAttachment[]>([]);
 		const [isUploading, setIsUploading] = useState(false);

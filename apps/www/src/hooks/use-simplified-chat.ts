@@ -93,7 +93,14 @@ export function useSimplifiedChat(options: UseSimplifiedChatOptions = {}) {
 				throw error;
 			}
 		},
-		[threadId, clientId, modelId, webSearchEnabled, streamMessage, convexSendMessage],
+		[
+			threadId,
+			clientId,
+			modelId,
+			webSearchEnabled,
+			streamMessage,
+			convexSendMessage,
+		],
 	);
 
 	return {

@@ -1,13 +1,14 @@
 "use client";
 
 import { env } from "@/env";
+import { useMessages } from "@/hooks/use-messages";
+import { isClientId, nanoid } from "@/lib/nanoid";
 import { useChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
-import { DefaultChatTransport } from "ai";
-import type { ModelId } from "@/lib/ai";
-import { isClientId, nanoid } from "@/lib/nanoid";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import type { Preloaded } from "convex/react";
-import { usePathname } from "next/navigation";
+import { usePreloadedQuery } from "convex/react";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -26,19 +27,49 @@ interface ChatInterfaceProps {
 export function ChatInterface({
 	preloadedThreadById,
 	preloadedThreadByClientId,
-	preloadedMessages: _preloadedMessages, // Not used in simplified architecture
+	preloadedMessages,
 	preloadedUser,
 	preloadedUserSettings,
 }: ChatInterfaceProps = {}) {
 	const pathname = usePathname();
+	const router = useRouter();
 
-	// Extract thread/client ID from URL and preloaded data
-	const threadById = preloadedThreadById ? (preloadedThreadById as any) : null;
-	const threadByClientId = preloadedThreadByClientId
-		? (preloadedThreadByClientId as any)
-		: null;
-	const threadId = threadById?._id || threadByClientId?._id || null;
+	// Extract data from preloaded queries if available
+	// We need to call hooks unconditionally due to React rules
+	const threadById = preloadedThreadById ? (() => {
+		try {
+			return usePreloadedQuery(preloadedThreadById);
+		} catch {
+			return null;
+		}
+	})() : null;
 	
+	const threadByClientId = preloadedThreadByClientId ? (() => {
+		try {
+			return usePreloadedQuery(preloadedThreadByClientId);
+		} catch {
+			return null;
+		}
+	})() : null;
+	
+	const userSettings = preloadedUserSettings ? (() => {
+		try {
+			return usePreloadedQuery(preloadedUserSettings);
+		} catch {
+			return null;
+		}
+	})() : null;
+	
+	const messages = preloadedMessages ? (() => {
+		try {
+			return usePreloadedQuery(preloadedMessages);
+		} catch {
+			return null;
+		}
+	})() : null;
+	
+	const threadId = threadById?._id || threadByClientId?._id || null;
+
 	const clientId = useMemo(() => {
 		if (pathname === "/chat") {
 			// For new chats, generate a stable clientId
@@ -50,10 +81,6 @@ export function ChatInterface({
 		return isClientId(id) ? id : null;
 	}, [pathname]);
 
-	// Extract user settings safely
-	const userSettings = preloadedUserSettings
-		? (preloadedUserSettings as any)
-		: null;
 	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
 
 	const authToken = useAuthToken();
@@ -82,7 +109,6 @@ export function ChatInterface({
 				Authorization: `Bearer ${authToken}`,
 			},
 			prepareSendMessagesRequest: ({
-				id,
 				messages,
 				body,
 				headers,
@@ -92,10 +118,12 @@ export function ChatInterface({
 			}) => {
 				// Transform the request to match Convex HTTP streaming format
 				const requestBody = body as any;
-				
+
 				// Use threadId and clientId from the request body
 				const convexBody = {
-					threadId: requestBody?.threadId || (threadId !== "new-chat" ? threadId : null),
+					threadId:
+						requestBody?.threadId ||
+						(threadId !== "new-chat" ? threadId : null),
 					clientId: requestBody?.clientId || clientId,
 					modelId: requestBody?.modelId || defaultModel,
 					messages: messages, // Send UIMessages directly
@@ -116,32 +144,95 @@ export function ChatInterface({
 		});
 	}, [streamUrl, authToken, threadId, clientId, defaultModel]);
 
+	// Load messages from Convex only to check if thread is empty
+	const { isEmpty: convexIsEmpty } = useMessages({
+		threadId,
+		clientId,
+	});
+
+	// Convert preloaded messages to Vercel AI SDK format for initialization
+	const initialMessages = useMemo(() => {
+		if (!messages) return undefined;
+		if (!Array.isArray(messages) || messages.length === 0) return undefined;
+
+		console.log("Converting preloaded messages:", messages.length, "messages");
+
+		// Convert Convex messages to Vercel AI UIMessage format
+		return messages.map((msg) => ({
+			id: msg._id,
+			role: msg.messageType === "user" ? "user" : "assistant",
+			parts: msg.parts || [],
+			metadata: {
+				modelId: msg.modelId,
+				isComplete: true,
+				isStreaming: false,
+				thinkingStartedAt: msg.thinkingStartedAt,
+				thinkingCompletedAt: msg.thinkingCompletedAt,
+				usage: msg.usage,
+			},
+		}));
+	}, [messages]);
+
+	console.log("useChat params:", {
+		id: threadId || clientId || "new-chat",
+		hasTransport: !!transport,
+		initialMessagesCount: initialMessages?.length,
+	});
+
 	// Use Vercel AI SDK with custom transport
 	const {
 		messages: uiMessages,
 		status,
-		input,
-		setInput,
 		sendMessage: vercelSendMessage,
-		stop,
-		error,
 	} = useChat({
 		id: threadId || clientId || "new-chat",
 		transport,
 		generateId: () => nanoid(),
+		messages: initialMessages,
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
 	});
 
+	// Track if we're waiting for AI response
+	const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+
+	// Always use Vercel AI SDK messages as the single source of truth
+	const displayMessages = useMemo(() => {
+		console.log("displayMessages - uiMessages count:", uiMessages.length);
+		let messages: UIMessage[] = [...uiMessages];
+
+		// Add optimistic thinking message if waiting for response
+		if (isWaitingForResponse && messages.length > 0) {
+			const lastMessage = messages[messages.length - 1];
+			// Only add thinking indicator if the last message is from user
+			if (lastMessage.role === "user") {
+				const selectedModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
+				messages.push({
+					id: `thinking-${Date.now()}`,
+					role: "assistant",
+					parts: [],
+					metadata: {
+						modelId: selectedModel,
+						isStreaming: true,
+						isComplete: false,
+					},
+				});
+			}
+		}
+
+		return messages;
+	}, [uiMessages, isWaitingForResponse, userSettings?.preferences?.defaultModel]);
+
 	// Computed values for compatibility
-	const isEmpty = uiMessages.length === 0;
-	const totalMessages = uiMessages.length;
-	const isStreaming = status === "in_progress";
+	const isEmpty = convexIsEmpty && uiMessages.length === 0;
+	const totalMessages = displayMessages.length;
+	const isStreaming = status === "streaming";
 	const canSendMessage = !isStreaming && !!authToken;
 
 	// Determine if this is a new chat
-	const isNewChat = isEmpty;
+	// Only show new chat UI if we're at /chat (no thread ID or client ID in URL)
+	const isNewChat = pathname === "/chat" && isEmpty;
 
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const handleSendMessage = useCallback(
@@ -151,23 +242,37 @@ export function ChatInterface({
 			attachments?: Id<"files">[],
 			_webSearchEnabledOverride?: boolean,
 		) => {
-			await vercelSendMessage(
-				{
-					role: "user",
-					parts: [{ type: "text", text: message }],
-				},
-				{
-					body: {
-						threadId,
-						clientId,
-						modelId: selectedModelId,
-						webSearchEnabled: false,
-						attachments,
+			// For new chats, navigate immediately using clientId
+			if (!threadId && clientId) {
+				router.replace(`/chat/${clientId}`);
+			}
+
+			// Show thinking indicator optimistically
+			setIsWaitingForResponse(true);
+
+			try {
+				await vercelSendMessage(
+					{
+						role: "user",
+						parts: [{ type: "text", text: message }],
 					},
-				},
-			);
+					{
+						body: {
+							threadId,
+							clientId,
+							modelId: selectedModelId,
+							webSearchEnabled: false,
+							attachments,
+						},
+					},
+				);
+			} catch (error) {
+				// Clear waiting state on error
+				setIsWaitingForResponse(false);
+				throw error;
+			}
 		},
-		[vercelSendMessage, threadId, clientId],
+		[vercelSendMessage, threadId, clientId, router],
 	);
 
 	// Determine if chat is disabled
@@ -188,6 +293,14 @@ export function ChatInterface({
 	// Check if AI is currently generating (using Vercel streaming state)
 	const isAIGenerating = isStreaming;
 
+	// Clear waiting state when streaming starts
+	useEffect(() => {
+		if (isStreaming) {
+			setIsWaitingForResponse(false);
+		}
+	}, [isStreaming]);
+
+
 	// Show centered layout only for truly new chats that have never had messages
 	if (isNewChat && !hasEverSentMessage.current) {
 		return (
@@ -202,7 +315,7 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages messages={uiMessages} isLoading={isAIGenerating} />
+			<ChatMessages messages={displayMessages} isLoading={isAIGenerating} />
 			<ChatInput
 				onSendMessage={handleSendMessage}
 				disabled={isDisabled}

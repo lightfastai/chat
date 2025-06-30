@@ -41,7 +41,7 @@ const threadObjectValidator = v.object({
 // Create a new thread
 export const create = mutation({
 	args: {
-		title: titleValidator,
+		title: v.optional(titleValidator), // Made optional for HTTP streaming
 		clientId: v.optional(clientIdValidator), // Allow client-generated ID for instant navigation
 		firstUserMessage: v.optional(v.string()), // Optional first user message for title generation
 	},
@@ -66,7 +66,7 @@ export const create = mutation({
 		const now = Date.now();
 		const threadId = await ctx.db.insert("threads", {
 			clientId: args.clientId,
-			title: args.title,
+			title: args.title || "New chat", // Default to "New chat" if not provided
 			userId: userId,
 			createdAt: now,
 			lastMessageAt: now,

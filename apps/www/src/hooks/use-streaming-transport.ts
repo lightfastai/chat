@@ -74,12 +74,12 @@ export function useStreamingTransport(): StreamingTransportResult {
 			}) => {
 				// Transform the request to match Convex HTTP streaming format
 				const requestBody = body as any;
-				
+
 				// Use threadId and clientId from the request body (passed by streamMessage)
 				// Fall back to parsing the ID if they're not provided
 				let threadId = requestBody?.threadId;
 				let clientId = requestBody?.clientId;
-				
+
 				// If not provided in body, try to parse from the ID
 				if (!threadId && !clientId) {
 					if (id === "new" || id === "streaming-transport") {
@@ -94,7 +94,7 @@ export function useStreamingTransport(): StreamingTransportResult {
 						clientId = undefined;
 					}
 				}
-				
+
 				const convexBody = {
 					threadId,
 					clientId,

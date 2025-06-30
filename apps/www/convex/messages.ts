@@ -126,11 +126,14 @@ export const listByClientId = query({
 		}
 
 		// Then get messages for this thread
-		return await ctx.db
+		const messages = await ctx.db
 			.query("messages")
 			.withIndex("by_thread", (q) => q.eq("threadId", thread._id))
 			.order("desc")
 			.take(50);
+
+		// Reverse to show oldest first
+		return messages.reverse();
 	},
 });
 
@@ -151,11 +154,14 @@ export const list = query({
 			return [];
 		}
 
-		return await ctx.db
+		const messages = await ctx.db
 			.query("messages")
 			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
 			.order("desc")
 			.take(50);
+
+		// Reverse to show oldest first
+		return messages.reverse();
 	},
 });
 

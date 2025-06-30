@@ -8,22 +8,38 @@ export interface PlatformShortcut {
 	display: string;
 }
 
+// Function to detect platform - safe to run on both server and client
+function detectPlatform(): "mac" | "windows" | "linux" {
+	// During SSR, default to a generic platform
+	if (typeof window === "undefined") {
+		return "windows"; // Use windows as default for most common shortcuts
+	}
+
+	const userAgent = navigator.userAgent.toLowerCase();
+	const platform = navigator.platform.toLowerCase();
+
+	if (platform.includes("mac") || userAgent.includes("mac")) {
+		return "mac";
+	}
+	if (platform.includes("win") || userAgent.includes("win")) {
+		return "windows";
+	}
+	return "linux";
+}
+
 export function usePlatformShortcuts() {
-	const [platform, setPlatform] = useState<"mac" | "windows" | "linux">("mac");
+	// Initialize with the actual platform, using a function to ensure consistency
+	const [platform, setPlatform] = useState<"mac" | "windows" | "linux">(() =>
+		detectPlatform(),
+	);
 
 	useEffect(() => {
-		// Detect platform
-		const userAgent = navigator.userAgent.toLowerCase();
-		const platform = navigator.platform.toLowerCase();
-
-		if (platform.includes("mac") || userAgent.includes("mac")) {
-			setPlatform("mac");
-		} else if (platform.includes("win") || userAgent.includes("win")) {
-			setPlatform("windows");
-		} else {
-			setPlatform("linux");
+		// Update platform on client side if needed
+		const detectedPlatform = detectPlatform();
+		if (detectedPlatform !== platform) {
+			setPlatform(detectedPlatform);
 		}
-	}, []);
+	}, [platform]);
 
 	const getShortcut = (action: string): PlatformShortcut => {
 		switch (action) {

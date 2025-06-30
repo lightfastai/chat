@@ -59,12 +59,8 @@ export function SidebarSkeleton() {
 							<SidebarGroupContent>
 								<SidebarMenu className="space-y-0.5">
 									{/* Skeleton thread items - match ThreadItem styling */}
-									{Array.from(
-										{ length: 4 },
-										() =>
-											`skeleton-thread-${Math.random().toString(36).substr(2, 9)}`,
-									).map((id) => (
-										<SidebarMenuItem key={id}>
+									{Array.from({ length: 4 }, (_, i) => i).map((index) => (
+										<SidebarMenuItem key={`skeleton-thread-${index}`}>
 											<SidebarMenuButton className="w-full max-w-full min-w-0 overflow-hidden h-auto py-2 px-2.5 text-left">
 												<div className="w-full max-w-full min-w-0 flex items-start gap-1.5 overflow-hidden">
 													<div className="flex-1 min-w-0 space-y-1">
@@ -85,12 +81,8 @@ export function SidebarSkeleton() {
 							</SidebarGroupLabel>
 							<SidebarGroupContent>
 								<SidebarMenu className="space-y-0.5">
-									{Array.from(
-										{ length: 3 },
-										() =>
-											`skeleton-older-${Math.random().toString(36).substr(2, 9)}`,
-									).map((id) => (
-										<SidebarMenuItem key={id}>
+									{Array.from({ length: 3 }, (_, i) => i).map((index) => (
+										<SidebarMenuItem key={`skeleton-older-${index}`}>
 											<SidebarMenuButton className="w-full max-w-full min-w-0 overflow-hidden h-auto py-2 px-2.5 text-left">
 												<div className="w-full max-w-full min-w-0 flex items-start gap-1.5 overflow-hidden">
 													<div className="flex-1 min-w-0 space-y-1">

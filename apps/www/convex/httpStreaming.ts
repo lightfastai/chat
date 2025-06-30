@@ -41,6 +41,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				"Access-Control-Allow-Origin": "*",
 				"Access-Control-Allow-Methods": "POST, OPTIONS",
 				"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				"Access-Control-Expose-Headers": "X-Thread-Id",
 				"Access-Control-Max-Age": "86400",
 			},
 		});
@@ -112,6 +113,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					"Access-Control-Allow-Origin": "*",
 					"Access-Control-Allow-Methods": "POST",
 					"Access-Control-Allow-Headers": "Content-Type, Authorization",
+					"Access-Control-Expose-Headers": "X-Thread-Id",
 				},
 			});
 		}
@@ -122,23 +124,53 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
 			if (!thread) {
 				// Create new thread for this clientId (without messages - we'll create them below)
-				console.log("[HTTP Streaming] Creating new thread for clientId:", clientId);
-				
+				console.log(
+					"[HTTP Streaming] Creating new thread for clientId:",
+					clientId,
+				);
+
 				// Get authenticated user ID first
 				const authHeader = request.headers.get("authorization");
 				if (!authHeader?.startsWith("Bearer ")) {
 					throw new Error("No valid authentication provided");
 				}
-				
+
+				// Extract the first user message for title generation
+				let firstUserMessage = "";
+				if (uiMessages && uiMessages.length > 0) {
+					const userMessages = uiMessages.filter((msg) => msg.role === "user");
+					if (userMessages.length > 0) {
+						const firstMsg = userMessages[0];
+						firstUserMessage =
+							firstMsg.parts
+								?.filter((part) => part.type === "text")
+								?.map((part) => (part as { text: string }).text)
+								?.join("\n") || "";
+					}
+				}
+
 				// Use the existing auth handling from the endpoint
-				const now = Date.now();
 				threadId = await ctx.runMutation(api.threads.create, {
-					title: "", // Will be auto-generated from first message
 					clientId,
+					firstUserMessage, // Pass first user message for title generation
 				});
-				
+
 				// Fetch the newly created thread
 				thread = await ctx.runQuery(api.threads.get, { threadId });
+				if (!thread) {
+					console.error(
+						"[HTTP Streaming] ERROR: Failed to fetch newly created thread",
+					);
+					return new Response("Failed to create thread", {
+						status: 500,
+						headers: {
+							"Access-Control-Allow-Origin": "*",
+							"Access-Control-Allow-Methods": "POST",
+							"Access-Control-Allow-Headers": "Content-Type, Authorization",
+							"Access-Control-Expose-Headers": "X-Thread-Id",
+						},
+					});
+				}
 				console.log("[HTTP Streaming] Created new thread:", threadId);
 			} else {
 				threadId = thread._id;
@@ -542,6 +574,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				"Access-Control-Allow-Origin": "*",
 				"Access-Control-Allow-Methods": "POST",
 				"Access-Control-Allow-Headers": "Content-Type, Authorization",
+				"Access-Control-Expose-Headers": "X-Thread-Id",
 			};
 
 			// Include thread ID in headers for the client to update its state

@@ -150,11 +150,6 @@ export function ChatMessages({
 						);
 					})}
 
-					{isLoading && (
-						<div className="text-center text-muted-foreground py-4">
-							<div className="animate-pulse">Generating response...</div>
-						</div>
-					)}
 				</div>
 			</div>
 
