@@ -14,7 +14,7 @@ import {
 	useQuery,
 } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -162,20 +162,31 @@ export function useChat(options: UseChatOptions = {}) {
 	const streamUrl = `${convexSiteUrl}/stream-chat`;
 
 	// Convert preloaded Convex messages to UIMessages
-	// IMPORTANT: We use useRef to capture only the FIRST load of messages
-	// This prevents the Vercel AI SDK from re-initializing when database updates
+	// IMPORTANT: We need to reset when the thread changes
+	const lastThreadIdRef = useRef<string | null>(null);
 	const initialMessagesRef = useRef<any[] | null>(null);
 
 	const initialMessages = useMemo(() => {
-		// Only set initial messages once on first load
+		const currentThreadIdStr = currentThread?._id || currentClientId || "new";
+		
+		// Reset if we're on a different thread
+		if (lastThreadIdRef.current !== currentThreadIdStr) {
+			console.log("[useChat] Thread changed from", lastThreadIdRef.current, "to", currentThreadIdStr);
+			lastThreadIdRef.current = currentThreadIdStr;
+			initialMessagesRef.current = null; // Reset to allow new messages
+		}
+
+		// Only set initial messages once per thread
 		if (initialMessagesRef.current === null && messages) {
+			console.log("[useChat] Converting initial messages from database:", messages);
 			const uiMessages = convexMessagesToUIMessages(messages);
+			console.log("[useChat] Converted to UIMessages:", uiMessages);
 			initialMessagesRef.current = uiMessages;
 			return uiMessages;
 		}
 		// Return the cached initial messages or empty array
 		return initialMessagesRef.current || [];
-	}, [messages]);
+	}, [messages, currentThread?._id, currentClientId]);
 
 	// Create transport with request transformation
 	const transport = useMemo(() => {
@@ -264,6 +275,14 @@ export function useChat(options: UseChatOptions = {}) {
 	console.log("[useChat] chatId:", chatId);
 	console.log("[useChat] currentThread:", currentThread);
 	console.log("[useChat] isNewChat:", isNewChat);
+
+	// Update messages when thread changes
+	useEffect(() => {
+		if (initialMessages.length > 0 && uiMessages.length === 0) {
+			console.log("[useChat] Setting initial messages for thread:", chatId);
+			setUIMessages(initialMessages);
+		}
+	}, [chatId, initialMessages, uiMessages.length, setUIMessages]);
 
 	// Custom send message handler - creates thread first if needed
 	const handleSendMessage = useCallback(

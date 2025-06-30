@@ -27,6 +27,13 @@ function isReasoningPart(part: any): part is UIReasoningPart {
  * Convert a Convex message document to a Vercel AI SDK UIMessage
  */
 export function convexMessageToUIMessage(message: Doc<"messages">): UIMessage {
+	console.log("[convexMessageToUIMessage] Converting message:", {
+		id: message._id,
+		body: message.body,
+		hasParts: !!message.parts,
+		partsLength: message.parts?.length,
+	});
+
 	// Map messageType to role
 	const role =
 		message.messageType === "user"
@@ -39,6 +46,8 @@ export function convexMessageToUIMessage(message: Doc<"messages">): UIMessage {
 	const parts = message.parts
 		? convexPartsToUIParts(message.parts)
 		: [{ type: "text" as const, text: message.body }];
+
+	console.log("[convexMessageToUIMessage] Converted parts:", parts);
 
 	return {
 		id: message._id,
@@ -321,9 +330,12 @@ function mapUIToolState(
 export function convexMessagesToUIMessages(
 	messages: Doc<"messages">[],
 ): UIMessage[] {
+	console.log("[convexMessagesToUIMessages] Converting", messages.length, "messages");
 	// Convex returns messages in descending order (newest first)
 	// but UI expects ascending order (oldest first)
-	return messages.map(convexMessageToUIMessage).reverse();
+	const result = messages.map(convexMessageToUIMessage).reverse();
+	console.log("[convexMessagesToUIMessages] Result:", result);
+	return result;
 }
 
 /**
