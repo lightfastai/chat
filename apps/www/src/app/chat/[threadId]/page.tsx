@@ -136,8 +136,7 @@ async function ChatThreadPageWithPreloadedData({
 			threadIdString,
 			threadId,
 			preloadedThreadById,
-			preloadedMessagesCount: preloadedMessages?.length,
-			preloadedMessages,
+			preloadedMessages: !!preloadedMessages,
 		});
 
 		// Also preload thread usage for the header

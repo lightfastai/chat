@@ -171,10 +171,19 @@ export function ChatInterface({
 		console.log("First message sample:", messages[0]);
 
 		// Convert Convex messages to Vercel AI UIMessage format
-		const converted = messages.map((msg) => ({
+		const converted: UIMessage[] = messages.map((msg) => ({
 			id: msg._id,
-			role: msg.messageType === "user" ? "user" : "assistant",
-			parts: msg.parts || [],
+			role: msg.messageType === "user" ? "user" as const : "assistant" as const,
+			parts: (msg.parts || []).map((part: any) => {
+				// Convert Convex "source" type to Vercel AI SDK "source-document" type
+				if (part.type === "source") {
+					return {
+						...part,
+						type: "source-document" as const,
+					};
+				}
+				return part;
+			}),
 			metadata: {
 				modelId: msg.modelId,
 				isComplete: true,
@@ -204,7 +213,7 @@ export function ChatInterface({
 		id: threadId || clientId || "new-chat",
 		transport,
 		generateId: () => nanoid(),
-		initialMessages: initialMessages, // Changed from 'messages' to 'initialMessages'
+		messages: initialMessages,
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},

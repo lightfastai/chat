@@ -9,7 +9,6 @@ import { ToolCallRenderer } from "../tools/tool-call-renderer";
 import { AssistantMessageHeader } from "./assistant-message-header";
 import { MessageLayout } from "./message-layout";
 import { ThinkingIndicator } from "./thinking-indicator";
-import { isThinkingMode, type ModelId } from "@/lib/ai";
 
 // Helper to group consecutive text parts
 function groupConsecutiveTextParts(parts: any[]): any[] {
