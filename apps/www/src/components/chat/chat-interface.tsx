@@ -72,15 +72,7 @@ export function ChatInterface({
 	}, [convexUrl]);
 
 	// Use Vercel AI SDK as primary UI message source
-	const {
-		messages: uiMessages,
-		status,
-		input,
-		setInput,
-		append,
-		stop,
-		error,
-	} = useChat({
+	const chatHook = useChat({
 		id: threadId || clientId || "new-chat",
 		api: streamUrl,
 		headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
@@ -94,6 +86,20 @@ export function ChatInterface({
 			console.error("Chat error:", error);
 		},
 	});
+
+	// Debug what useChat returns
+	console.log("useChat hook returned:", chatHook);
+	console.log("append function:", chatHook.append);
+
+	const {
+		messages: uiMessages,
+		status,
+		input,
+		setInput,
+		append,
+		stop,
+		error,
+	} = chatHook;
 
 	// Computed values for compatibility
 	const isEmpty = uiMessages.length === 0;
