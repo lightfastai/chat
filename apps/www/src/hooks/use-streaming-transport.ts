@@ -73,19 +73,36 @@ export function useStreamingTransport(): StreamingTransportResult {
 				trigger,
 			}) => {
 				// Transform the request to match Convex HTTP streaming format
+				const requestBody = body as any;
+				
+				// Use threadId and clientId from the request body (passed by streamMessage)
+				// Fall back to parsing the ID if they're not provided
+				let threadId = requestBody?.threadId;
+				let clientId = requestBody?.clientId;
+				
+				// If not provided in body, try to parse from the ID
+				if (!threadId && !clientId) {
+					if (id === "new" || id === "streaming-transport") {
+						// These are dummy IDs, can't determine thread/client
+						threadId = null;
+						clientId = undefined;
+					} else if (isClientId(id)) {
+						clientId = id;
+						threadId = null;
+					} else {
+						threadId = id;
+						clientId = undefined;
+					}
+				}
+				
 				const convexBody = {
-					// Handle both thread IDs and client IDs
-					// Skip the dummy "streaming-transport" ID
-					threadId:
-						id === "new" || id === "streaming-transport" || isClientId(id)
-							? null
-							: id,
-					clientId: isClientId(id) ? id : undefined,
-					modelId: (body as any)?.modelId,
+					threadId,
+					clientId,
+					modelId: requestBody?.modelId,
 					messages: messages, // Send UIMessages directly
 					options: {
-						webSearchEnabled: (body as any)?.webSearchEnabled,
-						attachments: (body as any)?.attachments,
+						webSearchEnabled: requestBody?.webSearchEnabled,
+						attachments: requestBody?.attachments,
 						trigger, // Pass through the trigger type
 					},
 				};
