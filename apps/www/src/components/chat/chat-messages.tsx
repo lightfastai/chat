@@ -149,7 +149,6 @@ export function ChatMessages({
 							<MessageDisplay key={msg.id} message={msg} userName="User" />
 						);
 					})}
-
 				</div>
 			</div>
 

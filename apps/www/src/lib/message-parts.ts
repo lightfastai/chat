@@ -23,7 +23,6 @@ export type ToolCallPart = Infer<typeof toolCallPartValidator>;
 // Union type for all message parts
 export type MessagePart = Infer<typeof messagePartValidator>;
 
-
 // Legacy function for Convex messages (for backward compatibility)
 export function getMessageParts(message: Doc<"messages">): MessagePart[] {
 	// Use the parts array directly (no legacy conversion needed)
@@ -77,10 +76,14 @@ export function hasUIMessageToolInvocations(message: UIMessage): boolean {
 }
 
 // Helper to extract reasoning parts from a UIMessage
-export function getUIMessageReasoningParts(message: UIMessage): ReasoningPart[] {
+export function getUIMessageReasoningParts(
+	message: UIMessage,
+): ReasoningPart[] {
 	if (!message.parts || message.parts.length === 0) return [];
 
-	return message.parts.filter((part): part is ReasoningPart => part.type === "reasoning");
+	return message.parts.filter(
+		(part): part is ReasoningPart => part.type === "reasoning",
+	);
 }
 
 // Helper to check if UIMessage has reasoning content

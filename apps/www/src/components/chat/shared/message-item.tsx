@@ -198,7 +198,8 @@ export function MessageItem({
 										);
 									} else if (part.type === "thinking-indicator") {
 										// Show thinking indicator
-										const isThinkingModel = (part as any).isThinkingModel || false;
+										const isThinkingModel =
+											(part as any).isThinkingModel || false;
 										const label = isThinkingModel ? "Thinking" : "Thinking";
 										return (
 											<div key={partKey} className="mb-2">

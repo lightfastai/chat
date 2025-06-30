@@ -21,10 +21,10 @@ export function isConvexId(id: string): boolean {
 	// They're usually not exactly 21 chars (our client ID length) or 32 chars
 	// This is a heuristic check
 	if (!id || id.length < 10 || id.length > 50) return false;
-	
+
 	// If it's a client ID, it's not a Convex ID
 	if (isClientId(id)) return false;
-	
+
 	// Check if it contains characters typical of Convex IDs
 	// Allow alphanumeric, underscore, and hyphen
 	return /^[a-zA-Z0-9_-]+$/.test(id);
