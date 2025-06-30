@@ -2,7 +2,6 @@
 
 import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
-import { convexMessagesToUIMessages } from "@/lib/ai/message-converters";
 import { isClientId, nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
@@ -161,7 +160,7 @@ export function useChat(options: UseChatOptions = {}) {
 	}
 	const streamUrl = `${convexSiteUrl}/stream-chat`;
 
-	// Convert preloaded Convex messages to UIMessages
+	// Convert preloaded Convex messages to format expected by Vercel AI SDK
 	const initialMessages = useMemo(() => {
 		if (!messages || messages.length === 0) {
 			console.log("[useChat] No messages to convert");
@@ -169,9 +168,27 @@ export function useChat(options: UseChatOptions = {}) {
 		}
 		
 		console.log("[useChat] Converting initial messages from database:", messages);
-		const uiMessages = convexMessagesToUIMessages(messages);
-		console.log("[useChat] Converted to UIMessages:", uiMessages);
-		return uiMessages;
+		
+		// Minimal conversion - just map messageType to role and pass parts as-is
+		// Messages are in descending order from DB, need to reverse for UI
+		const converted = messages
+			.map(msg => ({
+				id: msg._id,
+				role: msg.messageType === "user" ? "user" as const : "assistant" as const,
+				parts: msg.parts || [],
+				// Pass any metadata the UI might need
+				metadata: {
+					timestamp: msg.timestamp,
+					modelId: msg.modelId,
+					usage: msg.usage,
+					isStreaming: msg.isStreaming,
+					isComplete: msg.isComplete,
+				}
+			}))
+			.reverse(); // DB returns newest first, UI expects oldest first
+		
+		console.log("[useChat] Converted messages:", converted);
+		return converted;
 	}, [messages]);
 
 	// Create transport with request transformation
