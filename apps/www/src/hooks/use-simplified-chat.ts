@@ -51,7 +51,7 @@ export function useSimplifiedChat(options: UseSimplifiedChatOptions = {}) {
 		stop,
 	} = useStreamingTransport();
 
-	// Send message function that triggers both optimistic updates and streaming
+	// Send message function that handles both new and existing chats
 	const sendMessage = useCallback(
 		async ({
 			text,
@@ -65,24 +65,35 @@ export function useSimplifiedChat(options: UseSimplifiedChatOptions = {}) {
 			if (!text.trim()) return;
 
 			try {
-				// Use streaming transport which will trigger HTTP streaming endpoint
-				// The endpoint will handle saving messages and AI response generation
-				await streamMessage({
-					threadId,
-					clientId,
-					text,
-					options: {
-						modelId: messageModelId || modelId,
-						webSearchEnabled,
+				if (threadId) {
+					// Existing thread - use HTTP streaming transport
+					await streamMessage({
+						threadId,
+						clientId,
+						text,
+						options: {
+							modelId: messageModelId || modelId,
+							webSearchEnabled,
+							attachments,
+						},
+					});
+				} else if (clientId) {
+					// New thread - use Convex mutation to create thread and send message
+					// This will create the thread and send the message, then subsequent messages can use HTTP streaming
+					await convexSendMessage({
+						text,
 						attachments,
-					},
-				});
+						modelId: messageModelId,
+					});
+				} else {
+					throw new Error("Either threadId or clientId must be provided");
+				}
 			} catch (error) {
 				console.error("Failed to send message:", error);
 				throw error;
 			}
 		},
-		[threadId, clientId, modelId, webSearchEnabled, streamMessage],
+		[threadId, clientId, modelId, webSearchEnabled, streamMessage, convexSendMessage],
 	);
 
 	return {
