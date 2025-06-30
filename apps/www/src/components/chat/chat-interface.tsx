@@ -72,7 +72,15 @@ export function ChatInterface({
 	}, [convexUrl]);
 
 	// Use Vercel AI SDK as primary UI message source
-	const chatHook = useChat({
+	const {
+		messages: uiMessages,
+		status,
+		input,
+		setInput,
+		sendMessage: vercelSendMessage,
+		stop,
+		error,
+	} = useChat({
 		id: threadId || clientId || "new-chat",
 		api: streamUrl,
 		headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
@@ -87,20 +95,6 @@ export function ChatInterface({
 		},
 	});
 
-	// Debug what useChat returns
-	console.log("useChat hook returned:", chatHook);
-	console.log("append function:", chatHook.append);
-
-	const {
-		messages: uiMessages,
-		status,
-		input,
-		setInput,
-		append,
-		stop,
-		error,
-	} = chatHook;
-
 	// Computed values for compatibility
 	const isEmpty = uiMessages.length === 0;
 	const totalMessages = uiMessages.length;
@@ -110,7 +104,7 @@ export function ChatInterface({
 	// Determine if this is a new chat
 	const isNewChat = isEmpty;
 
-	// Adapt sendMessage to use Vercel AI SDK append function
+	// Adapt sendMessage to use Vercel AI SDK v5 sendMessage function
 	const handleSendMessage = useCallback(
 		async (
 			message: string,
@@ -118,10 +112,10 @@ export function ChatInterface({
 			attachments?: Id<"files">[],
 			_webSearchEnabledOverride?: boolean,
 		) => {
-			await append(
+			await vercelSendMessage(
 				{
 					role: "user",
-					content: message,
+					parts: [{ type: "text", text: message }],
 				},
 				{
 					body: {
@@ -134,7 +128,7 @@ export function ChatInterface({
 				},
 			);
 		},
-		[append, threadId, clientId],
+		[vercelSendMessage, threadId, clientId],
 	);
 
 	// Determine if chat is disabled
