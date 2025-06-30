@@ -71,6 +71,9 @@ export function ChatInterface({
 		}
 	})() : null;
 	
+	console.log("preloadedMessages prop:", preloadedMessages);
+	console.log("messages after extraction:", messages);
+	
 	const threadId = threadById?._id || threadByClientId?._id || null;
 
 	const clientId = useMemo(() => {
@@ -201,7 +204,7 @@ export function ChatInterface({
 		id: threadId || clientId || "new-chat",
 		transport,
 		generateId: () => nanoid(),
-		messages: initialMessages,
+		initialMessages: initialMessages, // Changed from 'messages' to 'initialMessages'
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
