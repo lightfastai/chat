@@ -1,7 +1,9 @@
 "use client";
 
-import { useChat } from "@/hooks/use-chat";
+import { useSimplifiedChat } from "@/hooks/use-simplified-chat";
 import type { ModelId } from "@/lib/ai";
+import { isClientId } from "@/lib/nanoid";
+import { usePathname } from "next/navigation";
 import type { Preloaded } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { api } from "../../../convex/_generated/api";
@@ -21,19 +23,81 @@ interface ChatInterfaceProps {
 export function ChatInterface({
 	preloadedThreadById,
 	preloadedThreadByClientId,
-	preloadedMessages,
+	preloadedMessages: _preloadedMessages, // Not used in simplified architecture
 	preloadedUser,
 	preloadedUserSettings,
 }: ChatInterfaceProps = {}) {
-	// Use custom chat hook with optimistic updates and preloaded data
-	const { uiMessages, currentThread, sendMessage, isNewChat } = useChat({
-		preloadedThreadById,
-		preloadedThreadByClientId,
-		preloadedMessages,
-		preloadedUserSettings,
+	const pathname = usePathname();
+
+	// Extract thread/client ID from URL and preloaded data
+	const threadById = preloadedThreadById ? (preloadedThreadById as any) : null;
+	const threadByClientId = preloadedThreadByClientId ? (preloadedThreadByClientId as any) : null;
+	const threadId = threadById?._id || threadByClientId?._id || null;
+	const clientId = (() => {
+		if (pathname === "/chat") return null;
+		const match = pathname.match(/^\/chat\/(.+)$/);
+		if (!match) return null;
+		const id = match[1];
+		return isClientId(id) ? id : null;
+	})();
+
+	// Extract user settings safely
+	const userSettings = preloadedUserSettings ? (preloadedUserSettings as any) : null;
+	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
+
+	// Use simplified chat hook - much cleaner than the old useChat
+	const {
+		messages,
+		thread: currentThread,
+		sendMessage: simplifiedSendMessage,
+		canSendMessage,
+		isStreaming,
+		isEmpty,
+		totalMessages,
+	} = useSimplifiedChat({
+		threadId,
+		clientId,
+		modelId: defaultModel,
+		webSearchEnabled: false,
 	});
 
-	// Debug: Log uiMessages in ChatInterface
+	// Convert Convex messages to UIMessage format for compatibility with existing components
+	const uiMessages = useMemo(() => {
+		return messages.map((messageWithStatus) => {
+			const { message } = messageWithStatus;
+			
+			// Convert parts to be compatible with UIMessage format
+			const compatibleParts = (message.parts || []).map((part: any) => {
+				if (part.type === "source") {
+					// Convert source parts to source-document format for UIMessage compatibility
+					return {
+						...part,
+						type: "source-document",
+					};
+				}
+				return part;
+			});
+
+			return {
+				id: message._id,
+				role: message.messageType as "user" | "assistant" | "system",
+				parts: compatibleParts,
+				createdAt: new Date(message.timestamp),
+				metadata: {
+					model: message.model,
+					modelId: message.modelId,
+					timestamp: message.timestamp,
+					usage: message.usage,
+					status: message.status,
+				},
+			} as any; // Type assertion for compatibility
+		});
+	}, [messages]);
+
+	// Determine if this is a new chat (same logic as before)
+	const isNewChat = !threadId && !currentThread && isEmpty;
+
+	// Debug: Log messages in ChatInterface
 	console.log("[ChatInterface] uiMessages:", uiMessages);
 	console.log("[ChatInterface] uiMessages length:", uiMessages.length);
 	console.log("[ChatInterface] currentThread:", currentThread);
@@ -47,37 +111,34 @@ export function ChatInterface({
 			attachments?: Id<"files">[],
 			_webSearchEnabledOverride?: boolean,
 		) => {
-			await sendMessage({
-				message,
+			await simplifiedSendMessage({
+				text: message,
 				modelId: selectedModelId as ModelId,
 				attachments,
-				// Note: webSearchEnabled is handled by the hook internally
 			});
 		},
-		[sendMessage],
+		[simplifiedSendMessage],
 	);
 
-	// Determine if chat is disabled
-	// For now, let's just check thread state
-	const isDisabled = currentThread?.isGenerating || false;
+	// Determine if chat is disabled (using new simplified state)
+	const isDisabled = !canSendMessage || isStreaming;
 
 	// Track if user has ever sent a message to prevent flicker
 	const hasEverSentMessage = useRef(false);
 
 	// Reset when we're in a truly new chat, set when messages exist
 	useEffect(() => {
-		if (isNewChat && uiMessages.length === 0) {
+		if (isNewChat && totalMessages === 0) {
 			hasEverSentMessage.current = false;
-		} else if (uiMessages.length > 0) {
+		} else if (totalMessages > 0) {
 			hasEverSentMessage.current = true;
 		}
-	}, [isNewChat, uiMessages.length]);
+	}, [isNewChat, totalMessages]);
 
-	// Check if AI is currently generating
+	// Check if AI is currently generating (using new simplified state)
 	const isAIGenerating = useMemo(() => {
-		// For existing chats, check thread state
-		return currentThread?.isGenerating || false;
-	}, [currentThread]);
+		return currentThread?.isGenerating || isStreaming;
+	}, [currentThread?.isGenerating, isStreaming]);
 
 	// Show centered layout only for truly new chats that have never had messages
 	if (isNewChat && !hasEverSentMessage.current) {
