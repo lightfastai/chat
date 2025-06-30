@@ -1,7 +1,6 @@
 "use client";
 
 import { env } from "@/env";
-import { useMessages } from "@/hooks/use-messages";
 import { nanoid } from "@/lib/nanoid";
 import { createStreamUrl } from "@/lib/create-base-url";
 import type { MessagePart } from "@/lib/message-parts";
@@ -149,29 +148,11 @@ export function ChatInterface({
 		});
 	}, [authToken, threadId, clientId, defaultModel]);
 
-	// Load messages from Convex with staging's priority logic
-	const { isEmpty: convexIsEmpty, messages: convexMessages } = useMessages({
-		threadId,
-		clientId,
-	});
-
-	// Apply staging's priority system: preloaded → convex → empty
+	// Use only preloaded messages - no fallback to live queries needed
 	const prioritizedMessages = useMemo(() => {
-		// Use messages in this priority order (same as staging):
-		// 1. Preloaded messages (SSR)
-		// 2. Live Convex messages (client queries)
-		// 3. Empty array fallback
-		if (messages && Array.isArray(messages) && messages.length > 0) {
-			return messages;
-		}
-		
-		if (convexMessages && convexMessages.length > 0) {
-			// Convert from MessageWithStatus to raw messages
-			return convexMessages.map(msgWithStatus => msgWithStatus.message);
-		}
-		
-		return [];
-	}, [messages, convexMessages]);
+		// Since we have proper preloading now, just use the preloaded messages
+		return messages || [];
+	}, [messages]);
 
 	// Convert prioritized messages to Vercel AI SDK format for initialization
 	const initialMessages = useMemo(() => {
@@ -207,28 +188,26 @@ export function ChatInterface({
 	}, [prioritizedMessages]);
 
 
-	// Use Vercel AI SDK with custom transport
+	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
-		setMessages,
 	} = useVercelChat({
 		id: threadId || clientId || "new-chat",
 		transport,
 		generateId: () => nanoid(),
+		messages: initialMessages,
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
 	});
 
-	// Set initial messages if we have preloaded data and no current messages
-	React.useEffect(() => {
-		if (initialMessages && initialMessages.length > 0 && uiMessages.length === 0) {
-			console.log("🔄 Setting initial messages from preloaded data:", initialMessages.length);
-			setMessages(initialMessages);
-		}
-	}, [initialMessages, uiMessages.length, setMessages]);
+	console.log("🔄 useVercelChat initialized with messages:", {
+		initialMessagesCount: initialMessages?.length || 0,
+		currentMessagesCount: uiMessages.length,
+		hasPreloadedData: !!messages
+	});
 
 
 	// Track if we're waiting for AI response
@@ -261,7 +240,7 @@ export function ChatInterface({
 	}, [uiMessages, isWaitingForResponse, userSettings?.preferences?.defaultModel]);
 
 	// Computed values for compatibility
-	const isEmpty = convexIsEmpty && uiMessages.length === 0;
+	const isEmpty = uiMessages.length === 0;
 	const totalMessages = displayMessages.length;
 	const isStreaming = status === "streaming";
 	const canSendMessage = !isStreaming && !!authToken;
