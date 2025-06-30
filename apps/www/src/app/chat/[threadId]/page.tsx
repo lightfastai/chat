@@ -8,7 +8,6 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 import { ChatInterface } from "../../../components/chat/chat-interface";
 import { ChatPreloadProvider } from "../../../components/chat/chat-preload-context";
 import { getAuthToken } from "../../../lib/auth";
-import { isClientId } from "../../../lib/nanoid";
 
 export const metadata: Metadata = {
 	title: "Chat Thread",
@@ -70,10 +69,7 @@ async function ChatThreadPageWithPreloadedData({
 			return <ChatInterface />;
 		}
 
-		// Determine if this is a client ID or thread ID
-		const isClientIdThread = isClientId(threadIdString);
-		
-
+		// Since all URIs are clientIds now, always treat as client ID
 		// Preload user settings for all cases
 		const preloadedUserSettings = await preloadQuery(
 			api.userSettings.getUserSettings,
@@ -81,66 +77,27 @@ async function ChatThreadPageWithPreloadedData({
 			{ token },
 		);
 
-		if (isClientIdThread) {
-			// Preload thread by client ID
-			const preloadedThreadByClientId = await preloadQuery(
-				api.threads.getByClientId,
-				{ clientId: threadIdString },
-				{ token },
-			);
-
-			// We can't preload messages yet since we don't know the thread ID
-			// The useChat hook will handle this case
-			return (
-				<ChatPreloadProvider
-					preloadedThreadByClientId={preloadedThreadByClientId}
-				>
-					<ChatInterface
-						preloadedThreadByClientId={preloadedThreadByClientId}
-						preloadedUserSettings={preloadedUserSettings}
-					/>
-				</ChatPreloadProvider>
-			);
-		}
-
-		// Preload thread by ID
-		const threadId = threadIdString as Id<"threads">;
-		
-		let preloadedThreadById;
-		try {
-			preloadedThreadById = await preloadQuery(
-				api.threads.get,
-				{ threadId },
-				{ token },
-			);
-		} catch (error) {
-			// Thread not found or invalid ID - render interface without preloaded data
-			return <ChatInterface preloadedUserSettings={preloadedUserSettings} />;
-		}
-
-		// Preload messages for this thread
-		const preloadedMessages = await preloadQuery(
-			api.messages.list,
-			{ threadId },
+		// Preload thread by client ID
+		const preloadedThreadByClientId = await preloadQuery(
+			api.threads.getByClientId,
+			{ clientId: threadIdString },
 			{ token },
 		);
-		
 
-		// Also preload thread usage for the header
-		const preloadedThreadUsage = await preloadQuery(
-			api.messages.getThreadUsage,
-			{ threadId },
+		// Preload messages by client ID for better performance
+		const preloadedMessages = await preloadQuery(
+			api.messages.listByClientId,
+			{ clientId: threadIdString },
 			{ token },
 		);
 
 		return (
 			<ChatPreloadProvider
-				preloadedThreadById={preloadedThreadById}
-				preloadedThreadUsage={preloadedThreadUsage}
+				preloadedThreadByClientId={preloadedThreadByClientId}
 				preloadedMessages={preloadedMessages}
 			>
 				<ChatInterface
-					preloadedThreadById={preloadedThreadById}
+					preloadedThreadByClientId={preloadedThreadByClientId}
 					preloadedMessages={preloadedMessages}
 					preloadedUserSettings={preloadedUserSettings}
 				/>

@@ -1,6 +1,5 @@
 "use client";
 
-import { isClientId } from "@/lib/nanoid";
 import { cn } from "@lightfast/ui/lib/utils";
 import { usePreloadedQuery, useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
@@ -34,13 +33,8 @@ export function ChatTitleClient() {
 			return { type: "settings", id: "settings" };
 		}
 
-		// Check if it's a client-generated ID (nanoid)
-		if (isClientId(id)) {
-			return { type: "clientId", id };
-		}
-
-		// Otherwise it's a real Convex thread ID
-		return { type: "threadId", id: id as Id<"threads"> };
+		// All URIs are clientIds now
+		return { type: "clientId", id };
 	}, [pathname]);
 
 	const currentThreadId = pathInfo.type === "threadId" ? pathInfo.id : "new";

@@ -23,14 +23,6 @@ export type ToolCallPart = Infer<typeof toolCallPartValidator>;
 // Union type for all message parts
 export type MessagePart = Infer<typeof messagePartValidator>;
 
-// Get message parts with text grouping for UIMessage
-export function getUIMessageParts(message: UIMessage): any[] {
-	// Use the parts array directly
-	const parts = message.parts || [];
-
-	// Group consecutive text parts together to prevent line breaks
-	return groupConsecutiveTextParts(parts);
-}
 
 // Legacy function for Convex messages (for backward compatibility)
 export function getMessageParts(message: Doc<"messages">): MessagePart[] {
@@ -42,8 +34,8 @@ export function getMessageParts(message: Doc<"messages">): MessagePart[] {
 }
 
 // Group consecutive text parts together to prevent line breaks between chunks
-function groupConsecutiveTextParts(parts: any[]): any[] {
-	const groupedParts: any[] = [];
+function groupConsecutiveTextParts(parts: MessagePart[]): MessagePart[] {
+	const groupedParts: MessagePart[] = [];
 	let currentTextGroup = "";
 
 	for (const part of parts) {
@@ -85,10 +77,10 @@ export function hasUIMessageToolInvocations(message: UIMessage): boolean {
 }
 
 // Helper to extract reasoning parts from a UIMessage
-export function getUIMessageReasoningParts(message: UIMessage): any[] {
+export function getUIMessageReasoningParts(message: UIMessage): ReasoningPart[] {
 	if (!message.parts || message.parts.length === 0) return [];
 
-	return message.parts.filter((part) => part.type === "reasoning");
+	return message.parts.filter((part): part is ReasoningPart => part.type === "reasoning");
 }
 
 // Helper to check if UIMessage has reasoning content
@@ -101,7 +93,7 @@ export function hasUIMessageReasoningContent(message: UIMessage): boolean {
 // Helper to get combined reasoning text from UIMessage
 export function getUIMessageCombinedReasoningText(message: UIMessage): string {
 	const reasoningParts = getUIMessageReasoningParts(message);
-	return reasoningParts.map((part) => (part as any).text || "").join("");
+	return reasoningParts.map((part) => part.text || "").join("");
 }
 
 // Legacy helpers for Convex messages (for backward compatibility)

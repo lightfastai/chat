@@ -2,8 +2,9 @@
 
 import { env } from "@/env";
 import { useMessages } from "@/hooks/use-messages";
-import { isClientId, nanoid } from "@/lib/nanoid";
-import { useChat } from "@ai-sdk/react";
+import { nanoid } from "@/lib/nanoid";
+import { createStreamUrl } from "@/lib/create-base-url";
+import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import type { Preloaded } from "convex/react";
@@ -34,35 +35,41 @@ export function ChatInterface({
 	const router = useRouter();
 
 	// Extract data from preloaded queries if available
-	// We need to call hooks unconditionally due to React rules
-	
-	const threadByClientId = preloadedThreadByClientId ? (() => {
+	// Use proper try-catch pattern matching sidebar implementation
+	let threadByClientId = null;
+	let userSettings = null;
+	let messages = null;
+
+	if (preloadedThreadByClientId) {
 		try {
-			return usePreloadedQuery(preloadedThreadByClientId);
-		} catch {
-			return null;
-		}
-	})() : null;
-	
-	const userSettings = preloadedUserSettings ? (() => {
-		try {
-			return usePreloadedQuery(preloadedUserSettings);
-		} catch {
-			return null;
-		}
-	})() : null;
-	
-	const messages = preloadedMessages ? (() => {
-		try {
-			return usePreloadedQuery(preloadedMessages);
+			threadByClientId = usePreloadedQuery(preloadedThreadByClientId);
 		} catch (error) {
-			console.error("Failed to extract preloaded messages:", error);
-			return null;
+			console.warn("Failed to extract preloaded thread by client ID:", error);
+			threadByClientId = null;
 		}
-	})() : null;
+	}
+
+	if (preloadedUserSettings) {
+		try {
+			userSettings = usePreloadedQuery(preloadedUserSettings);
+		} catch (error) {
+			console.warn("Failed to extract preloaded user settings:", error);
+			userSettings = null;
+		}
+	}
+
+	if (preloadedMessages) {
+		try {
+			messages = usePreloadedQuery(preloadedMessages);
+		} catch (error) {
+			console.warn("Failed to extract preloaded messages:", error);
+			messages = null;
+		}
+	}
 	
 	
-	// Extract thread and client IDs properly (match staging logic)
+	// Extract thread and client IDs properly
+	// Since uri is always clientId, we don't need isClientId check
 	const pathInfo = useMemo(() => {
 		if (pathname === "/chat") {
 			return { type: "new", threadId: null, clientId: nanoid() };
@@ -75,15 +82,9 @@ export function ChatInterface({
 
 		const id = match[1];
 
-		// Check if it's a client-generated ID (nanoid)
-		if (isClientId(id)) {
-			// For client IDs, threadId comes from resolved data
-			const resolvedThreadId = threadByClientId?._id || null;
-			return { type: "clientId", threadId: resolvedThreadId, clientId: id };
-		}
-
-		// Otherwise it's a real Convex thread ID
-		return { type: "threadId", threadId: id as Id<"threads">, clientId: null };
+		// For client IDs, threadId comes from resolved data
+		const resolvedThreadId = threadByClientId?._id || null;
+		return { type: "clientId", threadId: resolvedThreadId, clientId: id };
 	}, [pathname, threadByClientId]);
 
 	const threadId = pathInfo.threadId;
@@ -93,19 +94,9 @@ export function ChatInterface({
 
 	const authToken = useAuthToken();
 
-	// Construct Convex HTTP endpoint URL
+	// Construct Convex HTTP endpoint URL using utility
 	const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
-	const streamUrl = useMemo(() => {
-		let convexSiteUrl: string;
-		if (convexUrl.includes(".cloud")) {
-			convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
-		} else {
-			const url = new URL(convexUrl);
-			url.port = String(Number(url.port) + 1);
-			convexSiteUrl = url.toString().replace(/\/$/, "");
-		}
-		return `${convexSiteUrl}/stream-chat`;
-	}, [convexUrl]);
+	const streamUrl = createStreamUrl(convexUrl);
 
 	// Create transport with proper Convex integration
 	const transport = useMemo(() => {
@@ -125,7 +116,7 @@ export function ChatInterface({
 				trigger,
 			}) => {
 				// Transform the request to match Convex HTTP streaming format
-				const requestBody = body as any;
+				const requestBody = body as Record<string, unknown>;
 
 				// Use threadId and clientId from the request body
 				const convexBody = {
@@ -137,7 +128,7 @@ export function ChatInterface({
 					messages: messages, // Send UIMessages directly
 					options: {
 						webSearchEnabled: requestBody?.webSearchEnabled || false,
-						attachments: requestBody?.attachments,
+						attachments: requestBody?.attachments as Id<"files">[] | undefined,
 						trigger,
 					},
 				};
@@ -150,7 +141,7 @@ export function ChatInterface({
 				};
 			},
 		});
-	}, [streamUrl, authToken, threadId, clientId, defaultModel]);
+	}, [authToken, threadId, clientId, defaultModel]);
 
 	// Load messages from Convex with staging's priority logic
 	const { isEmpty: convexIsEmpty, messages: convexMessages } = useMessages({
@@ -186,7 +177,7 @@ export function ChatInterface({
 		const converted: UIMessage[] = prioritizedMessages.map((msg) => ({
 			id: msg._id,
 			role: msg.messageType === "user" ? "user" as const : "assistant" as const,
-			parts: (msg.parts || []).map((part: any) => {
+			parts: (msg.parts || []).map((part) => {
 				// Convert Convex "source" type to Vercel AI SDK "source-document" type
 				if (part.type === "source") {
 					return {
@@ -216,7 +207,7 @@ export function ChatInterface({
 		status,
 		sendMessage: vercelSendMessage,
 		setMessages,
-	} = useChat({
+	} = useVercelChat({
 		id: threadId || clientId || "new-chat",
 		transport,
 		generateId: () => nanoid(),

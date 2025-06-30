@@ -2,7 +2,6 @@
 
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { isClientId } from "@/lib/nanoid";
 import { usePreloadedQuery, useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useChatPreloadContext } from "./chat-preload-context";
@@ -26,8 +25,8 @@ export function ShareButtonWrapper() {
 	const isSettingsPage =
 		urlThreadId === "settings" || urlThreadId?.startsWith("settings/");
 
-	// Check if it's a client-generated ID
-	const isClient = urlThreadId ? isClientId(urlThreadId) : false;
+	// All URIs are clientIds now
+	const isClient = urlThreadId ? true : false;
 
 	// Use preloaded thread data if available
 	const preloadedThreadByIdData = preloadedThreadById

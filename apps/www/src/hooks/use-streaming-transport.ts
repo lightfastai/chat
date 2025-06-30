@@ -1,9 +1,10 @@
 "use client";
 
 import { env } from "@/env";
+import { createStreamUrl } from "@/lib/create-base-url";
 import type { ModelId } from "@/lib/ai";
-import { isClientId, nanoid } from "@/lib/nanoid";
-import { useChat } from "@ai-sdk/react";
+import { nanoid } from "@/lib/nanoid";
+import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { DefaultChatTransport } from "ai";
 import { useCallback, useMemo } from "react";
@@ -40,19 +41,9 @@ interface StreamingTransportResult {
 export function useStreamingTransport(): StreamingTransportResult {
 	const authToken = useAuthToken();
 
-	// Construct Convex HTTP endpoint URL
+	// Construct Convex HTTP endpoint URL using utility
 	const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
-	const streamUrl = useMemo(() => {
-		let convexSiteUrl: string;
-		if (convexUrl.includes(".cloud")) {
-			convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
-		} else {
-			const url = new URL(convexUrl);
-			url.port = String(Number(url.port) + 1);
-			convexSiteUrl = url.toString().replace(/\/$/, "");
-		}
-		return `${convexSiteUrl}/stream-chat`;
-	}, [convexUrl]);
+	const streamUrl = createStreamUrl(convexUrl);
 
 	// Create transport with request transformation
 	const transport = useMemo(() => {
@@ -73,25 +64,23 @@ export function useStreamingTransport(): StreamingTransportResult {
 				trigger,
 			}) => {
 				// Transform the request to match Convex HTTP streaming format
-				const requestBody = body as any;
+				const requestBody = body as Record<string, unknown>;
 
 				// Use threadId and clientId from the request body (passed by streamMessage)
-				// Fall back to parsing the ID if they're not provided
+				// Since all URIs are clientIds now, we don't need to check isClientId
 				let threadId = requestBody?.threadId;
 				let clientId = requestBody?.clientId;
 
-				// If not provided in body, try to parse from the ID
+				// If not provided in body, use the ID as clientId
 				if (!threadId && !clientId) {
 					if (id === "new" || id === "streaming-transport") {
 						// These are dummy IDs, can't determine thread/client
 						threadId = null;
 						clientId = undefined;
-					} else if (isClientId(id)) {
+					} else {
+						// All URIs are clientIds now
 						clientId = id;
 						threadId = null;
-					} else {
-						threadId = id;
-						clientId = undefined;
 					}
 				}
 
@@ -115,7 +104,7 @@ export function useStreamingTransport(): StreamingTransportResult {
 				};
 			},
 		});
-	}, [streamUrl, authToken]);
+	}, [authToken]);
 
 	// Use Vercel AI SDK purely for streaming transport, not state management
 	const {
@@ -123,7 +112,7 @@ export function useStreamingTransport(): StreamingTransportResult {
 		status,
 		error,
 		stop,
-	} = useChat({
+	} = useVercelChat({
 		// Use a dummy ID - we don't want the SDK managing message state
 		id: "streaming-transport",
 		transport,
