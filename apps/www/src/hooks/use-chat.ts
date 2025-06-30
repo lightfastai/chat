@@ -65,24 +65,22 @@ export function useChat({
 		}
 	}
 
-	// Extract thread and client IDs from pathname
-	const pathInfo = useMemo(() => {
+	// Extract client ID from pathname
+	const clientId = useMemo(() => {
 		if (pathname === "/chat") {
-			return { type: "new", threadId: null, clientId: nanoid() };
+			return nanoid();
 		}
 
 		const match = pathname.match(/^\/chat\/(.+)$/);
 		if (!match) {
-			return { type: "new", threadId: null, clientId: null };
+			return null;
 		}
 
-		const id = match[1];
-		const resolvedThreadId = threadByClientId?._id || null;
-		return { type: "clientId", threadId: resolvedThreadId, clientId: id };
-	}, [pathname, threadByClientId]);
+		return match[1];
+	}, [pathname]);
 
-	const threadId = pathInfo.threadId;
-	const clientId = pathInfo.clientId;
+	// Get the resolved thread ID from the clientId (if thread exists)
+	const resolvedThreadId = threadByClientId?._id || null;
 
 	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
 
@@ -110,9 +108,7 @@ export function useChat({
 				const requestBody = body as Record<string, unknown>;
 
 				const convexBody = {
-					threadId:
-						requestBody?.threadId ||
-						(threadId !== "new-chat" ? threadId : null),
+					threadId: requestBody?.threadId || resolvedThreadId,
 					clientId: requestBody?.clientId || clientId,
 					modelId: requestBody?.modelId || defaultModel,
 					messages: messages,
@@ -131,7 +127,7 @@ export function useChat({
 				};
 			},
 		});
-	}, [authToken, threadId, clientId, defaultModel, streamUrl]);
+	}, [authToken, resolvedThreadId, clientId, defaultModel, streamUrl]);
 
 	// Convert preloaded messages to Vercel AI SDK format
 	const initialMessages = useMemo(() => {
@@ -173,7 +169,7 @@ export function useChat({
 		status,
 		sendMessage: vercelSendMessage,
 	} = useVercelChat({
-		id: threadId || clientId || "new-chat",
+		id: clientId || "new-chat",
 		transport,
 		generateId: () => nanoid(),
 		messages: initialMessages,
@@ -249,8 +245,8 @@ export function useChat({
 			attachments?: Id<"files">[],
 			webSearchEnabledOverride?: boolean,
 		) => {
-			// For new chats, navigate immediately using clientId
-			if (!threadId && clientId) {
+			// For new chats at /chat, navigate immediately using clientId
+			if (pathname === "/chat" && clientId) {
 				router.replace(`/chat/${clientId}`);
 			}
 
@@ -265,7 +261,7 @@ export function useChat({
 					},
 					{
 						body: {
-							threadId,
+							threadId: resolvedThreadId,
 							clientId,
 							modelId: selectedModelId,
 							webSearchEnabled: webSearchEnabledOverride || false,
@@ -279,7 +275,7 @@ export function useChat({
 				throw error;
 			}
 		},
-		[vercelSendMessage, threadId, clientId, router],
+		[vercelSendMessage, resolvedThreadId, clientId, router, pathname],
 	);
 
 	return {
@@ -297,7 +293,6 @@ export function useChat({
 		hasEverSentMessage,
 
 		// Identifiers
-		threadId,
 		clientId,
 
 		// Actions
