@@ -9,7 +9,7 @@ import { useAuthToken } from "@convex-dev/auth/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -30,7 +30,6 @@ export function useChat({
 	preloadedUserSettings,
 }: UseChatProps = {}) {
 	const pathname = usePathname();
-	const router = useRouter();
 	const authToken = useAuthToken();
 
 	// Extract data from preloaded queries if available
@@ -163,6 +162,8 @@ export function useChat({
 		},
 	});
 
+	// Debug logging
+	console.log("[use-chat] chatId:", chatId, "uiMessages:", uiMessages, "status:", status);
 	// Computed values
 	const isEmpty = uiMessages.length === 0;
 	const totalMessages = uiMessages.length;
@@ -177,9 +178,9 @@ export function useChat({
 			attachments?: Id<"files">[],
 			webSearchEnabledOverride?: boolean,
 		) => {
-			// For new chats at /chat, navigate immediately using clientId
+			// For new chats at /chat, update URL using replaceState for seamless navigation
 			if (pathname === "/chat" && clientId) {
-				router.replace(`/chat/${clientId}`);
+				window.history.replaceState({}, "", `/chat/${clientId}`);
 			}
 
 			try {
@@ -202,7 +203,7 @@ export function useChat({
 				throw error;
 			}
 		},
-		[vercelSendMessage, resolvedThreadId, clientId, router, pathname],
+		[vercelSendMessage, resolvedThreadId, clientId, pathname],
 	);
 
 	return {
