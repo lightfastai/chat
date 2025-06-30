@@ -22,21 +22,14 @@ export function ChatInterface({
 	preloadedUser,
 	preloadedUserSettings,
 }: ChatInterfaceProps = {}) {
-	const {
-		messages,
-		isNewChat,
-		hasEverSentMessage,
-		sendMessage,
-		status,
-		canSendMessage,
-	} = useChat({
+	const { messages, isNewChat, sendMessage, status, canSendMessage } = useChat({
 		preloadedThreadByClientId,
 		preloadedMessages,
 		preloadedUserSettings,
 	});
 
-	// Show centered layout only for truly new chats that have never had messages
-	if (isNewChat && !hasEverSentMessage.current) {
+	// Show centered layout only for new chats with no messages
+	if (isNewChat && messages.length === 0) {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}

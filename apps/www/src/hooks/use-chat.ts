@@ -163,64 +163,11 @@ export function useChat({
 		},
 	});
 
-	// Track if we're waiting for AI response
-	const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
-
-	// Always use Vercel AI SDK messages as the single source of truth
-	const displayMessages = useMemo(() => {
-		const messages: UIMessage[] = [...uiMessages];
-
-		// Add optimistic thinking message if waiting for response
-		if (isWaitingForResponse && messages.length > 0) {
-			const lastMessage = messages[messages.length - 1];
-			// Only add thinking indicator if the last message is from user
-			if (lastMessage.role === "user") {
-				const selectedModel =
-					userSettings?.preferences?.defaultModel || "gpt-4o-mini";
-				messages.push({
-					id: `thinking-${Date.now()}`,
-					role: "assistant",
-					parts: [],
-					metadata: {
-						modelId: selectedModel,
-						isStreaming: true,
-						isComplete: false,
-					},
-				});
-			}
-		}
-
-		return messages;
-	}, [
-		uiMessages,
-		isWaitingForResponse,
-		userSettings?.preferences?.defaultModel,
-	]);
-
 	// Computed values
 	const isEmpty = uiMessages.length === 0;
-	const totalMessages = displayMessages.length;
+	const totalMessages = uiMessages.length;
 	const canSendMessage = status !== "streaming" && !!authToken;
 	const isNewChat = pathname === "/chat" && isEmpty;
-
-	// Track if user has ever sent a message to prevent flicker
-	const hasEverSentMessage = useRef(false);
-
-	// Reset when we're in a truly new chat, set when messages exist
-	useEffect(() => {
-		if (isNewChat && totalMessages === 0) {
-			hasEverSentMessage.current = false;
-		} else if (totalMessages > 0) {
-			hasEverSentMessage.current = true;
-		}
-	}, [isNewChat, totalMessages]);
-
-	// Clear waiting state when streaming starts
-	useEffect(() => {
-		if (status === "streaming") {
-			setIsWaitingForResponse(false);
-		}
-	}, [status]);
 
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
@@ -234,9 +181,6 @@ export function useChat({
 			if (pathname === "/chat" && clientId) {
 				router.replace(`/chat/${clientId}`);
 			}
-
-			// Show thinking indicator optimistically
-			setIsWaitingForResponse(true);
 
 			try {
 				await vercelSendMessage(
@@ -255,8 +199,6 @@ export function useChat({
 					},
 				);
 			} catch (error) {
-				// Clear waiting state on error
-				setIsWaitingForResponse(false);
 				throw error;
 			}
 		},
@@ -265,17 +207,14 @@ export function useChat({
 
 	return {
 		// Messages
-		messages: displayMessages,
-		uiMessages,
+		messages: uiMessages,
 		isEmpty,
 		totalMessages,
 
 		// Status - direct from Vercel AI SDK
 		status,
-		isWaitingForResponse,
 		canSendMessage,
 		isNewChat,
-		hasEverSentMessage,
 
 		// Identifiers
 		clientId,
