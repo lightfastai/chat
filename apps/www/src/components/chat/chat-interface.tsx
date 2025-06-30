@@ -25,7 +25,6 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({
-	preloadedThreadById,
 	preloadedThreadByClientId,
 	preloadedMessages,
 	preloadedUser,
@@ -36,13 +35,6 @@ export function ChatInterface({
 
 	// Extract data from preloaded queries if available
 	// We need to call hooks unconditionally due to React rules
-	const threadById = preloadedThreadById ? (() => {
-		try {
-			return usePreloadedQuery(preloadedThreadById);
-		} catch {
-			return null;
-		}
-	})() : null;
 	
 	const threadByClientId = preloadedThreadByClientId ? (() => {
 		try {
@@ -62,30 +54,40 @@ export function ChatInterface({
 	
 	const messages = preloadedMessages ? (() => {
 		try {
-			const result = usePreloadedQuery(preloadedMessages);
-			console.log("Preloaded messages extracted:", result);
-			return result;
+			return usePreloadedQuery(preloadedMessages);
 		} catch (error) {
 			console.error("Failed to extract preloaded messages:", error);
 			return null;
 		}
 	})() : null;
 	
-	console.log("preloadedMessages prop:", preloadedMessages);
-	console.log("messages after extraction:", messages);
 	
-	const threadId = threadById?._id || threadByClientId?._id || null;
-
-	const clientId = useMemo(() => {
+	// Extract thread and client IDs properly (match staging logic)
+	const pathInfo = useMemo(() => {
 		if (pathname === "/chat") {
-			// For new chats, generate a stable clientId
-			return nanoid();
+			return { type: "new", threadId: null, clientId: nanoid() };
 		}
+
 		const match = pathname.match(/^\/chat\/(.+)$/);
-		if (!match) return null;
+		if (!match) {
+			return { type: "new", threadId: null, clientId: null };
+		}
+
 		const id = match[1];
-		return isClientId(id) ? id : null;
-	}, [pathname]);
+
+		// Check if it's a client-generated ID (nanoid)
+		if (isClientId(id)) {
+			// For client IDs, threadId comes from resolved data
+			const resolvedThreadId = threadByClientId?._id || null;
+			return { type: "clientId", threadId: resolvedThreadId, clientId: id };
+		}
+
+		// Otherwise it's a real Convex thread ID
+		return { type: "threadId", threadId: id as Id<"threads">, clientId: null };
+	}, [pathname, threadByClientId]);
+
+	const threadId = pathInfo.threadId;
+	const clientId = pathInfo.clientId;
 
 	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
 
@@ -150,28 +152,38 @@ export function ChatInterface({
 		});
 	}, [streamUrl, authToken, threadId, clientId, defaultModel]);
 
-	// Load messages from Convex only to check if thread is empty
-	const { isEmpty: convexIsEmpty } = useMessages({
+	// Load messages from Convex with staging's priority logic
+	const { isEmpty: convexIsEmpty, messages: convexMessages } = useMessages({
 		threadId,
 		clientId,
 	});
 
-	// Convert preloaded messages to Vercel AI SDK format for initialization
-	const initialMessages = useMemo(() => {
-		if (!messages) {
-			console.log("No preloaded messages available");
-			return undefined;
+	// Apply staging's priority system: preloaded → convex → empty
+	const prioritizedMessages = useMemo(() => {
+		// Use messages in this priority order (same as staging):
+		// 1. Preloaded messages (SSR)
+		// 2. Live Convex messages (client queries)
+		// 3. Empty array fallback
+		if (messages && Array.isArray(messages) && messages.length > 0) {
+			return messages;
 		}
-		if (!Array.isArray(messages) || messages.length === 0) {
-			console.log("Preloaded messages is empty array or not array");
-			return undefined;
+		
+		if (convexMessages && convexMessages.length > 0) {
+			// Convert from MessageWithStatus to raw messages
+			return convexMessages.map(msgWithStatus => msgWithStatus.message);
 		}
+		
+		return [];
+	}, [messages, convexMessages]);
 
-		console.log("Converting preloaded messages:", messages.length, "messages");
-		console.log("First message sample:", messages[0]);
+	// Convert prioritized messages to Vercel AI SDK format for initialization
+	const initialMessages = useMemo(() => {
+		if (prioritizedMessages.length === 0) {
+			return undefined;
+		}
 
 		// Convert Convex messages to Vercel AI UIMessage format
-		const converted: UIMessage[] = messages.map((msg) => ({
+		const converted: UIMessage[] = prioritizedMessages.map((msg) => ({
 			id: msg._id,
 			role: msg.messageType === "user" ? "user" as const : "assistant" as const,
 			parts: (msg.parts || []).map((part: any) => {
@@ -194,48 +206,38 @@ export function ChatInterface({
 			},
 		}));
 		
-		console.log("Converted messages:", converted);
 		return converted;
-	}, [messages]);
+	}, [prioritizedMessages]);
 
-	console.log("useChat params:", {
-		id: threadId || clientId || "new-chat",
-		hasTransport: !!transport,
-		initialMessagesCount: initialMessages?.length,
-	});
 
 	// Use Vercel AI SDK with custom transport
 	const {
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
+		setMessages,
 	} = useChat({
 		id: threadId || clientId || "new-chat",
 		transport,
 		generateId: () => nanoid(),
-		messages: initialMessages,
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
 	});
 
-	// Debug log to trace message flow
+	// Manually set messages when initial messages become available
 	useEffect(() => {
-		console.log("useChat hook state:", {
-			uiMessagesCount: uiMessages.length,
-			uiMessages: uiMessages,
-			status: status,
-			initialMessagesProvided: !!initialMessages,
-			initialMessagesCount: initialMessages?.length,
-		});
-	}, [uiMessages, status, initialMessages]);
+		if (initialMessages && initialMessages.length > 0 && uiMessages.length === 0) {
+			setMessages(initialMessages);
+		}
+	}, [initialMessages, uiMessages.length, setMessages]);
+
 
 	// Track if we're waiting for AI response
 	const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
 
 	// Always use Vercel AI SDK messages as the single source of truth
 	const displayMessages = useMemo(() => {
-		console.log("displayMessages - uiMessages count:", uiMessages.length);
 		let messages: UIMessage[] = [...uiMessages];
 
 		// Add optimistic thinking message if waiting for response

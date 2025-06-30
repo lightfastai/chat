@@ -73,12 +73,6 @@ async function ChatThreadPageWithPreloadedData({
 		// Determine if this is a client ID or thread ID
 		const isClientIdThread = isClientId(threadIdString);
 		
-		console.log("Thread page debugging:", {
-			threadIdString,
-			threadIdLength: threadIdString.length,
-			isClientIdThread,
-			hasToken: !!token,
-		});
 
 		// Preload user settings for all cases
 		const preloadedUserSettings = await preloadQuery(
@@ -120,7 +114,6 @@ async function ChatThreadPageWithPreloadedData({
 				{ token },
 			);
 		} catch (error) {
-			console.log("Failed to load thread by ID:", error);
 			// Thread not found or invalid ID - render interface without preloaded data
 			return <ChatInterface preloadedUserSettings={preloadedUserSettings} />;
 		}
@@ -132,12 +125,6 @@ async function ChatThreadPageWithPreloadedData({
 			{ token },
 		);
 		
-		console.log("Thread page - thread ID path:", {
-			threadIdString,
-			threadId,
-			preloadedThreadById,
-			preloadedMessages: !!preloadedMessages,
-		});
 
 		// Also preload thread usage for the header
 		const preloadedThreadUsage = await preloadQuery(
