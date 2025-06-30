@@ -3,6 +3,7 @@
 import { env } from "@/env";
 import { useChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
+import { DefaultChatTransport } from "ai";
 import type { ModelId } from "@/lib/ai";
 import { isClientId, nanoid } from "@/lib/nanoid";
 import type { Preloaded } from "convex/react";
@@ -71,7 +72,51 @@ export function ChatInterface({
 		return `${convexSiteUrl}/stream-chat`;
 	}, [convexUrl]);
 
-	// Use Vercel AI SDK as primary UI message source
+	// Create transport with proper Convex integration
+	const transport = useMemo(() => {
+		if (!authToken) return undefined;
+
+		return new DefaultChatTransport({
+			api: streamUrl,
+			headers: {
+				Authorization: `Bearer ${authToken}`,
+			},
+			prepareSendMessagesRequest: ({
+				id,
+				messages,
+				body,
+				headers,
+				credentials,
+				api,
+				trigger,
+			}) => {
+				// Transform the request to match Convex HTTP streaming format
+				const requestBody = body as any;
+				
+				// Use threadId and clientId from the request body
+				const convexBody = {
+					threadId: requestBody?.threadId || (threadId !== "new-chat" ? threadId : null),
+					clientId: requestBody?.clientId || clientId,
+					modelId: requestBody?.modelId || defaultModel,
+					messages: messages, // Send UIMessages directly
+					options: {
+						webSearchEnabled: requestBody?.webSearchEnabled || false,
+						attachments: requestBody?.attachments,
+						trigger,
+					},
+				};
+
+				return {
+					api: api,
+					headers: headers,
+					body: convexBody,
+					credentials: credentials,
+				};
+			},
+		});
+	}, [streamUrl, authToken, threadId, clientId, defaultModel]);
+
+	// Use Vercel AI SDK with custom transport
 	const {
 		messages: uiMessages,
 		status,
@@ -82,14 +127,8 @@ export function ChatInterface({
 		error,
 	} = useChat({
 		id: threadId || clientId || "new-chat",
-		api: streamUrl,
-		headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-		body: {
-			threadId,
-			clientId,
-			modelId: defaultModel,
-			webSearchEnabled: false,
-		},
+		transport,
+		generateId: () => nanoid(),
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
@@ -104,7 +143,7 @@ export function ChatInterface({
 	// Determine if this is a new chat
 	const isNewChat = isEmpty;
 
-	// Adapt sendMessage to use Vercel AI SDK v5 sendMessage function
+	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const handleSendMessage = useCallback(
 		async (
 			message: string,
