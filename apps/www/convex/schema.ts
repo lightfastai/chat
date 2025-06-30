@@ -3,6 +3,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
 	branchInfoValidator,
+	chatStatusValidator,
 	clientIdValidator,
 	commentValidator,
 	feedbackRatingValidator,
@@ -77,27 +78,22 @@ export default defineSchema({
 
 	messages: defineTable({
 		threadId: v.id("threads"),
-		body: v.string(),
 		timestamp: v.number(),
 		messageType: messageTypeValidator,
 		model: v.optional(modelProviderValidator),
 		modelId: v.optional(modelIdValidator),
 		// Attachments - array of file IDs
 		attachments: v.optional(v.array(v.id("files"))),
-		isStreaming: v.optional(v.boolean()),
-		isComplete: v.optional(v.boolean()),
 		thinkingStartedAt: v.optional(v.number()),
 		thinkingCompletedAt: v.optional(v.number()),
 		usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
-		streamVersion: v.optional(v.number()),
-		thinkingContent: v.optional(v.string()),
-		isThinking: v.optional(v.boolean()),
-		hasThinkingContent: v.optional(v.boolean()),
 		// Token usage tracking per message
 		usage: tokenUsageValidator,
 		// Message parts array following Vercel AI SDK v5 structure
 		// Stores text, tool calls, and tool results in chronological order
 		parts: v.optional(messagePartsValidator),
+		// Message status following Vercel AI SDK v5 ChatStatus enum
+		status: chatStatusValidator,
 	}).index("by_thread", ["threadId"]),
 
 	feedback: defineTable({

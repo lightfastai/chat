@@ -164,13 +164,19 @@ export function MessageActions({
 					_id: crypto.randomUUID() as Id<"messages">,
 					_creationTime: now + 1,
 					threadId: tempThreadId,
-					body: "", // Empty body for streaming
+					parts: [], // Empty parts array for streaming
 					messageType: "assistant",
 					modelId: args.modelId,
 					timestamp: now + 1,
-					isStreaming: true,
-					isComplete: false,
+					status: "submitted",
 					thinkingStartedAt: now,
+					usage: {
+						inputTokens: 0,
+						outputTokens: 0,
+						totalTokens: 0,
+						reasoningTokens: 0,
+						cachedInputTokens: 0,
+					},
 				};
 
 				// Combine all messages: existing ones + new assistant placeholder

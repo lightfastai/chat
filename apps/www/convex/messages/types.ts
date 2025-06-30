@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import {
+	chatStatusValidator,
 	messagePartsValidator,
 	messageTypeValidator,
 	modelIdValidator,
@@ -12,24 +13,19 @@ export const messageReturnValidator = v.object({
 	_id: v.id("messages"),
 	_creationTime: v.number(),
 	threadId: v.id("threads"),
-	body: v.string(),
 	timestamp: v.number(),
 	messageType: messageTypeValidator,
 	model: v.optional(modelProviderValidator),
 	modelId: v.optional(modelIdValidator),
-	isStreaming: v.optional(v.boolean()),
-	isComplete: v.optional(v.boolean()),
 	thinkingStartedAt: v.optional(v.number()),
 	thinkingCompletedAt: v.optional(v.number()),
 	attachments: v.optional(v.array(v.id("files"))),
-	thinkingContent: v.optional(v.string()),
-	isThinking: v.optional(v.boolean()),
-	hasThinkingContent: v.optional(v.boolean()),
 	usedUserApiKey: v.optional(v.boolean()),
 	usage: tokenUsageValidator,
-	streamVersion: v.optional(v.number()),
 	// Message parts array following Vercel AI SDK v5 structure
 	parts: v.optional(messagePartsValidator),
+	// Message status following Vercel AI SDK v5 ChatStatus enum
+	status: chatStatusValidator,
 });
 
 // Type for message usage updates

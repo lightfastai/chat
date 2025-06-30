@@ -42,46 +42,68 @@ export const setupInitialData = mutation({
 		// Add welcome message
 		await ctx.db.insert("messages", {
 			threadId: threadId,
-			body: "Welcome to Lightfast Chat! 🚀\n\nThis is a preview deployment with fresh test data. You can:\n- Send messages and see real-time updates\n- Test AI integrations\n- Explore the chat interface\n\nEnjoy testing! 💬",
 			timestamp: now,
 			messageType: "assistant",
-			isComplete: true,
+			parts: [
+				{
+					type: "text",
+					text: "Welcome to Lightfast Chat! 🚀\n\nThis is a preview deployment with fresh test data. You can:\n- Send messages and see real-time updates\n- Test AI integrations\n- Explore the chat interface\n\nEnjoy testing! 💬",
+				},
+			],
+			status: "ready",
+			usage: {
+				inputTokens: 0,
+				outputTokens: 0,
+				totalTokens: 0,
+				reasoningTokens: 0,
+				cachedInputTokens: 0,
+			},
 		});
 
 		// Add a few sample messages to demonstrate the chat
 		const sampleMessages = [
 			{
-				threadId: threadId,
-				body: "Hello! This is a sample message in the preview environment.",
+				text: "Hello! This is a sample message in the preview environment.",
 				timestamp: now + 1000,
 				messageType: "user" as const,
-				isComplete: true,
 			},
 			{
-				threadId: threadId,
-				body: "Preview deployments are great for testing features before production!",
+				text: "Preview deployments are great for testing features before production!",
 				timestamp: now + 2000,
 				messageType: "user" as const,
-				isComplete: true,
 			},
 			{
-				threadId: threadId,
-				body: "Each preview deployment gets its own fresh Convex backend with authentication support.",
+				text: "Each preview deployment gets its own fresh Convex backend with authentication support.",
 				timestamp: now + 3000,
 				messageType: "assistant" as const,
-				isComplete: true,
 			},
 			{
-				threadId: threadId,
-				body: "Try creating a new chat or exploring the existing conversation!",
+				text: "Try creating a new chat or exploring the existing conversation!",
 				timestamp: now + 4000,
 				messageType: "assistant" as const,
-				isComplete: true,
 			},
 		];
 
 		for (const message of sampleMessages) {
-			await ctx.db.insert("messages", message);
+			await ctx.db.insert("messages", {
+				threadId: threadId,
+				timestamp: message.timestamp,
+				messageType: message.messageType,
+				parts: [
+					{
+						type: "text",
+						text: message.text,
+					},
+				],
+				status: "ready",
+				usage: {
+					inputTokens: 0,
+					outputTokens: 0,
+					totalTokens: 0,
+					reasoningTokens: 0,
+					cachedInputTokens: 0,
+				},
+			});
 		}
 
 		console.log("✅ Preview deployment setup complete!");

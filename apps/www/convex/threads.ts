@@ -517,23 +517,23 @@ export const branchFromMessage = mutation({
 		for (const message of messagesToCopy) {
 			await ctx.db.insert("messages", {
 				threadId: newThreadId,
-				body: message.body,
 				timestamp: message.timestamp,
 				messageType: message.messageType,
 				model: message.model,
 				modelId: message.modelId,
 				attachments: message.attachments,
-				isComplete: true,
-				// Don't copy streaming-related fields
 				usage: message.usage,
-				thinkingContent: message.thinkingContent,
-				hasThinkingContent: message.hasThinkingContent,
 				parts: message.parts,
+				status: "ready", // All copied messages are complete
 			});
 
 			// Track the last user message for AI response
-			if (message.messageType === "user") {
-				lastUserMessage = message.body;
+			if (message.messageType === "user" && message.parts) {
+				// Extract text from parts array
+				lastUserMessage = message.parts
+					.filter((part) => part.type === "text")
+					.map((part) => part.text)
+					.join("\n");
 			}
 
 			// Accumulate usage from assistant messages

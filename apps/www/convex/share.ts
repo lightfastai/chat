@@ -2,15 +2,12 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { nanoid } from "nanoid";
 import { mutation, query } from "./_generated/server";
+import { messageReturnValidator } from "./messages/types";
 import {
 	ipHashValidator,
-	messageTypeValidator,
-	modelIdValidator,
-	modelProviderValidator,
 	shareIdValidator,
 	shareSettingsValidator,
 	titleValidator,
-	tokenUsageValidator,
 	urlValidator,
 	userAgentValidator,
 	userNameValidator,
@@ -214,29 +211,7 @@ export const getSharedThread = query({
 				lastMessageAt: v.number(),
 				shareSettings: shareSettingsValidator,
 			}),
-			messages: v.array(
-				v.object({
-					_id: v.id("messages"),
-					_creationTime: v.number(),
-					threadId: v.id("threads"),
-					body: v.string(),
-					timestamp: v.number(),
-					messageType: messageTypeValidator,
-					model: v.optional(modelProviderValidator),
-					modelId: v.optional(modelIdValidator),
-					isStreaming: v.optional(v.boolean()),
-					isComplete: v.optional(v.boolean()),
-					thinkingStartedAt: v.optional(v.number()),
-					thinkingCompletedAt: v.optional(v.number()),
-					attachments: v.optional(v.array(v.id("files"))),
-					thinkingContent: v.optional(v.string()),
-					isThinking: v.optional(v.boolean()),
-					hasThinkingContent: v.optional(v.boolean()),
-					usedUserApiKey: v.optional(v.boolean()),
-					usage: tokenUsageValidator,
-					streamVersion: v.optional(v.number()),
-				}),
-			),
+			messages: v.array(messageReturnValidator),
 			owner: v.union(
 				v.null(),
 				v.object({
@@ -267,13 +242,12 @@ export const getSharedThread = query({
 		const filteredMessages = messages.map((msg) => {
 			if (
 				!thread.shareSettings?.showThinking &&
-				(msg.thinkingContent || msg.isThinking)
+				msg.parts?.some((part) => part.type === "reasoning")
 			) {
+				// Remove reasoning parts from message
 				return {
 					...msg,
-					thinkingContent: undefined,
-					isThinking: false,
-					hasThinkingContent: false,
+					parts: msg.parts?.filter((part) => part.type !== "reasoning"),
 				};
 			}
 			return msg;

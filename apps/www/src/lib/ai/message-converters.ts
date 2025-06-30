@@ -55,11 +55,9 @@ export function convexMessageToUIMessage(message: Doc<"messages">): UIMessage {
 			modelId: message.modelId,
 			timestamp: message.timestamp,
 			usage: message.usage,
-			isStreaming: message.isStreaming,
-			isComplete: message.isComplete,
-			thinkingContent: message.thinkingContent,
-			isThinking: message.isThinking,
-			hasThinkingContent: message.hasThinkingContent,
+			status: message.status,
+			thinkingStartedAt: message.thinkingStartedAt,
+			thinkingCompletedAt: message.thinkingCompletedAt,
 		},
 	};
 }
@@ -121,9 +119,10 @@ function convexPartsToUIParts(parts: MessagePart[]): any[] {
 				break;
 
 			case "file":
+				// Ensure URL is always provided for Vercel AI SDK compatibility
 				uiParts.push({
 					type: "file",
-					url: part.url || "",
+					url: part.url || "#", // Provide fallback URL if empty
 					mediaType: part.mediaType,
 					filename: part.filename,
 				});
@@ -176,12 +175,10 @@ export function uiMessageToConvexMessage(
 	threadId: Id<"threads">,
 	additionalFields?: Partial<Doc<"messages">>,
 ): Omit<Doc<"messages">, "_id" | "_creationTime"> {
-	const body = extractTextFromParts(uiMessage.parts);
 	const parts = uiPartsToConvexParts(uiMessage.parts);
 
 	return {
 		threadId,
-		body,
 		messageType:
 			uiMessage.role === "user"
 				? "user"
@@ -190,19 +187,42 @@ export function uiMessageToConvexMessage(
 					: "system",
 		timestamp: Date.now(),
 		parts,
+		status: "ready", // Default status for converted messages
+		usage: {
+			inputTokens: 0,
+			outputTokens: 0,
+			totalTokens: 0,
+			reasoningTokens: 0,
+			cachedInputTokens: 0,
+		},
 		...additionalFields,
 	};
 }
 
 /**
  * Extract all text content from UI message parts
+ * Note: This function is kept for backward compatibility but is no longer used in the main conversion flow
  */
 function extractTextFromParts(parts: any[]): string {
-	console.log("[extractTextFromParts] input parts:", parts);
+	console.log(
+		"[extractTextFromParts] input parts:",
+		JSON.stringify(parts, null, 2),
+	);
 	const textParts: string[] = [];
 
 	for (const part of parts) {
-		console.log("[extractTextFromParts] processing part:", part);
+		console.log(
+			"[extractTextFromParts] processing part:",
+			JSON.stringify(part),
+		);
+		console.log("[extractTextFromParts] part type check:", {
+			hasType: "type" in part,
+			type: part?.type,
+			hasText: "text" in part,
+			textType: typeof part?.text,
+			text: part?.text,
+		});
+
 		if (isTextPart(part)) {
 			textParts.push(part.text);
 			console.log("[extractTextFromParts] added text:", part.text);
@@ -211,7 +231,18 @@ function extractTextFromParts(parts: any[]): string {
 			textParts.push(part.text);
 			console.log("[extractTextFromParts] added reasoning:", part.text);
 		} else if (part && (part.type === "text" || part.type === "reasoning")) {
-			console.log("[extractTextFromParts] WARNING: part failed type guard:", part);
+			console.log(
+				"[extractTextFromParts] WARNING: part failed type guard:",
+				part,
+			);
+			// Try to extract text anyway if it exists
+			if (part.text) {
+				textParts.push(part.text);
+				console.log(
+					"[extractTextFromParts] WARNING: extracted text anyway:",
+					part.text,
+				);
+			}
 		}
 	}
 
@@ -327,7 +358,11 @@ function mapUIToolState(
 export function convexMessagesToUIMessages(
 	messages: Doc<"messages">[],
 ): UIMessage[] {
-	console.log("[convexMessagesToUIMessages] Converting", messages.length, "messages");
+	console.log(
+		"[convexMessagesToUIMessages] Converting",
+		messages.length,
+		"messages",
+	);
 	// Convex returns messages in descending order (newest first)
 	// but UI expects ascending order (oldest first)
 	const result = messages.map(convexMessageToUIMessage).reverse();
@@ -444,7 +479,6 @@ export function uiMessageToDisplayMessage(
 	uiMessage: UIMessage,
 ): Doc<"messages"> {
 	const metadata = (uiMessage.metadata as any) || {};
-	const body = extractTextFromParts(uiMessage.parts);
 	const parts = uiPartsToConvexParts(uiMessage.parts);
 
 	// Convert UIMessage ID to valid Convex ID format if needed
@@ -464,7 +498,6 @@ export function uiMessageToDisplayMessage(
 		_id: convexId,
 		_creationTime: metadata.timestamp || Date.now(),
 		threadId: metadata.threadId || ("temp" as Id<"threads">),
-		body,
 		messageType:
 			uiMessage.role === "user"
 				? "user"
@@ -475,12 +508,14 @@ export function uiMessageToDisplayMessage(
 		parts,
 		model: metadata.model,
 		modelId: metadata.modelId,
-		usage: metadata.usage,
-		isStreaming: metadata.isStreaming || false,
-		isComplete: metadata.isComplete !== false,
-		thinkingContent: metadata.thinkingContent,
-		isThinking: metadata.isThinking || false,
-		hasThinkingContent: metadata.hasThinkingContent || false,
+		usage: metadata.usage || {
+			inputTokens: 0,
+			outputTokens: 0,
+			totalTokens: 0,
+			reasoningTokens: 0,
+			cachedInputTokens: 0,
+		},
+		status: metadata.status || "ready",
 		thinkingStartedAt: metadata.thinkingStartedAt,
 		thinkingCompletedAt: metadata.thinkingCompletedAt,
 		usedUserApiKey: metadata.usedUserApiKey,

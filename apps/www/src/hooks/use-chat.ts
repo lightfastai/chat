@@ -2,6 +2,7 @@
 
 import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
+import { convexMessagesToUIMessages } from "@/lib/ai/message-converters";
 import { isClientId, nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
@@ -102,8 +103,17 @@ export function useChat(options: UseChatOptions = {}) {
 	const messageThreadId = currentThread?._id || null;
 
 	// Check if the thread ID is an optimistic one (not a real Convex ID)
+	// Convex IDs typically start with 'k' and have a specific length
 	const isOptimisticThreadId =
-		messageThreadId && !messageThreadId.startsWith("k");
+		messageThreadId &&
+		(!messageThreadId.startsWith("k") || messageThreadId.length < 25);
+
+	console.log("[useChat] Message loading debug:", {
+		messageThreadId,
+		isOptimisticThreadId,
+		hasPreloadedMessages: !!options.preloadedMessages,
+		currentThreadId: currentThread?._id,
+	});
 
 	// Use preloaded messages if available
 	const preloadedMessages = options.preloadedMessages
@@ -119,6 +129,13 @@ export function useChat(options: UseChatOptions = {}) {
 	);
 
 	const messages = preloadedMessages || convexMessages;
+
+	console.log("[useChat] Messages result:", {
+		hasPreloadedMessages: !!preloadedMessages,
+		hasConvexMessages: !!convexMessages,
+		messagesLength: messages?.length,
+		messages: messages,
+	});
 
 	// Get user settings
 	const userSettings = options.preloadedUserSettings
@@ -162,32 +179,28 @@ export function useChat(options: UseChatOptions = {}) {
 
 	// Convert preloaded Convex messages to format expected by Vercel AI SDK
 	const initialMessages = useMemo(() => {
+		console.log(
+			"[useChat] useMemo initialMessages running, messages:",
+			messages,
+		);
 		if (!messages || messages.length === 0) {
 			console.log("[useChat] No messages to convert");
 			return [];
 		}
-		
-		console.log("[useChat] Converting initial messages from database:", messages);
-		
-		// Minimal conversion - just map messageType to role and pass parts as-is
-		// Messages are in descending order from DB, need to reverse for UI
-		const converted = messages
-			.map(msg => ({
-				id: msg._id,
-				role: msg.messageType === "user" ? "user" as const : "assistant" as const,
-				parts: msg.parts || [],
-				// Pass any metadata the UI might need
-				metadata: {
-					timestamp: msg.timestamp,
-					modelId: msg.modelId,
-					usage: msg.usage,
-					isStreaming: msg.isStreaming,
-					isComplete: msg.isComplete,
-				}
-			}))
-			.reverse(); // DB returns newest first, UI expects oldest first
-		
+
+		console.log(
+			"[useChat] Converting initial messages from database:",
+			messages,
+		);
+
+		// Use the proper converter function which handles all type compatibility
+		const converted = convexMessagesToUIMessages(messages);
+
 		console.log("[useChat] Converted messages:", converted);
+		console.log(
+			"[useChat] First converted message parts:",
+			converted[0]?.parts,
+		);
 		return converted;
 	}, [messages]);
 
@@ -243,9 +256,17 @@ export function useChat(options: UseChatOptions = {}) {
 		return isNewChat ? nanoid() : null;
 	}, [isNewChat]);
 
-	// Determine the chat ID - use clientId for optimistic updates, thread ID when available, or pre-generated clientId for new chats
+	// Determine the chat ID - use thread ID when available, otherwise use clientId
+	// IMPORTANT: For existing threads, we should use the thread ID to ensure messages are loaded
 	const chatId =
-		currentClientId || currentThread?._id || preGeneratedClientId || "new";
+		currentThread?._id || currentClientId || preGeneratedClientId || "new";
+
+	console.log("[useChat] Before useVercelChat:", {
+		chatId,
+		hasTransport: !!transport,
+		initialMessagesLength: initialMessages.length,
+		initialMessages,
+	});
 
 	// Use Vercel AI SDK's useChat
 	const {
@@ -259,7 +280,7 @@ export function useChat(options: UseChatOptions = {}) {
 	} = useVercelChat({
 		id: chatId,
 		transport,
-		initialMessages,
+		// Don't use initialMessages - it's buggy in v5
 		generateId: () => nanoid(), // Use our nanoid for consistency
 		onFinish: async ({ message }) => {
 			// Track the assistant message ID
@@ -269,15 +290,92 @@ export function useChat(options: UseChatOptions = {}) {
 		},
 	});
 
+	// Workaround for Vercel AI SDK v5 initialMessages bug
+	// Use setMessages in useEffect to load initial messages
+	useEffect(() => {
+		if (
+			initialMessages &&
+			initialMessages.length > 0 &&
+			!isNewChat // Don't interfere with new chats
+		) {
+			// Case 1: No UI messages at all - set all initial messages
+			if (uiMessages.length === 0) {
+				console.log(
+					"[useChat] Setting initial messages via useEffect:",
+					initialMessages,
+				);
+				setUIMessages(initialMessages);
+			}
+			// Case 2: UI messages exist but some have empty parts - merge with database content
+			// Be very careful not to override streaming state
+			else if (status !== "streaming") {
+				const needsUpdate = uiMessages.some((uiMsg) => {
+					const dbMsg = initialMessages.find(
+						(initMsg) => initMsg.id === uiMsg.id,
+					);
+					// Only update if database has content and UI message is empty
+					return (
+						dbMsg &&
+						dbMsg.parts.length > 0 &&
+						uiMsg.parts.length === 0 &&
+						uiMsg.role === "assistant"
+					); // Only update assistant messages
+				});
+
+				if (needsUpdate) {
+					console.log("[useChat] Updating messages with database content");
+					// Instead of replacing all messages, merge the content more carefully
+					const updatedMessages = uiMessages.map((uiMsg) => {
+						const dbMsg = initialMessages.find(
+							(initMsg) => initMsg.id === uiMsg.id,
+						);
+						if (dbMsg && dbMsg.parts.length > 0 && uiMsg.parts.length === 0) {
+							return {
+								...uiMsg,
+								parts: dbMsg.parts,
+								metadata: {
+									...(uiMsg.metadata || {}),
+									...(dbMsg.metadata || {}),
+									status: "ready", // Mark as ready when loading from DB
+								},
+							};
+						}
+						return uiMsg;
+					});
+					setUIMessages(updatedMessages);
+				}
+			}
+		}
+	}, [initialMessages, setUIMessages, uiMessages, status, isNewChat]);
+
 	// Single source of truth: Just use Vercel AI SDK messages
 	// This is the simplest and most reliable approach
 	const enhancedMessages = uiMessages;
 
 	// Debug logging
 	console.log("[useChat] uiMessages from Vercel SDK:", uiMessages);
+	console.log("[useChat] streaming status:", status);
 	console.log("[useChat] chatId:", chatId);
 	console.log("[useChat] currentThread:", currentThread);
 	console.log("[useChat] isNewChat:", isNewChat);
+
+	// Debug streaming messages
+	if (uiMessages.length > 0) {
+		const lastMessage = uiMessages[uiMessages.length - 1];
+		const metadata = lastMessage.metadata as any;
+		console.log("[useChat] Last message state:", {
+			id: lastMessage.id,
+			role: lastMessage.role,
+			status: status,
+			partsLength: lastMessage.parts?.length,
+			hasText: lastMessage.parts?.some((p) => p.type === "text"),
+			isStreaming: metadata?.isStreaming,
+			isComplete: metadata?.isComplete,
+			textContent:
+				lastMessage.parts?.find((p) => p.type === "text")?.text?.slice(0, 50) +
+				"...",
+		});
+	}
 
 	// Custom send message handler - creates thread first if needed
 	const handleSendMessage = useCallback(

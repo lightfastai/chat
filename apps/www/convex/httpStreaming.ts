@@ -191,20 +191,25 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					.join("\n");
 
 				if (textParts.trim()) {
-					// Save only the latest user message
+					// Save only the latest user message with parts
 					const savedMessageId = await ctx.runMutation(
 						internal.messages.create,
 						{
 							threadId,
 							messageType: "user",
-							body: textParts,
-							isStreaming: false,
 						},
 					);
 					console.log(
 						"[HTTP Streaming] Saved latest user message with ID:",
 						savedMessageId,
 					);
+
+					// Add the parts from the user message
+					// Since user messages are text-only, we just need to add text parts
+					await ctx.runMutation(internal.messages.addTextPart, {
+						messageId: savedMessageId,
+						text: textParts,
+					});
 				}
 			}
 		}
@@ -222,9 +227,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				messageId = await ctx.runMutation(internal.messages.create, {
 					threadId,
 					messageType: "assistant",
-					body: "",
 					modelId: modelId as ModelId,
-					isStreaming: true,
 				});
 				console.log("[HTTP Streaming] Created new message:", messageId);
 			} catch (error) {
@@ -311,16 +314,11 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		let pendingReasoning = "";
 		let fullText = "";
 		let updateTimer: NodeJS.Timeout | null = null;
+		let hasTransitionedToStreaming = false;
 
 		// Helper to update text content
 		const updateTextContent = async () => {
 			if (!pendingText) return;
-
-			// Update the message body for display
-			await ctx.runMutation(internal.messages.updateStreamingMessage, {
-				messageId,
-				content: fullText,
-			});
 
 			// Add text part to parts array
 			await ctx.runMutation(internal.messages.addTextPart, {
@@ -343,6 +341,17 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			});
 
 			pendingReasoning = "";
+		};
+
+		// Helper to transition to streaming status on first chunk
+		const transitionToStreaming = async () => {
+			if (!hasTransitionedToStreaming) {
+				await ctx.runMutation(internal.messages.updateMessageStatus, {
+					messageId,
+					status: "streaming",
+				});
+				hasTransitionedToStreaming = true;
+			}
 		};
 
 		// Combined update helper
@@ -370,6 +379,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					switch (chunk.type) {
 						case "text":
 							if (chunk.text) {
+								await transitionToStreaming();
 								pendingText += chunk.text;
 								fullText += chunk.text;
 							}
@@ -377,6 +387,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 						case "reasoning":
 							if (chunk.text) {
+								await transitionToStreaming();
 								pendingReasoning += chunk.text;
 							}
 							break;

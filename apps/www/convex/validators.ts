@@ -28,6 +28,18 @@ export const modelProviderValidator = v.union(
 	...ModelProviderSchema.options.map((provider) => v.literal(provider)),
 );
 
+// Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
+// 'submitted' - Message sent to API, awaiting response stream start
+// 'streaming' - Response actively streaming from API
+// 'ready' - Full response received and processed, ready for new user message
+// 'error' - Error occurred during API request
+export const chatStatusValidator = v.union(
+	v.literal("submitted"),
+	v.literal("streaming"),
+	v.literal("ready"),
+	v.literal("error"),
+);
+
 // ===== ID Validators =====
 // Client ID validator (nanoid format, typically 21 chars)
 export const clientIdValidator = v.string();
@@ -218,7 +230,7 @@ export const reasoningPartValidator = v.object({
 // File part validator - for generated files
 export const filePartValidator = v.object({
 	type: v.literal("file"),
-	url: v.optional(v.string()),
+	url: v.string(), // Required for Vercel AI SDK compatibility
 	mediaType: v.string(),
 	data: v.optional(v.any()), // Base64 or binary data
 	filename: v.optional(v.string()),
@@ -478,34 +490,8 @@ export const httpStreamingRequestValidator = v.object({
 
 // ===== Response Validators =====
 
-/**
- * Client-side streaming message representation
- * This is what the UI components work with
- */
-export const streamingMessageValidator = v.object({
-	_id: v.id("messages"),
-	body: v.string(), // Accumulated text
-	parts: v.optional(messagePartsValidator), // Structured parts
-	isStreaming: v.boolean(),
-	isComplete: v.boolean(),
-	timestamp: v.number(),
-	messageType: messageTypeValidator,
-	modelId: v.optional(v.string()),
-
-	// Progress tracking
-	metrics: v.optional(
-		v.object({
-			tokenCount: v.optional(v.number()),
-			characterCount: v.optional(v.number()),
-			partCount: v.optional(v.number()),
-			duration: v.optional(v.number()), // milliseconds
-		}),
-	),
-
-	// Error handling
-	error: v.optional(v.string()),
-	errorCode: v.optional(v.string()),
-});
+// Note: streamingMessageValidator has been removed in favor of the status-based system
+// Client components now use the standard messageReturnValidator with status field
 
 // =========================================================================
 // SECTION 6: TYPE EXPORTS AND HELPERS

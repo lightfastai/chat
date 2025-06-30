@@ -165,13 +165,10 @@ export async function handleAIResponseError(
 
 	try {
 		if (messageId && options?.useStreamingUpdate) {
-			// For streaming messages, update content and mark as complete
-			await ctx.runMutation(internal.messages.updateStreamingMessage, {
+			// For streaming messages, mark as error
+			await ctx.runMutation(internal.messages.markError, {
 				messageId,
-				content: errorMessage,
-			});
-			await ctx.runMutation(internal.messages.markComplete, {
-				messageId,
+				error: errorMessage,
 			});
 		} else if (messageId) {
 			// Update existing message with error

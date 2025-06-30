@@ -32,7 +32,9 @@ import { requireResource, throwConflictError } from "./lib/errors.js";
 import { createSystemPrompt } from "./lib/message_builder.js";
 import {
 	branchInfoValidator,
+	chatStatusValidator,
 	clientIdValidator,
+	messagePartsValidator,
 	messageTypeValidator,
 	modelIdValidator,
 	modelProviderValidator,
@@ -254,7 +256,7 @@ export const getRecentContext = internalQuery({
 	},
 	returns: v.array(
 		v.object({
-			body: v.string(),
+			parts: v.optional(messagePartsValidator),
 			messageType: messageTypeValidator,
 			attachments: v.optional(v.array(v.id("files"))),
 		}),
@@ -268,9 +270,9 @@ export const getRecentContext = internalQuery({
 
 		return messages
 			.reverse() // Get chronological order
-			.filter((msg: Doc<"messages">) => msg.isComplete !== false) // Only include complete messages
+			.filter((msg: Doc<"messages">) => msg.status === "ready") // Only include ready messages
 			.map((msg: Doc<"messages">) => ({
-				body: msg.body,
+				parts: msg.parts,
 				messageType: msg.messageType,
 				attachments: msg.attachments,
 			}));
@@ -460,24 +462,24 @@ export const send = mutation({
 		// Insert user message after setting generation flag
 		await ctx.db.insert("messages", {
 			threadId: args.threadId,
-			body: args.body,
+			parts: [{ type: "text", text: args.body }],
 			timestamp: Date.now(),
 			messageType: "user",
 			model: provider,
 			modelId: modelId,
 			attachments: args.attachments,
+			status: "ready",
 		});
 
 		// Create assistant message placeholder for HTTP streaming
 		const assistantMessageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
-			body: "",
+			parts: [],
 			timestamp: Date.now() + 1,
 			messageType: "assistant",
 			model: provider,
 			modelId: modelId,
-			isStreaming: true,
-			isComplete: false,
+			status: "submitted",
 		});
 
 		// HTTP streaming will handle AI response generation
@@ -566,24 +568,24 @@ export const createThreadAndSend = mutation({
 		// Insert user message
 		const userMessageId = await ctx.db.insert("messages", {
 			threadId,
-			body: args.body,
+			parts: [{ type: "text", text: args.body }],
 			timestamp: now,
 			messageType: "user",
 			model: provider,
 			modelId: modelId,
 			attachments: args.attachments,
+			status: "ready",
 		});
 
 		// Create assistant message placeholder for HTTP streaming
 		const assistantMessageId = await ctx.db.insert("messages", {
 			threadId,
-			body: "",
+			parts: [],
 			timestamp: now + 1,
 			messageType: "assistant",
 			model: provider,
 			modelId: modelId,
-			isStreaming: true,
-			isComplete: false,
+			status: "submitted",
 		});
 
 		// HTTP streaming will handle AI response generation
@@ -605,24 +607,6 @@ export const createThreadAndSend = mutation({
 });
 
 // Internal mutation to update streaming message content
-export const updateStreamingMessage = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		content: v.string(),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		// For backward compatibility, we'll update the body directly
-		// but in the new streaming logic, use appendStreamChunk instead
-		await ctx.db.patch(args.messageId, {
-			body: args.content,
-			streamVersion:
-				((await ctx.db.get(args.messageId))?.streamVersion || 0) + 1,
-		});
-
-		return null;
-	},
-});
 
 // Internal mutation to update message API key status
 export const updateMessageApiKeyStatus = internalMutation({
@@ -677,9 +661,8 @@ export const updateMessageError = internalMutation({
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.messageId, {
-			body: args.errorMessage,
-			isStreaming: false,
-			isComplete: true,
+			parts: [{ type: "text", text: args.errorMessage }],
+			status: "error",
 			thinkingCompletedAt: Date.now(),
 		});
 		return null;
@@ -701,16 +684,14 @@ export const createErrorMessage = internalMutation({
 		const now = Date.now();
 		await ctx.db.insert("messages", {
 			threadId: args.threadId,
-			body: args.errorMessage,
+			parts: [{ type: "text", text: args.errorMessage }],
 			timestamp: now,
 			messageType: "assistant",
 			model: args.provider,
 			modelId: args.modelId,
-			isStreaming: false,
-			isComplete: true,
+			status: "error",
 			thinkingStartedAt: now,
 			thinkingCompletedAt: now,
-			parts: [], // Initialize empty parts array for tool calls
 			usage: undefined, // Initialize usage tracking
 		});
 
@@ -718,37 +699,9 @@ export const createErrorMessage = internalMutation({
 	},
 });
 
-// Internal mutation to update thinking state
-export const updateThinkingState = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		isThinking: v.boolean(),
-		hasThinkingContent: v.boolean(),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		await ctx.db.patch(args.messageId, {
-			isThinking: args.isThinking,
-			hasThinkingContent: args.hasThinkingContent,
-		});
-		return null;
-	},
-});
+// Note: updateThinkingState function removed - thinking state is now tracked in parts array
 
-// Internal mutation to update thinking content
-export const updateThinkingContent = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		thinkingContent: v.string(),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		await ctx.db.patch(args.messageId, {
-			thinkingContent: args.thinkingContent,
-		});
-		return null;
-	},
-});
+// Note: updateThinkingContent function removed - thinking content is now stored in parts array as reasoning parts
 
 // Internal mutation to clear the generation flag
 export const clearGenerationFlag = internalMutation({
@@ -777,6 +730,29 @@ export const addTextPart = internalMutation({
 		if (!message) return null;
 
 		const currentParts = message.parts || [];
+		
+		// Check if the last part is a text part - if so, merge with it
+		if (currentParts.length > 0) {
+			const lastPart = currentParts[currentParts.length - 1];
+			if (lastPart.type === "text") {
+				// Merge with the last text part
+				const updatedParts = [
+					...currentParts.slice(0, -1), // All parts except the last one
+					{
+						type: "text" as const,
+						text: lastPart.text + args.text, // Concatenate text
+					},
+				];
+
+				await ctx.db.patch(args.messageId, {
+					parts: updatedParts,
+				});
+
+				return null;
+			}
+		}
+
+		// If no existing text part to merge with, add as new part
 		const updatedParts = [
 			...currentParts,
 			{
@@ -806,6 +782,30 @@ export const addReasoningPart = internalMutation({
 		if (!message) return null;
 
 		const currentParts = message.parts || [];
+		
+		// Check if the last part is a reasoning part - if so, merge with it
+		if (currentParts.length > 0) {
+			const lastPart = currentParts[currentParts.length - 1];
+			if (lastPart.type === "reasoning") {
+				// Merge with the last reasoning part
+				const updatedParts = [
+					...currentParts.slice(0, -1), // All parts except the last one
+					{
+						type: "reasoning" as const,
+						text: lastPart.text + args.text, // Concatenate text
+						providerMetadata: args.providerMetadata || lastPart.providerMetadata,
+					},
+				];
+
+				await ctx.db.patch(args.messageId, {
+					parts: updatedParts,
+				});
+
+				return null;
+			}
+		}
+
+		// If no existing reasoning part to merge with, add as new part
 		const updatedParts = [
 			...currentParts,
 			{
@@ -827,7 +827,7 @@ export const addReasoningPart = internalMutation({
 export const addFilePart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
-		url: v.optional(v.string()),
+		url: v.string(), // Required for type compatibility
 		mediaType: v.string(),
 		data: v.optional(v.any()),
 		filename: v.optional(v.string()),
@@ -842,7 +842,7 @@ export const addFilePart = internalMutation({
 			...currentParts,
 			{
 				type: "file" as const,
-				url: args.url,
+				url: args.url || "#", // Ensure URL is never undefined
 				mediaType: args.mediaType,
 				data: args.data,
 				filename: args.filename,
@@ -1124,7 +1124,7 @@ async function buildConversationMessages(
 ): Promise<CoreMessage[]> {
 	// Get recent conversation context
 	const recentMessages: Array<{
-		body: string;
+		parts?: any[];
 		messageType: "user" | "assistant" | "system";
 		attachments?: Id<"files">[];
 	}> = await ctx.runQuery(internal.messages.getRecentContext, { threadId });
@@ -1150,11 +1150,18 @@ async function buildConversationMessages(
 		const attachmentsToUse =
 			isLastUserMessage && attachments ? attachments : msg.attachments;
 
+		// Extract text from parts
+		const text =
+			msg.parts
+				?.filter((part: any) => part.type === "text")
+				.map((part: any) => part.text)
+				.join("") || "";
+
 		// Build message content with attachments using mutation
 		const content = await ctx.runMutation(
 			internal.messages.buildMessageContent,
 			{
-				text: msg.body,
+				text,
 				attachmentIds: attachmentsToUse,
 				provider,
 				modelId,
@@ -1237,7 +1244,7 @@ export const generateAIResponse = internalAction({
 			console.log(`Web search enabled: ${args.webSearchEnabled}`);
 
 			// Stream AI response using shared utility
-			const { fullText, usage: finalUsage } = await streamAIResponse(
+			const { usage: finalUsage } = await streamAIResponse(
 				ctx,
 				args.modelId as ModelId,
 				messages,
@@ -1256,11 +1263,7 @@ export const generateAIResponse = internalAction({
 				);
 			}
 
-			// Complete the streaming message
-			await ctx.runMutation(internal.messages.updateStreamingMessage, {
-				messageId,
-				content: fullText,
-			});
+			// Mark the message as complete
 			await ctx.runMutation(internal.messages.markComplete, {
 				messageId,
 			});
@@ -1286,7 +1289,7 @@ export const create = internalMutation({
 		threadId: v.id("threads"),
 		role: v.optional(messageTypeValidator), // Optional for backward compatibility
 		messageType: v.optional(messageTypeValidator), // New field name
-		body: v.string(),
+		body: v.optional(v.string()), // Optional - use parts array instead
 		modelId: v.optional(modelIdValidator),
 		isStreaming: v.optional(v.boolean()),
 	},
@@ -1295,45 +1298,39 @@ export const create = internalMutation({
 		const now = Date.now();
 		const messageType = args.messageType || args.role || "assistant";
 
+		// Determine status based on message type and streaming state
+		let status: "submitted" | "streaming" | "ready" | "error";
+		if (messageType === "user") {
+			// User messages are complete when saved
+			status = "ready";
+		} else if (args.isStreaming) {
+			// Assistant message that's actively streaming
+			status = "streaming";
+		} else {
+			// Assistant message waiting to start streaming
+			status = "submitted";
+		}
+
 		const messageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
-			body: args.body,
+			parts: args.body ? [{ type: "text", text: args.body }] : [],
 			timestamp: now,
 			messageType,
 			modelId: args.modelId,
 			model: args.modelId
 				? getProviderFromModelId(args.modelId as ModelId)
 				: undefined,
-			isStreaming: args.isStreaming || false,
-			isComplete: !args.isStreaming,
-			usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+			status,
+			usage: {
+				inputTokens: 0,
+				outputTokens: 0,
+				totalTokens: 0,
+				reasoningTokens: 0,
+				cachedInputTokens: 0,
+			},
 		});
 
 		return messageId;
-	},
-});
-
-export const appendStreamingText = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		text: v.string(),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) {
-			throw new Error("Message not found");
-		}
-
-		// Append text to existing body
-		const updatedBody = message.body + args.text;
-
-		await ctx.db.patch(args.messageId, {
-			body: updatedBody,
-			streamVersion: (message.streamVersion || 0) + 1,
-		});
-
-		return null;
 	},
 });
 
@@ -1345,8 +1342,7 @@ export const markComplete = internalMutation({
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const updateData: any = {
-			isStreaming: false,
-			isComplete: true,
+			status: "ready",
 		};
 
 		if (args.usage) {
@@ -1367,9 +1363,24 @@ export const markError = internalMutation({
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.messageId, {
-			isStreaming: false,
-			isComplete: true,
-			body: args.error,
+			status: "error",
+			parts: [{ type: "text", text: args.error }],
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to update message status following Vercel AI SDK v5 patterns
+export const updateMessageStatus = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		status: chatStatusValidator,
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.messageId, {
+			status: args.status,
 		});
 
 		return null;
