@@ -62,8 +62,11 @@ export function ChatInterface({
 	
 	const messages = preloadedMessages ? (() => {
 		try {
-			return usePreloadedQuery(preloadedMessages);
-		} catch {
+			const result = usePreloadedQuery(preloadedMessages);
+			console.log("Preloaded messages extracted:", result);
+			return result;
+		} catch (error) {
+			console.error("Failed to extract preloaded messages:", error);
 			return null;
 		}
 	})() : null;
@@ -152,13 +155,20 @@ export function ChatInterface({
 
 	// Convert preloaded messages to Vercel AI SDK format for initialization
 	const initialMessages = useMemo(() => {
-		if (!messages) return undefined;
-		if (!Array.isArray(messages) || messages.length === 0) return undefined;
+		if (!messages) {
+			console.log("No preloaded messages available");
+			return undefined;
+		}
+		if (!Array.isArray(messages) || messages.length === 0) {
+			console.log("Preloaded messages is empty array or not array");
+			return undefined;
+		}
 
 		console.log("Converting preloaded messages:", messages.length, "messages");
+		console.log("First message sample:", messages[0]);
 
 		// Convert Convex messages to Vercel AI UIMessage format
-		return messages.map((msg) => ({
+		const converted = messages.map((msg) => ({
 			id: msg._id,
 			role: msg.messageType === "user" ? "user" : "assistant",
 			parts: msg.parts || [],
@@ -171,6 +181,9 @@ export function ChatInterface({
 				usage: msg.usage,
 			},
 		}));
+		
+		console.log("Converted messages:", converted);
+		return converted;
 	}, [messages]);
 
 	console.log("useChat params:", {
@@ -193,6 +206,17 @@ export function ChatInterface({
 			console.error("Chat error:", error);
 		},
 	});
+
+	// Debug log to trace message flow
+	useEffect(() => {
+		console.log("useChat hook state:", {
+			uiMessagesCount: uiMessages.length,
+			uiMessages: uiMessages,
+			status: status,
+			initialMessagesProvided: !!initialMessages,
+			initialMessagesCount: initialMessages?.length,
+		});
+	}, [uiMessages, status, initialMessages]);
 
 	// Track if we're waiting for AI response
 	const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
