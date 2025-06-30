@@ -11,12 +11,15 @@ import { MessageLayout } from "./message-layout";
 
 // Helper to group consecutive text parts
 function groupConsecutiveTextParts(parts: any[]): any[] {
+	console.log('[groupConsecutiveTextParts] Input parts:', parts);
 	const groupedParts: any[] = [];
 	let currentTextGroup = "";
 
 	for (const part of parts) {
 		if (part.type === "text") {
-			currentTextGroup += part.text;
+			// Add defensive check for text property
+			const partText = (part as any).text || '';
+			currentTextGroup += partText;
 		} else {
 			// Flush any accumulated text before adding non-text part
 			if (currentTextGroup) {
@@ -40,6 +43,7 @@ function groupConsecutiveTextParts(parts: any[]): any[] {
 		});
 	}
 
+	console.log('[groupConsecutiveTextParts] Output parts:', groupedParts);
 	return groupedParts;
 }
 
@@ -155,13 +159,16 @@ export function MessageItem({
 										: `text-${index}`;
 
 									if (part.type === "text") {
+										// Add defensive check for text property
+										const textContent = (part as any).text || '';
+										console.log('[MessageItem] Rendering text part:', { partKey, textContent });
 										return (
 											<div key={partKey}>
 												{isAssistant ? (
-													<Markdown className="text-sm">{part.text}</Markdown>
+													<Markdown className="text-sm">{textContent}</Markdown>
 												) : (
 													<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-														{part.text}
+														{textContent}
 													</div>
 												)}
 												{isStreaming &&

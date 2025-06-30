@@ -2,6 +2,27 @@ import type { UIMessage } from "ai";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import type { MessagePart } from "../../../convex/validators";
 
+// Type guards for UIMessage parts
+interface UITextPart {
+	type: "text";
+	text: string;
+}
+
+interface UIReasoningPart {
+	type: "reasoning";
+	text: string;
+	providerMetadata?: any;
+}
+
+// Type guard functions
+function isTextPart(part: any): part is UITextPart {
+	return part && part.type === "text" && typeof part.text === "string";
+}
+
+function isReasoningPart(part: any): part is UIReasoningPart {
+	return part && part.type === "reasoning" && typeof part.text === "string";
+}
+
 /**
  * Convert a Convex message document to a Vercel AI SDK UIMessage
  */
@@ -176,13 +197,15 @@ function extractTextFromParts(parts: any[]): string {
 
 	for (const part of parts) {
 		console.log("[extractTextFromParts] processing part:", part);
-		if (part.type === "text") {
+		if (isTextPart(part)) {
 			textParts.push(part.text);
 			console.log("[extractTextFromParts] added text:", part.text);
-		} else if (part.type === "reasoning") {
+		} else if (isReasoningPart(part)) {
 			// Optionally include reasoning in body
 			textParts.push(part.text);
 			console.log("[extractTextFromParts] added reasoning:", part.text);
+		} else if (part && (part.type === "text" || part.type === "reasoning")) {
+			console.log("[extractTextFromParts] WARNING: part failed type guard:", part);
 		}
 	}
 
@@ -356,9 +379,9 @@ export function mergeMessagesWithStreamingState(
  * Extract text content from a UIMessage for display
  */
 export function extractUIMessageText(message: UIMessage): string {
-	const text = extractTextFromParts(message.parts);
 	console.log("[extractUIMessageText] message:", message);
 	console.log("[extractUIMessageText] parts:", message.parts);
+	const text = extractTextFromParts(message.parts || []);
 	console.log("[extractUIMessageText] extracted text:", text);
 	return text;
 }
