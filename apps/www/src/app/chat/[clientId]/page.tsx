@@ -64,7 +64,7 @@ async function ChatThreadPageWithPreloadedData({
 
 		// If no authentication token, render regular chat interface
 		if (!token) {
-			return <ChatInterface />;
+			return <ChatInterface key={`existing-chat-${clientId}`} />;
 		}
 
 		// Preload user settings
@@ -94,6 +94,7 @@ async function ChatThreadPageWithPreloadedData({
 				preloadedMessages={preloadedMessages}
 			>
 				<ChatInterface
+					key={`existing-chat-${clientId}`}
 					preloadedThreadByClientId={preloadedThreadByClientId}
 					preloadedMessages={preloadedMessages}
 					preloadedUserSettings={preloadedUserSettings}
@@ -105,6 +106,6 @@ async function ChatThreadPageWithPreloadedData({
 		console.warn("Server-side chat data preload failed:", error);
 
 		// Fallback to regular chat interface
-		return <ChatInterface />;
+		return <ChatInterface key={`existing-chat-${clientId}`} />;
 	}
 }

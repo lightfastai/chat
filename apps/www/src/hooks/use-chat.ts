@@ -10,14 +10,17 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import type { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+
+type ChatState = "new" | "existing";
 
 interface UseChatProps {
 	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
+	fallbackChatId?: string;
 }
 
 /**
@@ -28,6 +31,7 @@ export function useChat({
 	preloadedThreadByClientId,
 	preloadedMessages,
 	preloadedUserSettings,
+	fallbackChatId,
 }: UseChatProps = {}) {
 	const pathname = usePathname();
 	const authToken = useAuthToken();
@@ -49,18 +53,23 @@ export function useChat({
 		messages = usePreloadedQuery(preloadedMessages);
 	}
 
-	// Extract client ID from pathname
-	const clientId = useMemo(() => {
+	// Determine chat state and extract client ID from pathname
+	const { chatState, clientId } = useMemo(() => {
+		console.log("[use-chat] pathname changed:", pathname);
+		
 		if (pathname === "/chat") {
-			return nanoid();
+			console.log("[use-chat] detected new chat state");
+			return { chatState: "new" as ChatState, clientId: null };
 		}
 
 		const match = pathname.match(/^\/chat\/(.+)$/);
 		if (!match) {
-			return null;
+			console.log("[use-chat] no match for chat path, defaulting to new");
+			return { chatState: "new" as ChatState, clientId: null };
 		}
 
-		return match[1];
+		console.log("[use-chat] detected existing chat state with clientId:", match[1]);
+		return { chatState: "existing" as ChatState, clientId: match[1] };
 	}, [pathname]);
 
 	// Get the resolved thread ID from the clientId (if thread exists)
@@ -113,11 +122,15 @@ export function useChat({
 		});
 	}, [authToken, resolvedThreadId, clientId, defaultModel, streamUrl]);
 
-	// Convert preloaded messages to Vercel AI SDK format
+	// Convert preloaded messages to Vercel AI SDK format - only for existing chats
 	const initialMessages = useMemo(() => {
-		if (!messages || messages.length === 0) {
+		// Only process messages for existing chats to prevent leakage to new chats
+		if (chatState !== "existing" || !messages || messages.length === 0) {
+			console.log("[use-chat] initialMessages: returning undefined for", { chatState, hasMessages: !!messages });
 			return undefined;
 		}
+
+		console.log("[use-chat] initialMessages: converting", messages.length, "messages for existing chat");
 
 		// Convert Convex messages to Vercel AI UIMessage format
 		const converted = messages.map((msg) => ({
@@ -145,10 +158,24 @@ export function useChat({
 		})) as UIMessage[];
 
 		return converted;
-	}, [messages]);
+	}, [chatState, messages]);
 
-	// Use stable ID for Vercel AI SDK to prevent state reset
-	const chatId = clientId || "new-chat";
+	// Generate chatId based on chat state
+	const chatId = useMemo(() => {
+		const id = chatState === "existing" 
+			? clientId! // We know clientId exists for existing chats
+			: fallbackChatId || nanoid(); // Use server ID for new chats, nanoid as fallback
+			
+		console.log("[use-chat] chatId generation:", {
+			chatState,
+			clientId,
+			fallbackChatId,
+			finalChatId: id,
+			pathname
+		});
+		
+		return id;
+	}, [chatState, clientId, fallbackChatId, pathname]);
 
 	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
@@ -159,7 +186,7 @@ export function useChat({
 		id: chatId,
 		transport,
 		generateId: () => nanoid(),
-		messages: initialMessages,
+		messages: initialMessages, // initialMessages already handles the chatState logic
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
@@ -167,18 +194,22 @@ export function useChat({
 
 	// Debug logging
 	console.log(
-		"[use-chat] chatId:",
-		chatId,
-		"uiMessages:",
-		uiMessages,
-		"status:",
-		status,
+		"[use-chat] Vercel AI state:",
+		{
+			chatState,
+			chatId,
+			uiMessagesCount: uiMessages.length,
+			status,
+			pathname,
+			clientId
+		}
 	);
+	
 	// Computed values
 	const isEmpty = uiMessages.length === 0;
 	const totalMessages = uiMessages.length;
 	const canSendMessage = status !== "streaming" && !!authToken;
-	const isNewChat = pathname === "/chat" && isEmpty;
+	const isNewChat = chatState === "new";
 
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
@@ -188,9 +219,13 @@ export function useChat({
 			attachments?: Id<"files">[],
 			webSearchEnabledOverride?: boolean,
 		) => {
-			// For new chats at /chat, update URL using replaceState for seamless navigation
-			if (pathname === "/chat" && clientId) {
-				window.history.replaceState({}, "", `/chat/${clientId}`);
+			// Handle URL update for new chats
+			let chatClientId = clientId;
+			if (chatState === "new") {
+				// Use the same chatId that was passed to useVercelChat for consistency
+				chatClientId = chatId;
+				// Update URL using replaceState for seamless navigation
+				window.history.replaceState({}, "", `/chat/${chatClientId}`);
 			}
 
 			try {
@@ -202,7 +237,7 @@ export function useChat({
 					{
 						body: {
 							threadId: resolvedThreadId,
-							clientId,
+							clientId: chatClientId,
 							modelId: selectedModelId,
 							webSearchEnabled: webSearchEnabledOverride || false,
 							attachments,
@@ -213,7 +248,7 @@ export function useChat({
 				throw error;
 			}
 		},
-		[vercelSendMessage, resolvedThreadId, clientId, pathname],
+		[vercelSendMessage, resolvedThreadId, clientId, chatState, chatId],
 	);
 
 	return {
@@ -229,6 +264,8 @@ export function useChat({
 
 		// Identifiers
 		clientId,
+		chatState,
+		chatId,
 
 		// Actions
 		sendMessage,
