@@ -145,10 +145,8 @@ export function ChatInterface({
 		}
 	}, [isNewChat, totalMessages]);
 
-	// Check if AI is currently generating (using new simplified state)
-	const isAIGenerating = useMemo(() => {
-		return currentThread?.isGenerating || isStreaming;
-	}, [currentThread?.isGenerating, isStreaming]);
+	// Check if AI is currently generating (using Vercel streaming state)
+	const isAIGenerating = isStreaming;
 
 	// Show centered layout only for truly new chats that have never had messages
 	if (isNewChat && !hasEverSentMessage.current) {
