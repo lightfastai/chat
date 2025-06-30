@@ -147,13 +147,16 @@ export function useChat({
 		return converted;
 	}, [messages]);
 
+	// Use stable ID for Vercel AI SDK to prevent state reset
+	const chatId = clientId || "new-chat";
+	
 	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
 	} = useVercelChat({
-		id: clientId || "new-chat",
+		id: chatId,
 		transport,
 		generateId: () => nanoid(),
 		messages: initialMessages,
