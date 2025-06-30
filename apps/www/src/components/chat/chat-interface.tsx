@@ -74,7 +74,7 @@ export function ChatInterface({
 	// Use Vercel AI SDK as primary UI message source
 	const {
 		messages: uiMessages,
-		isLoading: isStreaming,
+		status,
 		input,
 		setInput,
 		append,
@@ -98,6 +98,7 @@ export function ChatInterface({
 	// Computed values for compatibility
 	const isEmpty = uiMessages.length === 0;
 	const totalMessages = uiMessages.length;
+	const isStreaming = status === "in_progress";
 	const canSendMessage = !isStreaming && !!authToken;
 
 	// Determine if this is a new chat
