@@ -121,24 +121,32 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			console.log("[HTTP Streaming] Looking up thread by clientId:", clientId);
 			thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
 			if (!thread) {
-				console.error(
-					"[HTTP Streaming] ERROR: Thread not found by clientId:",
+				// Create new thread for this clientId (without messages - we'll create them below)
+				console.log("[HTTP Streaming] Creating new thread for clientId:", clientId);
+				
+				// Get authenticated user ID first
+				const authHeader = request.headers.get("authorization");
+				if (!authHeader?.startsWith("Bearer ")) {
+					throw new Error("No valid authentication provided");
+				}
+				
+				// Use the existing auth handling from the endpoint
+				const now = Date.now();
+				threadId = await ctx.runMutation(api.threads.create, {
+					title: "", // Will be auto-generated from first message
 					clientId,
-				);
-				return new Response("Thread not found by client ID", {
-					status: 404,
-					headers: {
-						"Access-Control-Allow-Origin": "*",
-						"Access-Control-Allow-Methods": "POST",
-						"Access-Control-Allow-Headers": "Content-Type, Authorization",
-					},
 				});
+				
+				// Fetch the newly created thread
+				thread = await ctx.runQuery(api.threads.get, { threadId });
+				console.log("[HTTP Streaming] Created new thread:", threadId);
+			} else {
+				threadId = thread._id;
+				console.log(
+					"[HTTP Streaming] Found existing thread by clientId. ThreadId:",
+					threadId,
+				);
 			}
-			threadId = thread._id;
-			console.log(
-				"[HTTP Streaming] Found thread by clientId. ThreadId:",
-				threadId,
-			);
 		} else if (requestThreadId) {
 			threadId = requestThreadId;
 			console.log("[HTTP Streaming] Looking up thread by threadId:", threadId);

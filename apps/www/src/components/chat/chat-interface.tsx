@@ -1,6 +1,8 @@
 "use client";
 
-import { useSimplifiedChat } from "@/hooks/use-simplified-chat";
+import { env } from "@/env";
+import { useChat } from "@ai-sdk/react";
+import { useAuthToken } from "@convex-dev/auth/react";
 import type { ModelId } from "@/lib/ai";
 import { isClientId, nanoid } from "@/lib/nanoid";
 import type { Preloaded } from "convex/react";
@@ -36,19 +38,16 @@ export function ChatInterface({
 		: null;
 	const threadId = threadById?._id || threadByClientId?._id || null;
 	
-	// Generate a stable clientId for new chats
-	const [generatedClientId] = useState(() => nanoid());
-	
-	const clientId = (() => {
+	const clientId = useMemo(() => {
 		if (pathname === "/chat") {
-			// For new chats, use the generated clientId
-			return generatedClientId;
+			// For new chats, generate a stable clientId
+			return nanoid();
 		}
 		const match = pathname.match(/^\/chat\/(.+)$/);
 		if (!match) return null;
 		const id = match[1];
 		return isClientId(id) ? id : null;
-	})();
+	}, [pathname]);
 
 	// Extract user settings safely
 	const userSettings = preloadedUserSettings
@@ -56,65 +55,55 @@ export function ChatInterface({
 		: null;
 	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
 
-	// Use simplified chat hook - much cleaner than the old useChat
+	const authToken = useAuthToken();
+
+	// Construct Convex HTTP endpoint URL
+	const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
+	const streamUrl = useMemo(() => {
+		let convexSiteUrl: string;
+		if (convexUrl.includes(".cloud")) {
+			convexSiteUrl = convexUrl.replace(/\.cloud.*$/, ".site");
+		} else {
+			const url = new URL(convexUrl);
+			url.port = String(Number(url.port) + 1);
+			convexSiteUrl = url.toString().replace(/\/$/, "");
+		}
+		return `${convexSiteUrl}/stream-chat`;
+	}, [convexUrl]);
+
+	// Use Vercel AI SDK as primary UI message source
 	const {
-		messages,
-		thread: currentThread,
-		sendMessage: simplifiedSendMessage,
-		canSendMessage,
-		isStreaming,
-		isEmpty,
-		totalMessages,
-	} = useSimplifiedChat({
-		threadId,
-		clientId,
-		modelId: defaultModel,
-		webSearchEnabled: false,
+		messages: uiMessages,
+		isLoading: isStreaming,
+		input,
+		setInput,
+		append,
+		stop,
+		error,
+	} = useChat({
+		id: threadId || clientId || "new-chat",
+		api: streamUrl,
+		headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+		body: {
+			threadId,
+			clientId,
+			modelId: defaultModel,
+			webSearchEnabled: false,
+		},
+		onError: (error) => {
+			console.error("Chat error:", error);
+		},
 	});
 
-	// Convert Convex messages to UIMessage format for compatibility with existing components
-	const uiMessages = useMemo(() => {
-		return messages.map((messageWithStatus) => {
-			const { message } = messageWithStatus;
+	// Computed values for compatibility
+	const isEmpty = uiMessages.length === 0;
+	const totalMessages = uiMessages.length;
+	const canSendMessage = !isStreaming && !!authToken;
 
-			// Convert parts to be compatible with UIMessage format
-			const compatibleParts = (message.parts || []).map((part: any) => {
-				if (part.type === "source") {
-					// Convert source parts to source-document format for UIMessage compatibility
-					return {
-						...part,
-						type: "source-document",
-					};
-				}
-				return part;
-			});
+	// Determine if this is a new chat
+	const isNewChat = isEmpty;
 
-			return {
-				id: message._id,
-				role: message.messageType as "user" | "assistant" | "system",
-				parts: compatibleParts,
-				createdAt: new Date(message.timestamp),
-				metadata: {
-					model: message.model,
-					modelId: message.modelId,
-					timestamp: message.timestamp,
-					usage: message.usage,
-					status: message.status,
-				},
-			} as any; // Type assertion for compatibility
-		});
-	}, [messages]);
-
-	// Determine if this is a new chat (same logic as before)
-	const isNewChat = !threadId && !currentThread && isEmpty;
-
-	// Debug: Log messages in ChatInterface
-	console.log("[ChatInterface] uiMessages:", uiMessages);
-	console.log("[ChatInterface] uiMessages length:", uiMessages.length);
-	console.log("[ChatInterface] currentThread:", currentThread);
-	console.log("[ChatInterface] isNewChat:", isNewChat);
-
-	// Adapt sendMessage to match the expected onSendMessage signature
+	// Adapt sendMessage to use Vercel AI SDK append function
 	const handleSendMessage = useCallback(
 		async (
 			message: string,
@@ -122,16 +111,26 @@ export function ChatInterface({
 			attachments?: Id<"files">[],
 			_webSearchEnabledOverride?: boolean,
 		) => {
-			await simplifiedSendMessage({
-				text: message,
-				modelId: selectedModelId as ModelId,
-				attachments,
-			});
+			await append(
+				{
+					role: "user",
+					content: message,
+				},
+				{
+					body: {
+						threadId,
+						clientId,
+						modelId: selectedModelId,
+						webSearchEnabled: false,
+						attachments,
+					},
+				},
+			);
 		},
-		[simplifiedSendMessage],
+		[append, threadId, clientId],
 	);
 
-	// Determine if chat is disabled (using new simplified state)
+	// Determine if chat is disabled
 	const isDisabled = !canSendMessage || isStreaming;
 
 	// Track if user has ever sent a message to prevent flicker
