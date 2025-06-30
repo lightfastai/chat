@@ -1,67 +1,61 @@
 "use client";
 
 import { getModelDisplayName } from "@/lib/ai";
-import { uiMessageToDisplayMessage } from "@/lib/ai/message-converters";
 import type { UIMessage } from "ai";
 import { useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
-import type { Doc } from "../../../convex/_generated/dataModel";
 import { AttachmentPreview } from "./attachment-preview";
 import { MessageActions } from "./message-actions";
 import { MessageItem } from "./shared";
 
-type Message = Doc<"messages">;
-
 interface MessageDisplayProps {
-	message: Message | UIMessage;
+	message: UIMessage;
 	userName: string;
 }
 
 // Component to display individual messages with streaming support
 export function MessageDisplay({ message }: MessageDisplayProps) {
-	// Convert UIMessage to Convex-like format if needed
-	const displayMessage: Message =
-		"_id" in message ? message : uiMessageToDisplayMessage(message);
 	// Get current user for avatar display
 	const currentUser = useQuery(api.users.current);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-	const isAI = displayMessage.messageType === "assistant";
+	const isAI = message.role === "assistant";
+	const metadata = (message.metadata as any) || {};
 
 	// Model name for AI messages
 	const modelName = isAI
-		? displayMessage.modelId
-			? getModelDisplayName(displayMessage.modelId)
-			: displayMessage.model
-				? getModelDisplayName(displayMessage.model)
+		? metadata.modelId
+			? getModelDisplayName(metadata.modelId)
+			: metadata.model
+				? getModelDisplayName(metadata.model)
 				: "AI Assistant"
 		: undefined;
 
 	// Debug logging for model display issues
 	if (isAI && process.env.NODE_ENV === "development") {
 		console.log("MessageDisplay debug:", {
-			messageId: displayMessage._id,
-			modelId: displayMessage.modelId,
-			model: displayMessage.model,
+			messageId: message.id,
+			modelId: metadata.modelId,
+			model: metadata.model,
 			modelName,
-			isStreaming: displayMessage.isStreaming,
-			usedUserApiKey: displayMessage.usedUserApiKey,
-			hasThinkingContent: displayMessage.hasThinkingContent,
-			isComplete: displayMessage.isComplete,
+			isStreaming: metadata.isStreaming,
+			usedUserApiKey: metadata.usedUserApiKey,
+			hasThinkingContent: metadata.hasThinkingContent,
+			isComplete: metadata.isComplete,
 		});
 	}
 
 	// Calculate thinking duration
 	const thinkingDuration =
-		displayMessage.thinkingStartedAt && displayMessage.thinkingCompletedAt
-			? displayMessage.thinkingCompletedAt - displayMessage.thinkingStartedAt
+		metadata.thinkingStartedAt && metadata.thinkingCompletedAt
+			? metadata.thinkingCompletedAt - metadata.thinkingStartedAt
 			: null;
 
 	// Actions component
 	const actions = (
 		<MessageActions
-			message={displayMessage}
+			message={message}
 			modelName={modelName}
 			thinkingDuration={thinkingDuration}
 			onDropdownStateChange={setIsDropdownOpen}
@@ -71,20 +65,19 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
 	return (
 		<>
 			<MessageItem
-				message={displayMessage}
+				message={message}
 				currentUser={currentUser || undefined}
 				showActions={true}
 				isReadOnly={false}
 				modelName={modelName}
-				streamingText={displayMessage.body}
-				isStreaming={!!displayMessage.isStreaming}
-				isComplete={displayMessage.isComplete !== false}
+				isStreaming={!!metadata.isStreaming}
+				isComplete={metadata.isComplete !== false}
 				actions={actions}
 				forceActionsVisible={isDropdownOpen}
 			/>
 			{/* Show attachments if present */}
-			{displayMessage.attachments && displayMessage.attachments.length > 0 && (
-				<AttachmentPreview attachmentIds={displayMessage.attachments} />
+			{metadata.attachments && metadata.attachments.length > 0 && (
+				<AttachmentPreview attachmentIds={metadata.attachments} />
 			)}
 		</>
 	);

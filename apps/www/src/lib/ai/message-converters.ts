@@ -171,18 +171,24 @@ export function uiMessageToConvexMessage(
  * Extract all text content from UI message parts
  */
 function extractTextFromParts(parts: any[]): string {
+	console.log("[extractTextFromParts] input parts:", parts);
 	const textParts: string[] = [];
 
 	for (const part of parts) {
+		console.log("[extractTextFromParts] processing part:", part);
 		if (part.type === "text") {
 			textParts.push(part.text);
+			console.log("[extractTextFromParts] added text:", part.text);
 		} else if (part.type === "reasoning") {
 			// Optionally include reasoning in body
 			textParts.push(part.text);
+			console.log("[extractTextFromParts] added reasoning:", part.text);
 		}
 	}
 
-	return textParts.join("\n");
+	const result = textParts.join("\n");
+	console.log("[extractTextFromParts] final result:", result);
+	return result;
 }
 
 /**
@@ -292,7 +298,9 @@ function mapUIToolState(
 export function convexMessagesToUIMessages(
 	messages: Doc<"messages">[],
 ): UIMessage[] {
-	return messages.map(convexMessageToUIMessage);
+	// Convex returns messages in descending order (newest first)
+	// but UI expects ascending order (oldest first)
+	return messages.map(convexMessageToUIMessage).reverse();
 }
 
 /**
@@ -348,7 +356,11 @@ export function mergeMessagesWithStreamingState(
  * Extract text content from a UIMessage for display
  */
 export function extractUIMessageText(message: UIMessage): string {
-	return extractTextFromParts(message.parts);
+	const text = extractTextFromParts(message.parts);
+	console.log("[extractUIMessageText] message:", message);
+	console.log("[extractUIMessageText] parts:", message.parts);
+	console.log("[extractUIMessageText] extracted text:", text);
+	return text;
 }
 
 /**
@@ -373,16 +385,20 @@ export function isValidConvexId(id: string): boolean {
 	// Convex IDs are base64url encoded and have a specific length/format
 	// They typically start with specific patterns and are longer than nanoid
 	// For safety, we'll be conservative and check for known Convex ID patterns
-	
+
 	// Convex IDs are usually longer and have a different character set
 	// nanoid typically generates IDs like "2uzgm4cvlhhhczqngwlwo" (21 chars)
 	// Convex IDs are typically longer and may contain different patterns
-	
+
 	// Simple heuristic: if it looks like a temp ID or is too short, it's not a real Convex ID
-	if (id.startsWith("temp_") || id.startsWith("optimistic_") || id.length < 25) {
+	if (
+		id.startsWith("temp_") ||
+		id.startsWith("optimistic_") ||
+		id.length < 25
+	) {
 		return false;
 	}
-	
+
 	// Additional validation could be added here based on Convex ID format
 	// For now, we'll assume anything that doesn't match our known temp patterns is valid
 	return true;

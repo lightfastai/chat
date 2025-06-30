@@ -19,6 +19,11 @@ export function ChatMessages({
 	messages,
 	isLoading = false,
 }: ChatMessagesProps) {
+	// Debug: Log messages received by ChatMessages
+	console.log("[ChatMessages] messages:", messages);
+	console.log("[ChatMessages] messages length:", messages.length);
+	console.log("[ChatMessages] isLoading:", isLoading);
+
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
 	const [isNearBottom, setIsNearBottom] = useState(true);
@@ -138,11 +143,12 @@ export function ChatMessages({
 		<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
 			<div className="p-2 md:p-4 pb-16">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-					{messages
-						?.slice()
-						.map((msg) => (
+					{messages?.slice().map((msg, index) => {
+						console.log(`[ChatMessages] Rendering message ${index}:`, msg);
+						return (
 							<MessageDisplay key={msg.id} message={msg} userName="User" />
-						))}
+						);
+					})}
 
 					{isLoading && (
 						<div className="text-center text-muted-foreground py-4">

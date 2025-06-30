@@ -33,6 +33,12 @@ export function ChatInterface({
 		preloadedUserSettings,
 	});
 
+	// Debug: Log uiMessages in ChatInterface
+	console.log("[ChatInterface] uiMessages:", uiMessages);
+	console.log("[ChatInterface] uiMessages length:", uiMessages.length);
+	console.log("[ChatInterface] currentThread:", currentThread);
+	console.log("[ChatInterface] isNewChat:", isNewChat);
+
 	// Adapt sendMessage to match the expected onSendMessage signature
 	const handleSendMessage = useCallback(
 		async (

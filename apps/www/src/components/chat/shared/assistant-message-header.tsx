@@ -1,6 +1,6 @@
 "use client";
 
-import type { Doc } from "../../../../convex/_generated/dataModel";
+import type { UIMessage } from "ai";
 import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
 
 interface AssistantMessageHeaderProps {
@@ -18,7 +18,7 @@ interface AssistantMessageHeaderProps {
 		cachedInputTokens?: number;
 	};
 	hasParts?: boolean;
-	message?: Doc<"messages">;
+	message?: UIMessage;
 }
 
 export function AssistantMessageHeader({
@@ -27,10 +27,12 @@ export function AssistantMessageHeader({
 	hasParts,
 	message,
 }: AssistantMessageHeaderProps) {
-	// Check if message has reasoning parts (including from legacy fields)
+	const metadata = (message?.metadata as any) || {};
+
+	// Check if message has reasoning parts
 	const hasReasoningParts = Boolean(
 		message?.parts?.some((part) => part.type === "reasoning") ||
-			(message?.hasThinkingContent && message?.thinkingContent),
+			(metadata.hasThinkingContent && metadata.thinkingContent),
 	);
 
 	// Get reasoning content from parts or legacy fields
@@ -38,16 +40,16 @@ export function AssistantMessageHeader({
 		// First try new parts-based system
 		const partsContent = message?.parts
 			?.filter((part) => part.type === "reasoning")
-			.map((part) => part.text)
+			.map((part) => (part as any).text)
 			.join("\n");
 
 		if (partsContent?.trim()) {
 			return partsContent;
 		}
 
-		// Fall back to legacy thinking content
-		if (message?.hasThinkingContent && message?.thinkingContent) {
-			return message.thinkingContent;
+		// Fall back to legacy thinking content from metadata
+		if (metadata.hasThinkingContent && metadata.thinkingContent) {
+			return metadata.thinkingContent;
 		}
 
 		return undefined;
@@ -62,13 +64,15 @@ export function AssistantMessageHeader({
 		if (hasParts && message?.parts && message.parts.length > 0) {
 			return message.parts.some(
 				(part) =>
-					(part.type === "text" && part.text && part.text.trim().length > 0) ||
-					part.type === "tool-call",
+					(part.type === "text" &&
+						(part as any).text &&
+						(part as any).text.trim().length > 0) ||
+					part.type.startsWith("tool-"),
 			);
 		}
 
-		// Check message body as fallback
-		if (message?.body && message.body.trim().length > 0) return true;
+		// For UIMessages, we always have content if there are parts
+		if (message?.parts?.length) return true;
 
 		return false;
 	})();

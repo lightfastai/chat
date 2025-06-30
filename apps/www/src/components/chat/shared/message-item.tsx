@@ -1,18 +1,71 @@
 "use client";
 
-import { getMessageParts } from "@/lib/message-parts";
+import { extractUIMessageText } from "@/lib/ai/message-converters";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import { cn } from "@lightfast/ui/lib/utils";
+import type { UIMessage } from "ai";
 import type React from "react";
-import type { Doc } from "../../../../convex/_generated/dataModel";
 import { ToolCallRenderer } from "../tools/tool-call-renderer";
 import { AssistantMessageHeader } from "./assistant-message-header";
 import { MessageLayout } from "./message-layout";
 
-type Message = Doc<"messages">;
+// Helper to group consecutive text parts
+function groupConsecutiveTextParts(parts: any[]): any[] {
+	const groupedParts: any[] = [];
+	let currentTextGroup = "";
+
+	for (const part of parts) {
+		if (part.type === "text") {
+			currentTextGroup += part.text;
+		} else {
+			// Flush any accumulated text before adding non-text part
+			if (currentTextGroup) {
+				groupedParts.push({
+					type: "text",
+					text: currentTextGroup,
+				});
+				currentTextGroup = "";
+			}
+
+			// Add the non-text part (including reasoning parts)
+			groupedParts.push(part);
+		}
+	}
+
+	// Don't forget to add any remaining text at the end
+	if (currentTextGroup) {
+		groupedParts.push({
+			type: "text",
+			text: currentTextGroup,
+		});
+	}
+
+	return groupedParts;
+}
+
+// Map UI tool state to our expected format
+function mapUIToolState(
+	state:
+		| "input-streaming"
+		| "input-available"
+		| "output-available"
+		| "output-error",
+): "partial-call" | "call" | "result" {
+	switch (state) {
+		case "input-streaming":
+			return "partial-call";
+		case "input-available":
+			return "call";
+		case "output-available":
+		case "output-error":
+			return "result";
+		default:
+			return "call";
+	}
+}
 
 export interface MessageItemProps {
-	message: Message;
+	message: UIMessage;
 	owner?: {
 		name?: string | null;
 		image?: string | null;
@@ -24,7 +77,6 @@ export interface MessageItemProps {
 	showActions?: boolean;
 	isReadOnly?: boolean;
 	modelName?: string;
-	streamingText?: string;
 	isStreaming?: boolean;
 	isComplete?: boolean;
 	actions?: React.ReactNode;
@@ -37,24 +89,29 @@ export function MessageItem({
 	showActions = true,
 	isReadOnly = false,
 	modelName,
-	streamingText,
 	isStreaming,
 	isComplete,
 	actions,
 	className,
 	forceActionsVisible = false,
 }: MessageItemProps) {
-	const isAssistant = message.messageType === "assistant";
+	const isAssistant = message.role === "assistant";
+	const metadata = (message.metadata as any) || {};
 
 	// Avatar component - removed to clean up UI
 	const avatar = null;
 
 	// Determine what text to show
-	const displayText =
-		isStreaming && streamingText ? streamingText : message.body;
+	const displayText = extractUIMessageText(message);
 
-	// Check if message has parts (new system) vs legacy body-only
+	// Check if message has parts
 	const hasParts = message.parts && message.parts.length > 0;
+
+	// Debug logging
+	console.log("[MessageItem] message:", message);
+	console.log("[MessageItem] displayText:", displayText);
+	console.log("[MessageItem] hasParts:", hasParts);
+	console.log("[MessageItem] message.parts:", message.parts);
 
 	// Content component
 	const content = (
@@ -63,12 +120,12 @@ export function MessageItem({
 			{isAssistant && (
 				<AssistantMessageHeader
 					modelName={modelName}
-					usedUserApiKey={message.usedUserApiKey}
+					usedUserApiKey={metadata.usedUserApiKey}
 					isStreaming={isStreaming}
-					thinkingStartedAt={message.thinkingStartedAt}
-					thinkingCompletedAt={message.thinkingCompletedAt}
+					thinkingStartedAt={metadata.thinkingStartedAt}
+					thinkingCompletedAt={metadata.thinkingCompletedAt}
 					streamingText={displayText}
-					usage={message.usage}
+					usage={metadata.usage}
 					hasParts={hasParts}
 					message={message}
 				/>
@@ -79,11 +136,10 @@ export function MessageItem({
 			{/* Message body - use parts-based rendering for streaming or final display */}
 			<div className="text-sm leading-relaxed">
 				{(() => {
-					// If message has parts, use parts-based rendering (new system)
+					// If message has parts, use parts-based rendering
 					if (hasParts) {
-						// Always use grouped parts to prevent line breaks between text chunks
-						// The grouping function handles both streaming and completed states
-						const parts = getMessageParts(message);
+						// Group consecutive text parts together to prevent line breaks
+						const parts = groupConsecutiveTextParts(message.parts);
 
 						// Filter out reasoning parts since they're handled separately
 						const displayParts = parts.filter(
@@ -94,34 +150,43 @@ export function MessageItem({
 							<div className="space-y-2">
 								{displayParts.map((part, index) => {
 									// Create a unique key based on part content
-									const partKey =
-										part.type === "tool-call"
-											? `tool-call-${part.toolCallId}`
-											: `text-${index}`;
+									const partKey = part.type.startsWith("tool-")
+										? `tool-${(part as any).toolCallId || index}`
+										: `text-${index}`;
 
-									switch (part.type) {
-										case "text":
-											return (
-												<div key={partKey}>
-													{isAssistant ? (
-														<Markdown className="text-sm">{part.text}</Markdown>
-													) : (
-														<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-															{part.text}
-														</div>
+									if (part.type === "text") {
+										return (
+											<div key={partKey}>
+												{isAssistant ? (
+													<Markdown className="text-sm">{part.text}</Markdown>
+												) : (
+													<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+														{part.text}
+													</div>
+												)}
+												{isStreaming &&
+													!isComplete &&
+													index === displayParts.length - 1 && (
+														<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
 													)}
-													{isStreaming &&
-														!isComplete &&
-														index === displayParts.length - 1 && (
-															<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-														)}
-												</div>
-											);
-										case "tool-call":
-											return <ToolCallRenderer key={partKey} toolCall={part} />;
-										default:
-											return null;
+											</div>
+										);
+									} else if (part.type.startsWith("tool-")) {
+										// Convert UI tool part to expected format
+										const toolName = part.type.substring(5);
+										const toolCall = {
+											type: "tool-call" as const,
+											toolCallId: (part as any).toolCallId,
+											toolName,
+											args: (part as any).input || {},
+											result: (part as any).output,
+											state: mapUIToolState((part as any).state),
+										};
+										return (
+											<ToolCallRenderer key={partKey} toolCall={toolCall} />
+										);
 									}
+									return null;
 								})}
 							</div>
 						);
@@ -154,8 +219,8 @@ export function MessageItem({
 		!isReadOnly &&
 		showActions &&
 		isAssistant &&
-		message.isComplete !== false &&
-		!message.isStreaming
+		metadata.isComplete !== false &&
+		!metadata.isStreaming
 			? actions
 			: undefined;
 
@@ -165,7 +230,13 @@ export function MessageItem({
 			content={content}
 			timestamp={timestamp}
 			actions={messageActions}
-			messageType={message.messageType}
+			messageType={
+				message.role === "user"
+					? "user"
+					: message.role === "assistant"
+						? "assistant"
+						: "system"
+			}
 			className={undefined}
 			forceActionsVisible={forceActionsVisible}
 		/>

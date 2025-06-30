@@ -1,3 +1,4 @@
+import type { UIMessage } from "ai";
 import type { Infer } from "convex/values";
 import type { Doc } from "../../convex/_generated/dataModel";
 import type {
@@ -22,7 +23,16 @@ export type ToolCallPart = Infer<typeof toolCallPartValidator>;
 // Union type for all message parts
 export type MessagePart = Infer<typeof messagePartValidator>;
 
-// Get message parts with text grouping (parts-based architecture only)
+// Get message parts with text grouping for UIMessage
+export function getUIMessageParts(message: UIMessage): any[] {
+	// Use the parts array directly
+	const parts = message.parts || [];
+
+	// Group consecutive text parts together to prevent line breaks
+	return groupConsecutiveTextParts(parts);
+}
+
+// Legacy function for Convex messages (for backward compatibility)
 export function getMessageParts(message: Doc<"messages">): MessagePart[] {
 	// Use the parts array directly (no legacy conversion needed)
 	const parts = (message.parts || []) as MessagePart[];
@@ -32,8 +42,8 @@ export function getMessageParts(message: Doc<"messages">): MessagePart[] {
 }
 
 // Group consecutive text parts together to prevent line breaks between chunks
-function groupConsecutiveTextParts(parts: MessagePart[]): MessagePart[] {
-	const groupedParts: MessagePart[] = [];
+function groupConsecutiveTextParts(parts: any[]): any[] {
+	const groupedParts: any[] = [];
 	let currentTextGroup = "";
 
 	for (const part of parts) {
@@ -67,14 +77,40 @@ function groupConsecutiveTextParts(parts: MessagePart[]): MessagePart[] {
 
 // Note: Legacy conversion removed - we only support parts-based architecture now
 
-// Helper to check if message has tool calls (parts-based architecture only)
+// Helper to check if UIMessage has tool calls
+export function hasUIMessageToolInvocations(message: UIMessage): boolean {
+	if (!message.parts || message.parts.length === 0) return false;
+
+	return message.parts.some((part) => part.type.startsWith("tool-"));
+}
+
+// Helper to extract reasoning parts from a UIMessage
+export function getUIMessageReasoningParts(message: UIMessage): any[] {
+	if (!message.parts || message.parts.length === 0) return [];
+
+	return message.parts.filter((part) => part.type === "reasoning");
+}
+
+// Helper to check if UIMessage has reasoning content
+export function hasUIMessageReasoningContent(message: UIMessage): boolean {
+	if (!message.parts || message.parts.length === 0) return false;
+
+	return message.parts.some((part) => part.type === "reasoning");
+}
+
+// Helper to get combined reasoning text from UIMessage
+export function getUIMessageCombinedReasoningText(message: UIMessage): string {
+	const reasoningParts = getUIMessageReasoningParts(message);
+	return reasoningParts.map((part) => (part as any).text || "").join("");
+}
+
+// Legacy helpers for Convex messages (for backward compatibility)
 export function hasToolInvocations(message: Doc<"messages">): boolean {
 	if (!message.parts || message.parts.length === 0) return false;
 
 	return message.parts.some((part) => part.type === "tool-call");
 }
 
-// Helper to extract reasoning parts from a message
 export function getReasoningParts(message: Doc<"messages">): ReasoningPart[] {
 	if (!message.parts || message.parts.length === 0) return [];
 
@@ -83,14 +119,12 @@ export function getReasoningParts(message: Doc<"messages">): ReasoningPart[] {
 	);
 }
 
-// Helper to check if message has reasoning content
 export function hasReasoningContent(message: Doc<"messages">): boolean {
 	if (!message.parts || message.parts.length === 0) return false;
 
 	return message.parts.some((part) => part.type === "reasoning");
 }
 
-// Helper to get combined reasoning text
 export function getCombinedReasoningText(message: Doc<"messages">): string {
 	const reasoningParts = getReasoningParts(message);
 	return reasoningParts.map((part) => part.text).join("");

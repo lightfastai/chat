@@ -1,12 +1,16 @@
 "use client";
 
 import type { ModelId } from "@/lib/ai";
-import { isValidConvexId } from "@/lib/ai/message-converters";
+import {
+	extractUIMessageText,
+	isValidConvexId,
+} from "@/lib/ai/message-converters";
 import { nanoid } from "@/lib/nanoid";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
 import { cn } from "@lightfast/ui/lib/utils";
+import type { UIMessage } from "ai";
 import { useMutation, useQuery } from "convex/react";
 import {
 	CheckIcon,
@@ -24,7 +28,7 @@ import { ModelBranchDropdown } from "./model-branch-dropdown";
 import { formatDuration } from "./shared/thinking-content";
 
 interface MessageActionsProps {
-	message: Doc<"messages">;
+	message: UIMessage;
 	className?: string;
 	modelName?: string;
 	thinkingDuration?: number | null;
@@ -41,6 +45,7 @@ export function MessageActions({
 	const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
 	const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 	const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 });
+	const metadata = (message.metadata as any) || {};
 
 	// Notify parent when dropdown state changes
 	React.useEffect(() => {
@@ -48,11 +53,11 @@ export function MessageActions({
 	}, [isDropdownOpen, onDropdownStateChange]);
 
 	// Check if the message has a valid Convex ID before querying
-	const hasValidConvexId = isValidConvexId(message._id);
+	const hasValidConvexId = isValidConvexId(message.id);
 
 	const feedback = useQuery(
 		api.feedback.getUserFeedbackForMessage,
-		hasValidConvexId ? { messageId: message._id } : "skip"
+		hasValidConvexId ? { messageId: message.id as Id<"messages"> } : "skip",
 	);
 
 	const submitFeedback = useMutation(api.feedback.submitFeedback);
@@ -207,10 +212,10 @@ export function MessageActions({
 		}
 
 		if (feedback?.rating === rating) {
-			await removeFeedback({ messageId: message._id });
+			await removeFeedback({ messageId: message.id as Id<"messages"> });
 		} else {
 			await submitFeedback({
-				messageId: message._id,
+				messageId: message.id as Id<"messages">,
 				rating: "thumbs_up",
 				comment: feedback?.comment,
 				reasons: feedback?.reasons,
@@ -219,8 +224,9 @@ export function MessageActions({
 	};
 
 	const handleCopy = () => {
-		if (message.body) {
-			copy(message.body);
+		const text = extractUIMessageText(message);
+		if (text) {
+			copy(text);
 		}
 	};
 
@@ -241,8 +247,8 @@ export function MessageActions({
 
 			// Create branch in background - the useChat hook will handle optimistic updates
 			await branchThread({
-				originalThreadId: message.threadId,
-				branchFromMessageId: message._id,
+				originalThreadId: metadata.threadId as Id<"threads">,
+				branchFromMessageId: message.id as Id<"messages">,
 				modelId,
 				clientId, // Pass clientId to backend
 			});
@@ -262,7 +268,7 @@ export function MessageActions({
 						"h-8 w-8 transition-colors",
 						feedback?.rating === "thumbs_up" &&
 							"text-green-600 hover:text-green-700",
-						!hasValidConvexId && "opacity-50 cursor-not-allowed"
+						!hasValidConvexId && "opacity-50 cursor-not-allowed",
 					)}
 					onClick={() => handleFeedback("thumbs_up")}
 					disabled={!hasValidConvexId}
@@ -277,7 +283,7 @@ export function MessageActions({
 						"h-8 w-8 transition-colors",
 						feedback?.rating === "thumbs_down" &&
 							"text-red-600 hover:text-red-700",
-						!hasValidConvexId && "opacity-50 cursor-not-allowed"
+						!hasValidConvexId && "opacity-50 cursor-not-allowed",
 					)}
 					onClick={() => handleFeedback("thumbs_down")}
 					disabled={!hasValidConvexId}
@@ -285,7 +291,7 @@ export function MessageActions({
 				>
 					<ThumbsDown className="h-4 w-4" />
 				</Button>
-				{message.body && (
+				{extractUIMessageText(message) && (
 					<Button
 						variant="ghost"
 						size="icon"
@@ -312,7 +318,7 @@ export function MessageActions({
 					{modelName && <span>{modelName}</span>}
 
 					{/* API Key badge */}
-					{message.usedUserApiKey && (
+					{metadata.usedUserApiKey && (
 						<Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
 							<Key className="w-3 h-3 mr-1" />
 							Your API Key
@@ -322,7 +328,7 @@ export function MessageActions({
 					{/* Thinking duration */}
 					{thinkingDuration && (
 						<>
-							{(modelName || message.usedUserApiKey) && <span>•</span>}
+							{(modelName || metadata.usedUserApiKey) && <span>•</span>}
 							<span className="font-mono">
 								Thought for {formatDuration(thinkingDuration)}
 							</span>
@@ -330,12 +336,12 @@ export function MessageActions({
 					)}
 
 					{/* Usage chip */}
-					{message.usage && (
+					{metadata.usage && (
 						<>
-							{(modelName || message.usedUserApiKey || thinkingDuration) && (
+							{(modelName || metadata.usedUserApiKey || thinkingDuration) && (
 								<span>•</span>
 							)}
-							<MessageUsageChip usage={message.usage} />
+							<MessageUsageChip usage={metadata.usage} />
 						</>
 					)}
 				</div>
@@ -345,7 +351,7 @@ export function MessageActions({
 				<FeedbackModal
 					isOpen={showFeedbackModal}
 					onClose={() => setShowFeedbackModal(false)}
-					messageId={message._id}
+					messageId={message.id as Id<"messages">}
 					existingFeedback={feedback}
 				/>
 			)}

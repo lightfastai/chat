@@ -2,9 +2,7 @@
 
 import { env } from "@/env";
 import type { ModelId } from "@/lib/ai";
-import {
-	convexMessagesToUIMessages,
-} from "@/lib/ai/message-converters";
+import { convexMessagesToUIMessages } from "@/lib/ai/message-converters";
 import { isClientId, nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
@@ -164,11 +162,19 @@ export function useChat(options: UseChatOptions = {}) {
 	const streamUrl = `${convexSiteUrl}/stream-chat`;
 
 	// Convert preloaded Convex messages to UIMessages
+	// IMPORTANT: We use useRef to capture only the FIRST load of messages
+	// This prevents the Vercel AI SDK from re-initializing when database updates
+	const initialMessagesRef = useRef<any[] | null>(null);
+
 	const initialMessages = useMemo(() => {
-		if (messages) {
-			return convexMessagesToUIMessages(messages);
+		// Only set initial messages once on first load
+		if (initialMessagesRef.current === null && messages) {
+			const uiMessages = convexMessagesToUIMessages(messages);
+			initialMessagesRef.current = uiMessages;
+			return uiMessages;
 		}
-		return [];
+		// Return the cached initial messages or empty array
+		return initialMessagesRef.current || [];
 	}, [messages]);
 
 	// Create transport with request transformation
@@ -249,41 +255,15 @@ export function useChat(options: UseChatOptions = {}) {
 		},
 	});
 
-	// Simplified message management - let's keep it simple and reliable
-	const enhancedMessages = useMemo(() => {
-		if (!messages) return uiMessages;
+	// Single source of truth: Just use Vercel AI SDK messages
+	// This is the simplest and most reliable approach
+	const enhancedMessages = uiMessages;
 
-		// For now, let's just show database messages when available
-		// This avoids all the complex deduplication issues
-		// We'll show streaming messages only when there's no database equivalent
-		
-		// Convert database messages to UI format
-		const dbUIMessages = convexMessagesToUIMessages(messages);
-		
-		// If we have database messages, prefer them
-		// This is simpler and avoids duplication issues
-		if (dbUIMessages.length > 0) {
-			// Check if there's an active streaming message that's not in the database yet
-			const lastUIMessage = uiMessages[uiMessages.length - 1];
-			const lastDBMessage = messages[messages.length - 1];
-			
-			// If the last UI message is newer than the last DB message, it's probably still streaming
-			if (lastUIMessage && lastDBMessage) {
-				const uiTime = (lastUIMessage.metadata as any)?.timestamp || Date.now();
-				const dbTime = lastDBMessage.timestamp || 0;
-				
-				// If UI message is significantly newer (more than 2 seconds), include it
-				if (uiTime > dbTime + 2000) {
-					return [...dbUIMessages, lastUIMessage];
-				}
-			}
-			
-			return dbUIMessages;
-		}
-		
-		// If no database messages, use UI messages
-		return uiMessages;
-	}, [messages, uiMessages]);
+	// Debug logging
+	console.log("[useChat] uiMessages from Vercel SDK:", uiMessages);
+	console.log("[useChat] chatId:", chatId);
+	console.log("[useChat] currentThread:", currentThread);
+	console.log("[useChat] isNewChat:", isNewChat);
 
 	// Custom send message handler - creates thread first if needed
 	const handleSendMessage = useCallback(
