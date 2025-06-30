@@ -59,6 +59,71 @@ At the start of your session, tell Claude which mode to use:
 - "Use Vercel Build Mode" (default if not specified)
 - "Use Local Dev Mode - I'm running pnpm run dev"
 
+### Build Configuration Context System
+
+**YOU MUST** create and check build configuration context files to ensure the correct development mode is enforced:
+
+```bash
+# Create build configuration context file
+mkdir -p tmp_context
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+
+# Set development mode (choose one)
+echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"    # For Vercel Build Mode
+echo "LOCAL_DEV_MODE" > "$BUILD_CONFIG_FILE"       # For Local Dev Mode
+
+# Check build configuration before running any build commands
+if [ -f "$BUILD_CONFIG_FILE" ]; then
+  BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+  echo "📋 Current build mode: $BUILD_MODE"
+else
+  echo "⚠️  No build config found, defaulting to VERCEL_BUILD_MODE"
+  echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"
+  BUILD_MODE="VERCEL_BUILD_MODE"
+fi
+```
+
+#### Build Command Guards
+
+**CRITICAL**: You MUST check the build configuration before running any build commands:
+
+```bash
+# Function to check if builds should run
+should_run_build() {
+  local BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+  if [ -f "$BUILD_CONFIG_FILE" ]; then
+    local BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+    if [ "$BUILD_MODE" = "LOCAL_DEV_MODE" ]; then
+      echo "🚫 Skipping build - Local Dev Mode detected"
+      echo "💡 User is running pnpm run dev locally for real-time testing"
+      return 1  # Don't run build
+    fi
+  fi
+  return 0  # Run build
+}
+
+# Example usage before any build command
+if should_run_build; then
+  SKIP_ENV_VALIDATION=true pnpm run build
+else
+  echo "✅ Build skipped due to Local Dev Mode configuration"
+fi
+```
+
+#### Mode-Specific Behavior
+
+**Vercel Build Mode** (`VERCEL_BUILD_MODE`):
+- ✅ Runs `pnpm run build` for validation
+- ✅ Runs `pnpm run lint` and `pnpm run format`
+- ✅ Commits and pushes automatically
+- ✅ Provides Vercel preview URLs
+
+**Local Dev Mode** (`LOCAL_DEV_MODE`):
+- 🚫 **NEVER** runs `pnpm run build`
+- ✅ Runs `pnpm run lint` and `pnpm run format`
+- 🚫 Does NOT commit or push automatically
+- ✅ Asks user to test locally
+
 ## 🚀 Parallel Task Execution with Claude Code Subagents
 
 **YOU MUST** analyze complex tasks and use parallel Claude Code subagents when appropriate.
@@ -357,8 +422,11 @@ pnpm run env:sync  # Run from root with .env.local in root
 
 #### 🚀 Vercel Build Mode (Default)
 ```bash
-# 1. Set up context tracking
+# 1. Set up build configuration and context tracking
 mkdir -p tmp_context
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"
+
 CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 cat > "$CONTEXT_FILE" << EOF
 # Claude Code Context - $(basename $(pwd))
@@ -367,6 +435,7 @@ PR Number: #<pr_number>
 Issue: #<issue_number>
 Branch: jeevanpillay/<feature_name>
 Development Mode: Vercel Build Mode
+Build Config: VERCEL_BUILD_MODE
 
 ## Todo State
 - [ ] Task 1
@@ -382,8 +451,24 @@ EOF
 # 2. Claude makes code changes
 # ... implement features ...
 
-# 3. Claude runs validation (iteratively fixing errors)
-SKIP_ENV_VALIDATION=true pnpm run build  # MUST pass
+# 3. Claude runs validation with build configuration check
+should_run_build() {
+  local BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+  if [ -f "$BUILD_CONFIG_FILE" ]; then
+    local BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+    if [ "$BUILD_MODE" = "LOCAL_DEV_MODE" ]; then
+      echo "🚫 Skipping build - Local Dev Mode detected"
+      return 1
+    fi
+  fi
+  return 0
+}
+
+if should_run_build; then
+  SKIP_ENV_VALIDATION=true pnpm run build  # MUST pass
+else
+  echo "✅ Build skipped due to Local Dev Mode configuration"
+fi
 pnpm run lint                             # MUST pass
 pnpm run format                          # MUST pass
 
@@ -409,14 +494,18 @@ echo "🔗 Test on Vercel: https://<project>-<pr-number>-<org>.vercel.app"
 # 1. User ensures dev servers are running
 # Terminal 1: pnpm run dev:www (runs both Next.js and Convex)
 
-# 2. Set up context tracking
+# 2. Set up build configuration and context tracking
 mkdir -p tmp_context
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+echo "LOCAL_DEV_MODE" > "$BUILD_CONFIG_FILE"
+
 CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 cat > "$CONTEXT_FILE" << EOF
 # Claude Code Context - $(basename $(pwd))
 Last Updated: $(date)
 Branch: jeevanpillay/<feature_name>
 Development Mode: Local Dev Mode
+Build Config: LOCAL_DEV_MODE
 
 ## Todo State
 - [ ] Task 1
@@ -427,22 +516,45 @@ Working on: <current_task>
 
 ## Session Notes
 User is running pnpm run dev:www locally (concurrent Next.js + Convex)
+Build commands are disabled in this mode for faster iteration
 <notes>
 EOF
 
 # 3. Claude makes code changes
 # ... implement features ...
 
-# 4. Claude asks user to test
+# 4. Claude runs linting only (NO BUILD)
+should_run_build() {
+  local BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+  if [ -f "$BUILD_CONFIG_FILE" ]; then
+    local BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+    if [ "$BUILD_MODE" = "LOCAL_DEV_MODE" ]; then
+      echo "🚫 Skipping build - Local Dev Mode detected"
+      echo "💡 User is running pnpm run dev locally for real-time testing"
+      return 1
+    fi
+  fi
+  return 0
+}
+
+if should_run_build; then
+  SKIP_ENV_VALIDATION=true pnpm run build
+else
+  echo "✅ Build skipped due to Local Dev Mode configuration"
+fi
+pnpm run lint     # Still run linting
+pnpm run format   # Still run formatting
+
+# 5. Claude asks user to test
 echo "✅ Changes complete. Please test locally at http://localhost:3000"
 echo "📝 What to test:"
 echo "   - <specific feature 1>"
 echo "   - <specific feature 2>"
 
-# 5. User tests and reports results
+# 6. User tests and reports results
 # Claude waits for feedback before proceeding
 
-# 6. When ready, user handles commit/push manually
+# 7. When ready, user handles commit/push manually
 ```
 
 ### Step 5: PR Creation & Testing
@@ -547,12 +659,30 @@ export function TabsComponent() {
 
 ### Quality Gates (MUST pass before commit)
 ```bash
-# Build validation (from root)
-pnpm run build:www
-# OR from apps/www
-cd apps/www && SKIP_ENV_VALIDATION=true pnpm run build
+# Check build configuration first
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+if [ -f "$BUILD_CONFIG_FILE" ]; then
+  BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+  echo "📋 Current build mode: $BUILD_MODE"
+else
+  echo "⚠️  No build config found, defaulting to VERCEL_BUILD_MODE"
+  mkdir -p tmp_context
+  echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"
+  BUILD_MODE="VERCEL_BUILD_MODE"
+fi
 
-# Code quality (from root)
+# Build validation (only in Vercel Build Mode)
+if [ "$BUILD_MODE" = "VERCEL_BUILD_MODE" ]; then
+  # From root
+  pnpm run build:www
+  # OR from apps/www
+  cd apps/www && SKIP_ENV_VALIDATION=true pnpm run build
+else
+  echo "🚫 Build skipped - Local Dev Mode detected"
+  echo "💡 User is running pnpm run dev locally for real-time testing"
+fi
+
+# Code quality (always run)
 pnpm run lint
 pnpm run format
 
@@ -568,6 +698,16 @@ pnpm run convex:dev
 # Set context file
 mkdir -p tmp_context
 CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
+
+# Set build configuration
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"    # or "LOCAL_DEV_MODE"
+
+# Check current build mode
+if [ -f "$BUILD_CONFIG_FILE" ]; then
+  BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+  echo "📋 Current build mode: $BUILD_MODE"
+fi
 
 # View context
 cat "$CONTEXT_FILE"
@@ -711,12 +851,13 @@ pnpm run typecheck      # Type check all packages
 ## Key Reminders
 
 1. **WORKTREES ARE MANDATORY** - ANY code change requires a worktree, no exceptions
-2. **NO LOCAL DEV SERVERS** - Test only on Vercel previews
+2. **BUILD CONFIGURATION IS CRITICAL** - Always set and check `./tmp_context/build-config.txt` to prevent builds in Local Dev Mode
 3. **CONTEXT IS CRITICAL** - Always use context files and GitHub comments
-4. **QUALITY GATES FIRST** - Build/lint must pass before commit
+4. **QUALITY GATES FIRST** - Build/lint must pass before commit (build only in Vercel Build Mode)
 5. **WORKTREE CLEANUP** - Remove before merging to prevent errors
 6. **USE TEMPLATES** - Always use issue templates with file references
 7. **BIOME NOT ESLINT** - Use `pnpm run lint`, not ESLint commands
+8. **RESPECT DEV MODE** - Never run builds when user is in Local Dev Mode
 
 ## Technology-Specific Documentation
 
