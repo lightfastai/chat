@@ -219,10 +219,8 @@ export function useChat({
 	// Computed values
 	const isEmpty = uiMessages.length === 0;
 	const totalMessages = displayMessages.length;
-	const isStreaming = status === "streaming";
-	const canSendMessage = !isStreaming && !!authToken;
+	const canSendMessage = status !== "streaming" && !!authToken;
 	const isNewChat = pathname === "/chat" && isEmpty;
-	const isAIGenerating = isStreaming;
 
 	// Track if user has ever sent a message to prevent flicker
 	const hasEverSentMessage = useRef(false);
@@ -238,10 +236,10 @@ export function useChat({
 
 	// Clear waiting state when streaming starts
 	useEffect(() => {
-		if (isStreaming) {
+		if (status === "streaming") {
 			setIsWaitingForResponse(false);
 		}
-	}, [isStreaming]);
+	}, [status]);
 
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
@@ -291,14 +289,12 @@ export function useChat({
 		isEmpty,
 		totalMessages,
 
-		// Status
-		isStreaming,
-		isAIGenerating,
+		// Status - direct from Vercel AI SDK
+		status,
 		isWaitingForResponse,
 		canSendMessage,
 		isNewChat,
 		hasEverSentMessage,
-		isDisabled: !canSendMessage || isStreaming,
 
 		// Identifiers
 		threadId,

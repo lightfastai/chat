@@ -27,8 +27,8 @@ export function ChatInterface({
 		isNewChat,
 		hasEverSentMessage,
 		sendMessage,
-		isDisabled,
-		isAIGenerating,
+		status,
+		canSendMessage,
 	} = useChat({
 		preloadedThreadByClientId,
 		preloadedMessages,
@@ -40,8 +40,8 @@ export function ChatInterface({
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
-				disabled={isDisabled}
-				isLoading={isAIGenerating}
+				disabled={!canSendMessage}
+				isLoading={status === "streaming"}
 				preloadedUser={preloadedUser}
 			/>
 		);
@@ -49,11 +49,11 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages messages={messages} isLoading={isAIGenerating} />
+			<ChatMessages messages={messages} isLoading={status === "streaming"} />
 			<ChatInput
 				onSendMessage={sendMessage}
-				disabled={isDisabled}
-				isLoading={isAIGenerating}
+				disabled={!canSendMessage}
+				isLoading={status === "streaming"}
 			/>
 		</div>
 	);

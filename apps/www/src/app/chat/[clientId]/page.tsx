@@ -27,37 +27,36 @@ export const metadata: Metadata = {
 
 interface ChatThreadPageProps {
 	params: Promise<{
-		threadId: string;
+		clientId: string;
 	}>;
 }
 
 // Server component for specific thread - optimized for SSR and instant navigation
 export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 	// Await params in Next.js 15
-	const { threadId: threadIdString } = await params;
+	const { clientId } = await params;
 
-	// Validate threadId format - basic check to prevent obvious invalid IDs
+	// Validate clientId format - basic check to prevent obvious invalid IDs
 	// Also exclude reserved routes
 	const reservedRoutes = ["settings", "new"];
 	const isReservedRoute =
-		reservedRoutes.includes(threadIdString) ||
-		threadIdString.startsWith("settings/");
-	if (!threadIdString || threadIdString.length < 10 || isReservedRoute) {
+		reservedRoutes.includes(clientId) || clientId.startsWith("settings/");
+	if (!clientId || clientId.length < 10 || isReservedRoute) {
 		notFound();
 	}
 
 	return (
 		<Suspense fallback={<ChatInterface />}>
-			<ChatThreadPageWithPreloadedData threadIdString={threadIdString} />
+			<ChatThreadPageWithPreloadedData clientId={clientId} />
 		</Suspense>
 	);
 }
 
 // Server component that handles data preloading with PPR optimization
 async function ChatThreadPageWithPreloadedData({
-	threadIdString,
+	clientId,
 }: {
-	threadIdString: string;
+	clientId: string;
 }) {
 	try {
 		// Get authentication token for server-side requests
@@ -68,8 +67,7 @@ async function ChatThreadPageWithPreloadedData({
 			return <ChatInterface />;
 		}
 
-		// Since all URIs are clientIds now, always treat as client ID
-		// Preload user settings for all cases
+		// Preload user settings
 		const preloadedUserSettings = await preloadQuery(
 			api.userSettings.getUserSettings,
 			{},
@@ -79,14 +77,14 @@ async function ChatThreadPageWithPreloadedData({
 		// Preload thread by client ID
 		const preloadedThreadByClientId = await preloadQuery(
 			api.threads.getByClientId,
-			{ clientId: threadIdString },
+			{ clientId },
 			{ token },
 		);
 
 		// Preload messages by client ID for better performance
 		const preloadedMessages = await preloadQuery(
 			api.messages.listByClientId,
-			{ clientId: threadIdString },
+			{ clientId },
 			{ token },
 		);
 

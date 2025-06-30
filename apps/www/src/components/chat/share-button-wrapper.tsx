@@ -13,8 +13,8 @@ export function ShareButtonWrapper() {
 		useChatPreloadContext();
 	const pathname = usePathname();
 
-	// Extract threadId from pathname since useParams() doesn't update with window.history.replaceState()
-	const urlThreadId = pathname.startsWith("/chat/")
+	// Extract clientId from pathname since useParams() doesn't update with window.history.replaceState()
+	const clientId = pathname.startsWith("/chat/")
 		? pathname.slice(6) // Remove "/chat/" prefix
 		: undefined;
 
@@ -23,10 +23,7 @@ export function ShareButtonWrapper() {
 
 	// Handle special routes
 	const isSettingsPage =
-		urlThreadId === "settings" || urlThreadId?.startsWith("settings/");
-
-	// All URIs are clientIds now
-	const isClient = urlThreadId ? true : false;
+		clientId === "settings" || clientId?.startsWith("settings/");
 
 	// Use preloaded thread data if available
 	const preloadedThreadByIdData = preloadedThreadById
@@ -43,22 +40,12 @@ export function ShareButtonWrapper() {
 	// Get thread by clientId if needed (skip for settings and if preloaded)
 	const threadByClientId = useQuery(
 		api.threads.getByClientId,
-		isClient && urlThreadId && !isSettingsPage && !preloadedThread
-			? { clientId: urlThreadId }
-			: "skip",
-	);
-
-	// Get thread by actual ID if needed (skip for settings and if preloaded)
-	const threadById = useQuery(
-		api.threads.get,
-		urlThreadId && !isClient && !isSettingsPage && !preloadedThread
-			? { threadId: urlThreadId as Id<"threads"> }
-			: "skip",
+		clientId && !isSettingsPage && !preloadedThread ? { clientId } : "skip",
 	);
 
 	// Determine the actual Convex thread ID
 	let threadId: Id<"threads"> | undefined;
-	const currentThread = preloadedThread || threadByClientId || threadById;
+	const currentThread = preloadedThread || threadByClientId;
 	if (currentThread) {
 		threadId = currentThread._id;
 	}
@@ -71,17 +58,7 @@ export function ShareButtonWrapper() {
 	// Query messages by clientId if we have one (skip for new chat)
 	const messagesByClientId = useQuery(
 		api.messages.listByClientId,
-		isClient && urlThreadId && !preloadedMessagesData && !isNewChat
-			? { clientId: urlThreadId }
-			: "skip",
-	);
-
-	// Query messages by threadId for regular threads (skip for new chat)
-	const messagesByThreadId = useQuery(
-		api.messages.list,
-		threadId && !preloadedMessagesData && !isClient && !isNewChat
-			? { threadId }
-			: "skip",
+		clientId && !preloadedMessagesData && !isNewChat ? { clientId } : "skip",
 	);
 
 	// Don't show share button on settings page
@@ -90,8 +67,7 @@ export function ShareButtonWrapper() {
 	}
 
 	// Get actual messages
-	const messages =
-		preloadedMessagesData ?? messagesByClientId ?? messagesByThreadId ?? [];
+	const messages = preloadedMessagesData ?? messagesByClientId ?? [];
 
 	// Check if there are any messages to share
 	const hasShareableContent = messages.length > 0;

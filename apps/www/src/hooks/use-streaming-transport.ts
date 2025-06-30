@@ -23,7 +23,6 @@ interface StreamingTransportResult {
 		text: string;
 		options?: StreamingOptions;
 	}) => Promise<void>;
-	isStreaming: boolean;
 	error: Error | null;
 	stop: () => void;
 }
@@ -34,9 +33,10 @@ interface StreamingTransportResult {
  *
  * This provides:
  * - HTTP streaming transport to our Convex endpoint
- * - Streaming status management
  * - Error handling
+ * - Stop functionality
  * - But NO message state management (that's handled by useMessages)
+ * - Streaming status should be obtained from Vercel AI SDK's status in the consuming component
  */
 export function useStreamingTransport(): StreamingTransportResult {
 	const authToken = useAuthToken();
@@ -160,7 +160,6 @@ export function useStreamingTransport(): StreamingTransportResult {
 
 	return {
 		streamMessage,
-		isStreaming: status === "streaming",
 		error: error || null,
 		stop,
 	};
