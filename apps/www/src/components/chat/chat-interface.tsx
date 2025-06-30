@@ -4,13 +4,14 @@ import { env } from "@/env";
 import { useMessages } from "@/hooks/use-messages";
 import { nanoid } from "@/lib/nanoid";
 import { createStreamUrl } from "@/lib/create-base-url";
+import type { MessagePart } from "@/lib/message-parts";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { CenteredChatStart } from "./centered-chat-start";
@@ -20,7 +21,7 @@ import { ChatMessages } from "./chat-messages";
 interface ChatInterfaceProps {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
 	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
-	preloadedMessages?: Preloaded<typeof api.messages.list>;
+	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
@@ -61,6 +62,11 @@ export function ChatInterface({
 	if (preloadedMessages) {
 		try {
 			messages = usePreloadedQuery(preloadedMessages);
+			console.log("✅ Preloaded messages loaded successfully:", {
+				count: messages?.length || 0,
+				messages: messages,
+				sampleMessage: messages?.[0]
+			});
 		} catch (error) {
 			console.warn("Failed to extract preloaded messages:", error);
 			messages = null;
@@ -174,10 +180,10 @@ export function ChatInterface({
 		}
 
 		// Convert Convex messages to Vercel AI UIMessage format
-		const converted: UIMessage[] = prioritizedMessages.map((msg) => ({
+		const converted = prioritizedMessages.map((msg) => ({
 			id: msg._id,
 			role: msg.messageType === "user" ? "user" as const : "assistant" as const,
-			parts: (msg.parts || []).map((part) => {
+			parts: (msg.parts || []).map((part: MessagePart) => {
 				// Convert Convex "source" type to Vercel AI SDK "source-document" type
 				if (part.type === "source") {
 					return {
@@ -195,7 +201,7 @@ export function ChatInterface({
 				thinkingCompletedAt: msg.thinkingCompletedAt,
 				usage: msg.usage,
 			},
-		}));
+		})) as UIMessage[];
 		
 		return converted;
 	}, [prioritizedMessages]);
@@ -216,9 +222,10 @@ export function ChatInterface({
 		},
 	});
 
-	// Manually set messages when initial messages become available
-	useEffect(() => {
+	// Set initial messages if we have preloaded data and no current messages
+	React.useEffect(() => {
 		if (initialMessages && initialMessages.length > 0 && uiMessages.length === 0) {
+			console.log("🔄 Setting initial messages from preloaded data:", initialMessages.length);
 			setMessages(initialMessages);
 		}
 	}, [initialMessages, uiMessages.length, setMessages]);

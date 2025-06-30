@@ -8,7 +8,7 @@ interface ChatPreloadContextValue {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
 	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>;
-	preloadedMessages?: Preloaded<typeof api.messages.list>;
+	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 }
 
 const ChatPreloadContext = createContext<ChatPreloadContextValue>({});
@@ -18,7 +18,7 @@ interface ChatPreloadProviderProps {
 	preloadedThreadById?: Preloaded<typeof api.threads.get>;
 	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>;
-	preloadedMessages?: Preloaded<typeof api.messages.list>;
+	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 }
 
 export function ChatPreloadProvider({

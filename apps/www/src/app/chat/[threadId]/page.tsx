@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
 import { ChatInterface } from "../../../components/chat/chat-interface";
 import { ChatPreloadProvider } from "../../../components/chat/chat-preload-context";
 import { getAuthToken } from "../../../lib/auth";
