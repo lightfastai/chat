@@ -296,7 +296,7 @@ export function useChat(options: UseChatOptions = {}) {
 		if (
 			initialMessages &&
 			initialMessages.length > 0 &&
-			!isNewChat // Don't interfere with new chats
+			!isNewChat // Don't interfere with completely new chats
 		) {
 			// Case 1: No UI messages at all - set all initial messages
 			if (uiMessages.length === 0) {
@@ -347,6 +347,29 @@ export function useChat(options: UseChatOptions = {}) {
 			}
 		}
 	}, [initialMessages, setUIMessages, uiMessages, status, isNewChat]);
+
+	// Additional useEffect to handle new chat transition
+	// When a thread gets created during streaming, we need to load messages from DB
+	useEffect(() => {
+		if (
+			currentClientId && // We're in a clientId-based URL
+			currentThread && // Thread has been created/found
+			initialMessages && 
+			initialMessages.length > 0 &&
+			uiMessages.length === 0 && // But no UI messages loaded yet
+			status !== "streaming" // And not currently streaming
+		) {
+			console.log(
+				"[useChat] Loading messages for newly created thread from clientId:",
+				{
+					clientId: currentClientId,
+					threadId: currentThread._id,
+					messagesCount: initialMessages.length,
+				}
+			);
+			setUIMessages(initialMessages);
+		}
+	}, [currentClientId, currentThread, initialMessages, uiMessages.length, status, setUIMessages]);
 
 	// Single source of truth: Just use Vercel AI SDK messages
 	// This is the simplest and most reliable approach
