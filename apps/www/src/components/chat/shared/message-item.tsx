@@ -87,6 +87,8 @@ export interface MessageItemProps {
 	actions?: React.ReactNode;
 	className?: string;
 	forceActionsVisible?: boolean;
+	status?: "ready" | "streaming" | "submitted" | "error";
+	isLastAssistantMessage?: boolean;
 }
 
 export function MessageItem({
@@ -99,6 +101,8 @@ export function MessageItem({
 	actions,
 	className,
 	forceActionsVisible = false,
+	status,
+	isLastAssistantMessage = false,
 }: MessageItemProps) {
 	const isAssistant = message.role === "assistant";
 	const metadata = (message.metadata as any) || {};
@@ -236,12 +240,13 @@ export function MessageItem({
 	const timestamp = undefined;
 
 	// Actions (only for assistant messages in interactive mode)
+	// Disable actions if this is the last assistant message and status is streaming/submitted
+	const shouldDisableActions =
+		isLastAssistantMessage &&
+		(status === "streaming" || status === "submitted");
+
 	const messageActions =
-		!isReadOnly &&
-		showActions &&
-		isAssistant &&
-		metadata.isComplete !== false &&
-		!metadata.isStreaming
+		!isReadOnly && showActions && isAssistant && !shouldDisableActions
 			? actions
 			: undefined;
 

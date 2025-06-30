@@ -149,7 +149,7 @@ export function useChat({
 
 	// Use stable ID for Vercel AI SDK to prevent state reset
 	const chatId = clientId || "new-chat";
-	
+
 	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
 		messages: uiMessages,
@@ -166,7 +166,14 @@ export function useChat({
 	});
 
 	// Debug logging
-	console.log("[use-chat] chatId:", chatId, "uiMessages:", uiMessages, "status:", status);
+	console.log(
+		"[use-chat] chatId:",
+		chatId,
+		"uiMessages:",
+		uiMessages,
+		"status:",
+		status,
+	);
 	// Computed values
 	const isEmpty = uiMessages.length === 0;
 	const totalMessages = uiMessages.length;

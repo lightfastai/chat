@@ -4,10 +4,12 @@ import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import type { UIMessage } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDisplay } from "./message-display";
+import { MessageLayout } from "./shared/message-layout";
+import { ThinkingIndicator } from "./shared/thinking-indicator";
 
 interface ChatMessagesProps {
 	messages: UIMessage[];
-	isLoading?: boolean;
+	status?: "ready" | "streaming" | "submitted" | "error";
 	emptyState?: {
 		icon?: React.ReactNode;
 		title?: string;
@@ -17,12 +19,12 @@ interface ChatMessagesProps {
 
 export function ChatMessages({
 	messages,
-	isLoading = false,
+	status = "ready",
 }: ChatMessagesProps) {
 	// Debug: Log messages received by ChatMessages
 	console.log("[ChatMessages] messages:", messages);
 	console.log("[ChatMessages] messages length:", messages.length);
-	console.log("[ChatMessages] isLoading:", isLoading);
+	console.log("[ChatMessages] status:", status);
 
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -145,10 +147,35 @@ export function ChatMessages({
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 					{messages?.slice().map((msg, index) => {
 						console.log(`[ChatMessages] Rendering message ${index}:`, msg);
+
+						// Find the index of the last assistant message
+						const lastAssistantIndex =
+							messages
+								.map((m, i) => ({ role: m.role, index: i }))
+								.filter((m) => m.role === "assistant")
+								.pop()?.index ?? -1;
+
+						const isLastAssistantMessage =
+							msg.role === "assistant" && index === lastAssistantIndex;
+
 						return (
-							<MessageDisplay key={msg.id} message={msg} userName="User" />
+							<MessageDisplay
+								key={msg.id}
+								message={msg}
+								status={status}
+								isLastAssistantMessage={isLastAssistantMessage}
+							/>
 						);
 					})}
+
+					{/* Show thinking indicator when status is "submitted" */}
+					{status === "submitted" && (
+						<MessageLayout
+							avatar={null}
+							content={<ThinkingIndicator />}
+							messageType="assistant"
+						/>
+					)}
 				</div>
 			</div>
 

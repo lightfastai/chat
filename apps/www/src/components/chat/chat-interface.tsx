@@ -34,7 +34,7 @@ export function ChatInterface({
 			<CenteredChatStart
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}
-				isLoading={status === "streaming"}
+				status={status}
 				preloadedUser={preloadedUser}
 			/>
 		);
@@ -42,11 +42,11 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages messages={messages} isLoading={status === "streaming"} />
+			<ChatMessages messages={messages} status={status} />
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}
-				isLoading={status === "streaming"}
+				status={status}
 			/>
 		</div>
 	);

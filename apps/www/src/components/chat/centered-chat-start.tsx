@@ -19,14 +19,14 @@ interface CenteredChatStartProps {
 		webSearchEnabled?: boolean,
 	) => Promise<void> | void;
 	disabled?: boolean;
-	isLoading?: boolean;
+	status?: "ready" | "streaming" | "submitted" | "error";
 	preloadedUser?: Preloaded<typeof api.users.current>;
 }
 
 export function CenteredChatStart({
 	onSendMessage,
 	disabled = false,
-	isLoading = false,
+	status = "ready",
 	preloadedUser,
 }: CenteredChatStartProps) {
 	const { displayName, email } = useAuth();
@@ -67,7 +67,7 @@ export function CenteredChatStart({
 							onSendMessage={onSendMessage}
 							placeholder="How can I help you today?"
 							disabled={disabled}
-							isLoading={isLoading}
+							status={status}
 							showDisclaimer={false}
 							value={message}
 							onChange={setMessage}

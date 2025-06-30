@@ -11,11 +11,16 @@ import { MessageItem } from "./shared";
 
 interface MessageDisplayProps {
 	message: UIMessage;
-	userName: string;
+	status?: "ready" | "streaming" | "submitted" | "error";
+	isLastAssistantMessage?: boolean;
 }
 
 // Component to display individual messages with streaming support
-export function MessageDisplay({ message }: MessageDisplayProps) {
+export function MessageDisplay({
+	message,
+	status,
+	isLastAssistantMessage,
+}: MessageDisplayProps) {
 	// Get current user for avatar display
 	const currentUser = useQuery(api.users.current);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -74,6 +79,8 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
 				isComplete={metadata.isComplete !== false}
 				actions={actions}
 				forceActionsVisible={isDropdownOpen}
+				status={status}
+				isLastAssistantMessage={isLastAssistantMessage}
 			/>
 			{/* Show attachments if present */}
 			{metadata.attachments && metadata.attachments.length > 0 && (

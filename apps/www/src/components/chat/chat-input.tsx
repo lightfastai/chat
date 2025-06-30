@@ -66,7 +66,7 @@ interface ChatInputProps {
 		attachments?: Id<"files">[],
 		webSearchEnabled?: boolean,
 	) => Promise<void> | void;
-	isLoading?: boolean;
+	status?: "ready" | "streaming" | "submitted" | "error";
 	placeholder?: string;
 	disabled?: boolean;
 	maxLength?: number;
@@ -104,7 +104,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 	(
 		{
 			onSendMessage,
-			isLoading = false,
+			status = "ready",
 			placeholder = "How can I help you today?",
 			disabled = false,
 			maxLength = 4000,
@@ -147,8 +147,12 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
 		// Determine if submission should be disabled (but allow typing)
 		const isSubmitDisabled = useMemo(
-			() => disabled || isLoading || isSending,
-			[disabled, isLoading, isSending],
+			() =>
+				disabled ||
+				status === "streaming" ||
+				status === "submitted" ||
+				isSending,
+			[disabled, status, isSending],
 		);
 
 		// Memoize expensive computations
@@ -526,7 +530,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 							<div
 								className={`w-full border border-muted/30 rounded-xl overflow-hidden flex flex-col transition-all bg-transparent dark:bg-input/10 ${
 									attachments.length > 0 ? "rounded-b-none" : ""
-								} ${isLoading ? "opacity-75" : ""}`}
+								} ${status === "streaming" || status === "submitted" ? "opacity-75" : ""}`}
 							>
 								{/* Textarea area - grows with content up to max height */}
 								<div className="flex-1 max-h-[180px] overflow-y-auto chat-input-scroll">
