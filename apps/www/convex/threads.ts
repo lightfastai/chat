@@ -189,6 +189,51 @@ const threadWithCategoryValidator = v.object({
 	dateCategory: v.string(),
 });
 
+// Create a new thread with optimistic update
+export const createOptimistic = mutation({
+	args: {
+		clientId: clientIdValidator,
+		title: v.optional(titleValidator),
+	},
+	returns: v.id("threads"),
+	handler: async (ctx, args) => {
+		const userId = await getAuthenticatedUserId(ctx);
+
+		// Check for collision if clientId is provided (extremely rare with nanoid)
+		const existing = await ctx.db
+			.query("threads")
+			.withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
+			.first();
+
+		if (existing) {
+			// Return existing thread ID instead of throwing error for idempotency
+			return existing._id;
+		}
+
+		const now = Date.now();
+		const threadId = await ctx.db.insert("threads", {
+			clientId: args.clientId,
+			title: args.title || "New chat",
+			userId: userId,
+			createdAt: now,
+			lastMessageAt: now,
+			isTitleGenerating: true, // Will be updated when first message is sent
+			// Initialize usage field
+			usage: {
+				totalInputTokens: 0,
+				totalOutputTokens: 0,
+				totalTokens: 0,
+				totalReasoningTokens: 0,
+				totalCachedInputTokens: 0,
+				messageCount: 0,
+				modelStats: {},
+			},
+		});
+
+		return threadId;
+	},
+});
+
 // List paginated threads with server-side date grouping (5 items per page for smooth loading)
 export const listPaginatedWithGrouping = query({
 	args: {

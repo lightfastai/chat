@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import type { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { useOptimisticThreadCreate } from "./use-optimistic-thread-create";
 
 type ChatState = "new" | "existing";
 
@@ -35,6 +36,7 @@ export function useChat({
 }: UseChatProps = {}) {
 	const pathname = usePathname();
 	const authToken = useAuthToken();
+	const createThreadOptimistic = useOptimisticThreadCreate();
 
 	// Extract data from preloaded queries if available
 	let threadByClientId = null;
@@ -56,7 +58,7 @@ export function useChat({
 	// Determine chat state and extract client ID from pathname
 	const { chatState, clientId } = useMemo(() => {
 		console.log("[use-chat] pathname changed:", pathname);
-		
+
 		if (pathname === "/chat") {
 			console.log("[use-chat] detected new chat state");
 			return { chatState: "new" as ChatState, clientId: null };
@@ -68,7 +70,10 @@ export function useChat({
 			return { chatState: "new" as ChatState, clientId: null };
 		}
 
-		console.log("[use-chat] detected existing chat state with clientId:", match[1]);
+		console.log(
+			"[use-chat] detected existing chat state with clientId:",
+			match[1],
+		);
 		return { chatState: "existing" as ChatState, clientId: match[1] };
 	}, [pathname]);
 
@@ -126,11 +131,18 @@ export function useChat({
 	const initialMessages = useMemo(() => {
 		// Only process messages for existing chats to prevent leakage to new chats
 		if (chatState !== "existing" || !messages || messages.length === 0) {
-			console.log("[use-chat] initialMessages: returning undefined for", { chatState, hasMessages: !!messages });
+			console.log("[use-chat] initialMessages: returning undefined for", {
+				chatState,
+				hasMessages: !!messages,
+			});
 			return undefined;
 		}
 
-		console.log("[use-chat] initialMessages: converting", messages.length, "messages for existing chat");
+		console.log(
+			"[use-chat] initialMessages: converting",
+			messages.length,
+			"messages for existing chat",
+		);
 
 		// Convert Convex messages to Vercel AI UIMessage format
 		const converted = messages.map((msg) => ({
@@ -162,18 +174,19 @@ export function useChat({
 
 	// Generate chatId based on chat state
 	const chatId = useMemo(() => {
-		const id = chatState === "existing" 
-			? clientId! // We know clientId exists for existing chats
-			: fallbackChatId || nanoid(); // Use server ID for new chats, nanoid as fallback
-			
+		const id =
+			chatState === "existing"
+				? clientId! // We know clientId exists for existing chats
+				: fallbackChatId || nanoid(); // Use server ID for new chats, nanoid as fallback
+
 		console.log("[use-chat] chatId generation:", {
 			chatState,
 			clientId,
 			fallbackChatId,
 			finalChatId: id,
-			pathname
+			pathname,
 		});
-		
+
 		return id;
 	}, [chatState, clientId, fallbackChatId, pathname]);
 
@@ -193,18 +206,15 @@ export function useChat({
 	});
 
 	// Debug logging
-	console.log(
-		"[use-chat] Vercel AI state:",
-		{
-			chatState,
-			chatId,
-			uiMessagesCount: uiMessages.length,
-			status,
-			pathname,
-			clientId
-		}
-	);
-	
+	console.log("[use-chat] Vercel AI state:", {
+		chatState,
+		chatId,
+		uiMessagesCount: uiMessages.length,
+		status,
+		pathname,
+		clientId,
+	});
+
 	// Computed values
 	const isEmpty = uiMessages.length === 0;
 	const totalMessages = uiMessages.length;
@@ -219,13 +229,29 @@ export function useChat({
 			attachments?: Id<"files">[],
 			webSearchEnabledOverride?: boolean,
 		) => {
-			// Handle URL update for new chats
+			// Handle URL update and thread creation for new chats
 			let chatClientId = clientId;
+			let threadIdToUse = resolvedThreadId;
+
 			if (chatState === "new") {
 				// Use the same chatId that was passed to useVercelChat for consistency
 				chatClientId = chatId;
-				// Update URL using replaceState for seamless navigation
-				window.history.replaceState({}, "", `/chat/${chatClientId}`);
+
+				// Create thread optimistically before sending message
+				try {
+					// This will instantly update the UI with the new thread
+					const newThreadId = await createThreadOptimistic({
+						clientId: chatClientId,
+						title: "New chat", // Title will be generated server-side
+					});
+					threadIdToUse = newThreadId;
+
+					// Update URL using replaceState for seamless navigation
+					window.history.replaceState({}, "", `/chat/${chatClientId}`);
+				} catch (error) {
+					console.error("Failed to create thread optimistically:", error);
+					// Continue without thread ID - HTTP endpoint will create it
+				}
 			}
 
 			try {
@@ -236,7 +262,7 @@ export function useChat({
 					},
 					{
 						body: {
-							threadId: resolvedThreadId,
+							threadId: threadIdToUse,
 							clientId: chatClientId,
 							modelId: selectedModelId,
 							webSearchEnabled: webSearchEnabledOverride || false,
@@ -248,7 +274,14 @@ export function useChat({
 				throw error;
 			}
 		},
-		[vercelSendMessage, resolvedThreadId, clientId, chatState, chatId],
+		[
+			vercelSendMessage,
+			resolvedThreadId,
+			clientId,
+			chatState,
+			chatId,
+			createThreadOptimistic,
+		],
 	);
 
 	return {

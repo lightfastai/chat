@@ -1,5 +1,5 @@
-import { siteConfig } from "@/lib/site-config";
 import { nanoid } from "@/lib/nanoid";
+import { siteConfig } from "@/lib/site-config";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -48,7 +48,12 @@ async function ChatPageWithPreloadedData() {
 
 		// If no authentication token, render regular chat interface
 		if (!token) {
-			return <ChatInterface key={`new-chat-${fallbackChatId}`} fallbackChatId={fallbackChatId} />;
+			return (
+				<ChatInterface
+					key={`new-chat-${fallbackChatId}`}
+					fallbackChatId={fallbackChatId}
+				/>
+			);
 		}
 
 		// Preload user data and settings for PPR - this will be cached and streamed instantly
@@ -71,6 +76,11 @@ async function ChatPageWithPreloadedData() {
 		console.warn("Server-side user preload failed:", error);
 
 		// Fallback to regular chat interface
-		return <ChatInterface key={`new-chat-${fallbackChatId}`} fallbackChatId={fallbackChatId} />;
+		return (
+			<ChatInterface
+				key={`new-chat-${fallbackChatId}`}
+				fallbackChatId={fallbackChatId}
+			/>
+		);
 	}
 }

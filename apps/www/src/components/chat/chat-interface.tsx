@@ -22,12 +22,13 @@ export function ChatInterface({
 	preloadedUserSettings,
 	fallbackChatId,
 }: ChatInterfaceProps) {
-	const { messages, isNewChat, sendMessage, status, canSendMessage, chatId } = useChat({
-		preloadedThreadByClientId,
-		preloadedMessages,
-		preloadedUserSettings,
-		fallbackChatId,
-	});
+	const { messages, isNewChat, sendMessage, status, canSendMessage, chatId } =
+		useChat({
+			preloadedThreadByClientId,
+			preloadedMessages,
+			preloadedUserSettings,
+			fallbackChatId,
+		});
 
 	// Show centered layout only for new chats with no messages
 	if (isNewChat && messages.length === 0) {
@@ -43,7 +44,11 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages key={chatId || "default"} messages={messages} status={status} />
+			<ChatMessages
+				key={chatId || "default"}
+				messages={messages}
+				status={status}
+			/>
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}

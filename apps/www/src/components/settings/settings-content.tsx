@@ -11,7 +11,6 @@ interface SettingsContentProps {
 	preloadedUserSettings: Preloaded<typeof api.userSettings.getUserSettings>;
 }
 
-
 export function SettingsContent({
 	preloadedUser,
 	preloadedUserSettings,

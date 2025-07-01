@@ -178,6 +178,38 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					"[HTTP Streaming] Found existing thread by clientId. ThreadId:",
 					threadId,
 				);
+
+				// If thread exists but title generation hasn't been scheduled yet
+				// (e.g., thread was created optimistically), schedule it now
+				if (thread.isTitleGenerating && thread.title === "New chat") {
+					// Extract the first user message for title generation
+					let firstUserMessage = "";
+					if (uiMessages && uiMessages.length > 0) {
+						const userMessages = uiMessages.filter(
+							(msg) => msg.role === "user",
+						);
+						if (userMessages.length > 0) {
+							const firstMsg = userMessages[0];
+							firstUserMessage =
+								firstMsg.parts
+									?.filter((part) => part.type === "text")
+									?.map((part) => (part as { text: string }).text)
+									?.join("\n") || "";
+						}
+					}
+
+					// Schedule title generation for the optimistically created thread
+					if (firstUserMessage && firstUserMessage.trim()) {
+						console.log(
+							"[HTTP Streaming] Scheduling title generation for optimistic thread:",
+							threadId,
+						);
+						await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
+							threadId,
+							userMessage: firstUserMessage,
+						});
+					}
+				}
 			}
 		} else if (requestThreadId) {
 			threadId = requestThreadId;
