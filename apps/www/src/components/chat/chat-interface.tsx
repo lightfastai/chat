@@ -2,14 +2,12 @@
 
 import { useChat } from "@/hooks/use-chat";
 import type { Preloaded } from "convex/react";
-import React from "react";
 import type { api } from "../../../convex/_generated/api";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
 
 interface ChatInterfaceProps {
-	preloadedThreadById?: Preloaded<typeof api.threads.get>;
 	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 	preloadedUser?: Preloaded<typeof api.users.current>;
@@ -23,7 +21,7 @@ export function ChatInterface({
 	preloadedUser,
 	preloadedUserSettings,
 	fallbackChatId,
-}: ChatInterfaceProps = {}) {
+}: ChatInterfaceProps) {
 	const { messages, isNewChat, sendMessage, status, canSendMessage, chatId } = useChat({
 		preloadedThreadByClientId,
 		preloadedMessages,
@@ -45,7 +43,7 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages key={chatId} messages={messages} status={status} />
+			<ChatMessages key={chatId || "default"} messages={messages} status={status} />
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}
