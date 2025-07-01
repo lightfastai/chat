@@ -35,8 +35,8 @@ export const env = createEnv({
     DOCS_URL: z.string().url().default("https://lightfast-docs.vercel.app"),
 
     // Sentry configuration (optional for server-side source map uploads)
-    SENTRY_ORG: z.string().optional(),
-    SENTRY_PROJECT: z.string().optional(),
+    SENTRY_ORG: z.string().default("lightfast"),
+    SENTRY_PROJECT: z.string().default("lightfast-chat"),
     SENTRY_AUTH_TOKEN: z.string().optional(),
   },
   /*
