@@ -1,4 +1,4 @@
-import type { NavItem } from "./nav";
+import type { NavItem } from "./nav"
 
 /**
  * The high-level configuration for a website.
@@ -24,10 +24,10 @@ import type { NavItem } from "./nav";
  * ```
  */
 export interface SiteConfig<T extends string> {
-	name: string;
-	url: string;
-	ogImage: string;
-	description: string;
-	links: Record<T, NavItem>;
-	location?: string;
+  name: string
+  url: string
+  ogImage: string
+  description: string
+  links: Record<T, NavItem>
+  location?: string
 }

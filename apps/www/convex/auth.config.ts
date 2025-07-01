@@ -1,10 +1,10 @@
-import { env } from "./env.js";
+import { env } from "./env.js"
 
 export default {
-	providers: [
-		{
-			domain: env.CONVEX_SITE_URL,
-			applicationID: "convex",
-		},
-	],
-};
+  providers: [
+    {
+      domain: env.CONVEX_SITE_URL,
+      applicationID: "convex",
+    },
+  ],
+}

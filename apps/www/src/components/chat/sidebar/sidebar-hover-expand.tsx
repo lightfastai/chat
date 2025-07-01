@@ -1,44 +1,44 @@
-"use client";
+"use client"
 
-import { useSidebar } from "@lightfast/ui/components/ui/sidebar";
-import { cn } from "@lightfast/ui/lib/utils";
-import { ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useSidebar } from "@lightfast/ui/components/ui/sidebar"
+import { cn } from "@lightfast/ui/lib/utils"
+import { ChevronRight } from "lucide-react"
+import { useState } from "react"
 
 export function SidebarHoverExpand() {
-	const { state, setOpen } = useSidebar();
-	const [isHovered, setIsHovered] = useState(false);
+  const { state, setOpen } = useSidebar()
+  const [isHovered, setIsHovered] = useState(false)
 
-	if (state === "expanded") return null;
+  if (state === "expanded") return null
 
-	return (
-		<div
-			className="absolute left-0 right-0 bottom-0 top-0 group/expand cursor-pointer z-10"
-			onMouseEnter={() => setIsHovered(true)}
-			onMouseLeave={() => setIsHovered(false)}
-			onClick={() => setOpen(true)}
-			role="button"
-			aria-label="Expand sidebar"
-			tabIndex={0}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					setOpen(true);
-				}
-			}}
-		>
-			{/* Visible expand icon on hover */}
-			<div
-				className={cn(
-					"absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md",
-					"flex items-center justify-center",
-					"bg-sidebar-accent text-sidebar-accent-foreground",
-					"transition-opacity duration-200",
-					isHovered ? "opacity-100" : "opacity-0",
-				)}
-			>
-				<ChevronRight className="w-4 h-4" />
-			</div>
-		</div>
-	);
+  return (
+    <div
+      className="absolute left-0 right-0 bottom-0 top-0 group/expand cursor-pointer z-10"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => setOpen(true)}
+      role="button"
+      aria-label="Expand sidebar"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          setOpen(true)
+        }
+      }}
+    >
+      {/* Visible expand icon on hover */}
+      <div
+        className={cn(
+          "absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md",
+          "flex items-center justify-center",
+          "bg-sidebar-accent text-sidebar-accent-foreground",
+          "transition-opacity duration-200",
+          isHovered ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <ChevronRight className="w-4 h-4" />
+      </div>
+    </div>
+  )
 }

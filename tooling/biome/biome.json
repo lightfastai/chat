@@ -26,6 +26,9 @@
   },
   "javascript": {
     "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2,
       "jsxQuoteStyle": "double",
       "quoteProperties": "asNeeded",
       "semicolons": "asNeeded",
@@ -33,6 +36,13 @@
       "bracketSameLine": false,
       "bracketSpacing": true,
       "quoteStyle": "double"
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2
     }
   },
   "files": {

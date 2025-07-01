@@ -5,7 +5,7 @@
  * These tools extend AI capabilities with external services and functionalities.
  */
 
-export { createWebSearchTool } from "../messages/tools.js";
+export { createWebSearchTool } from "../messages/tools.js"
 
 // Future tools can be added here:
 // - createImageGenerationTool

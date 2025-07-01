@@ -1,9 +1,9 @@
 interface SettingsLayoutProps {
-	children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export default async function SettingsLayout({
-	children,
+  children,
 }: SettingsLayoutProps) {
-	return <>{children}</>;
+  return <>{children}</>
 }
