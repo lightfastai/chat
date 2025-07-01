@@ -195,6 +195,7 @@ export function useChat({
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
+		setMessages,
 	} = useVercelChat({
 		id: chatId,
 		transport,
@@ -239,6 +240,16 @@ export function useChat({
 
 				// Update URL FIRST for immediate navigation feedback
 				window.history.replaceState({}, "", `/chat/${chatClientId}`);
+
+				// Add user message immediately for instant UI feedback
+				const userMessage = {
+					id: nanoid(),
+					role: "user" as const,
+					parts: [{ type: "text" as const, text: message }],
+				};
+
+				// Set messages immediately for instant user feedback
+				setMessages([...uiMessages, userMessage]);
 
 				// Create thread optimistically (just thread, not messages)
 				try {

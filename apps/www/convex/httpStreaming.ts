@@ -619,8 +619,20 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			}
 
 			console.log("[HTTP Streaming] Returning UI message stream response");
+			
+			// Filter out user messages from the response to prevent duplicates
+			// Frontend will handle user messages optimistically
+			const filteredUIMessages = uiMessages?.filter(msg => msg.role !== "user") || [];
+			
+			console.log("[HTTP Streaming] Filtered UI messages:", {
+				originalCount: uiMessages?.length || 0,
+				filteredCount: filteredUIMessages.length,
+				removedUserMessages: (uiMessages?.length || 0) - filteredUIMessages.length
+			});
+			
 			return result.toUIMessageStreamResponse({
 				headers: responseHeaders,
+				originalMessages: filteredUIMessages as UIMessage[],
 			});
 		} catch (error) {
 			// Clean up timer on error
