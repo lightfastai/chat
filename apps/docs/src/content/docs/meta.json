@@ -1,13 +1,13 @@
 {
-  "title": "Documentation",
-  "pages": [
-    "overview",
-    "getting-started",
-    "guides",
-    "development",
-    "architecture",
-    "features",
-    "reference",
-    "resources"
-  ]
+	"title": "Documentation",
+	"pages": [
+		"overview",
+		"getting-started",
+		"guides",
+		"development",
+		"architecture",
+		"features",
+		"reference",
+		"resources"
+	]
 }

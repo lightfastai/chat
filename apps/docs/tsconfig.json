@@ -1,18 +1,18 @@
 {
-  "extends": "@repo/typescript/nextjs",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"]
-    },
-    "noUncheckedIndexedAccess": false
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".source/**/*"
-  ],
-  "exclude": ["node_modules", "tmp_repo"]
+	"extends": "@repo/typescript/nextjs",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./*"]
+		},
+		"noUncheckedIndexedAccess": false
+	},
+	"include": [
+		"next-env.d.ts",
+		"**/*.ts",
+		"**/*.tsx",
+		".next/types/**/*.ts",
+		".source/**/*"
+	],
+	"exclude": ["node_modules", "tmp_repo"]
 }

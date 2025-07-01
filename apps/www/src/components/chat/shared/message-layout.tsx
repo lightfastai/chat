@@ -1,62 +1,62 @@
-import { cn } from "@lightfast/ui/lib/utils"
-import type React from "react"
+import { cn } from "@lightfast/ui/lib/utils";
+import type React from "react";
 
 export interface MessageLayoutProps {
-  avatar: React.ReactNode
-  content: React.ReactNode
-  timestamp?: React.ReactNode
-  actions?: React.ReactNode
-  messageType: "user" | "assistant" | "system"
-  className?: string
-  forceActionsVisible?: boolean
+	avatar: React.ReactNode;
+	content: React.ReactNode;
+	timestamp?: React.ReactNode;
+	actions?: React.ReactNode;
+	messageType: "user" | "assistant" | "system";
+	className?: string;
+	forceActionsVisible?: boolean;
 }
 
 export function MessageLayout({
-  content,
-  timestamp,
-  actions,
-  messageType,
-  className,
-  forceActionsVisible = false,
+	content,
+	timestamp,
+	actions,
+	messageType,
+	className,
+	forceActionsVisible = false,
 }: MessageLayoutProps) {
-  const isAssistant = messageType === "assistant"
-  const isSystem = messageType === "system"
-  const isUser = messageType === "user"
+	const isAssistant = messageType === "assistant";
+	const isSystem = messageType === "system";
+	const isUser = messageType === "user";
 
-  return (
-    <div
-      className={cn(
-        "group/message",
-        isAssistant ? "mt-12" : isSystem ? "mt-2" : "mt-4",
-        isUser && "flex justify-end",
-        className,
-      )}
-    >
-      <div
-        className={cn(
-          "relative",
-          isUser
-            ? "max-w-[80%] border border-muted/30 rounded-xl px-4 py-1 bg-transparent dark:bg-input/30"
-            : "flex-1",
-        )}
-      >
-        {content}
-        {timestamp && (
-          <div className="text-xs text-muted-foreground mt-1">{timestamp}</div>
-        )}
-        {actions && (
-          <div
-            className={cn(
-              "mt-3 transition-opacity",
-              forceActionsVisible
-                ? "opacity-100"
-                : "opacity-0 group-hover/message:opacity-100",
-            )}
-          >
-            {actions}
-          </div>
-        )}
-      </div>
-    </div>
-  )
+	return (
+		<div
+			className={cn(
+				"group/message",
+				isAssistant ? "mt-12" : isSystem ? "mt-2" : "mt-4",
+				isUser && "flex justify-end",
+				className,
+			)}
+		>
+			<div
+				className={cn(
+					"relative",
+					isUser
+						? "max-w-[80%] border border-muted/30 rounded-xl px-4 py-1 bg-transparent dark:bg-input/30"
+						: "flex-1",
+				)}
+			>
+				{content}
+				{timestamp && (
+					<div className="text-xs text-muted-foreground mt-1">{timestamp}</div>
+				)}
+				{actions && (
+					<div
+						className={cn(
+							"mt-3 transition-opacity",
+							forceActionsVisible
+								? "opacity-100"
+								: "opacity-0 group-hover/message:opacity-100",
+						)}
+					>
+						{actions}
+					</div>
+				)}
+			</div>
+		</div>
+	);
 }
