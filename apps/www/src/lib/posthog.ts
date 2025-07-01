@@ -1,5 +1,5 @@
-import posthog from "posthog-js";
 import { env } from "@/env";
+import posthog from "posthog-js";
 
 export const posthogClient =
 	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY || "", {
