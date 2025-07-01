@@ -195,6 +195,7 @@ export function useChat({
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
+		setMessages,
 	} = useVercelChat({
 		id: chatId,
 		transport,
@@ -240,23 +241,27 @@ export function useChat({
 				// Update URL FIRST for immediate navigation feedback
 				window.history.replaceState({}, "", `/chat/${chatClientId}`);
 
-				// Then create thread and messages optimistically for instant UI update
+				// Add user message immediately with setMessages for instant UI feedback
+				const userMessage = {
+					id: nanoid(),
+					role: "user" as const,
+					parts: [{ type: "text" as const, text: message }],
+				};
+
+				// Set messages immediately for instant UI update (just user message)
+				// The assistant response will be added naturally when streaming starts
+				setMessages([...uiMessages, userMessage]);
+
+				// Create thread optimistically (just thread, not messages)
 				try {
-					// This will instantly update the UI with the new thread AND messages
-					const result = await createThreadOptimistic({
+					const threadId = await createThreadOptimistic({
 						clientId: chatClientId,
 						title: "New chat", // Title will be generated server-side
-						userMessage: message, // Include user message for optimistic creation
-						modelId: selectedModelId, // Include model for optimistic creation
 					});
 					
-					threadIdToUse = result.threadId;
+					threadIdToUse = threadId;
 					
-					console.log("[use-chat] Created optimistic thread and messages:", {
-						threadId: result.threadId,
-						userMessageId: result.userMessageId,
-						assistantMessageId: result.assistantMessageId,
-					});
+					console.log("[use-chat] Created optimistic thread:", threadId);
 				} catch (error) {
 					console.error("Failed to create thread optimistically:", error);
 					// Continue without thread ID - HTTP endpoint will create it
