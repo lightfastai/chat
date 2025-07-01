@@ -3,54 +3,54 @@ import { vercel } from "@t3-oss/env-nextjs/presets-zod";
 import { z } from "zod";
 
 export const env = createEnv({
-	extends: [vercel()],
-	/*
-	 * Server-side environment variables, not available on the client.
-	 * Will throw if you access these variables on the client.
-	 */
-	server: {
-		// Convex handles deployment vs deploy key automatically
-		// In development: CONVEX_DEPLOYMENT is used
-		// In production: CONVEX_DEPLOY_KEY is used
-		// We only need to validate what we actually use in our app
+  extends: [vercel()],
+  /*
+   * Server-side environment variables, not available on the client.
+   * Will throw if you access these variables on the client.
+   */
+  server: {
+    // Convex handles deployment vs deploy key automatically
+    // In development: CONVEX_DEPLOYMENT is used
+    // In production: CONVEX_DEPLOY_KEY is used
+    // We only need to validate what we actually use in our app
 
-		// AI API Keys for Convex backend
-		OPENAI_API_KEY: z.string().min(1, "OpenAI API key is required"),
-		ANTHROPIC_API_KEY: z
-			.string()
-			.min(1, "Anthropic API key is required for Claude Sonnet 4"),
-		OPENROUTER_API_KEY: z.string().min(1, "OpenRouter API key is required"),
-		EXA_API_KEY: z.string().min(1, "Exa API key is required for web search"),
+    // AI API Keys for Convex backend
+    OPENAI_API_KEY: z.string().min(1, "OpenAI API key is required"),
+    ANTHROPIC_API_KEY: z
+      .string()
+      .min(1, "Anthropic API key is required for Claude Sonnet 4"),
+    OPENROUTER_API_KEY: z.string().min(1, "OpenRouter API key is required"),
+    EXA_API_KEY: z.string().min(1, "Exa API key is required for web search"),
 
-		// GitHub OAuth for Convex Auth
-		AUTH_GITHUB_ID: z.string().optional(),
-		AUTH_GITHUB_SECRET: z.string().optional(),
-		// DEPRECATED: SITE_URL is no longer used - was previously for OpenRouter HTTP headers
-		SITE_URL: z.string().url().optional(),
-		// JWT private key for authentication tokens
-		JWT_PRIVATE_KEY: z.string(),
-		// JWKS for JWT verification
-		JWKS: z.string(),
-		// Docs deployment URL for rewrites
-		DOCS_URL: z.string().url().default("https://lightfast-docs.vercel.app"),
+    // GitHub OAuth for Convex Auth
+    AUTH_GITHUB_ID: z.string().optional(),
+    AUTH_GITHUB_SECRET: z.string().optional(),
+    // DEPRECATED: SITE_URL is no longer used - was previously for OpenRouter HTTP headers
+    SITE_URL: z.string().url().optional(),
+    // JWT private key for authentication tokens
+    JWT_PRIVATE_KEY: z.string(),
+    // JWKS for JWT verification
+    JWKS: z.string(),
+    // Docs deployment URL for rewrites
+    DOCS_URL: z.string().url().default("https://lightfast-docs.vercel.app"),
 
-		// Sentry configuration (optional for server-side source map uploads)
-		SENTRY_ORG: z.string().default("lightfast"),
-		SENTRY_PROJECT: z.string().default("lightfast-chat"),
-		SENTRY_AUTH_TOKEN: z.string().optional(),
-	},
-	/*
-	 * Environment variables available on the client (and server).
-	 * 💡 You'll get type errors if these are not prefixed with NEXT_PUBLIC_.
-	 */
-	client: {
-		// Convex URL for client-side connections
-		// This is the only Convex variable our app actually needs
-		NEXT_PUBLIC_CONVEX_URL: z.string().url(),
-		// Vercel environment for client-side deployment detection
-		NEXT_PUBLIC_VERCEL_ENV: z
-			.enum(["production", "preview", "development"])
-			.optional(),
+    // Sentry configuration (optional for server-side source map uploads)
+    SENTRY_ORG: z.string().default("lightfast"),
+    SENTRY_PROJECT: z.string().default("lightfast-chat"),
+    SENTRY_AUTH_TOKEN: z.string().optional(),
+  },
+  /*
+   * Environment variables available on the client (and server).
+   * 💡 You'll get type errors if these are not prefixed with NEXT_PUBLIC_.
+   */
+  client: {
+    // Convex URL for client-side connections
+    // This is the only Convex variable our app actually needs
+    NEXT_PUBLIC_CONVEX_URL: z.string().url(),
+    // Vercel environment for client-side deployment detection
+    NEXT_PUBLIC_VERCEL_ENV: z
+      .enum(["production", "preview", "development"])
+      .optional(),
 
     // Sentry client configuration
     NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),

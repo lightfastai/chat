@@ -10,7 +10,7 @@ const convex = new ConvexReactClient(env.NEXT_PUBLIC_CONVEX_URL, {
 });
 
 export const ConvexClientProvider = ({
-	children,
+  children,
 }: {
   children: ReactNode;
 }) => {
