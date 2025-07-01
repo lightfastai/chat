@@ -312,6 +312,162 @@ All apps extend the root `biome.json`:
 6. Update `turbo.json` if needed
 7. Set up Vercel deployment
 
+## Adding Third-Party Integrations (e.g., Analytics, Monitoring)
+
+When adding new third-party services that require API keys or configuration, follow this checklist:
+
+### 1. Install Dependencies
+**IMPORTANT**: Install dependencies in the specific app that needs them, NOT in the root package.json:
+```bash
+# ✅ Correct - Install in the app directory
+cd apps/www
+pnpm add posthog-js posthog-node
+
+# ❌ Wrong - Don't install at root
+pnpm add posthog-js posthog-node -w
+```
+
+### 2. Add Environment Variables to env.ts
+Update `apps/www/src/env.ts` to validate the new environment variables:
+
+#### For Client-Side Variables (accessible in browser):
+```typescript
+// In the client object
+client: {
+  // ... existing vars ...
+  NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+  NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
+}
+
+// In runtimeEnv
+runtimeEnv: {
+  // ... existing vars ...
+  NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+  NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+}
+```
+
+#### For Server-Side Variables (backend only):
+```typescript
+// In the server object
+server: {
+  // ... existing vars ...
+  SENTRY_DSN: z.string().url().optional(),
+  SLACK_WEBHOOK_URL: z.string().url().optional(),
+}
+
+// In runtimeEnv
+runtimeEnv: {
+  // ... existing vars ...
+  SENTRY_DSN: process.env.SENTRY_DSN,
+  SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL,
+}
+```
+
+### 3. Update turbo.json
+Add the environment variables to `turbo.json` so Turborepo can properly cache builds:
+```json
+{
+  "globalEnv": [
+    // ... existing vars ...
+    "NEXT_PUBLIC_POSTHOG_KEY",
+    "NEXT_PUBLIC_POSTHOG_HOST",
+    "SENTRY_DSN",
+    "SLACK_WEBHOOK_URL"
+  ]
+}
+```
+
+### 4. Update .env.example
+Document the new environment variables:
+```bash
+# Analytics (optional)
+NEXT_PUBLIC_POSTHOG_KEY=phc-your-posthog-project-key  # PostHog project API key
+NEXT_PUBLIC_POSTHOG_HOST=https://us.posthog.com      # PostHog host URL
+
+# Monitoring (optional)
+SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx      # Sentry error tracking
+```
+
+### 5. Use Validated Environment Variables
+Always import from the validated env object, not process.env directly:
+```typescript
+// ✅ Correct
+import { env } from "@/env"
+const posthogKey = env.NEXT_PUBLIC_POSTHOG_KEY
+
+// ❌ Wrong
+const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+```
+
+### 6. Handle Optional Integrations Gracefully
+Since many integrations are optional, handle missing keys gracefully:
+```typescript
+// Initialize only if key is provided
+export const posthogClient = env.NEXT_PUBLIC_POSTHOG_KEY
+  ? posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+      api_host: "/ingest",
+      // ... config
+    })
+  : null
+
+// Use conditionally
+if (posthogClient) {
+  posthogClient.capture("event", { property: "value" })
+}
+```
+
+### 7. Consider Reverse Proxies
+For client-side analytics to avoid ad blockers, set up reverse proxies in `next.config.ts`:
+```typescript
+async rewrites() {
+  return [
+    // PostHog reverse proxy
+    {
+      source: "/ingest/static/:path*",
+      destination: "https://us-assets.i.posthog.com/static/:path*",
+    },
+    {
+      source: "/ingest/:path*",
+      destination: "https://us.i.posthog.com/:path*",
+    },
+  ]
+}
+```
+
+### Integration Checklist
+- [ ] Dependencies installed in correct app directory
+- [ ] Environment variables added to `env.ts` (client or server)
+- [ ] Environment variables added to `turbo.json`
+- [ ] Environment variables documented in `.env.example`
+- [ ] Integration uses validated env object
+- [ ] Optional integration handled gracefully
+- [ ] Reverse proxy configured if needed
+- [ ] Build passes with `SKIP_ENV_VALIDATION=true`
+- [ ] Documentation updated in relevant CLAUDE.md files
+
+### Common Integration Examples
+
+#### Analytics (Client-Side)
+- PostHog, Mixpanel, Amplitude
+- Environment vars: `NEXT_PUBLIC_*`
+- Usually needs reverse proxy
+
+#### Error Tracking (Client + Server)
+- Sentry, Rollbar, Bugsnag
+- Environment vars: Both server and client
+- Needs initialization in both environments
+
+#### Monitoring (Server-Side)
+- Datadog, New Relic, AppSignal
+- Environment vars: Server only
+- May need custom Next.js instrumentation
+
+#### Feature Flags (Client + Server)
+- LaunchDarkly, Flagsmith, Unleash
+- Environment vars: Both server and client
+- Needs provider component for React
+
 ## Best Practices
 
 1. **Keep apps focused** - Each app should have a single purpose
@@ -319,3 +475,5 @@ All apps extend the root `biome.json`:
 3. **Use workspace protocols** - For internal package dependencies
 4. **Configure at root** - Shared configs should be at monorepo root
 5. **Document deployment** - Each app should document its deployment process
+6. **Validate environment variables** - Always use env.ts for type safety
+7. **Handle optional integrations** - Don't break the app if keys are missing
