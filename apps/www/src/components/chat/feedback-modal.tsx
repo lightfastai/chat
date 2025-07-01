@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { Button } from "@lightfast/ui/components/ui/button"
-import { Checkbox } from "@lightfast/ui/components/ui/checkbox"
+import { Button } from "@lightfast/ui/components/ui/button";
+import { Checkbox } from "@lightfast/ui/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@lightfast/ui/components/ui/dialog"
-import { Label } from "@lightfast/ui/components/ui/label"
-import { Textarea } from "@lightfast/ui/components/ui/textarea"
-import { useMutation } from "convex/react"
-import React from "react"
-import { api } from "../../../convex/_generated/api"
-import type { Doc, Id } from "../../../convex/_generated/dataModel"
+} from "@lightfast/ui/components/ui/dialog";
+import { Label } from "@lightfast/ui/components/ui/label";
+import { Textarea } from "@lightfast/ui/components/ui/textarea";
+import { useMutation } from "convex/react";
+import React from "react";
+import { api } from "../../../convex/_generated/api";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const feedbackOptions = [
   { value: "not_helpful", label: "Not helpful" },
@@ -24,15 +24,15 @@ const feedbackOptions = [
   { value: "repetitive", label: "Being lazy" },
   { value: "incomplete", label: "Don't like style" },
   { value: "off_topic", label: "Bad recommendation" },
-] as const
+] as const;
 
-type FeedbackReason = (typeof feedbackOptions)[number]["value"]
+type FeedbackReason = (typeof feedbackOptions)[number]["value"];
 
 interface FeedbackModalProps {
-  isOpen: boolean
-  onClose: () => void
-  messageId: Id<"messages">
-  existingFeedback?: Doc<"feedback"> | null
+  isOpen: boolean;
+  onClose: () => void;
+  messageId: Id<"messages">;
+  existingFeedback?: Doc<"feedback"> | null;
 }
 
 export function FeedbackModal({
@@ -41,47 +41,47 @@ export function FeedbackModal({
   messageId,
   existingFeedback,
 }: FeedbackModalProps) {
-  const [comment, setComment] = React.useState("")
+  const [comment, setComment] = React.useState("");
   const [selectedReasons, setSelectedReasons] = React.useState<
     FeedbackReason[]
-  >([])
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  >([]);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
-      setComment(existingFeedback?.comment || "")
+      setComment(existingFeedback?.comment || "");
       setSelectedReasons(
         (existingFeedback?.reasons as FeedbackReason[] | undefined) || [],
-      )
+      );
     }
-  }, [isOpen, existingFeedback])
+  }, [isOpen, existingFeedback]);
 
-  const submitFeedback = useMutation(api.feedback.submitFeedback)
+  const submitFeedback = useMutation(api.feedback.submitFeedback);
 
   const handleReasonChange = (reason: FeedbackReason) => {
     setSelectedReasons((prev) =>
       prev.includes(reason)
         ? prev.filter((r) => r !== reason)
         : [...prev, reason],
-    )
-  }
+    );
+  };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       await submitFeedback({
         messageId,
         rating: "thumbs_down",
         comment: comment.trim() || undefined,
         reasons: selectedReasons,
-      })
-      onClose()
+      });
+      onClose();
     } catch (error) {
-      console.error("Error submitting feedback:", error)
+      console.error("Error submitting feedback:", error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -138,5 +138,5 @@ export function FeedbackModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

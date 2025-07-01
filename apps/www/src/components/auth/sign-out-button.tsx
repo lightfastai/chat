@@ -1,26 +1,26 @@
-"use client"
+"use client";
 
-import { useAuthActions } from "@convex-dev/auth/react"
-import { Button } from "@lightfast/ui/components/ui/button"
-import { useConvexAuth } from "convex/react"
-import { LogOut } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useAuthActions } from "@convex-dev/auth/react";
+import { Button } from "@lightfast/ui/components/ui/button";
+import { useConvexAuth } from "convex/react";
+import { LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface SignOutButtonProps {
-  className?: string
-  size?: "default" | "sm" | "lg" | "icon"
+  className?: string;
+  size?: "default" | "sm" | "lg" | "icon";
   variant?:
     | "default"
     | "destructive"
     | "outline"
     | "secondary"
     | "ghost"
-    | "link"
-  children?: React.ReactNode
-  redirectTo?: string
-  showOnlyWhenAuthenticated?: boolean
-  onSignOutStart?: () => void
-  onSignOutComplete?: () => void
+    | "link";
+  children?: React.ReactNode;
+  redirectTo?: string;
+  showOnlyWhenAuthenticated?: boolean;
+  onSignOutStart?: () => void;
+  onSignOutComplete?: () => void;
 }
 
 export function SignOutButton({
@@ -33,26 +33,26 @@ export function SignOutButton({
   onSignOutStart,
   onSignOutComplete,
 }: SignOutButtonProps) {
-  const { isAuthenticated } = useConvexAuth()
-  const { signOut } = useAuthActions()
-  const router = useRouter()
+  const { isAuthenticated } = useConvexAuth();
+  const { signOut } = useAuthActions();
+  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
-      onSignOutStart?.()
-      await signOut()
+      onSignOutStart?.();
+      await signOut();
       if (redirectTo) {
-        router.push(redirectTo)
+        router.push(redirectTo);
       }
-      onSignOutComplete?.()
+      onSignOutComplete?.();
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error("Error signing out:", error);
     }
-  }
+  };
 
   // Don't render if user is not authenticated and showOnlyWhenAuthenticated is true
   if (showOnlyWhenAuthenticated && !isAuthenticated) {
-    return null
+    return null;
   }
 
   return (
@@ -69,5 +69,5 @@ export function SignOutButton({
         </>
       )}
     </Button>
-  )
+  );
 }

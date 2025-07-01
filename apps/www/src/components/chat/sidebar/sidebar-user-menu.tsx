@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { usePlatformShortcuts } from "@/hooks/use-platform-shortcuts"
-import { siteConfig } from "@/lib/site-config"
-import { useAuthActions } from "@convex-dev/auth/react"
+import { usePlatformShortcuts } from "@/hooks/use-platform-shortcuts";
+import { siteConfig } from "@/lib/site-config";
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@lightfast/ui/components/ui/avatar"
+} from "@lightfast/ui/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,44 +15,50 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@lightfast/ui/components/ui/dropdown-menu"
+} from "@lightfast/ui/components/ui/dropdown-menu";
 import {
   SidebarMenuButton,
   useSidebar,
-} from "@lightfast/ui/components/ui/sidebar"
-import type { Preloaded } from "convex/react"
-import { usePreloadedQuery } from "convex/react"
-import { ChevronDown, ExternalLink, LogOut, Settings, User } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import type { api } from "../../../../convex/_generated/api"
+} from "@lightfast/ui/components/ui/sidebar";
+import type { Preloaded } from "convex/react";
+import { usePreloadedQuery } from "convex/react";
+import {
+  ChevronDown,
+  ExternalLink,
+  LogOut,
+  Settings,
+  User,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import type { api } from "../../../../convex/_generated/api";
 
 interface SidebarUserMenuProps {
-  preloadedUser: Preloaded<typeof api.users.current>
+  preloadedUser: Preloaded<typeof api.users.current>;
 }
 
 export function SidebarUserMenu({ preloadedUser }: SidebarUserMenuProps) {
-  const { signOut } = useAuthActions()
-  const router = useRouter()
-  const currentUser = usePreloadedQuery(preloadedUser)
-  const { state } = useSidebar()
-  const [open, setOpen] = useState(false)
-  const { getShortcut } = usePlatformShortcuts()
+  const { signOut } = useAuthActions();
+  const router = useRouter();
+  const currentUser = usePreloadedQuery(preloadedUser);
+  const { state } = useSidebar();
+  const [open, setOpen] = useState(false);
+  const { getShortcut } = usePlatformShortcuts();
 
   // Close dropdown when sidebar state changes
   useEffect(() => {
-    setOpen(false)
-  }, [state])
+    setOpen(false);
+  }, [state]);
 
   const handleSignOut = async () => {
-    await signOut()
-    router.push("/signin")
-  }
+    await signOut();
+    router.push("/signin");
+  };
 
-  const displayName = currentUser?.name || currentUser?.email || "User"
-  const displayEmail = currentUser?.email || "No email"
-  const settingsShortcut = getShortcut("openSettings")
+  const displayName = currentUser?.name || currentUser?.email || "User";
+  const displayEmail = currentUser?.email || "No email";
+  const settingsShortcut = getShortcut("openSettings");
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -135,5 +141,5 @@ export function SidebarUserMenu({ preloadedUser }: SidebarUserMenuProps) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

@@ -1,20 +1,20 @@
-import { SidebarProvider } from "@lightfast/ui/components/ui/sidebar"
-import { cookies } from "next/headers"
-import { Suspense } from "react"
-import { ShareButtonWrapper } from "./share-button-wrapper"
-import { ServerSidebar } from "./sidebar/server-sidebar"
-import { TokenUsageHeaderWrapper } from "./token-usage-header-wrapper"
+import { SidebarProvider } from "@lightfast/ui/components/ui/sidebar";
+import { cookies } from "next/headers";
+import { Suspense } from "react";
+import { ShareButtonWrapper } from "./share-button-wrapper";
+import { ServerSidebar } from "./sidebar/server-sidebar";
+import { TokenUsageHeaderWrapper } from "./token-usage-header-wrapper";
 
 interface ChatLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 // Main layout component - server component with PPR
 export async function ChatLayout({ children }: ChatLayoutProps) {
   // Read sidebar state from cookies on server
-  const cookieStore = await cookies()
-  const sidebarState = cookieStore.get("sidebar_state")?.value
-  const sidebarOpen = sidebarState === "true"
+  const cookieStore = await cookies();
+  const sidebarState = cookieStore.get("sidebar_state")?.value;
+  const sidebarOpen = sidebarState === "true";
 
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
@@ -50,5 +50,5 @@ export async function ChatLayout({ children }: ChatLayoutProps) {
         </div>
       </div>
     </SidebarProvider>
-  )
+  );
 }

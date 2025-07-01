@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useFileDrop } from "@/hooks/use-file-drop"
+import { useFileDrop } from "@/hooks/use-file-drop";
 import {
   DEFAULT_MODEL_ID,
   type ModelId,
@@ -9,9 +9,9 @@ import {
   getModelConfig,
   getVisibleModels,
   validateAttachmentsForModel,
-} from "@/lib/ai"
-import { preprocessUserMessage } from "@/lib/message-preprocessing"
-import { Button } from "@lightfast/ui/components/ui/button"
+} from "@/lib/ai";
+import { preprocessUserMessage } from "@/lib/message-preprocessing";
+import { Button } from "@lightfast/ui/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,15 +21,15 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@lightfast/ui/components/ui/dropdown-menu"
-import { ScrollArea, ScrollBar } from "@lightfast/ui/components/ui/scroll-area"
-import { Textarea } from "@lightfast/ui/components/ui/textarea"
+} from "@lightfast/ui/components/ui/dropdown-menu";
+import { ScrollArea, ScrollBar } from "@lightfast/ui/components/ui/scroll-area";
+import { Textarea } from "@lightfast/ui/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@lightfast/ui/components/ui/tooltip"
-import { useMutation } from "convex/react"
+} from "@lightfast/ui/components/ui/tooltip";
+import { useMutation } from "convex/react";
 import {
   ArrowUp,
   Brain,
@@ -43,7 +43,7 @@ import {
   Paperclip,
   Wrench,
   X,
-} from "lucide-react"
+} from "lucide-react";
 import {
   forwardRef,
   memo,
@@ -53,11 +53,11 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react"
-import { toast } from "sonner"
-import { api } from "../../../convex/_generated/api"
-import type { Id } from "../../../convex/_generated/dataModel"
-import { useKeyboardShortcutsContext } from "../providers/keyboard-shortcuts-provider"
+} from "react";
+import { toast } from "sonner";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { useKeyboardShortcutsContext } from "../providers/keyboard-shortcuts-provider";
 
 interface ChatInputProps {
   onSendMessage: (
@@ -65,23 +65,23 @@ interface ChatInputProps {
     modelId: string,
     attachments?: Id<"files">[],
     webSearchEnabled?: boolean,
-  ) => Promise<void> | void
-  isLoading?: boolean
-  placeholder?: string
-  disabled?: boolean
-  maxLength?: number
-  className?: string
-  showDisclaimer?: boolean
-  value?: string
-  onChange?: (value: string) => void
+  ) => Promise<void> | void;
+  isLoading?: boolean;
+  placeholder?: string;
+  disabled?: boolean;
+  maxLength?: number;
+  className?: string;
+  showDisclaimer?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 interface FileAttachment {
-  id: Id<"files">
-  name: string
-  size: number
-  type: string
-  url?: string
+  id: Id<"files">;
+  name: string;
+  size: number;
+  type: string;
+  url?: string;
 }
 
 // Icon component mapper for capability icons
@@ -94,11 +94,11 @@ const CapabilityIcon = ({
     FileText,
     Wrench,
     Brain,
-  } as const
+  } as const;
 
-  const IconComponent = iconMap[iconName as keyof typeof iconMap]
-  return IconComponent ? <IconComponent className={className} /> : null
-}
+  const IconComponent = iconMap[iconName as keyof typeof iconMap];
+  return IconComponent ? <IconComponent className={className} /> : null;
+};
 
 const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
   (
@@ -115,143 +115,143 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
     },
     ref,
   ) => {
-    const [internalMessage, setInternalMessage] = useState("")
+    const [internalMessage, setInternalMessage] = useState("");
 
     // Use controlled value if provided, otherwise use internal state
-    const message = value !== undefined ? value : internalMessage
+    const message = value !== undefined ? value : internalMessage;
     const setMessage =
-      value !== undefined ? onChange || (() => {}) : setInternalMessage
-    const [isSending, setIsSending] = useState(false)
+      value !== undefined ? onChange || (() => {}) : setInternalMessage;
+    const [isSending, setIsSending] = useState(false);
 
     // Initialize selectedModelId from sessionStorage to persist across navigation
     const [selectedModelId, setSelectedModelId] = useState<string>(() => {
       if (typeof window !== "undefined") {
-        const storedModel = sessionStorage.getItem("selectedModelId")
-        return storedModel || DEFAULT_MODEL_ID
+        const storedModel = sessionStorage.getItem("selectedModelId");
+        return storedModel || DEFAULT_MODEL_ID;
       }
-      return DEFAULT_MODEL_ID
-    })
+      return DEFAULT_MODEL_ID;
+    });
 
-    const [attachments, setAttachments] = useState<FileAttachment[]>([])
-    const [isUploading, setIsUploading] = useState(false)
-    const [webSearchEnabled, setWebSearchEnabled] = useState(false)
-    const textareaRef = useRef<HTMLTextAreaElement>(null)
-    const fileInputRef = useRef<HTMLInputElement>(null)
-    const keyboardShortcuts = useKeyboardShortcutsContext()
+    const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const keyboardShortcuts = useKeyboardShortcutsContext();
 
-    const generateUploadUrl = useMutation(api.files.generateUploadUrl)
-    const createFile = useMutation(api.files.createFile)
+    const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+    const createFile = useMutation(api.files.createFile);
 
     // Determine if submission should be disabled (but allow typing)
     const isSubmitDisabled = useMemo(
       () => disabled || isLoading || isSending,
       [disabled, isLoading, isSending],
-    )
+    );
 
     // Memoize expensive computations
-    const allModels = useMemo(() => getVisibleModels(), [])
+    const allModels = useMemo(() => getVisibleModels(), []);
     const selectedModel = useMemo(
       () => getModelConfig(selectedModelId as ModelId),
       [selectedModelId],
-    )
+    );
 
     // Memoize models grouping
     const modelsByProvider = useMemo(() => {
       return allModels.reduce(
         (acc, model) => {
           if (!acc[model.provider]) {
-            acc[model.provider] = []
+            acc[model.provider] = [];
           }
-          acc[model.provider].push(model)
-          return acc
+          acc[model.provider].push(model);
+          return acc;
         },
         {} as Record<string, typeof allModels>,
-      )
-    }, [allModels])
+      );
+    }, [allModels]);
 
     // Provider display names
     const providerNames: Record<string, string> = {
       openai: "OpenAI",
       anthropic: "Anthropic",
       openrouter: "OpenRouter",
-    }
+    };
 
     // Memoize textarea height adjustment
     const adjustTextareaHeight = useCallback(() => {
-      const textarea = textareaRef.current
-      if (!textarea) return
+      const textarea = textareaRef.current;
+      if (!textarea) return;
 
       // Reset height to get accurate scrollHeight
-      textarea.style.height = "auto"
+      textarea.style.height = "auto";
       // Let textarea grow naturally, container will handle overflow
-      textarea.style.height = `${textarea.scrollHeight}px`
-    }, [])
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }, []);
 
     useEffect(() => {
-      adjustTextareaHeight()
-    }, [message, adjustTextareaHeight])
+      adjustTextareaHeight();
+    }, [message, adjustTextareaHeight]);
 
     // Auto-focus the textarea when component mounts
     useEffect(() => {
-      textareaRef.current?.focus()
-    }, [])
+      textareaRef.current?.focus();
+    }, []);
 
     // Focus chat input callback
     const focusChatInput = useCallback(() => {
-      textareaRef.current?.focus()
-    }, [])
+      textareaRef.current?.focus();
+    }, []);
 
     // Register focus callback with keyboard shortcuts context
     useEffect(() => {
-      keyboardShortcuts.registerChatInputFocus(focusChatInput)
+      keyboardShortcuts.registerChatInputFocus(focusChatInput);
       return () => {
-        keyboardShortcuts.unregisterChatInputFocus()
-      }
-    }, [keyboardShortcuts, focusChatInput])
+        keyboardShortcuts.unregisterChatInputFocus();
+      };
+    }, [keyboardShortcuts, focusChatInput]);
 
     // Expose the textarea ref for parent components
     useImperativeHandle(
       ref,
       () => textareaRef.current as HTMLTextAreaElement,
       [],
-    )
+    );
 
     // File upload handler
     const handleFileUpload = useCallback(
       async (files: FileList) => {
-        if (files.length === 0) return
+        if (files.length === 0) return;
 
-        setIsUploading(true)
-        const newAttachments: FileAttachment[] = []
+        setIsUploading(true);
+        const newAttachments: FileAttachment[] = [];
 
         try {
           for (const file of Array.from(files)) {
             // Validate file size (10MB max)
             if (file.size > 10 * 1024 * 1024) {
-              const sizeInMB = (file.size / (1024 * 1024)).toFixed(1)
+              const sizeInMB = (file.size / (1024 * 1024)).toFixed(1);
               toast.error(
                 `${file.name} is ${sizeInMB}MB. Maximum file size is 10MB`,
-              )
-              continue
+              );
+              continue;
             }
 
             // Generate upload URL
-            const uploadUrl = await generateUploadUrl()
+            const uploadUrl = await generateUploadUrl();
 
             // Upload the file
             const result = await fetch(uploadUrl, {
               method: "POST",
               headers: { "Content-Type": file.type },
               body: file,
-            })
+            });
 
             if (!result.ok) {
               throw new Error(
                 `Failed to upload ${file.name}. Please try again.`,
-              )
+              );
             }
 
-            const { storageId } = await result.json()
+            const { storageId } = await result.json();
 
             // Create file record in database
             const fileId = await createFile({
@@ -259,88 +259,88 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
               fileName: file.name,
               fileType: file.type,
               fileSize: file.size,
-            })
+            });
 
             newAttachments.push({
               id: fileId,
               name: file.name,
               size: file.size,
               type: file.type,
-            })
+            });
           }
 
           if (newAttachments.length === 0 && files.length > 0) {
             toast.error(
               "No files were uploaded. Please check file types and sizes.",
-            )
+            );
           } else {
-            setAttachments([...attachments, ...newAttachments])
+            setAttachments([...attachments, ...newAttachments]);
             if (newAttachments.length === 1) {
-              toast.success(`${newAttachments[0].name} uploaded successfully`)
+              toast.success(`${newAttachments[0].name} uploaded successfully`);
             } else if (newAttachments.length > 1) {
               toast.success(
                 `${newAttachments.length} files uploaded successfully`,
-              )
+              );
             }
           }
         } catch (error) {
-          console.error("Error uploading files:", error)
+          console.error("Error uploading files:", error);
 
           if (error instanceof Error) {
             // Show specific error messages from backend
             if (error.message.includes("sign in")) {
-              toast.error("Please sign in to upload files")
+              toast.error("Please sign in to upload files");
             } else if (error.message.includes("file type")) {
-              toast.error(error.message)
+              toast.error(error.message);
             } else if (error.message.includes("too large")) {
-              toast.error(error.message)
+              toast.error(error.message);
             } else {
-              toast.error(`Upload failed: ${error.message}`)
+              toast.error(`Upload failed: ${error.message}`);
             }
           } else {
-            toast.error("Failed to upload files. Please try again.")
+            toast.error("Failed to upload files. Please try again.");
           }
         } finally {
-          setIsUploading(false)
+          setIsUploading(false);
         }
       },
       [attachments, generateUploadUrl, createFile],
-    )
+    );
 
     // Use the file drop hook
     const { isDragging, dragHandlers } = useFileDrop({
       onDrop: handleFileUpload,
       disabled: isSubmitDisabled || isUploading,
-    })
+    });
 
     const handleFileInputChange = useCallback(
       async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files
+        const files = e.target.files;
         if (files && files.length > 0) {
-          await handleFileUpload(files)
+          await handleFileUpload(files);
         }
       },
       [handleFileUpload],
-    )
+    );
 
     const removeAttachment = useCallback((id: Id<"files">) => {
-      setAttachments((prev) => prev.filter((att) => att.id !== id))
-    }, [])
+      setAttachments((prev) => prev.filter((att) => att.id !== id));
+    }, []);
 
     // Memoize event handlers
     const handleSendMessage = useCallback(async () => {
-      if (!message.trim()) return
+      if (!message.trim()) return;
 
       // Check if files are still uploading
       if (isUploading) {
-        toast.info("Please wait for file uploads to complete before sending")
-        return
+        toast.info("Please wait for file uploads to complete before sending");
+        return;
       }
 
       // Show visual indicator if submit is disabled
       if (isSubmitDisabled) {
-        toast.info("Please wait for the current response to complete")
-        return
+        toast.info("Please wait for the current response to complete");
+        return;
       }
 
       // Validate attachments against selected model capabilities
@@ -348,54 +348,54 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
         const validation = validateAttachmentsForModel(
           selectedModelId as ModelId,
           attachments.map((att) => ({ type: att.type, name: att.name })),
-        )
+        );
 
         if (!validation.isValid) {
           const errorMessage = getIncompatibilityMessage(
             selectedModel?.displayName || "This model",
             validation.incompatibleAttachments,
             validation.suggestedModels,
-          )
-          toast.error(errorMessage)
-          return
+          );
+          toast.error(errorMessage);
+          return;
         }
       }
 
-      setIsSending(true)
+      setIsSending(true);
 
       try {
-        const attachmentIds = attachments.map((att) => att.id)
+        const attachmentIds = attachments.map((att) => att.id);
         // Preprocess message to automatically wrap code blocks
-        const processedMessage = preprocessUserMessage(message)
+        const processedMessage = preprocessUserMessage(message);
         await onSendMessage(
           processedMessage,
           selectedModelId,
           attachmentIds.length > 0 ? attachmentIds : undefined,
           webSearchEnabled,
-        )
-        setMessage("")
-        setAttachments([])
+        );
+        setMessage("");
+        setAttachments([]);
       } catch (error) {
-        console.error("Error sending message:", error)
+        console.error("Error sending message:", error);
 
         // Handle specific error types gracefully with toast notifications
         if (error instanceof Error) {
           if (error.message.includes("Please wait for the current")) {
             toast.error(
               "AI is currently responding. Please wait for the response to complete before sending another message.",
-            )
+            );
           } else if (error.message.includes("Thread not found")) {
-            toast.error("This conversation is no longer available.")
+            toast.error("This conversation is no longer available.");
           } else if (error.message.includes("User must be authenticated")) {
-            toast.error("Please sign in to continue chatting.")
+            toast.error("Please sign in to continue chatting.");
           } else {
-            toast.error("Failed to send message. Please try again.")
+            toast.error("Failed to send message. Please try again.");
           }
         } else {
-          toast.error("An unexpected error occurred. Please try again.")
+          toast.error("An unexpected error occurred. Please try again.");
         }
       } finally {
-        setIsSending(false)
+        setIsSending(false);
       }
     }, [
       message,
@@ -407,87 +407,87 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       webSearchEnabled,
       setMessage,
       selectedModel?.displayName,
-    ])
+    ]);
 
     const handleKeyPress = useCallback(
       (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault()
-          handleSendMessage()
+          e.preventDefault();
+          handleSendMessage();
         }
       },
       [handleSendMessage],
-    )
+    );
 
     const handleMessageChange = useCallback(
       (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setMessage(e.target.value)
+        setMessage(e.target.value);
       },
       [setMessage],
-    )
+    );
 
-    const [dropdownOpen, setDropdownOpen] = useState(false)
+    const [dropdownOpen, setDropdownOpen] = useState(false);
 
     const handleModelChange = useCallback((value: string) => {
-      setSelectedModelId(value)
+      setSelectedModelId(value);
       // Persist to sessionStorage to maintain selection across navigation
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("selectedModelId", value)
+        sessionStorage.setItem("selectedModelId", value);
       }
-      setDropdownOpen(false)
+      setDropdownOpen(false);
       // Focus the chat input after model selection
-      textareaRef.current?.focus()
-    }, [])
+      textareaRef.current?.focus();
+    }, []);
 
     const toggleModelSelector = useCallback(() => {
-      setDropdownOpen((prev) => !prev)
-    }, [])
+      setDropdownOpen((prev) => !prev);
+    }, []);
 
     // Register model selector toggle with keyboard shortcuts context
     // Only register when textarea is focused
     useEffect(() => {
-      const textarea = textareaRef.current
-      if (!textarea) return
+      const textarea = textareaRef.current;
+      if (!textarea) return;
 
       const handleFocus = () => {
-        keyboardShortcuts.registerModelSelectorToggle(toggleModelSelector)
-      }
+        keyboardShortcuts.registerModelSelectorToggle(toggleModelSelector);
+      };
 
       const handleBlur = () => {
-        keyboardShortcuts.unregisterModelSelectorToggle()
-      }
+        keyboardShortcuts.unregisterModelSelectorToggle();
+      };
 
-      textarea.addEventListener("focus", handleFocus)
-      textarea.addEventListener("blur", handleBlur)
+      textarea.addEventListener("focus", handleFocus);
+      textarea.addEventListener("blur", handleBlur);
 
       // If already focused, register immediately
       if (document.activeElement === textarea) {
-        keyboardShortcuts.registerModelSelectorToggle(toggleModelSelector)
+        keyboardShortcuts.registerModelSelectorToggle(toggleModelSelector);
       }
 
       return () => {
-        textarea.removeEventListener("focus", handleFocus)
-        textarea.removeEventListener("blur", handleBlur)
-        keyboardShortcuts.unregisterModelSelectorToggle()
-      }
-    }, [keyboardShortcuts, toggleModelSelector])
+        textarea.removeEventListener("focus", handleFocus);
+        textarea.removeEventListener("blur", handleBlur);
+        keyboardShortcuts.unregisterModelSelectorToggle();
+      };
+    }, [keyboardShortcuts, toggleModelSelector]);
 
     const handleWebSearchToggle = useCallback(() => {
-      setWebSearchEnabled((prev) => !prev)
-    }, [])
+      setWebSearchEnabled((prev) => !prev);
+    }, []);
 
     // Memoize computed values
     const canSend = useMemo(
       () => message.trim() && !isSubmitDisabled,
       [message, isSubmitDisabled],
-    )
+    );
 
     // Helper function to format file size
     const formatFileSize = (bytes: number): string => {
-      if (bytes < 1024) return `${bytes} B`
-      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-    }
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
 
     return (
       <div
@@ -630,7 +630,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                                   {models.map((model) => {
                                     const capabilities = getModelCapabilities(
                                       model.id as ModelId,
-                                    )
+                                    );
                                     return (
                                       <DropdownMenuItem
                                         key={model.id}
@@ -659,7 +659,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                                           {model.description}
                                         </span>
                                       </DropdownMenuItem>
-                                    )
+                                    );
                                   })}
                                 </DropdownMenuSubContent>
                               </DropdownMenuPortal>
@@ -695,8 +695,8 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                   <ScrollArea className="w-full">
                     <div className="flex gap-2 p-3">
                       {attachments.map((attachment) => {
-                        const isImage = attachment.type.startsWith("image/")
-                        const isPdf = attachment.type === "application/pdf"
+                        const isImage = attachment.type.startsWith("image/");
+                        const isPdf = attachment.type === "application/pdf";
 
                         return (
                           <div
@@ -728,7 +728,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                               <X className="w-3 h-3 text-destructive" />
                             </button>
                           </div>
-                        )
+                        );
                       })}
                     </div>
                     <ScrollBar orientation="horizontal" />
@@ -746,12 +746,12 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
           )}
         </div>
       </div>
-    )
+    );
   },
-)
+);
 
 // Add display name for debugging
-ChatInputComponent.displayName = "ChatInput"
+ChatInputComponent.displayName = "ChatInput";
 
 // Memoize the entire component to prevent unnecessary re-renders
-export const ChatInput = memo(ChatInputComponent)
+export const ChatInput = memo(ChatInputComponent);

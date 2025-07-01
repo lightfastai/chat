@@ -1,6 +1,6 @@
-import { Button } from "@lightfast/ui/components/ui/button"
-import { FileQuestion, Home } from "lucide-react"
-import Link from "next/link"
+import { Button } from "@lightfast/ui/components/ui/button";
+import { FileQuestion, Home } from "lucide-react";
+import Link from "next/link";
 
 export default function NotFound() {
   return (
@@ -29,5 +29,5 @@ export default function NotFound() {
         </div>
       </div>
     </div>
-  )
+  );
 }

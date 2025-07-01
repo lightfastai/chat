@@ -1,40 +1,40 @@
-"use client"
+"use client";
 
 import {
   SidebarMenuAction,
   SidebarMenuItem,
-} from "@lightfast/ui/components/ui/sidebar"
-import { cn } from "@lightfast/ui/lib/utils"
-import { GitBranch, Pin } from "lucide-react"
-import { useCallback } from "react"
-import type { Id } from "../../../../convex/_generated/dataModel"
-import { ActiveMenuItem } from "./active-menu-item"
+} from "@lightfast/ui/components/ui/sidebar";
+import { cn } from "@lightfast/ui/lib/utils";
+import { GitBranch, Pin } from "lucide-react";
+import { useCallback } from "react";
+import type { Id } from "../../../../convex/_generated/dataModel";
+import { ActiveMenuItem } from "./active-menu-item";
 
 interface ThreadItemProps {
   thread: {
-    _id: Id<"threads">
-    clientId?: string
-    title: string
-    isTitleGenerating?: boolean
-    pinned?: boolean
+    _id: Id<"threads">;
+    clientId?: string;
+    title: string;
+    isTitleGenerating?: boolean;
+    pinned?: boolean;
     branchedFrom?: {
-      threadId: Id<"threads">
-      messageId: Id<"messages">
-      timestamp: number
-    }
-  }
-  onPinToggle: (threadId: Id<"threads">) => void
+      threadId: Id<"threads">;
+      messageId: Id<"messages">;
+      timestamp: number;
+    };
+  };
+  onPinToggle: (threadId: Id<"threads">) => void;
 }
 
 export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
   const handlePinClick = useCallback(
     async (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      await onPinToggle(thread._id)
+      e.preventDefault();
+      e.stopPropagation();
+      await onPinToggle(thread._id);
     },
     [onPinToggle, thread._id],
-  )
+  );
 
   return (
     <SidebarMenuItem className="w-full max-w-full min-w-0 overflow-hidden">
@@ -75,5 +75,5 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
         <Pin className={cn("h-3 w-3", thread.pinned && "fill-current")} />
       </SidebarMenuAction>
     </SidebarMenuItem>
-  )
+  );
 }

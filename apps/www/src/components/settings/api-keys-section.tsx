@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { validateApiKey } from "@/lib/ai/schemas"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Button } from "@lightfast/ui/components/ui/button"
+import { validateApiKey } from "@/lib/ai/schemas";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@lightfast/ui/components/ui/button";
 import {
   Form,
   FormControl,
@@ -10,18 +10,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@lightfast/ui/components/ui/form"
-import { Input } from "@lightfast/ui/components/ui/input"
-import { useMutation } from "convex/react"
-import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
-import { toast } from "sonner"
-import { z } from "zod"
-import { api } from "../../../convex/_generated/api"
-import { SettingsHeader } from "./settings-header"
-import { SettingsRow } from "./settings-row"
+} from "@lightfast/ui/components/ui/form";
+import { Input } from "@lightfast/ui/components/ui/input";
+import { useMutation } from "convex/react";
+import { ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { api } from "../../../convex/_generated/api";
+import { SettingsHeader } from "./settings-header";
+import { SettingsRow } from "./settings-row";
 
 const OpenAIApiKeyFormSchema = z.object({
   openaiKey: z
@@ -29,15 +29,15 @@ const OpenAIApiKeyFormSchema = z.object({
     .optional()
     .refine(
       (key) => {
-        if (!key || key === "********") return true
-        return validateApiKey("openai", key).success
+        if (!key || key === "********") return true;
+        return validateApiKey("openai", key).success;
       },
       {
         message: "Invalid OpenAI API key format.",
       },
     ),
-})
-type OpenAIApiKeyFormValues = z.infer<typeof OpenAIApiKeyFormSchema>
+});
+type OpenAIApiKeyFormValues = z.infer<typeof OpenAIApiKeyFormSchema>;
 
 const AnthropicApiKeyFormSchema = z.object({
   anthropicKey: z
@@ -45,15 +45,15 @@ const AnthropicApiKeyFormSchema = z.object({
     .optional()
     .refine(
       (key) => {
-        if (!key || key === "********") return true
-        return validateApiKey("anthropic", key).success
+        if (!key || key === "********") return true;
+        return validateApiKey("anthropic", key).success;
       },
       {
         message: "Invalid Anthropic API key format.",
       },
     ),
-})
-type AnthropicApiKeyFormValues = z.infer<typeof AnthropicApiKeyFormSchema>
+});
+type AnthropicApiKeyFormValues = z.infer<typeof AnthropicApiKeyFormSchema>;
 
 const OpenRouterApiKeyFormSchema = z.object({
   openrouterKey: z
@@ -61,34 +61,34 @@ const OpenRouterApiKeyFormSchema = z.object({
     .optional()
     .refine(
       (key) => {
-        if (!key || key === "********") return true
-        return validateApiKey("openrouter", key).success
+        if (!key || key === "********") return true;
+        return validateApiKey("openrouter", key).success;
       },
       {
         message: "Invalid OpenRouter API key format.",
       },
     ),
-})
-type OpenRouterApiKeyFormValues = z.infer<typeof OpenRouterApiKeyFormSchema>
+});
+type OpenRouterApiKeyFormValues = z.infer<typeof OpenRouterApiKeyFormSchema>;
 
 interface ApiKeysSectionProps {
   userSettings:
     | {
-        hasOpenAIKey: boolean
-        hasAnthropicKey: boolean
-        hasOpenRouterKey: boolean
+        hasOpenAIKey: boolean;
+        hasAnthropicKey: boolean;
+        hasOpenRouterKey: boolean;
       }
     | null
-    | undefined
+    | undefined;
 }
 
 export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
-  const [showOpenAI, setShowOpenAI] = useState(false)
-  const [showAnthropic, setShowAnthropic] = useState(false)
-  const [showOpenRouter, setShowOpenRouter] = useState(false)
+  const [showOpenAI, setShowOpenAI] = useState(false);
+  const [showAnthropic, setShowAnthropic] = useState(false);
+  const [showOpenRouter, setShowOpenRouter] = useState(false);
 
-  const updateApiKeys = useMutation(api.userSettings.updateApiKeys)
-  const removeApiKey = useMutation(api.userSettings.removeApiKey)
+  const updateApiKeys = useMutation(api.userSettings.updateApiKeys);
+  const removeApiKey = useMutation(api.userSettings.removeApiKey);
 
   const openaiForm = useForm<OpenAIApiKeyFormValues>({
     resolver: zodResolver(OpenAIApiKeyFormSchema),
@@ -96,7 +96,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
       openaiKey: "",
     },
     mode: "onChange",
-  })
+  });
 
   const anthropicForm = useForm<AnthropicApiKeyFormValues>({
     resolver: zodResolver(AnthropicApiKeyFormSchema),
@@ -104,7 +104,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
       anthropicKey: "",
     },
     mode: "onChange",
-  })
+  });
 
   const openrouterForm = useForm<OpenRouterApiKeyFormValues>({
     resolver: zodResolver(OpenRouterApiKeyFormSchema),
@@ -112,92 +112,92 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
       openrouterKey: "",
     },
     mode: "onChange",
-  })
+  });
 
   useEffect(() => {
     if (userSettings) {
       openaiForm.reset({
         openaiKey: userSettings.hasOpenAIKey ? "********" : "",
-      })
+      });
       anthropicForm.reset({
         anthropicKey: userSettings.hasAnthropicKey ? "********" : "",
-      })
+      });
       openrouterForm.reset({
         openrouterKey: userSettings.hasOpenRouterKey ? "********" : "",
-      })
+      });
     }
-  }, [userSettings, openaiForm, anthropicForm, openrouterForm])
+  }, [userSettings, openaiForm, anthropicForm, openrouterForm]);
 
   const onOpenAISubmit = async (values: OpenAIApiKeyFormValues) => {
-    const { openaiKey } = values
+    const { openaiKey } = values;
     if (!openaiKey || openaiKey === "********") {
-      toast.error("Please enter a new OpenAI API key to save.")
-      return
+      toast.error("Please enter a new OpenAI API key to save.");
+      return;
     }
 
     try {
-      await updateApiKeys({ openaiKey })
-      toast.success("OpenAI API key updated successfully.")
-      openaiForm.reset({ openaiKey: "********" })
+      await updateApiKeys({ openaiKey });
+      toast.success("OpenAI API key updated successfully.");
+      openaiForm.reset({ openaiKey: "********" });
     } catch (error) {
-      console.error("Error updating OpenAI API key:", error)
-      toast.error("Failed to update OpenAI API key. Please try again.")
+      console.error("Error updating OpenAI API key:", error);
+      toast.error("Failed to update OpenAI API key. Please try again.");
     }
-  }
+  };
 
   const onAnthropicSubmit = async (values: AnthropicApiKeyFormValues) => {
-    const { anthropicKey } = values
+    const { anthropicKey } = values;
     if (!anthropicKey || anthropicKey === "********") {
-      toast.error("Please enter a new Anthropic API key to save.")
-      return
+      toast.error("Please enter a new Anthropic API key to save.");
+      return;
     }
 
     try {
-      await updateApiKeys({ anthropicKey })
-      toast.success("Anthropic API key updated successfully.")
-      anthropicForm.reset({ anthropicKey: "********" })
+      await updateApiKeys({ anthropicKey });
+      toast.success("Anthropic API key updated successfully.");
+      anthropicForm.reset({ anthropicKey: "********" });
     } catch (error) {
-      console.error("Error updating Anthropic API key:", error)
-      toast.error("Failed to update Anthropic API key. Please try again.")
+      console.error("Error updating Anthropic API key:", error);
+      toast.error("Failed to update Anthropic API key. Please try again.");
     }
-  }
+  };
 
   const onOpenRouterSubmit = async (values: OpenRouterApiKeyFormValues) => {
-    const { openrouterKey } = values
+    const { openrouterKey } = values;
     if (!openrouterKey || openrouterKey === "********") {
-      toast.error("Please enter a new OpenRouter API key to save.")
-      return
+      toast.error("Please enter a new OpenRouter API key to save.");
+      return;
     }
 
     try {
-      await updateApiKeys({ openrouterKey })
-      toast.success("OpenRouter API key updated successfully.")
-      openrouterForm.reset({ openrouterKey: "********" })
+      await updateApiKeys({ openrouterKey });
+      toast.success("OpenRouter API key updated successfully.");
+      openrouterForm.reset({ openrouterKey: "********" });
     } catch (error) {
-      console.error("Error updating OpenRouter API key:", error)
-      toast.error("Failed to update OpenRouter API key. Please try again.")
+      console.error("Error updating OpenRouter API key:", error);
+      toast.error("Failed to update OpenRouter API key. Please try again.");
     }
-  }
+  };
 
   const handleRemoveApiKey = async (
     provider: "openai" | "anthropic" | "openrouter",
   ) => {
     try {
-      await removeApiKey({ provider })
+      await removeApiKey({ provider });
       toast.success(
         `${provider === "openai" ? "OpenAI" : provider === "anthropic" ? "Anthropic" : "OpenRouter"} API key removed.`,
-      )
+      );
       if (provider === "openai") {
-        openaiForm.setValue("openaiKey", "")
+        openaiForm.setValue("openaiKey", "");
       } else if (provider === "anthropic") {
-        anthropicForm.setValue("anthropicKey", "")
+        anthropicForm.setValue("anthropicKey", "");
       } else {
-        openrouterForm.setValue("openrouterKey", "")
+        openrouterForm.setValue("openrouterKey", "");
       }
     } catch (error) {
-      toast.error("Failed to remove API key.")
+      toast.error("Failed to remove API key.");
     }
-  }
+  };
 
   return (
     <div>
@@ -239,7 +239,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                             className="w-full pr-10 sm:w-48"
                             onFocus={(e) => {
                               if (e.target.value === "********") {
-                                openaiForm.setValue("openaiKey", "")
+                                openaiForm.setValue("openaiKey", "");
                               }
                             }}
                           />
@@ -325,7 +325,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                             className="w-full pr-10 sm:w-48"
                             onFocus={(e) => {
                               if (e.target.value === "********") {
-                                anthropicForm.setValue("anthropicKey", "")
+                                anthropicForm.setValue("anthropicKey", "");
                               }
                             }}
                           />
@@ -413,7 +413,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
                             className="w-full pr-10 sm:w-48"
                             onFocus={(e) => {
                               if (e.target.value === "********") {
-                                openrouterForm.setValue("openrouterKey", "")
+                                openrouterForm.setValue("openrouterKey", "");
                               }
                             }}
                           />
@@ -465,5 +465,5 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
         </Form>
       </div>
     </div>
-  )
+  );
 }

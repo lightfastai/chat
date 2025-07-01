@@ -1,73 +1,73 @@
-"use client"
+"use client";
 
-import { getModelConfig, getModelDisplayName, isValidModelId } from "@/lib/ai"
-import { Button } from "@lightfast/ui/components/ui/button"
+import { getModelConfig, getModelDisplayName, isValidModelId } from "@/lib/ai";
+import { Button } from "@lightfast/ui/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@lightfast/ui/components/ui/dialog"
+} from "@lightfast/ui/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@lightfast/ui/components/ui/dropdown-menu"
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area"
-import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react"
-import { Activity, MoreHorizontalIcon } from "lucide-react"
-import { useState } from "react"
-import { api } from "../../../convex/_generated/api"
-import type { Id } from "../../../convex/_generated/dataModel"
+} from "@lightfast/ui/components/ui/dropdown-menu";
+import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
+import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
+import { Activity, MoreHorizontalIcon } from "lucide-react";
+import { useState } from "react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 interface TokenUsageDialogProps {
-  threadId: Id<"threads"> | "new"
-  preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>
+  threadId: Id<"threads"> | "new";
+  preloadedThreadUsage?: Preloaded<typeof api.messages.getThreadUsage>;
 }
 
 // Helper function to format token counts
 function formatTokenCount(count: number): string {
-  if (count === 0) return "0"
-  if (count < 1000) return count.toLocaleString()
+  if (count === 0) return "0";
+  if (count < 1000) return count.toLocaleString();
   if (count < 1000000) {
-    const k = count / 1000
-    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`
+    const k = count / 1000;
+    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
   }
-  const m = count / 1000000
-  return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
+  const m = count / 1000000;
+  return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
 }
 
 // Helper function to get model display name with fallback
 function getDisplayNameForModel(model: string): string {
   // Use the AI library function for all known models
   if (isValidModelId(model)) {
-    return getModelDisplayName(model)
+    return getModelDisplayName(model);
   }
 
   // Fallback for legacy model IDs that might not be in the current schema
   const legacyMappings: Record<string, string> = {
     anthropic: "Claude Sonnet 4",
     openai: "GPT-4o Mini",
-  }
+  };
 
-  return legacyMappings[model] || model
+  return legacyMappings[model] || model;
 }
 
 export function TokenUsageDialog({
   threadId,
   preloadedThreadUsage,
 }: TokenUsageDialogProps) {
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Use preloaded usage data if available
   const preloadedUsage = preloadedThreadUsage
     ? usePreloadedQuery(preloadedThreadUsage)
-    : null
+    : null;
 
   // Check if this is an optimistic thread ID (not a real Convex ID)
-  const isOptimisticThreadId = threadId !== "new" && !threadId.startsWith("k")
+  const isOptimisticThreadId = threadId !== "new" && !threadId.startsWith("k");
 
   // Skip query for new chats, optimistic IDs, or if we have preloaded data
   const usage =
@@ -77,31 +77,31 @@ export function TokenUsageDialog({
       threadId === "new" || isOptimisticThreadId || preloadedUsage
         ? "skip"
         : { threadId },
-    )
+    );
 
   // For new chats, show nothing
   if (threadId === "new") {
-    return null
+    return null;
   }
 
   // If no usage data yet, show nothing
   if (!usage) {
-    return null
+    return null;
   }
 
   // Calculate total estimated cost
   const totalCost = usage.modelStats.reduce((sum, modelStat) => {
     const modelConfig = isValidModelId(modelStat.model)
       ? getModelConfig(modelStat.model)
-      : null
-    if (!modelConfig) return sum
+      : null;
+    if (!modelConfig) return sum;
 
     const inputCost =
-      (modelStat.inputTokens * modelConfig.costPer1KTokens.input) / 1000
+      (modelStat.inputTokens * modelConfig.costPer1KTokens.input) / 1000;
     const outputCost =
-      (modelStat.outputTokens * modelConfig.costPer1KTokens.output) / 1000
-    return sum + inputCost + outputCost
-  }, 0)
+      (modelStat.outputTokens * modelConfig.costPer1KTokens.output) / 1000;
+    return sum + inputCost + outputCost;
+  }, 0);
 
   return (
     <>
@@ -212,13 +212,13 @@ export function TokenUsageDialog({
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
 
 // Token Row Component
 interface TokenRowProps {
-  label: string
-  value: number
+  label: string;
+  value: number;
 }
 
 function TokenRow({ label, value }: TokenRowProps) {
@@ -229,30 +229,30 @@ function TokenRow({ label, value }: TokenRowProps) {
         {formatTokenCount(value)}
       </span>
     </div>
-  )
+  );
 }
 
 // Model Row Component
 interface ModelRowProps {
-  model: string
+  model: string;
   stats: {
-    inputTokens: number
-    outputTokens: number
-    totalTokens: number
-    reasoningTokens: number
-    cachedInputTokens: number
-    messageCount: number
-  }
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    reasoningTokens: number;
+    cachedInputTokens: number;
+    messageCount: number;
+  };
 }
 
 function ModelRow({ model, stats }: ModelRowProps) {
-  const displayName = getDisplayNameForModel(model)
+  const displayName = getDisplayNameForModel(model);
 
   // Get model configuration for additional details
-  const modelConfig = isValidModelId(model) ? getModelConfig(model) : null
+  const modelConfig = isValidModelId(model) ? getModelConfig(model) : null;
   const isThinking =
-    modelConfig?.features.thinking === true || model.includes("thinking")
-  const providerName = modelConfig?.provider || "unknown"
+    modelConfig?.features.thinking === true || model.includes("thinking");
+  const providerName = modelConfig?.provider || "unknown";
 
   return (
     <div className="p-3 border rounded-lg hover:bg-muted/30 transition-colors">
@@ -325,5 +325,5 @@ function ModelRow({ model, stats }: ModelRowProps) {
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,14 +1,14 @@
-import { cn } from "@lightfast/ui/lib/utils"
-import type React from "react"
+import { cn } from "@lightfast/ui/lib/utils";
+import type React from "react";
 
 export interface MessageLayoutProps {
-  avatar: React.ReactNode
-  content: React.ReactNode
-  timestamp?: React.ReactNode
-  actions?: React.ReactNode
-  messageType: "user" | "assistant" | "system"
-  className?: string
-  forceActionsVisible?: boolean
+  avatar: React.ReactNode;
+  content: React.ReactNode;
+  timestamp?: React.ReactNode;
+  actions?: React.ReactNode;
+  messageType: "user" | "assistant" | "system";
+  className?: string;
+  forceActionsVisible?: boolean;
 }
 
 export function MessageLayout({
@@ -19,9 +19,9 @@ export function MessageLayout({
   className,
   forceActionsVisible = false,
 }: MessageLayoutProps) {
-  const isAssistant = messageType === "assistant"
-  const isSystem = messageType === "system"
-  const isUser = messageType === "user"
+  const isAssistant = messageType === "assistant";
+  const isSystem = messageType === "system";
+  const isUser = messageType === "user";
 
   return (
     <div
@@ -58,5 +58,5 @@ export function MessageLayout({
         )}
       </div>
     </div>
-  )
+  );
 }

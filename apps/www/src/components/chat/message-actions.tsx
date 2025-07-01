@@ -1,33 +1,33 @@
-"use client"
+"use client";
 
-import type { ModelId } from "@/lib/ai"
-import { nanoid } from "@/lib/nanoid"
-import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard"
-import { Badge } from "@lightfast/ui/components/ui/badge"
-import { Button } from "@lightfast/ui/components/ui/button"
-import { cn } from "@lightfast/ui/lib/utils"
-import { useMutation, useQuery } from "convex/react"
+import type { ModelId } from "@/lib/ai";
+import { nanoid } from "@/lib/nanoid";
+import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
+import { Badge } from "@lightfast/ui/components/ui/badge";
+import { Button } from "@lightfast/ui/components/ui/button";
+import { cn } from "@lightfast/ui/lib/utils";
+import { useMutation, useQuery } from "convex/react";
 import {
   CheckIcon,
   ClipboardIcon,
   Key,
   ThumbsDown,
   ThumbsUp,
-} from "lucide-react"
-import React from "react"
-import { api } from "../../../convex/_generated/api"
-import type { Doc, Id } from "../../../convex/_generated/dataModel"
-import { FeedbackModal } from "./feedback-modal"
-import { MessageUsageChip } from "./message-usage-chip"
-import { ModelBranchDropdown } from "./model-branch-dropdown"
-import { formatDuration } from "./shared/thinking-content"
+} from "lucide-react";
+import React from "react";
+import { api } from "../../../convex/_generated/api";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import { FeedbackModal } from "./feedback-modal";
+import { MessageUsageChip } from "./message-usage-chip";
+import { ModelBranchDropdown } from "./model-branch-dropdown";
+import { formatDuration } from "./shared/thinking-content";
 
 interface MessageActionsProps {
-  message: Doc<"messages">
-  className?: string
-  modelName?: string
-  thinkingDuration?: number | null
-  onDropdownStateChange?: (isOpen: boolean) => void
+  message: Doc<"messages">;
+  className?: string;
+  modelName?: string;
+  thinkingDuration?: number | null;
+  onDropdownStateChange?: (isOpen: boolean) => void;
 }
 
 export function MessageActions({
@@ -37,37 +37,37 @@ export function MessageActions({
   thinkingDuration,
   onDropdownStateChange,
 }: MessageActionsProps) {
-  const [showFeedbackModal, setShowFeedbackModal] = React.useState(false)
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false)
-  const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 })
+  const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 });
 
   // Notify parent when dropdown state changes
   React.useEffect(() => {
-    onDropdownStateChange?.(isDropdownOpen)
-  }, [isDropdownOpen, onDropdownStateChange])
+    onDropdownStateChange?.(isDropdownOpen);
+  }, [isDropdownOpen, onDropdownStateChange]);
 
   const feedback = useQuery(api.feedback.getUserFeedbackForMessage, {
     messageId: message._id,
-  })
+  });
 
-  const submitFeedback = useMutation(api.feedback.submitFeedback)
-  const removeFeedback = useMutation(api.feedback.removeFeedback)
+  const submitFeedback = useMutation(api.feedback.submitFeedback);
+  const removeFeedback = useMutation(api.feedback.removeFeedback);
   const branchThread = useMutation(
     api.threads.branchFromMessage,
   ).withOptimisticUpdate((localStore, args) => {
-    const { clientId, originalThreadId } = args
-    if (!clientId) return // Only do optimistic updates with clientId
+    const { clientId, originalThreadId } = args;
+    if (!clientId) return; // Only do optimistic updates with clientId
 
-    const now = Date.now()
+    const now = Date.now();
 
     // Get the original thread to copy its title
     const originalThread = localStore.getQuery(api.threads.get, {
       threadId: originalThreadId,
-    })
+    });
 
     // CRITICAL: Use a deterministic temp thread ID that can be referenced later
     // This matches the pattern used in useChat.ts for createThreadAndSend
-    const tempThreadId = crypto.randomUUID() as Id<"threads">
+    const tempThreadId = crypto.randomUUID() as Id<"threads">;
 
     // Create optimistic branched thread for immediate sidebar display
     const optimisticThread: Doc<"threads"> = {
@@ -93,16 +93,16 @@ export function MessageActions({
         messageCount: 0,
         modelStats: {},
       },
-    }
+    };
 
     // Get existing threads from the store
-    const existingThreads = localStore.getQuery(api.threads.list, {}) || []
+    const existingThreads = localStore.getQuery(api.threads.list, {}) || [];
 
     // Add the new branched thread at the beginning
     localStore.setQuery(api.threads.list, {}, [
       optimisticThread,
       ...existingThreads,
-    ])
+    ]);
 
     // CRITICAL: Update thread by clientId query for instant routing
     // This allows useChat hook to find the thread immediately
@@ -110,27 +110,27 @@ export function MessageActions({
       api.threads.getByClientId,
       { clientId },
       optimisticThread,
-    )
+    );
 
     // Optimistically copy messages from original thread up to branch point
     const originalMessages = localStore.getQuery(api.messages.list, {
       threadId: originalThreadId,
-    })
+    });
     if (originalMessages) {
       // Find branch point message
       const branchPointIndex = originalMessages.findIndex(
         (msg) => msg._id === args.branchFromMessageId,
-      )
+      );
 
       if (branchPointIndex !== -1) {
         // Find the user message that prompted the assistant response we're branching from
         // Note: originalMessages is in descending order (newest first)
         // So we search forward from the branch point to find the user message
-        let lastUserMessageIndex = -1
+        let lastUserMessageIndex = -1;
         for (let i = branchPointIndex; i < originalMessages.length; i++) {
           if (originalMessages[i].messageType === "user") {
-            lastUserMessageIndex = i
-            break
+            lastUserMessageIndex = i;
+            break;
           }
         }
 
@@ -140,14 +140,14 @@ export function MessageActions({
         const messagesToCopy =
           lastUserMessageIndex !== -1
             ? originalMessages.slice(lastUserMessageIndex) // Copy from user message to end (includes all older messages)
-            : originalMessages.slice(branchPointIndex) // Fallback: copy from branch point to end
+            : originalMessages.slice(branchPointIndex); // Fallback: copy from branch point to end
 
         // Create optimistic copies with the SAME tempThreadId
         const optimisticMessages = messagesToCopy.map((msg) => ({
           ...msg,
           _id: crypto.randomUUID() as Id<"messages">,
           threadId: tempThreadId, // Use the same tempThreadId as the thread
-        }))
+        }));
 
         // Create optimistic assistant message placeholder for the new response
         const optimisticAssistantMessage: Doc<"messages"> = {
@@ -162,14 +162,14 @@ export function MessageActions({
           isComplete: false,
           streamId: `stream_${clientId}_${now}`,
           thinkingStartedAt: now,
-        }
+        };
 
         // Combine all messages: existing ones + new assistant placeholder
         // Messages are in descending order (newest first)
         const allOptimisticMessages = [
           optimisticAssistantMessage, // New assistant message at the top
           ...optimisticMessages, // All copied messages below
-        ]
+        ];
 
         // CRITICAL: Set optimistic messages using the tempThreadId
         // This ensures useChat hook can find them immediately
@@ -177,7 +177,7 @@ export function MessageActions({
           api.messages.list,
           { threadId: tempThreadId },
           allOptimisticMessages,
-        )
+        );
 
         // CRITICAL: Also set messages by clientId for instant navigation
         // This allows useChat to find messages before the thread is created
@@ -185,43 +185,43 @@ export function MessageActions({
           api.messages.listByClientId,
           { clientId },
           allOptimisticMessages,
-        )
+        );
       }
     }
-  })
+  });
 
   const handleFeedback = async (rating: "thumbs_up" | "thumbs_down") => {
     if (rating === "thumbs_down") {
-      setShowFeedbackModal(true)
-      return
+      setShowFeedbackModal(true);
+      return;
     }
 
     if (feedback?.rating === rating) {
-      await removeFeedback({ messageId: message._id })
+      await removeFeedback({ messageId: message._id });
     } else {
       await submitFeedback({
         messageId: message._id,
         rating: "thumbs_up",
         comment: feedback?.comment,
         reasons: feedback?.reasons,
-      })
+      });
     }
-  }
+  };
 
   const handleCopy = () => {
     if (message.body) {
-      copy(message.body)
+      copy(message.body);
     }
-  }
+  };
 
   const handleBranch = async (modelId: ModelId) => {
     try {
       // 🚀 Generate client ID for instant navigation (like new chat)
-      const clientId = nanoid()
+      const clientId = nanoid();
 
       // Update URL immediately without navigation events
       // Using window.history.replaceState like Vercel's AI chatbot for smoothest UX
-      window.history.replaceState({}, "", `/chat/${clientId}`)
+      window.history.replaceState({}, "", `/chat/${clientId}`);
 
       // Create branch in background - the useChat hook will handle optimistic updates
       await branchThread({
@@ -229,12 +229,12 @@ export function MessageActions({
         branchFromMessageId: message._id,
         modelId,
         clientId, // Pass clientId to backend
-      })
+      });
     } catch (error) {
-      console.error("Failed to create branch:", error)
+      console.error("Failed to create branch:", error);
       // TODO: Revert URL on error - could navigate back to original thread
     }
-  }
+  };
 
   return (
     <>
@@ -330,5 +330,5 @@ export function MessageActions({
         />
       )}
     </>
-  )
+  );
 }

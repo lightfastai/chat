@@ -1,20 +1,20 @@
-import Link from "next/link"
-import type * as React from "react"
-import { cn } from "../lib/utils"
-import { Button } from "./ui/button"
-import { Icons } from "./ui/icons"
+import Link from "next/link";
+import type * as React from "react";
+import { cn } from "../lib/utils";
+import { Button } from "./ui/button";
+import { Icons } from "./ui/icons";
 
 export interface SiteHeaderProps {
-  className?: string
-  logoHref?: string
-  githubUrl?: string
-  docsUrl?: string
-  signInHref?: string
-  showLogo?: boolean
-  showGitHub?: boolean
-  showDocs?: boolean
-  showSignIn?: boolean
-  children?: React.ReactNode
+  className?: string;
+  logoHref?: string;
+  githubUrl?: string;
+  docsUrl?: string;
+  signInHref?: string;
+  showLogo?: boolean;
+  showGitHub?: boolean;
+  showDocs?: boolean;
+  showSignIn?: boolean;
+  children?: React.ReactNode;
 }
 
 export function SiteHeader({
@@ -72,5 +72,5 @@ export function SiteHeader({
         </div>
       </div>
     </header>
-  )
+  );
 }

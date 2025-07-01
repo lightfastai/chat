@@ -1,19 +1,19 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react";
 
 interface UseFileDropOptions {
-  onDrop: (files: FileList) => void | Promise<void>
-  acceptedFileTypes?: string[]
-  disabled?: boolean
+  onDrop: (files: FileList) => void | Promise<void>;
+  acceptedFileTypes?: string[];
+  disabled?: boolean;
 }
 
 interface UseFileDropReturn {
-  isDragging: boolean
+  isDragging: boolean;
   dragHandlers: {
-    onDragEnter: (e: React.DragEvent) => void
-    onDragLeave: (e: React.DragEvent) => void
-    onDragOver: (e: React.DragEvent) => void
-    onDrop: (e: React.DragEvent) => void
-  }
+    onDragEnter: (e: React.DragEvent) => void;
+    onDragLeave: (e: React.DragEvent) => void;
+    onDragOver: (e: React.DragEvent) => void;
+    onDrop: (e: React.DragEvent) => void;
+  };
 }
 
 export function useFileDrop({
@@ -21,89 +21,89 @@ export function useFileDrop({
   acceptedFileTypes,
   disabled = false,
 }: UseFileDropOptions): UseFileDropReturn {
-  const [isDragging, setIsDragging] = useState(false)
-  const dragCounter = useRef(0)
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   const handleDragEnter = useCallback(
     (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault();
+      e.stopPropagation();
 
-      if (disabled) return
+      if (disabled) return;
 
-      dragCounter.current++
+      dragCounter.current++;
 
       if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
-        setIsDragging(true)
+        setIsDragging(true);
       }
     },
     [disabled],
-  )
+  );
 
   const handleDragLeave = useCallback(
     (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault();
+      e.stopPropagation();
 
-      if (disabled) return
+      if (disabled) return;
 
-      dragCounter.current--
+      dragCounter.current--;
 
       if (dragCounter.current === 0) {
-        setIsDragging(false)
+        setIsDragging(false);
       }
     },
     [disabled],
-  )
+  );
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault();
+      e.stopPropagation();
 
-      if (disabled) return
+      if (disabled) return;
 
       // Set the drop effect to copy
       if (e.dataTransfer) {
-        e.dataTransfer.dropEffect = "copy"
+        e.dataTransfer.dropEffect = "copy";
       }
     },
     [disabled],
-  )
+  );
 
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault();
+      e.stopPropagation();
 
-      setIsDragging(false)
-      dragCounter.current = 0
+      setIsDragging(false);
+      dragCounter.current = 0;
 
-      if (disabled) return
+      if (disabled) return;
 
-      const files = e.dataTransfer.files
+      const files = e.dataTransfer.files;
 
       if (files && files.length > 0) {
         // Optional file type validation
         if (acceptedFileTypes && acceptedFileTypes.length > 0) {
           const validFiles = Array.from(files).filter((file) =>
             acceptedFileTypes.includes(file.type),
-          )
+          );
 
           if (validFiles.length > 0) {
-            const filteredFileList = new DataTransfer()
+            const filteredFileList = new DataTransfer();
             for (const file of validFiles) {
-              filteredFileList.items.add(file)
+              filteredFileList.items.add(file);
             }
-            await onDrop(filteredFileList.files)
+            await onDrop(filteredFileList.files);
           }
         } else {
-          await onDrop(files)
+          await onDrop(files);
         }
       }
     },
     [onDrop, acceptedFileTypes, disabled],
-  )
+  );
 
   return {
     isDragging,
@@ -113,5 +113,5 @@ export function useFileDrop({
       onDragOver: handleDragOver,
       onDrop: handleDrop,
     },
-  }
+  };
 }

@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { Check, Copy } from "lucide-react"
-import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
+import { Check, Copy } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 import {
   type BundledLanguage,
   type BundledTheme,
   type Highlighter,
   createHighlighter,
-} from "shiki"
-import { cn } from "../../lib/utils"
-import { Button } from "./button"
+} from "shiki";
+import { cn } from "../../lib/utils";
+import { Button } from "./button";
 
 // Shared highlighter instance to avoid recreating it
-let sharedHighlighter: Highlighter | null = null
-let highlighterPromise: Promise<Highlighter> | null = null
+let sharedHighlighter: Highlighter | null = null;
+let highlighterPromise: Promise<Highlighter> | null = null;
 
 const getHighlighter = async (): Promise<Highlighter> => {
   if (sharedHighlighter) {
-    return sharedHighlighter
+    return sharedHighlighter;
   }
 
   if (!highlighterPromise) {
@@ -47,38 +47,38 @@ const getHighlighter = async (): Promise<Highlighter> => {
         "xml",
         "plaintext",
       ],
-    })
+    });
   }
 
-  sharedHighlighter = await highlighterPromise
-  return sharedHighlighter
-}
+  sharedHighlighter = await highlighterPromise;
+  return sharedHighlighter;
+};
 
 interface CodeBlockProps {
-  code: string
-  language?: string
-  className?: string
+  code: string;
+  language?: string;
+  className?: string;
 }
 
 export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
-  const { theme } = useTheme()
-  const [copied, setCopied] = useState(false)
+  const { theme } = useTheme();
+  const [copied, setCopied] = useState(false);
   const [highlightedCode, setHighlightedCode] = useState<string>(
     `<pre><code>${code}</code></pre>`,
-  )
+  );
   // TODO: Re-enable scroll mode once overflow container issues are resolved
   // For now, we only support text wrapping to prevent overflow beyond message bounds
   // const [isWrapped, setIsWrapped] = useState(true)
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy text: ", err)
+      console.error("Failed to copy text: ", err);
     }
-  }
+  };
 
   // Map common language aliases to supported languages
   const normalizeLanguage = (lang: string): string => {
@@ -96,57 +96,57 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
       md: "markdown",
       "c++": "cpp",
       rs: "rust",
-    }
-    return langMap[lang.toLowerCase()] || lang.toLowerCase()
-  }
+    };
+    return langMap[lang.toLowerCase()] || lang.toLowerCase();
+  };
 
-  const normalizedLanguage = normalizeLanguage(language) as BundledLanguage
+  const normalizedLanguage = normalizeLanguage(language) as BundledLanguage;
 
   // Shiki highlighting effect
   useEffect(() => {
-    let isMounted = true
+    let isMounted = true;
 
     async function highlightCode() {
       try {
-        const highlighter = await getHighlighter()
+        const highlighter = await getHighlighter();
 
-        if (!isMounted) return
+        if (!isMounted) return;
 
-        const currentTheme = theme === "dark" ? "github-dark" : "github-light"
-        const langToUse = normalizedLanguage || "plaintext"
+        const currentTheme = theme === "dark" ? "github-dark" : "github-light";
+        const langToUse = normalizedLanguage || "plaintext";
 
         try {
           const highlighted = highlighter.codeToHtml(code, {
             lang: langToUse as BundledLanguage,
             theme: currentTheme as BundledTheme,
-          })
+          });
           if (isMounted) {
-            setHighlightedCode(highlighted)
+            setHighlightedCode(highlighted);
           }
         } catch (langError) {
           // Fallback to plaintext if language is not supported
           const highlighted = highlighter.codeToHtml(code, {
             lang: "plaintext",
             theme: currentTheme as BundledTheme,
-          })
+          });
           if (isMounted) {
-            setHighlightedCode(highlighted)
+            setHighlightedCode(highlighted);
           }
         }
       } catch (error) {
-        console.error("Failed to highlight code:", error)
+        console.error("Failed to highlight code:", error);
         if (isMounted) {
-          setHighlightedCode(`<pre><code>${code}</code></pre>`)
+          setHighlightedCode(`<pre><code>${code}</code></pre>`);
         }
       }
     }
 
-    highlightCode()
+    highlightCode();
 
     return () => {
-      isMounted = false
-    }
-  }, [code, language, theme, normalizedLanguage])
+      isMounted = false;
+    };
+  }, [code, language, theme, normalizedLanguage]);
 
   return (
     <div className={cn("relative group my-4 w-full", className)}>
@@ -198,5 +198,5 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

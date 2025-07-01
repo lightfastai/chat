@@ -1,8 +1,8 @@
-import { SignInButtons } from "@/components/auth/sign-in-buttons"
-import { siteConfig } from "@/lib/site-config"
-import { Card, CardContent } from "@lightfast/ui/components/ui/card"
-import type { Metadata } from "next"
-import Link from "next/link"
+import { SignInButtons } from "@/components/auth/sign-in-buttons";
+import { siteConfig } from "@/lib/site-config";
+import { Card, CardContent } from "@lightfast/ui/components/ui/card";
+import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -29,19 +29,19 @@ export const metadata: Metadata = {
     description:
       "Sign in to access your AI chat conversations with real-time streaming responses.",
   },
-}
+};
 
 interface SignInPageProps {
   searchParams: Promise<{
-    from?: string
-    error?: string
-  }>
+    from?: string;
+    error?: string;
+  }>;
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   // Authentication check moved to middleware for better performance
-  const { from, error } = await searchParams
-  const redirectTo = from || "/chat"
+  const { from, error } = await searchParams;
+  const redirectTo = from || "/chat";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -89,5 +89,5 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         </Card>
       </div>
     </div>
-  )
+  );
 }

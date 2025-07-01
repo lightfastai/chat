@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { api } from "@/convex/_generated/api"
-import type { Id } from "@/convex/_generated/dataModel"
-import { Button } from "@lightfast/ui/components/ui/button"
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { Button } from "@lightfast/ui/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,19 +10,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@lightfast/ui/components/ui/dialog"
-import { Input } from "@lightfast/ui/components/ui/input"
-import { Label } from "@lightfast/ui/components/ui/label"
-import { Switch } from "@lightfast/ui/components/ui/switch"
-import { useMutation, useQuery } from "convex/react"
-import { Check, Copy, Globe } from "lucide-react"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
+} from "@lightfast/ui/components/ui/dialog";
+import { Input } from "@lightfast/ui/components/ui/input";
+import { Label } from "@lightfast/ui/components/ui/label";
+import { Switch } from "@lightfast/ui/components/ui/switch";
+import { useMutation, useQuery } from "convex/react";
+import { Check, Copy, Globe } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface ShareDialogProps {
-  threadId: Id<"threads">
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  threadId: Id<"threads">;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function ShareDialog({
@@ -30,119 +30,119 @@ export function ShareDialog({
   open,
   onOpenChange,
 }: ShareDialogProps) {
-  const [copied, setCopied] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState({
     showThinking: false,
-  })
+  });
 
   // Check if this is an optimistic thread ID (not a real Convex ID)
-  const isOptimisticThreadId = !threadId.startsWith("k")
+  const isOptimisticThreadId = !threadId.startsWith("k");
 
   const shareInfo = useQuery(
     api.share.getThreadShareInfo,
     isOptimisticThreadId ? "skip" : { threadId },
-  )
+  );
 
-  const shareThread = useMutation(api.share.shareThread)
-  const unshareThread = useMutation(api.share.unshareThread)
-  const updateShareSettings = useMutation(api.share.updateShareSettings)
+  const shareThread = useMutation(api.share.shareThread);
+  const unshareThread = useMutation(api.share.unshareThread);
+  const updateShareSettings = useMutation(api.share.updateShareSettings);
 
   useEffect(() => {
     if (shareInfo?.shareSettings) {
       setSettings({
         showThinking: shareInfo.shareSettings.showThinking || false,
-      })
+      });
     }
-  }, [shareInfo])
+  }, [shareInfo]);
 
   const shareUrl = shareInfo?.shareId
     ? `${window.location.origin}/share/${shareInfo.shareId}`
-    : ""
+    : "";
 
   const handleShare = async () => {
-    if (isLoading || isOptimisticThreadId) return // Prevent double-clicking or optimistic IDs
+    if (isLoading || isOptimisticThreadId) return; // Prevent double-clicking or optimistic IDs
 
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       await shareThread({
         threadId,
         settings,
-      })
+      });
 
       toast.success("Chat shared", {
         description: "Anyone with the link can now view this chat.",
-      })
+      });
     } catch (error) {
       toast.error("Failed to share", {
         description: "There was an error sharing your chat. Please try again.",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleUnshare = async () => {
-    if (isLoading || isOptimisticThreadId) return // Prevent double-clicking or optimistic IDs
+    if (isLoading || isOptimisticThreadId) return; // Prevent double-clicking or optimistic IDs
 
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       await unshareThread({
         threadId,
-      })
+      });
 
       toast.success("Chat unshared", {
         description: "The share link has been disabled.",
-      })
+      });
     } catch (error) {
       toast.error("Failed to unshare", {
         description:
           "There was an error disabling the share link. Please try again.",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
 
       toast.success("Link copied", {
         description: "The share link has been copied to your clipboard.",
-      })
+      });
     } catch (error) {
       toast.error("Failed to copy", {
         description: "Unable to copy the link. Please try again.",
-      })
+      });
     }
-  }
+  };
 
   const handleSettingChange = async (
     key: keyof typeof settings,
     value: boolean,
   ) => {
-    const newSettings = { ...settings, [key]: value }
-    setSettings(newSettings)
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
 
     if (shareInfo?.isPublic && !isOptimisticThreadId) {
       try {
         await updateShareSettings({
           threadId,
           settings: newSettings,
-        })
+        });
       } catch (error) {
         toast.error("Failed to update settings", {
           description: "There was an error updating share settings.",
-        })
+        });
       }
     }
-  }
+  };
 
   if (!shareInfo) {
-    return null
+    return null;
   }
 
   return (
@@ -238,5 +238,5 @@ export function ShareDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -1,35 +1,35 @@
-"use client"
+"use client";
 
-import type { ToolCallPart } from "@/lib/message-parts"
+import type { ToolCallPart } from "@/lib/message-parts";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@lightfast/ui/components/ui/accordion"
-import { ExternalLink, Loader2, Search } from "lucide-react"
+} from "@lightfast/ui/components/ui/accordion";
+import { ExternalLink, Loader2, Search } from "lucide-react";
 
 export interface WebSearchToolProps {
-  toolCall: ToolCallPart
+  toolCall: ToolCallPart;
 }
 
 interface SearchResult {
-  title: string
-  url: string
-  snippet?: string
-  score?: number
+  title: string;
+  url: string;
+  snippet?: string;
+  score?: number;
 }
 
 export function WebSearchTool({ toolCall }: WebSearchToolProps) {
   const isLoading =
-    toolCall.state === "partial-call" || toolCall.state === "call"
-  const searchQuery = toolCall.args?.query as string | undefined
+    toolCall.state === "partial-call" || toolCall.state === "call";
+  const searchQuery = toolCall.args?.query as string | undefined;
 
   // Extract search results from the tool result
-  const searchResults = toolCall.result?.results as SearchResult[] | undefined
+  const searchResults = toolCall.result?.results as SearchResult[] | undefined;
 
-  const resultCount = searchResults?.length || 0
-  const accordionValue = `search-${toolCall.toolCallId}`
+  const resultCount = searchResults?.length || 0;
+  const accordionValue = `search-${toolCall.toolCallId}`;
 
   return (
     <div className="my-2 border rounded-lg px-4 py-1">
@@ -60,7 +60,7 @@ export function WebSearchTool({ toolCall }: WebSearchToolProps) {
             {searchResults && searchResults.length > 0 && (
               <div className="divide-y">
                 {searchResults.map((result, index) => {
-                  if (!result) return null
+                  if (!result) return null;
                   return (
                     <div key={index} className="py-3 first:pt-0 last:pb-0">
                       <a
@@ -85,7 +85,7 @@ export function WebSearchTool({ toolCall }: WebSearchToolProps) {
                         <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/50" />
                       </a>
                     </div>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -97,5 +97,5 @@ export function WebSearchTool({ toolCall }: WebSearchToolProps) {
         </AccordionItem>
       </Accordion>
     </div>
-  )
+  );
 }

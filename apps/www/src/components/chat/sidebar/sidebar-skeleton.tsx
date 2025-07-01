@@ -1,4 +1,4 @@
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area"
+import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
@@ -10,8 +10,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@lightfast/ui/components/ui/sidebar"
-import { MessageSquarePlus } from "lucide-react"
+} from "@lightfast/ui/components/ui/sidebar";
+import { MessageSquarePlus } from "lucide-react";
 
 // Skeleton loader for the sidebar - provides instant visual feedback
 export function SidebarSkeleton() {
@@ -136,5 +136,5 @@ export function SidebarSkeleton() {
         </SidebarGroup>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

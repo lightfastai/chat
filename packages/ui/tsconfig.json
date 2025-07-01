@@ -1,14 +1,14 @@
 {
-  "extends": "@repo/typescript/react-library",
-  "compilerOptions": {
-    "tsBuildInfoFile": "${configDir}/.cache/tsbuildinfo.json",
-    "noEmit": true,
-    "baseUrl": ".",
-    "paths": {
-      "~/*": ["./src/*"]
-    },
-    "noUncheckedIndexedAccess": false
-  },
-  "include": [".", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+	"extends": "@repo/typescript/react-library",
+	"compilerOptions": {
+		"tsBuildInfoFile": "${configDir}/.cache/tsbuildinfo.json",
+		"noEmit": true,
+		"baseUrl": ".",
+		"paths": {
+			"~/*": ["./src/*"]
+		},
+		"noUncheckedIndexedAccess": false
+	},
+	"include": [".", ".next/types/**/*.ts"],
+	"exclude": ["node_modules"]
 }

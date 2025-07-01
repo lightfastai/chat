@@ -1,8 +1,8 @@
-import { Badge } from "@lightfast/ui/components/ui/badge"
+import { Badge } from "@lightfast/ui/components/ui/badge";
 
 interface SettingsHeaderProps {
-  title: string
-  badge?: string
+  title: string;
+  badge?: string;
 }
 
 export function SettingsHeader({ title, badge }: SettingsHeaderProps) {
@@ -15,5 +15,5 @@ export function SettingsHeader({ title, badge }: SettingsHeaderProps) {
         </Badge>
       )}
     </div>
-  )
+  );
 }

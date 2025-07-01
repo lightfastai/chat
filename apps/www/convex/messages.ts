@@ -7,7 +7,7 @@
  * separate from utility functions.
  */
 
-import { getAuthUserId } from "@convex-dev/auth/server"
+import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   type CoreMessage,
   type TextStreamPart,
@@ -15,17 +15,17 @@ import {
   smoothStream,
   stepCountIs,
   streamText,
-} from "ai"
-import { v } from "convex/values"
+} from "ai";
+import { v } from "convex/values";
 import {
   type ModelId,
   getModelById,
   getModelConfig,
   getProviderFromModelId,
   isThinkingMode,
-} from "../src/lib/ai/schemas.js"
-import { internal } from "./_generated/api.js"
-import type { Doc, Id } from "./_generated/dataModel.js"
+} from "../src/lib/ai/schemas.js";
+import { internal } from "./_generated/api.js";
+import type { Doc, Id } from "./_generated/dataModel.js";
 import {
   type ActionCtx,
   internalAction,
@@ -33,15 +33,15 @@ import {
   internalQuery,
   mutation,
   query,
-} from "./_generated/server.js"
-import { createAIClient } from "./lib/ai_client.js"
-import { createWebSearchTool } from "./lib/ai_tools.js"
-import { getAuthenticatedUserId } from "./lib/auth.js"
-import { enforceModelCapabilities } from "./lib/capability_guards.js"
-import { getOrThrow, getWithOwnership } from "./lib/database.js"
-import { requireResource, throwConflictError } from "./lib/errors.js"
-import { createSystemPrompt } from "./lib/message_builder.js"
-import { getModelStreamingDelay } from "./lib/streaming_config.js"
+} from "./_generated/server.js";
+import { createAIClient } from "./lib/ai_client.js";
+import { createWebSearchTool } from "./lib/ai_tools.js";
+import { getAuthenticatedUserId } from "./lib/auth.js";
+import { enforceModelCapabilities } from "./lib/capability_guards.js";
+import { getOrThrow, getWithOwnership } from "./lib/database.js";
+import { requireResource, throwConflictError } from "./lib/errors.js";
+import { createSystemPrompt } from "./lib/message_builder.js";
+import { getModelStreamingDelay } from "./lib/streaming_config.js";
 import {
   branchInfoValidator,
   clientIdValidator,
@@ -53,7 +53,7 @@ import {
   streamIdValidator,
   threadUsageValidator,
   tokenUsageValidator,
-} from "./validators.js"
+} from "./validators.js";
 
 // Import utility functions from messages/ directory
 import {
@@ -64,30 +64,30 @@ import {
   streamAIResponse,
   updateThreadUsage,
   updateThreadUsageUtil,
-} from "./messages/helpers.js"
+} from "./messages/helpers.js";
 import {
   type AISDKUsage,
   type MessageUsageUpdate,
   formatUsageData,
   messageReturnValidator,
-} from "./messages/types.js"
+} from "./messages/types.js";
 
 // Type definitions for multimodal content
-type TextPart = { type: "text"; text: string }
-type ImagePart = { type: "image"; image: string | URL }
+type TextPart = { type: "text"; text: string };
+type ImagePart = { type: "image"; image: string | URL };
 type FilePart = {
-  type: "file"
-  data: string | URL
-  mediaType: string
-}
+  type: "file";
+  data: string | URL;
+  mediaType: string;
+};
 
-export type MultimodalContent = string | Array<TextPart | ImagePart | FilePart>
+export type MultimodalContent = string | Array<TextPart | ImagePart | FilePart>;
 
 // Export types
 export type {
   MessageUsageUpdate,
   AISDKUsage,
-} from "./messages/types.js"
+} from "./messages/types.js";
 
 // ===== QUERIES =====
 
@@ -97,9 +97,9 @@ export const listByClientId = query({
   },
   returns: v.array(messageReturnValidator),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      return []
+      return [];
     }
 
     // First get the thread by clientId
@@ -108,10 +108,10 @@ export const listByClientId = query({
       .withIndex("by_user_client", (q) =>
         q.eq("userId", userId).eq("clientId", args.clientId),
       )
-      .first()
+      .first();
 
     if (!thread) {
-      return []
+      return [];
     }
 
     // Then get messages for this thread
@@ -119,9 +119,9 @@ export const listByClientId = query({
       .query("messages")
       .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
       .order("desc")
-      .take(50)
+      .take(50);
   },
-})
+});
 
 export const list = query({
   args: {
@@ -129,24 +129,24 @@ export const list = query({
   },
   returns: v.array(messageReturnValidator),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      return []
+      return [];
     }
 
     // Verify the user owns this thread
-    const thread = await ctx.db.get(args.threadId)
+    const thread = await ctx.db.get(args.threadId);
     if (!thread || thread.userId !== userId) {
-      return []
+      return [];
     }
 
     return await ctx.db
       .query("messages")
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .order("desc")
-      .take(50)
+      .take(50);
   },
-})
+});
 
 export const getThreadUsage = query({
   args: {
@@ -172,7 +172,7 @@ export const getThreadUsage = query({
     ),
   }),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
       return {
         totalInputTokens: 0,
@@ -182,11 +182,11 @@ export const getThreadUsage = query({
         totalCachedInputTokens: 0,
         messageCount: 0,
         modelStats: [],
-      }
+      };
     }
 
     // Verify the user owns this thread
-    const thread = await ctx.db.get(args.threadId)
+    const thread = await ctx.db.get(args.threadId);
     if (!thread || thread.userId !== userId) {
       return {
         totalInputTokens: 0,
@@ -196,11 +196,11 @@ export const getThreadUsage = query({
         totalCachedInputTokens: 0,
         messageCount: 0,
         modelStats: [],
-      }
+      };
     }
 
     // Return usage from thread table (fast O(1) lookup!)
-    const usage = thread.usage
+    const usage = thread.usage;
     if (!usage) {
       return {
         totalInputTokens: 0,
@@ -210,7 +210,7 @@ export const getThreadUsage = query({
         totalCachedInputTokens: 0,
         messageCount: 0,
         modelStats: [],
-      }
+      };
     }
 
     // Convert modelStats record to array format
@@ -224,7 +224,7 @@ export const getThreadUsage = query({
         cachedInputTokens: stats.cachedInputTokens || 0,
         messageCount: stats.messageCount,
       }),
-    )
+    );
 
     return {
       totalInputTokens: usage.totalInputTokens,
@@ -234,9 +234,9 @@ export const getThreadUsage = query({
       totalCachedInputTokens: usage.totalCachedInputTokens,
       messageCount: usage.messageCount,
       modelStats,
-    }
+    };
   },
-})
+});
 
 // Internal function to get recent conversation context
 export const getRecentContext = internalQuery({
@@ -255,7 +255,7 @@ export const getRecentContext = internalQuery({
       .query("messages")
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .order("desc")
-      .take(10)
+      .take(10);
 
     return messages
       .reverse() // Get chronological order
@@ -264,9 +264,9 @@ export const getRecentContext = internalQuery({
         body: msg.body,
         messageType: msg.messageType,
         attachments: msg.attachments,
-      }))
+      }));
   },
-})
+});
 
 // Internal query to get thread by ID
 export const getThreadById = internalQuery({
@@ -297,9 +297,9 @@ export const getThreadById = internalQuery({
     v.null(),
   ),
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.threadId)
+    return await ctx.db.get(args.threadId);
   },
-})
+});
 
 // ===== MUTATIONS =====
 
@@ -337,39 +337,39 @@ export const buildMessageContent = internalMutation({
   handler: async (ctx, args) => {
     // If no attachments, return simple text content
     if (!args.attachmentIds || args.attachmentIds.length === 0) {
-      return args.text
+      return args.text;
     }
 
     // Get model configuration to check capabilities
-    const modelConfig = args.modelId ? getModelById(args.modelId) : null
-    const hasVisionSupport = modelConfig?.features.vision ?? false
-    const hasPdfSupport = modelConfig?.features.pdfSupport ?? false
+    const modelConfig = args.modelId ? getModelById(args.modelId) : null;
+    const hasVisionSupport = modelConfig?.features.vision ?? false;
+    const hasPdfSupport = modelConfig?.features.pdfSupport ?? false;
 
     // Build content array with text and files
     const content = [{ type: "text" as const, text: args.text }] as Array<
       TextPart | ImagePart | FilePart
-    >
+    >;
 
     // Fetch each file with its URL
     for (const fileId of args.attachmentIds) {
       const file = await ctx.runQuery(internal.files.getFileWithUrl, {
         fileId,
-      })
-      if (!file || !file.url) continue
+      });
+      if (!file || !file.url) continue;
 
       // Handle images
       if (file.fileType.startsWith("image/")) {
         if (!hasVisionSupport) {
           // Model doesn't support vision
           if (content[0] && "text" in content[0]) {
-            content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || "This model"} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`
+            content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || "This model"} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`;
           }
         } else {
           // Model supports vision - all models use URLs (no base64 needed)
           content.push({
             type: "image" as const,
             image: file.url,
-          })
+          });
         }
       }
       // Handle PDFs
@@ -380,29 +380,29 @@ export const buildMessageContent = internalMutation({
             type: "file" as const,
             data: file.url,
             mediaType: "application/pdf",
-          })
+          });
         } else {
           // PDF not supported - add as text description
-          const description = `\n[Attached PDF: ${file.fileName} (${(file.fileSize / 1024).toFixed(1)}KB)] - Note: PDF content analysis requires Claude models.`
+          const description = `\n[Attached PDF: ${file.fileName} (${(file.fileSize / 1024).toFixed(1)}KB)] - Note: PDF content analysis requires Claude models.`;
           content.push({
             type: "text" as const,
             text: description,
-          })
+          });
         }
       }
       // For other file types, add as text description
       else {
-        const description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`
+        const description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`;
 
         if (content[0] && "text" in content[0]) {
-          content[0].text += description
+          content[0].text += description;
         }
       }
     }
 
-    return content
+    return content;
   },
-})
+});
 
 export const send = mutation({
   args: {
@@ -416,7 +416,7 @@ export const send = mutation({
     messageId: v.id("messages"),
   }),
   handler: async (ctx, args) => {
-    const userId = await getAuthenticatedUserId(ctx)
+    const userId = await getAuthenticatedUserId(ctx);
 
     // Verify the user owns this thread and check generation status
     const thread = await getWithOwnership(
@@ -424,29 +424,29 @@ export const send = mutation({
       "threads",
       args.threadId,
       userId,
-    )
+    );
 
     // Prevent new messages while AI is generating
     if (thread.isGenerating) {
       throwConflictError(
         "Please wait for the current AI response to complete before sending another message",
-      )
+      );
     }
 
     // CRITICAL FIX: Set generation flag IMMEDIATELY to prevent race conditions
     await ctx.db.patch(args.threadId, {
       isGenerating: true,
       lastMessageAt: Date.now(),
-    })
+    });
 
     // Use default model if none provided
-    const modelId = args.modelId || "gpt-4o-mini"
+    const modelId = args.modelId || "gpt-4o-mini";
 
     // Validate model capabilities against attachments before proceeding
-    await enforceModelCapabilities(ctx, modelId as ModelId, args.attachments)
+    await enforceModelCapabilities(ctx, modelId as ModelId, args.attachments);
 
     // Derive provider from modelId (type-safe)
-    const provider = getProviderFromModelId(modelId as ModelId)
+    const provider = getProviderFromModelId(modelId as ModelId);
 
     // Insert user message after setting generation flag
     const messageId = await ctx.db.insert("messages", {
@@ -457,7 +457,7 @@ export const send = mutation({
       model: provider,
       modelId: modelId,
       attachments: args.attachments,
-    })
+    });
 
     // Schedule AI response using the modelId
     await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
@@ -466,26 +466,26 @@ export const send = mutation({
       modelId: modelId,
       attachments: args.attachments,
       webSearchEnabled: args.webSearchEnabled,
-    })
+    });
 
     // Check if this is the first user message in the thread (for title generation)
     const userMessages = await ctx.db
       .query("messages")
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .filter((q) => q.eq(q.field("messageType"), "user"))
-      .collect()
+      .collect();
 
     // If this is the first user message, schedule title generation
     if (userMessages.length === 1) {
       await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
         threadId: args.threadId,
         userMessage: args.body,
-      })
+      });
     }
 
-    return { messageId }
+    return { messageId };
   },
-})
+});
 
 // Combined mutation for creating thread + sending first message (optimistic flow)
 export const createThreadAndSend = mutation({
@@ -503,28 +503,30 @@ export const createThreadAndSend = mutation({
     assistantMessageId: v.id("messages"),
   }),
   handler: async (ctx, args) => {
-    const userId = await getAuthenticatedUserId(ctx)
+    const userId = await getAuthenticatedUserId(ctx);
 
     // Check for collision if clientId is provided (extremely rare with nanoid)
     const existing = await ctx.db
       .query("threads")
       .withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
-      .first()
+      .first();
 
     if (existing) {
-      throwConflictError(`Thread with clientId ${args.clientId} already exists`)
+      throwConflictError(
+        `Thread with clientId ${args.clientId} already exists`,
+      );
     }
 
     // Use default model if none provided
-    const modelId = args.modelId || "gpt-4o-mini"
+    const modelId = args.modelId || "gpt-4o-mini";
 
     // Validate model capabilities against attachments before proceeding
-    await enforceModelCapabilities(ctx, modelId as ModelId, args.attachments)
+    await enforceModelCapabilities(ctx, modelId as ModelId, args.attachments);
 
-    const provider = getProviderFromModelId(modelId as ModelId)
+    const provider = getProviderFromModelId(modelId as ModelId);
 
     // Create thread atomically with generation flag set
-    const now = Date.now()
+    const now = Date.now();
     const threadId = await ctx.db.insert("threads", {
       clientId: args.clientId,
       title: args.title,
@@ -543,7 +545,7 @@ export const createThreadAndSend = mutation({
         messageCount: 0,
         modelStats: {},
       },
-    })
+    });
 
     // Insert user message
     const userMessageId = await ctx.db.insert("messages", {
@@ -554,10 +556,10 @@ export const createThreadAndSend = mutation({
       model: provider,
       modelId: modelId,
       attachments: args.attachments,
-    })
+    });
 
     // Generate unique stream ID for assistant message
-    const streamId = generateStreamId()
+    const streamId = generateStreamId();
 
     // Create assistant message placeholder immediately
     const assistantMessageId = await ctx.db.insert("messages", {
@@ -574,7 +576,7 @@ export const createThreadAndSend = mutation({
       streamVersion: 0, // Initialize version counter
       parts: [], // Initialize empty parts array for tool calls
       usage: undefined, // Initialize usage tracking
-    })
+    });
 
     // Schedule AI response with the pre-created message ID
     await ctx.scheduler.runAfter(
@@ -589,21 +591,21 @@ export const createThreadAndSend = mutation({
         messageId: assistantMessageId,
         streamId: streamId,
       },
-    )
+    );
 
     // Schedule title generation (this is the first message)
     await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
       threadId,
       userMessage: args.body,
-    })
+    });
 
     return {
       threadId,
       userMessageId,
       assistantMessageId,
-    }
+    };
   },
-})
+});
 
 // Internal mutation to create initial streaming message
 export const createStreamingMessage = internalMutation({
@@ -616,7 +618,7 @@ export const createStreamingMessage = internalMutation({
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
-    const now = Date.now()
+    const now = Date.now();
     return await ctx.db.insert("messages", {
       threadId: args.threadId,
       body: "", // Will be updated as chunks arrive
@@ -632,9 +634,9 @@ export const createStreamingMessage = internalMutation({
       usedUserApiKey: args.usedUserApiKey,
       parts: [], // Initialize empty parts array for tool calls
       usage: undefined, // Initialize usage tracking
-    })
+    });
   },
-})
+});
 
 // Internal mutation to update streaming message content
 export const updateStreamingMessage = internalMutation({
@@ -650,11 +652,11 @@ export const updateStreamingMessage = internalMutation({
       body: args.content,
       streamVersion:
         ((await ctx.db.get(args.messageId))?.streamVersion || 0) + 1,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to update message API key status
 export const updateMessageApiKeyStatus = internalMutation({
@@ -666,10 +668,10 @@ export const updateMessageApiKeyStatus = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.messageId, {
       usedUserApiKey: args.usedUserApiKey,
-    })
-    return null
+    });
+    return null;
   },
-})
+});
 
 // Internal mutation to update thread usage
 export const updateThreadUsageMutation = internalMutation({
@@ -686,19 +688,19 @@ export const updateThreadUsageMutation = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { threadId, usage } = args
+    const { threadId, usage } = args;
     const messageUsage: MessageUsageUpdate = {
       inputTokens: usage.promptTokens,
       outputTokens: usage.completionTokens,
       totalTokens: usage.totalTokens,
       reasoningTokens: usage.reasoningTokens,
       cachedInputTokens: usage.cachedTokens,
-    }
+    };
 
-    await updateThreadUsage(ctx, threadId, usage.modelId, messageUsage)
-    return null
+    await updateThreadUsage(ctx, threadId, usage.modelId, messageUsage);
+    return null;
   },
-})
+});
 
 // Internal mutation to update message with error
 export const updateMessageError = internalMutation({
@@ -713,10 +715,10 @@ export const updateMessageError = internalMutation({
       isStreaming: false,
       isComplete: true,
       thinkingCompletedAt: Date.now(),
-    })
-    return null
+    });
+    return null;
   },
-})
+});
 
 // Internal mutation to mark streaming as complete (original version)
 export const completeStreamingMessageLegacy = internalMutation({
@@ -727,7 +729,7 @@ export const completeStreamingMessageLegacy = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     // Verify the message exists
-    await getOrThrow(ctx.db, "messages", args.messageId)
+    await getOrThrow(ctx.db, "messages", args.messageId);
 
     // Update the message with completion status and usage
     await ctx.db.patch(args.messageId, {
@@ -735,14 +737,14 @@ export const completeStreamingMessageLegacy = internalMutation({
       isComplete: true,
       thinkingCompletedAt: Date.now(),
       usage: args.usage,
-    })
+    });
 
     // Thread usage has already been updated via updateUsage during streaming
     // No need to update again here to avoid double counting
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to mark streaming as complete and update thread usage
 export const completeStreamingMessage = internalMutation({
@@ -755,21 +757,21 @@ export const completeStreamingMessage = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     // Verify the message exists and get current parts
-    const message = await getOrThrow(ctx.db, "messages", args.messageId)
+    const message = await getOrThrow(ctx.db, "messages", args.messageId);
 
     // Combine consecutive text parts to reduce storage
-    const currentParts = message.parts || []
-    const combinedParts: typeof currentParts = []
+    const currentParts = message.parts || [];
+    const combinedParts: typeof currentParts = [];
 
     for (const part of currentParts) {
-      const lastPart = combinedParts[combinedParts.length - 1]
+      const lastPart = combinedParts[combinedParts.length - 1];
 
       // If current part is text and last part is also text, combine them
       if (part.type === "text" && lastPart?.type === "text") {
-        lastPart.text += part.text
+        lastPart.text += part.text;
       } else {
         // Otherwise, add the part as is
-        combinedParts.push(part)
+        combinedParts.push(part);
       }
     }
 
@@ -781,14 +783,14 @@ export const completeStreamingMessage = internalMutation({
       isComplete: true,
       thinkingCompletedAt: Date.now(),
       usage: args.usage,
-    })
+    });
 
     // Thread usage has already been updated via updateUsage during streaming
     // No need to update again here to avoid double counting
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to create error message
 export const createErrorMessage = internalMutation({
@@ -801,7 +803,7 @@ export const createErrorMessage = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const now = Date.now()
+    const now = Date.now();
     await ctx.db.insert("messages", {
       threadId: args.threadId,
       body: args.errorMessage,
@@ -816,11 +818,11 @@ export const createErrorMessage = internalMutation({
       thinkingCompletedAt: now,
       parts: [], // Initialize empty parts array for tool calls
       usage: undefined, // Initialize usage tracking
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to update thinking state
 export const updateThinkingState = internalMutation({
@@ -834,10 +836,10 @@ export const updateThinkingState = internalMutation({
     await ctx.db.patch(args.messageId, {
       isThinking: args.isThinking,
       hasThinkingContent: args.hasThinkingContent,
-    })
-    return null
+    });
+    return null;
   },
-})
+});
 
 // Internal mutation to update thinking content
 export const updateThinkingContent = internalMutation({
@@ -849,10 +851,10 @@ export const updateThinkingContent = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.messageId, {
       thinkingContent: args.thinkingContent,
-    })
-    return null
+    });
+    return null;
   },
-})
+});
 
 // Internal mutation to clear the generation flag
 export const clearGenerationFlag = internalMutation({
@@ -863,9 +865,9 @@ export const clearGenerationFlag = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.threadId, {
       isGenerating: false,
-    })
+    });
   },
-})
+});
 
 // ===== Message Parts Mutations (Vercel AI SDK v5) =====
 
@@ -877,25 +879,25 @@ export const addTextPart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
         type: "text" as const,
         text: args.text,
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to add a reasoning part to a message
 export const addReasoningPart = internalMutation({
@@ -906,10 +908,10 @@ export const addReasoningPart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
@@ -917,15 +919,15 @@ export const addReasoningPart = internalMutation({
         text: args.text,
         providerMetadata: args.providerMetadata,
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to add a file part to a message
 export const addFilePart = internalMutation({
@@ -938,10 +940,10 @@ export const addFilePart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
@@ -951,15 +953,15 @@ export const addFilePart = internalMutation({
         data: args.data,
         filename: args.filename,
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to add a source part to a message
 export const addSourcePart = internalMutation({
@@ -975,10 +977,10 @@ export const addSourcePart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
@@ -991,15 +993,15 @@ export const addSourcePart = internalMutation({
         filename: args.filename,
         providerMetadata: args.providerMetadata,
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to add an error part to a message
 export const addErrorPart = internalMutation({
@@ -1010,10 +1012,10 @@ export const addErrorPart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
@@ -1021,15 +1023,15 @@ export const addErrorPart = internalMutation({
         errorMessage: args.errorMessage,
         errorDetails: args.errorDetails,
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to add a raw part to a message
 export const addRawPart = internalMutation({
@@ -1039,25 +1041,25 @@ export const addRawPart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
         type: "raw" as const,
         rawValue: args.rawValue,
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to add step metadata part
 export const addStepPart = internalMutation({
@@ -1071,10 +1073,10 @@ export const addStepPart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
@@ -1085,15 +1087,15 @@ export const addStepPart = internalMutation({
         ...(args.finishReason && { finishReason: args.finishReason }),
         ...(args.warnings && { warnings: args.warnings }),
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to add stream control parts (start, finish, etc.)
 export const addStreamControlPart = internalMutation({
@@ -1110,10 +1112,10 @@ export const addStreamControlPart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
@@ -1123,15 +1125,15 @@ export const addStreamControlPart = internalMutation({
         ...(args.totalUsage && { totalUsage: args.totalUsage }),
         ...(args.metadata && { metadata: args.metadata }),
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to add a tool call part to a message
 export const addToolCallPart = internalMutation({
@@ -1150,10 +1152,10 @@ export const addToolCallPart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
     const updatedParts = [
       ...currentParts,
       {
@@ -1163,15 +1165,15 @@ export const addToolCallPart = internalMutation({
         args: args.args,
         state: args.state || "call",
       },
-    ]
+    ];
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to update a tool call part in a message
 export const updateToolCallPart = internalMutation({
@@ -1190,10 +1192,10 @@ export const updateToolCallPart = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const message = await ctx.db.get(args.messageId)
-    if (!message) return null
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
 
-    const currentParts = message.parts || []
+    const currentParts = message.parts || [];
 
     // Find the tool call part and update its args, result, and/or state
     const updatedParts = currentParts.map((part) => {
@@ -1203,18 +1205,18 @@ export const updateToolCallPart = internalMutation({
           ...(args.args !== undefined && { args: args.args }),
           ...(args.result !== undefined && { result: args.result }),
           ...(args.state !== undefined && { state: args.state }),
-        }
+        };
       }
-      return part
-    })
+      return part;
+    });
 
     await ctx.db.patch(args.messageId, {
       parts: updatedParts,
-    })
+    });
 
-    return null
+    return null;
   },
-})
+});
 
 // ===== ACTIONS =====
 
@@ -1228,13 +1230,13 @@ async function buildConversationMessages(
 ): Promise<CoreMessage[]> {
   // Get recent conversation context
   const recentMessages: Array<{
-    body: string
-    messageType: "user" | "assistant" | "system"
-    attachments?: Id<"files">[]
-  }> = await ctx.runQuery(internal.messages.getRecentContext, { threadId })
+    body: string;
+    messageType: "user" | "assistant" | "system";
+    attachments?: Id<"files">[];
+  }> = await ctx.runQuery(internal.messages.getRecentContext, { threadId });
 
-  const provider = getProviderFromModelId(modelId)
-  const systemPrompt = createSystemPrompt(modelId, webSearchEnabled)
+  const provider = getProviderFromModelId(modelId);
+  const systemPrompt = createSystemPrompt(modelId, webSearchEnabled);
 
   // Prepare messages for AI SDK v5 with multimodal support
   const messages: CoreMessage[] = [
@@ -1242,17 +1244,17 @@ async function buildConversationMessages(
       role: "system",
       content: systemPrompt,
     },
-  ]
+  ];
 
   // Build conversation history with attachments
   for (let i = 0; i < recentMessages.length; i++) {
-    const msg = recentMessages[i]
+    const msg = recentMessages[i];
     const isLastUserMessage =
-      i === recentMessages.length - 1 && msg.messageType === "user"
+      i === recentMessages.length - 1 && msg.messageType === "user";
 
     // For the last user message, include the current attachments
     const attachmentsToUse =
-      isLastUserMessage && attachments ? attachments : msg.attachments
+      isLastUserMessage && attachments ? attachments : msg.attachments;
 
     // Build message content with attachments using mutation
     const content = await ctx.runMutation(
@@ -1263,15 +1265,15 @@ async function buildConversationMessages(
         provider,
         modelId,
       },
-    )
+    );
 
     messages.push({
       role: msg.messageType === "user" ? "user" : "assistant",
       content,
-    } as CoreMessage)
+    } as CoreMessage);
   }
 
-  return messages
+  return messages;
 }
 
 // New action that uses pre-created message ID
@@ -1292,40 +1294,40 @@ export const generateAIResponseWithMessage = internalAction({
       // We just need to get the userId for API key retrieval
       const thread = (await ctx.runQuery(internal.messages.getThreadById, {
         threadId: args.threadId,
-      })) as { userId: Id<"users"> } | null
-      requireResource(thread, "Thread")
+      })) as { userId: Id<"users"> } | null;
+      requireResource(thread, "Thread");
 
       // Validate model capabilities against attachments before processing
       await enforceModelCapabilities(
         ctx,
         args.modelId as ModelId,
         args.attachments,
-      )
+      );
 
       // Derive provider from modelId
-      const provider = getProviderFromModelId(args.modelId as ModelId)
+      const provider = getProviderFromModelId(args.modelId as ModelId);
 
       // Get user's API keys if available
       const userApiKeys = (await ctx.runMutation(
         internal.userSettings.getDecryptedApiKeys,
         { userId: thread.userId },
       )) as {
-        anthropic?: string
-        openai?: string
-        openrouter?: string
-      } | null
+        anthropic?: string;
+        openai?: string;
+        openrouter?: string;
+      } | null;
 
       // Determine if we'll use user's API key
       const willUseUserApiKey =
         (provider === "anthropic" && userApiKeys && userApiKeys.anthropic) ||
         (provider === "openai" && userApiKeys && userApiKeys.openai) ||
-        (provider === "openrouter" && userApiKeys && userApiKeys.openrouter)
+        (provider === "openrouter" && userApiKeys && userApiKeys.openrouter);
 
       // Update the pre-created message with API key status
       await ctx.runMutation(internal.messages.updateMessageApiKeyStatus, {
         messageId: args.messageId,
         usedUserApiKey: !!willUseUserApiKey,
-      })
+      });
 
       // Build conversation messages
       const messages = await buildConversationMessages(
@@ -1334,11 +1336,11 @@ export const generateAIResponseWithMessage = internalAction({
         args.modelId as ModelId,
         args.attachments,
         args.webSearchEnabled,
-      )
+      );
 
       // Update token usage function
       const updateUsage = async (usage: AISDKUsage) => {
-        const formattedUsage = formatUsageData(usage)
+        const formattedUsage = formatUsageData(usage);
         if (formattedUsage) {
           await ctx.runMutation(internal.messages.updateThreadUsageMutation, {
             threadId: args.threadId,
@@ -1350,12 +1352,12 @@ export const generateAIResponseWithMessage = internalAction({
               cachedTokens: formattedUsage.cachedInputTokens,
               modelId: args.modelId,
             },
-          })
+          });
         }
-      }
+      };
 
       // Create AI client using shared utility
-      const ai = createAIClient(args.modelId as ModelId, userApiKeys)
+      const ai = createAIClient(args.modelId as ModelId, userApiKeys);
 
       // Prepare generation options
       const generationOptions: Parameters<typeof streamText>[0] = {
@@ -1366,11 +1368,11 @@ export const generateAIResponseWithMessage = internalAction({
           chunking: "word", // Stream word by word
         }),
         // Usage will be updated after streaming completes
-      }
+      };
 
       // Apply thinking configuration for Anthropic models if enabled
       if (provider === "anthropic" && isThinkingMode(args.modelId as ModelId)) {
-        const modelConfig = getModelConfig(args.modelId as ModelId)
+        const modelConfig = getModelConfig(args.modelId as ModelId);
         if (modelConfig.thinkingConfig) {
           // Add thinking configuration for Anthropic models
           generationOptions.providerOptions = {
@@ -1380,7 +1382,7 @@ export const generateAIResponseWithMessage = internalAction({
                 budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
               },
             },
-          }
+          };
         }
       }
 
@@ -1388,35 +1390,35 @@ export const generateAIResponseWithMessage = internalAction({
       if (args.webSearchEnabled) {
         generationOptions.tools = {
           web_search: createWebSearchTool(),
-        }
+        };
         // Enable iterative tool calling with stopWhen
-        generationOptions.stopWhen = stepCountIs(5) // Allow up to 5 iterations
+        generationOptions.stopWhen = stepCountIs(5); // Allow up to 5 iterations
       }
 
       // Use the AI SDK v5 streamText
-      const result = streamText(generationOptions)
+      const result = streamText(generationOptions);
 
-      let fullText = ""
-      let hasContent = false
+      let fullText = "";
+      let hasContent = false;
 
       // Use fullStream as the unified interface (works with or without tools)
       for await (const streamPart of result.fullStream) {
         // Use the official AI SDK TextStreamPart type
-        const part: TextStreamPart<ToolSet> = streamPart
+        const part: TextStreamPart<ToolSet> = streamPart;
         switch (part.type) {
           case "text":
             // Handle complete text blocks (in addition to text-delta)
             if (part.text) {
-              fullText += part.text
-              hasContent = true
+              fullText += part.text;
+              hasContent = true;
 
               // Add text part to the parts array
               await ctx.runMutation(internal.messages.addTextPart, {
                 messageId: args.messageId,
                 text: part.text,
-              })
+              });
             }
-            break
+            break;
 
           case "reasoning":
             // Handle Claude thinking/reasoning content
@@ -1425,31 +1427,31 @@ export const generateAIResponseWithMessage = internalAction({
                 messageId: args.messageId,
                 text: part.text,
                 providerMetadata: part.providerMetadata,
-              })
+              });
             }
-            break
+            break;
 
           case "reasoning-part-finish":
             // Mark reasoning section as complete
             await ctx.runMutation(internal.messages.addStreamControlPart, {
               messageId: args.messageId,
               controlType: "reasoning-part-finish",
-            })
-            break
+            });
+            break;
 
           case "file":
             // Handle generated file content
             if (part.type === "file" && part.file) {
-              const file = part.file
+              const file = part.file;
               await ctx.runMutation(internal.messages.addFilePart, {
                 messageId: args.messageId,
                 url: undefined, // Files don't have URLs in AI SDK
                 mediaType: file.mediaType || "application/octet-stream",
                 data: file.base64 || file.uint8Array || null,
                 filename: undefined, // Files in AI SDK don't have explicit filenames
-              })
+              });
             }
-            break
+            break;
 
           case "source":
             // Handle citation/source references
@@ -1465,9 +1467,9 @@ export const generateAIResponseWithMessage = internalAction({
                 url: part.url,
                 title: part.title,
                 providerMetadata: part.providerMetadata,
-              })
+              });
             }
-            break
+            break;
 
           case "tool-call":
             // Update existing tool call part to "call" state (should exist from tool-call-streaming-start)
@@ -1476,8 +1478,8 @@ export const generateAIResponseWithMessage = internalAction({
               toolCallId: part.toolCallId,
               args: part.input,
               state: "call",
-            })
-            break
+            });
+            break;
 
           case "tool-call-delta":
             // Update tool call part with streaming arguments
@@ -1491,9 +1493,9 @@ export const generateAIResponseWithMessage = internalAction({
                 toolCallId: part.toolCallId,
                 args: part.inputTextDelta,
                 state: "partial-call",
-              })
+              });
             }
-            break
+            break;
 
           case "tool-call-streaming-start":
             // Add tool call part in "partial-call" state
@@ -1507,13 +1509,13 @@ export const generateAIResponseWithMessage = internalAction({
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 state: "partial-call",
-              })
+              });
             }
-            break
+            break;
 
           case "tool-result": {
             // The AI SDK uses 'output' field for tool results, not 'result'
-            const toolResult = part.output
+            const toolResult = part.output;
 
             // Update the tool call part with the result
             await ctx.runMutation(internal.messages.updateToolCallPart, {
@@ -1521,13 +1523,13 @@ export const generateAIResponseWithMessage = internalAction({
               toolCallId: part.toolCallId,
               state: "result",
               result: toolResult,
-            })
-            break
+            });
+            break;
           }
 
           case "start":
             // Handle generation start event
-            break
+            break;
 
           case "finish":
             // Handle generation completion event
@@ -1537,25 +1539,25 @@ export const generateAIResponseWithMessage = internalAction({
                 controlType: "finish",
                 finishReason: part.finishReason,
                 totalUsage: part.totalUsage,
-              })
+              });
             }
-            break
+            break;
 
           case "start-step":
             // Handle multi-step generation start (step boundary marker)
             await ctx.runMutation(internal.messages.addStepPart, {
               messageId: args.messageId,
               stepType: "start-step",
-            })
-            break
+            });
+            break;
 
           case "finish-step":
             // Handle multi-step generation completion
             await ctx.runMutation(internal.messages.addStepPart, {
               messageId: args.messageId,
               stepType: "finish-step",
-            })
-            break
+            });
+            break;
 
           case "error":
             // Handle stream errors explicitly
@@ -1563,19 +1565,19 @@ export const generateAIResponseWithMessage = internalAction({
               const errorMessage =
                 part.error instanceof Error
                   ? part.error.message
-                  : String(part.error || "Unknown stream error")
-              console.error("Stream error:", errorMessage)
+                  : String(part.error || "Unknown stream error");
+              console.error("Stream error:", errorMessage);
 
               // Save error as part for debugging
               await ctx.runMutation(internal.messages.addErrorPart, {
                 messageId: args.messageId,
                 errorMessage: errorMessage,
                 errorDetails: part.error,
-              })
+              });
 
-              throw new Error(`Stream error: ${errorMessage}`)
+              throw new Error(`Stream error: ${errorMessage}`);
             }
-            break
+            break;
 
           case "raw":
             // Handle raw provider responses for debugging
@@ -1583,58 +1585,58 @@ export const generateAIResponseWithMessage = internalAction({
               await ctx.runMutation(internal.messages.addRawPart, {
                 messageId: args.messageId,
                 rawValue: part.rawValue,
-              })
+              });
             }
-            break
+            break;
 
           // Handle unknown part types (should never happen with proper AI SDK types)
           default: {
             // This should be unreachable with proper TextStreamPart typing
-            const _exhaustiveCheck: never = part
+            const _exhaustiveCheck: never = part;
             console.warn(
               "Unknown stream part type:",
               (_exhaustiveCheck as { type: string }).type,
               _exhaustiveCheck,
-            )
-            break
+            );
+            break;
           }
         }
       }
 
       // Get final usage with optional chaining
-      const finalUsage = await result.usage
+      const finalUsage = await result.usage;
       if (finalUsage) {
-        await updateUsage(finalUsage)
+        await updateUsage(finalUsage);
       }
 
       // If we have streamed content, mark the message as complete
       if (hasContent) {
         // Format usage data for the message
-        const formattedUsage = formatUsageData(finalUsage)
+        const formattedUsage = formatUsageData(finalUsage);
 
         await ctx.runMutation(internal.messages.completeStreamingMessage, {
           messageId: args.messageId,
           streamId: args.streamId,
           fullText,
           usage: formattedUsage,
-        })
+        });
       }
 
       // Clear generation flag
       await ctx.runMutation(internal.messages.clearGenerationFlag, {
         threadId: args.threadId,
-      })
+      });
     } catch (error) {
       await handleAIResponseError(ctx, error, args.threadId, args.messageId, {
         modelId: args.modelId,
         provider: getProviderFromModelId(args.modelId as ModelId),
         useStreamingUpdate: true,
-      })
+      });
     }
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal action to generate AI response using AI SDK v5
 export const generateAIResponse = internalAction({
@@ -1647,36 +1649,36 @@ export const generateAIResponse = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    let messageId: Id<"messages"> | undefined = undefined
+    let messageId: Id<"messages"> | undefined = undefined;
     try {
       // Get thread and user information
       const thread = (await ctx.runQuery(internal.messages.getThreadById, {
         threadId: args.threadId,
-      })) as { userId: Id<"users"> } | null
-      requireResource(thread, "Thread")
+      })) as { userId: Id<"users"> } | null;
+      requireResource(thread, "Thread");
 
       // Validate model capabilities against attachments before processing
       await enforceModelCapabilities(
         ctx,
         args.modelId as ModelId,
         args.attachments,
-      )
+      );
 
       // Derive provider from modelId
-      const provider = getProviderFromModelId(args.modelId as ModelId)
+      const provider = getProviderFromModelId(args.modelId as ModelId);
 
       // Get user's API keys if available
       const userApiKeys = (await ctx.runMutation(
         internal.userSettings.getDecryptedApiKeys,
         { userId: thread.userId },
       )) as {
-        anthropic?: string
-        openai?: string
-        openrouter?: string
-      } | null
+        anthropic?: string;
+        openai?: string;
+        openrouter?: string;
+      } | null;
 
       // Generate unique stream ID and create streaming message
-      const streamId = generateStreamId()
+      const streamId = generateStreamId();
       messageId = await createStreamingMessageUtil(
         ctx,
         args.threadId,
@@ -1687,7 +1689,7 @@ export const generateAIResponse = internalAction({
           (provider === "openai" && userApiKeys?.openai) ||
           (provider === "openrouter" && userApiKeys?.openrouter)
         ),
-      )
+      );
 
       // Build conversation messages
       const messages = await buildConversationMessages(
@@ -1696,13 +1698,13 @@ export const generateAIResponse = internalAction({
         args.modelId as ModelId,
         args.attachments,
         args.webSearchEnabled,
-      )
+      );
 
       console.log(
         `Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
-      )
-      console.log(`Schema fix timestamp: ${Date.now()}`)
-      console.log(`Web search enabled: ${args.webSearchEnabled}`)
+      );
+      console.log(`Schema fix timestamp: ${Date.now()}`);
+      console.log(`Web search enabled: ${args.webSearchEnabled}`);
 
       // Stream AI response using shared utility
       const { fullText, usage: finalUsage } = await streamAIResponse(
@@ -1712,7 +1714,7 @@ export const generateAIResponse = internalAction({
         messageId,
         userApiKeys,
         args.webSearchEnabled,
-      )
+      );
 
       // Update thread usage with final usage
       if (finalUsage) {
@@ -1721,7 +1723,7 @@ export const generateAIResponse = internalAction({
           args.threadId,
           args.modelId as ModelId,
           finalUsage,
-        )
+        );
       }
 
       // Complete the streaming message
@@ -1730,18 +1732,18 @@ export const generateAIResponse = internalAction({
         streamId,
         fullText,
         usage: finalUsage ? formatUsageData(finalUsage) : undefined,
-      })
+      });
     } catch (error) {
       await handleAIResponseError(ctx, error, args.threadId, messageId, {
         modelId: args.modelId,
         provider: getProviderFromModelId(args.modelId as ModelId),
         useStreamingUpdate: !!messageId,
-      })
+      });
     } finally {
       // Always clear generation flag
-      await clearGenerationFlagUtil(ctx, args.threadId)
+      await clearGenerationFlagUtil(ctx, args.threadId);
     }
 
-    return null
+    return null;
   },
-})
+});

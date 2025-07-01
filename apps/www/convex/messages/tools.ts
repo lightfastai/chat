@@ -1,11 +1,11 @@
-import { tool } from "ai"
+import { tool } from "ai";
 import Exa, {
   type RegularSearchOptions,
   type ContentsOptions,
   type SearchResult,
-} from "exa-js"
-import { z } from "zod"
-import { env } from "../env.js"
+} from "exa-js";
+import { z } from "zod";
+import { env } from "../env.js";
 
 /**
  * Creates a web search tool using the AI SDK v5 pattern
@@ -21,13 +21,13 @@ export function createWebSearchTool() {
         .describe("The search query to find relevant web results"),
     }),
     execute: async ({ query }) => {
-      console.log(`Executing web search for: "${query}"`)
+      console.log(`Executing web search for: "${query}"`);
 
-      const exaApiKey = env.EXA_API_KEY
+      const exaApiKey = env.EXA_API_KEY;
 
       try {
-        const exa = new Exa(exaApiKey)
-        const numResults = 5
+        const exa = new Exa(exaApiKey);
+        const numResults = 5;
         const searchOptions: RegularSearchOptions & ContentsOptions = {
           numResults,
           text: {
@@ -38,9 +38,9 @@ export function createWebSearchTool() {
             numSentences: 5, // More highlights for better understanding
             highlightsPerUrl: 4,
           },
-        }
+        };
 
-        const response = await exa.searchAndContents(query, searchOptions)
+        const response = await exa.searchAndContents(query, searchOptions);
 
         const results = response.results.map((result) => ({
           id: result.id,
@@ -53,9 +53,9 @@ export function createWebSearchTool() {
           publishedDate: result.publishedDate,
           author: result.author,
           score: result.score,
-        }))
+        }));
 
-        console.log(`Web search found ${results.length} results`)
+        console.log(`Web search found ${results.length} results`);
 
         // Return structured data that helps the AI understand and explain
         return {
@@ -82,17 +82,17 @@ export function createWebSearchTool() {
           },
           instructions:
             "Analyze these search results thoroughly and provide a comprehensive explanation of the findings.",
-        }
+        };
       } catch (error) {
-        console.error("Web search error:", error)
+        console.error("Web search error:", error);
         return {
           success: false,
           query,
           error: error instanceof Error ? error.message : "Unknown error",
           results: [],
           resultCount: 0,
-        }
+        };
       }
     },
-  })
+  });
 }

@@ -1,39 +1,39 @@
-"use client"
+"use client";
 
-import { SignInDialog } from "@/components/auth/sign-in-dialog"
-import { PromptSuggestions } from "@/components/chat/prompt-suggestions"
-import { Button } from "@lightfast/ui/components/ui/button"
-import { Textarea } from "@lightfast/ui/components/ui/textarea"
-import { ArrowUp } from "lucide-react"
-import { useCallback, useRef, useState } from "react"
+import { SignInDialog } from "@/components/auth/sign-in-dialog";
+import { PromptSuggestions } from "@/components/chat/prompt-suggestions";
+import { Button } from "@lightfast/ui/components/ui/button";
+import { Textarea } from "@lightfast/ui/components/ui/textarea";
+import { ArrowUp } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
 export function LandingChatInput() {
-  const [showSignInDialog, setShowSignInDialog] = useState(false)
-  const [message, setMessage] = useState("")
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [showSignInDialog, setShowSignInDialog] = useState(false);
+  const [message, setMessage] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = () => {
     if (message.trim()) {
-      setShowSignInDialog(true)
+      setShowSignInDialog(true);
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit()
+      e.preventDefault();
+      handleSubmit();
     }
-  }
+  };
 
   const handleSendClick = () => {
-    handleSubmit()
-  }
+    handleSubmit();
+  };
 
   const handleSelectPrompt = useCallback((prompt: string) => {
-    setMessage(prompt)
+    setMessage(prompt);
     // Focus the textarea after selecting a prompt
-    textareaRef.current?.focus()
-  }, [])
+    textareaRef.current?.focus();
+  }, []);
 
   return (
     <>
@@ -90,5 +90,5 @@ export function LandingChatInput() {
         onOpenChange={setShowSignInDialog}
       />
     </>
-  )
+  );
 }

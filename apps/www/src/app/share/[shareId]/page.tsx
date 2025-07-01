@@ -1,6 +1,6 @@
-import { SharedChatView } from "@/components/chat/shared-chat-view"
-import { siteConfig } from "@/lib/site-config"
-import type { Metadata } from "next"
+import { SharedChatView } from "@/components/chat/shared-chat-view";
+import { siteConfig } from "@/lib/site-config";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Shared Chat",
@@ -17,12 +17,12 @@ export const metadata: Metadata = {
     index: false,
     follow: false,
   },
-}
+};
 
 export default function SharePage({
   params,
 }: {
-  params: { shareId: string }
+  params: { shareId: string };
 }) {
-  return <SharedChatView shareId={params.shareId} />
+  return <SharedChatView shareId={params.shareId} />;
 }

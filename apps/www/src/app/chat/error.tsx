@@ -1,34 +1,34 @@
-"use client"
+"use client";
 
-import { captureException } from "@sentry/nextjs"
-import { MessageSquareOff, Plus, RefreshCw } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { captureException } from "@sentry/nextjs";
+import { MessageSquareOff, Plus, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-import { ErrorBoundaryUI } from "@/components/error/error-boundary-ui"
+import { ErrorBoundaryUI } from "@/components/error/error-boundary-ui";
 
 export default function ChatError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
     // Log the error to console and Sentry
-    console.error("Chat error boundary caught:", error)
-    captureException(error)
-  }, [error])
+    console.error("Chat error boundary caught:", error);
+    captureException(error);
+  }, [error]);
 
   const handleNewChat = () => {
-    router.push("/chat")
-  }
+    router.push("/chat");
+  };
 
   const details = error.message?.includes("Thread not found")
     ? "This conversation may have been deleted or you may not have permission to access it."
-    : undefined
+    : undefined;
 
   return (
     <ErrorBoundaryUI
@@ -51,5 +51,5 @@ export default function ChatError({
       ]}
       className="h-[calc(100vh-4rem)]"
     />
-  )
+  );
 }

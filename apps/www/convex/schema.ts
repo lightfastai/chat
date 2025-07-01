@@ -1,6 +1,6 @@
-import { authTables } from "@convex-dev/auth/server"
-import { defineSchema, defineTable } from "convex/server"
-import { v } from "convex/values"
+import { authTables } from "@convex-dev/auth/server";
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
 import {
   branchInfoValidator,
   clientIdValidator,
@@ -25,7 +25,7 @@ import {
   userAgentValidator,
   userApiKeysValidator,
   userPreferencesValidator,
-} from "./validators.js"
+} from "./validators.js";
 
 export default defineSchema({
   ...authTables,
@@ -128,4 +128,4 @@ export default defineSchema({
     .index("by_share_id", ["shareId"])
     .index("by_share_time", ["shareId", "accessedAt"])
     .index("by_ip_time", ["ipHash", "accessedAt"]),
-})
+});

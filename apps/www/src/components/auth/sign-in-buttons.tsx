@@ -1,15 +1,15 @@
-import { signInAction } from "@/app/actions/auth"
-import { env } from "@/env"
-import { Button } from "@lightfast/ui/components/ui/button"
-import { cn } from "@lightfast/ui/lib/utils"
-import { Github, UserIcon } from "lucide-react"
+import { signInAction } from "@/app/actions/auth";
+import { env } from "@/env";
+import { Button } from "@lightfast/ui/components/ui/button";
+import { cn } from "@lightfast/ui/lib/utils";
+import { Github, UserIcon } from "lucide-react";
 
 interface SignInButtonsProps {
-  className?: string
-  buttonClassName?: string
-  size?: "default" | "sm" | "lg" | "icon"
-  showAnimations?: boolean
-  redirectTo?: string
+  className?: string;
+  buttonClassName?: string;
+  size?: "default" | "sm" | "lg" | "icon";
+  showAnimations?: boolean;
+  redirectTo?: string;
 }
 
 /**
@@ -23,11 +23,11 @@ export function SignInButtons({
   showAnimations = false,
   redirectTo = "/chat",
 }: SignInButtonsProps) {
-  const animationClass = showAnimations ? "relative overflow-hidden group" : ""
+  const animationClass = showAnimations ? "relative overflow-hidden group" : "";
 
   const animationElement = showAnimations ? (
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-  ) : null
+  ) : null;
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -67,5 +67,5 @@ export function SignInButtons({
         </form>
       )}
     </div>
-  )
+  );
 }

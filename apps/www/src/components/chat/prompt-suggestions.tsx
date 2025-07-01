@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { Button } from "@lightfast/ui/components/ui/button"
-import { cn } from "@lightfast/ui/lib/utils"
-import { BookOpen, Code2, Palette } from "lucide-react"
-import { useState } from "react"
+import { Button } from "@lightfast/ui/components/ui/button";
+import { cn } from "@lightfast/ui/lib/utils";
+import { BookOpen, Code2, Palette } from "lucide-react";
+import { useState } from "react";
 
 interface PromptCategory {
-  id: string
-  label: string
-  icon: React.ReactNode
-  prompts: string[]
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  prompts: string[];
 }
 
 const categories: PromptCategory[] = [
@@ -46,39 +46,41 @@ const categories: PromptCategory[] = [
       "Design a database schema for an e-commerce platform",
     ],
   },
-]
+];
 
 interface PromptSuggestionsProps {
-  onSelectPrompt: (prompt: string) => void
+  onSelectPrompt: (prompt: string) => void;
 }
 
 export function PromptSuggestions({ onSelectPrompt }: PromptSuggestionsProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [visiblePrompts, setVisiblePrompts] = useState<number>(0)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [visiblePrompts, setVisiblePrompts] = useState<number>(0);
 
   const handleCategoryClick = (categoryId: string) => {
-    setSelectedCategory(categoryId)
-    setVisiblePrompts(0)
+    setSelectedCategory(categoryId);
+    setVisiblePrompts(0);
 
     // Animate prompts appearing one by one
-    const category = categories.find((c) => c.id === categoryId)
+    const category = categories.find((c) => c.id === categoryId);
     if (category) {
       category.prompts.forEach((_, index) => {
         setTimeout(() => {
-          setVisiblePrompts((prev) => prev + 1)
-        }, index * 100) // 100ms delay between each prompt
-      })
+          setVisiblePrompts((prev) => prev + 1);
+        }, index * 100); // 100ms delay between each prompt
+      });
     }
-  }
+  };
 
   const handlePromptClick = (prompt: string) => {
-    onSelectPrompt(prompt)
+    onSelectPrompt(prompt);
     // Reset back to categories after selecting a prompt
-    setSelectedCategory(null)
-    setVisiblePrompts(0)
-  }
+    setSelectedCategory(null);
+    setVisiblePrompts(0);
+  };
 
-  const selectedCategoryData = categories.find((c) => c.id === selectedCategory)
+  const selectedCategoryData = categories.find(
+    (c) => c.id === selectedCategory,
+  );
 
   return (
     <div className="w-full px-4 mx-auto">
@@ -120,20 +122,20 @@ export function PromptSuggestions({ onSelectPrompt }: PromptSuggestionsProps) {
             ))}
           </div>
           {/* <div className="flex justify-start mt-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								setSelectedCategory(null);
-								setVisiblePrompts(0);
-							}}
-							className="text-xs text-muted-foreground hover:text-foreground px-4"
-						>
-							Back to categories
-						</Button>
-					</div> */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedCategory(null);
+                setVisiblePrompts(0);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground px-4"
+            >
+              Back to categories
+            </Button>
+          </div> */}
         </div>
       )}
     </div>
-  )
+  );
 }

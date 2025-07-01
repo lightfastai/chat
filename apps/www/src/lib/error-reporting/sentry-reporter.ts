@@ -1,9 +1,9 @@
-import * as Sentry from "@sentry/nextjs"
+import * as Sentry from "@sentry/nextjs";
 
-import type { ErrorContext, ErrorReportingConfig } from "./types"
+import type { ErrorContext, ErrorReportingConfig } from "./types";
 
 export const createSentryReporter = (config?: ErrorReportingConfig) => {
-  const disableLogger = config?.disableLogger ?? false
+  const disableLogger = config?.disableLogger ?? false;
 
   return (context: ErrorContext) => {
     try {
@@ -11,7 +11,7 @@ export const createSentryReporter = (config?: ErrorReportingConfig) => {
         console.error(`[${context.errorType}] ${context.message}`, {
           ...context,
           timestamp: new Date().toISOString(),
-        })
+        });
       }
 
       // Set Sentry context
@@ -19,12 +19,12 @@ export const createSentryReporter = (config?: ErrorReportingConfig) => {
         errorType: context.errorType,
         requestId: context.requestId,
         metadata: context.metadata,
-      })
+      });
 
       // Set tags for better filtering in Sentry
-      Sentry.setTag("error.type", context.errorType)
+      Sentry.setTag("error.type", context.errorType);
       if (context.requestId) {
-        Sentry.setTag("request.id", context.requestId)
+        Sentry.setTag("request.id", context.requestId);
       }
 
       // Capture the exception
@@ -37,12 +37,12 @@ export const createSentryReporter = (config?: ErrorReportingConfig) => {
           message: context.message,
           metadata: context.metadata || undefined,
         },
-      })
+      });
     } catch (error) {
       // Fail silently if Sentry reporting fails
       if (!disableLogger) {
-        console.error("Failed to report error to Sentry:", error)
+        console.error("Failed to report error to Sentry:", error);
       }
     }
-  }
-}
+  };
+};

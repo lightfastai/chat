@@ -1,19 +1,19 @@
-"use client"
+"use client";
 
-import { siteConfig } from "@/lib/site-config"
-import { Card, CardContent } from "@lightfast/ui/components/ui/card"
+import { siteConfig } from "@/lib/site-config";
+import { Card, CardContent } from "@lightfast/ui/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from "@lightfast/ui/components/ui/dialog"
-import Link from "next/link"
-import { SignInOptions } from "./sign-in-options"
+} from "@lightfast/ui/components/ui/dialog";
+import Link from "next/link";
+import { SignInOptions } from "./sign-in-options";
 
 interface SignInDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
@@ -65,5 +65,5 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
         </Card>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

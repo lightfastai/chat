@@ -1,18 +1,18 @@
-import { asyncMap } from "convex-helpers"
-import { v } from "convex/values"
-import { internalQuery, mutation, query } from "./_generated/server"
-import { getAuthenticatedUserId } from "./lib/auth.js"
-import { getWithOwnership } from "./lib/database.js"
-import { throwConflictError } from "./lib/errors.js"
+import { asyncMap } from "convex-helpers";
+import { v } from "convex/values";
+import { internalQuery, mutation, query } from "./_generated/server";
+import { getAuthenticatedUserId } from "./lib/auth.js";
+import { getWithOwnership } from "./lib/database.js";
+import { throwConflictError } from "./lib/errors.js";
 import {
   fileMetadataValidator,
   fileNameValidator,
   mimeTypeValidator,
   storageIdValidator,
-} from "./validators"
+} from "./validators";
 
 // Maximum file size (10MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 // Allowed file types
 const ALLOWED_FILE_TYPES = [
@@ -28,19 +28,19 @@ const ALLOWED_FILE_TYPES = [
   "image/webp",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]
+];
 
 export const generateUploadUrl = mutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
     // Ensure user is authenticated
-    await getAuthenticatedUserId(ctx)
+    await getAuthenticatedUserId(ctx);
 
     // Generate a storage upload URL
-    return await ctx.storage.generateUploadUrl()
+    return await ctx.storage.generateUploadUrl();
   },
-})
+});
 
 export const createFile = mutation({
   args: {
@@ -52,13 +52,13 @@ export const createFile = mutation({
   },
   returns: v.id("files"),
   handler: async (ctx, args) => {
-    const userId = await getAuthenticatedUserId(ctx)
+    const userId = await getAuthenticatedUserId(ctx);
 
     // Validate file size
     if (args.fileSize > MAX_FILE_SIZE) {
       throwConflictError(
         `File is too large. Maximum size allowed is ${MAX_FILE_SIZE / 1024 / 1024}MB`,
-      )
+      );
     }
 
     // Validate file type
@@ -71,10 +71,10 @@ export const createFile = mutation({
         "JSON",
         "Images (JPEG, PNG, GIF, WebP)",
         "Word documents",
-      ]
+      ];
       throwConflictError(
         `This file type is not supported. Please upload: ${friendlyTypes.join(", ")}`,
-      )
+      );
     }
 
     // Create file record
@@ -86,11 +86,11 @@ export const createFile = mutation({
       uploadedBy: userId,
       uploadedAt: Date.now(),
       metadata: args.metadata,
-    })
+    });
 
-    return fileId
+    return fileId;
   },
-})
+});
 
 export const getFile = query({
   args: { fileId: v.id("files") },
@@ -111,17 +111,17 @@ export const getFile = query({
   ),
   handler: async (ctx, args) => {
     try {
-      const userId = await getAuthenticatedUserId(ctx)
-      const file = await getWithOwnership(ctx.db, "files", args.fileId, userId)
-      const url = await ctx.storage.getUrl(file.storageId)
-      if (!url) return null
+      const userId = await getAuthenticatedUserId(ctx);
+      const file = await getWithOwnership(ctx.db, "files", args.fileId, userId);
+      const url = await ctx.storage.getUrl(file.storageId);
+      if (!url) return null;
 
-      return { ...file, url }
+      return { ...file, url };
     } catch {
-      return null
+      return null;
     }
   },
-})
+});
 
 export const getFiles = query({
   args: { fileIds: v.array(v.id("files")) },
@@ -141,15 +141,15 @@ export const getFiles = query({
   ),
   handler: async (ctx, args) => {
     const files = await asyncMap(args.fileIds, async (fileId) => {
-      const file = await ctx.db.get(fileId)
-      if (!file) return null
+      const file = await ctx.db.get(fileId);
+      if (!file) return null;
 
-      const url = await ctx.storage.getUrl(file.storageId)
-      return { ...file, url }
-    })
-    return files.filter((f): f is NonNullable<typeof f> => f !== null)
+      const url = await ctx.storage.getUrl(file.storageId);
+      return { ...file, url };
+    });
+    return files.filter((f): f is NonNullable<typeof f> => f !== null);
   },
-})
+});
 
 export const listFiles = query({
   args: {},
@@ -169,44 +169,44 @@ export const listFiles = query({
   ),
   handler: async (ctx) => {
     try {
-      const userId = await getAuthenticatedUserId(ctx)
+      const userId = await getAuthenticatedUserId(ctx);
       const files = await ctx.db
         .query("files")
         .withIndex("by_user", (q) => q.eq("uploadedBy", userId))
         .order("desc")
-        .collect()
+        .collect();
 
       // Get URLs for all files
       const filesWithUrls = await asyncMap(files, async (file) => {
-        const url = await ctx.storage.getUrl(file.storageId)
-        return url ? { ...file, url } : null
-      })
+        const url = await ctx.storage.getUrl(file.storageId);
+        return url ? { ...file, url } : null;
+      });
 
       return filesWithUrls.filter(
         (file): file is NonNullable<typeof file> => file !== null,
-      )
+      );
     } catch {
-      return []
+      return [];
     }
   },
-})
+});
 
 export const deleteFile = mutation({
   args: { fileId: v.id("files") },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getAuthenticatedUserId(ctx)
-    const file = await getWithOwnership(ctx.db, "files", args.fileId, userId)
+    const userId = await getAuthenticatedUserId(ctx);
+    const file = await getWithOwnership(ctx.db, "files", args.fileId, userId);
 
     // Delete from storage
-    await ctx.storage.delete(file.storageId)
+    await ctx.storage.delete(file.storageId);
 
     // Delete from database
-    await ctx.db.delete(args.fileId)
+    await ctx.db.delete(args.fileId);
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal query to get file with URL (for use in actions)
 export const getFileWithUrl = internalQuery({
@@ -227,12 +227,12 @@ export const getFileWithUrl = internalQuery({
     v.null(),
   ),
   handler: async (ctx, args) => {
-    const file = await ctx.db.get(args.fileId)
-    if (!file) return null
+    const file = await ctx.db.get(args.fileId);
+    if (!file) return null;
 
-    const url = await ctx.storage.getUrl(file.storageId)
-    if (!url) return null
+    const url = await ctx.storage.getUrl(file.storageId);
+    if (!url) return null;
 
-    return { ...file, url }
+    return { ...file, url };
   },
-})
+});

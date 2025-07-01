@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { usePlatformShortcuts } from "@/hooks/use-platform-shortcuts"
-import { SidebarTrigger } from "@lightfast/ui/components/ui/sidebar"
+import { usePlatformShortcuts } from "@/hooks/use-platform-shortcuts";
+import { SidebarTrigger } from "@lightfast/ui/components/ui/sidebar";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@lightfast/ui/components/ui/tooltip"
+} from "@lightfast/ui/components/ui/tooltip";
 
 export function PlatformSidebarTrigger() {
-  const { getShortcut } = usePlatformShortcuts()
-  const toggleShortcut = getShortcut("toggleSidebar")
+  const { getShortcut } = usePlatformShortcuts();
+  const toggleShortcut = getShortcut("toggleSidebar");
 
   return (
     <Tooltip>
@@ -21,5 +21,5 @@ export function PlatformSidebarTrigger() {
         <p className="text-xs">Toggle sidebar ({toggleShortcut.display})</p>
       </TooltipContent>
     </Tooltip>
-  )
+  );
 }

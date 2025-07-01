@@ -1,9 +1,9 @@
-import { AuthRedirectHandler } from "@/components/auth/auth-redirect-handler"
-import { LandingChatInput } from "@/components/landing/landing-chat-input"
-import { siteConfig, siteMetadata } from "@/lib/site-config"
-import { SiteFooter } from "@lightfast/ui/components/site-footer"
-import { SiteHeader } from "@lightfast/ui/components/site-header"
-import type { Metadata } from "next"
+import { AuthRedirectHandler } from "@/components/auth/auth-redirect-handler";
+import { LandingChatInput } from "@/components/landing/landing-chat-input";
+import { siteConfig, siteMetadata } from "@/lib/site-config";
+import { SiteFooter } from "@lightfast/ui/components/site-footer";
+import { SiteHeader } from "@lightfast/ui/components/site-header";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-}
+};
 
 // Landing page component - fully SSR
 function LandingPage() {
@@ -108,7 +108,7 @@ function LandingPage() {
         />
       </div>
     </div>
-  )
+  );
 }
 
 // Main server component - SSR landing page with client-side auth handling
@@ -121,5 +121,5 @@ export default function Home() {
       {/* Server-rendered landing page */}
       <LandingPage />
     </>
-  )
+  );
 }

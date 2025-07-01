@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { Brain, Eye, FileText, GitBranch, Wrench } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Brain, Eye, FileText, GitBranch, Wrench } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { ModelConfig, ModelId } from "@/lib/ai"
-import { getModelCapabilities } from "@/lib/ai"
-import { getVisibleModels } from "@/lib/ai/schemas"
-import { Button } from "@lightfast/ui/components/ui/button"
+import type { ModelConfig, ModelId } from "@/lib/ai";
+import { getModelCapabilities } from "@/lib/ai";
+import { getVisibleModels } from "@/lib/ai/schemas";
+import { Button } from "@lightfast/ui/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +16,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@lightfast/ui/components/ui/dropdown-menu"
+} from "@lightfast/ui/components/ui/dropdown-menu";
 
 // Icon component mapper for capability icons
 const CapabilityIcon = ({
@@ -28,16 +28,16 @@ const CapabilityIcon = ({
     FileText,
     Wrench,
     Brain,
-  } as const
+  } as const;
 
-  const IconComponent = iconMap[iconName as keyof typeof iconMap]
-  return IconComponent ? <IconComponent className={className} /> : null
-}
+  const IconComponent = iconMap[iconName as keyof typeof iconMap];
+  return IconComponent ? <IconComponent className={className} /> : null;
+};
 
 interface ModelBranchDropdownProps {
-  onBranch: (modelId: ModelId) => void
-  disabled?: boolean
-  onOpenChange?: (open: boolean) => void
+  onBranch: (modelId: ModelId) => void;
+  disabled?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function ModelBranchDropdown({
@@ -45,45 +45,45 @@ export function ModelBranchDropdown({
   disabled = false,
   onOpenChange,
 }: ModelBranchDropdownProps) {
-  const [open, setOpen] = useState(false)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Notify parent when dropdown state changes
   useEffect(() => {
-    onOpenChange?.(open)
+    onOpenChange?.(open);
 
     // Blur the button when dropdown closes to remove focus state
     if (!open && buttonRef.current) {
-      buttonRef.current.blur()
+      buttonRef.current.blur();
     }
-  }, [open, onOpenChange])
+  }, [open, onOpenChange]);
 
   // Group models by provider
   const modelsByProvider = useMemo(() => {
-    const allModels = getVisibleModels()
+    const allModels = getVisibleModels();
     return allModels.reduce(
       (acc, model) => {
         if (!acc[model.provider]) {
-          acc[model.provider] = []
+          acc[model.provider] = [];
         }
-        acc[model.provider].push(model)
-        return acc
+        acc[model.provider].push(model);
+        return acc;
       },
       {} as Record<string, ModelConfig[]>,
-    )
-  }, [])
+    );
+  }, []);
 
   const handleModelSelect = (modelId: ModelId) => {
-    setOpen(false)
-    onBranch(modelId)
-  }
+    setOpen(false);
+    onBranch(modelId);
+  };
 
   // Provider display names
   const providerNames: Record<string, string> = {
     openai: "OpenAI",
     anthropic: "Anthropic",
     openrouter: "OpenRouter",
-  }
+  };
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -113,7 +113,9 @@ export function ModelBranchDropdown({
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-72">
                 {models.map((model) => {
-                  const capabilities = getModelCapabilities(model.id as ModelId)
+                  const capabilities = getModelCapabilities(
+                    model.id as ModelId,
+                  );
                   return (
                     <DropdownMenuItem
                       key={model.id}
@@ -138,7 +140,7 @@ export function ModelBranchDropdown({
                         {model.description}
                       </span>
                     </DropdownMenuItem>
-                  )
+                  );
                 })}
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
@@ -146,5 +148,5 @@ export function ModelBranchDropdown({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

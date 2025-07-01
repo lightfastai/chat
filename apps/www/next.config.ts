@@ -1,5 +1,5 @@
-import { withSentryConfig } from "@sentry/nextjs"
-import type { NextConfig } from "next"
+import { withSentryConfig } from "@sentry/nextjs";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // App Router is enabled by default in Next.js 13+
@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     // Only add docs rewrites if DOCS_URL is available
-    const docsUrl = process.env.DOCS_URL
+    const docsUrl = process.env.DOCS_URL;
     if (docsUrl) {
       return [
         {
@@ -19,13 +19,13 @@ const nextConfig: NextConfig = {
           source: "/docs/:path*",
           destination: `${docsUrl}/docs/:path*`,
         },
-      ]
+      ];
     }
-    return []
+    return [];
   },
 
   transpilePackages: ["@lightfast/ui"],
-}
+};
 
 // Sentry configuration
 const sentryWebpackPluginOptions = {
@@ -54,11 +54,11 @@ const sentryWebpackPluginOptions = {
   reactComponentAnnotation: {
     enabled: true,
   },
-}
+};
 
 // Only wrap with Sentry on Vercel to avoid issues in development
 const exportConfig = process.env.VERCEL
   ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
-  : nextConfig
+  : nextConfig;
 
-export default exportConfig
+export default exportConfig;

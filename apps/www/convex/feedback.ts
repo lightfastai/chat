@@ -1,12 +1,12 @@
-import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
-import { getAuthenticatedUserId } from "./lib/auth.js"
-import { getOrThrow, getWithOwnership } from "./lib/database.js"
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+import { getAuthenticatedUserId } from "./lib/auth.js";
+import { getOrThrow, getWithOwnership } from "./lib/database.js";
 import {
   commentValidator,
   feedbackRatingValidator,
   feedbackReasonsValidator,
-} from "./validators"
+} from "./validators";
 
 // Submit or update feedback for a message
 export const submitFeedback = mutation({
@@ -18,13 +18,13 @@ export const submitFeedback = mutation({
   },
   returns: v.id("feedback"),
   handler: async (ctx, args) => {
-    const userId = await getAuthenticatedUserId(ctx)
+    const userId = await getAuthenticatedUserId(ctx);
 
     // Get the message to find the threadId
-    const message = await getOrThrow(ctx.db, "messages", args.messageId)
+    const message = await getOrThrow(ctx.db, "messages", args.messageId);
 
     // Verify user owns the thread containing this message
-    await getWithOwnership(ctx.db, "threads", message.threadId, userId)
+    await getWithOwnership(ctx.db, "threads", message.threadId, userId);
 
     // Check if the user has already submitted feedback for this message
     const existingFeedback = await ctx.db
@@ -32,9 +32,9 @@ export const submitFeedback = mutation({
       .withIndex("by_user_message", (q) =>
         q.eq("userId", userId).eq("messageId", args.messageId),
       )
-      .first()
+      .first();
 
-    const now = Date.now()
+    const now = Date.now();
 
     if (existingFeedback) {
       // Update existing feedback
@@ -43,8 +43,8 @@ export const submitFeedback = mutation({
         comment: args.comment,
         reasons: args.reasons,
         updatedAt: now,
-      })
-      return existingFeedback._id
+      });
+      return existingFeedback._id;
     }
 
     // Create new feedback
@@ -57,9 +57,9 @@ export const submitFeedback = mutation({
       reasons: args.reasons,
       createdAt: now,
       updatedAt: now,
-    })
+    });
   },
-})
+});
 
 // Remove feedback
 export const removeFeedback = mutation({
@@ -68,22 +68,22 @@ export const removeFeedback = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getAuthenticatedUserId(ctx)
+    const userId = await getAuthenticatedUserId(ctx);
 
     const feedback = await ctx.db
       .query("feedback")
       .withIndex("by_user_message", (q) =>
         q.eq("userId", userId).eq("messageId", args.messageId),
       )
-      .first()
+      .first();
 
     if (feedback) {
-      await ctx.db.delete(feedback._id)
+      await ctx.db.delete(feedback._id);
     }
 
-    return null
+    return null;
   },
-})
+});
 
 // Get feedback for a specific message by the current user
 export const getUserFeedbackForMessage = query({
@@ -107,19 +107,19 @@ export const getUserFeedbackForMessage = query({
   ),
   handler: async (ctx, args) => {
     try {
-      const userId = await getAuthenticatedUserId(ctx)
+      const userId = await getAuthenticatedUserId(ctx);
 
       return await ctx.db
         .query("feedback")
         .withIndex("by_user_message", (q) =>
           q.eq("userId", userId).eq("messageId", args.messageId),
         )
-        .first()
+        .first();
     } catch {
-      return null
+      return null;
     }
   },
-})
+});
 
 // Get all feedback for a thread (for analytics)
 export const getThreadFeedback = query({
@@ -142,17 +142,17 @@ export const getThreadFeedback = query({
   ),
   handler: async (ctx, args) => {
     try {
-      const userId = await getAuthenticatedUserId(ctx)
+      const userId = await getAuthenticatedUserId(ctx);
 
       // Verify the user owns the thread
-      await getWithOwnership(ctx.db, "threads", args.threadId, userId)
+      await getWithOwnership(ctx.db, "threads", args.threadId, userId);
 
       return await ctx.db
         .query("feedback")
         .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-        .collect()
+        .collect();
     } catch {
-      return []
+      return [];
     }
   },
-})
+});

@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { Authenticated } from "convex/react"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { Authenticated } from "convex/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface AuthRedirectHandlerProps {
   /**
    * Where to redirect authenticated users
    * @default "/chat"
    */
-  redirectTo?: string
+  redirectTo?: string;
 }
 
 /**
@@ -19,27 +19,27 @@ interface AuthRedirectHandlerProps {
 export function AuthRedirectHandler({
   redirectTo = "/chat",
 }: AuthRedirectHandlerProps = {}) {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <Authenticated>
       <AuthenticatedRedirect router={router} redirectTo={redirectTo} />
     </Authenticated>
-  )
+  );
 }
 
 function AuthenticatedRedirect({
   router,
   redirectTo,
 }: {
-  router: ReturnType<typeof useRouter>
-  redirectTo: string
+  router: ReturnType<typeof useRouter>;
+  redirectTo: string;
 }) {
   useEffect(() => {
     // Redirect authenticated users to the specified destination
-    router.push(redirectTo)
-  }, [router, redirectTo])
+    router.push(redirectTo);
+  }, [router, redirectTo]);
 
   // Return null so it doesn't render anything
-  return null
+  return null;
 }

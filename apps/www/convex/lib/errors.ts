@@ -1,4 +1,4 @@
-import { ConvexError } from "convex/values"
+import { ConvexError } from "convex/values";
 
 /**
  * Standard error codes for the application
@@ -12,9 +12,9 @@ export const ErrorCode = {
   PERMISSION_DENIED: "PERMISSION_DENIED",
   CONFLICT: "CONFLICT",
   GENERATION_IN_PROGRESS: "GENERATION_IN_PROGRESS",
-} as const
+} as const;
 
-export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 /**
  * Throw a standardized authentication error
@@ -23,7 +23,7 @@ export function throwAuthError(message = "User must be authenticated"): never {
   throw new ConvexError({
     code: ErrorCode.UNAUTHORIZED,
     message,
-  })
+  });
 }
 
 /**
@@ -33,7 +33,7 @@ export function throwNotFoundError(resource: string, message?: string): never {
   throw new ConvexError({
     code: ErrorCode.NOT_FOUND,
     message: message || `${resource} not found`,
-  })
+  });
 }
 
 /**
@@ -43,7 +43,7 @@ export function throwPermissionError(message = "Permission denied"): never {
   throw new ConvexError({
     code: ErrorCode.PERMISSION_DENIED,
     message,
-  })
+  });
 }
 
 /**
@@ -53,7 +53,7 @@ export function throwConflictError(message: string): never {
   throw new ConvexError({
     code: ErrorCode.CONFLICT,
     message,
-  })
+  });
 }
 
 /**
@@ -63,7 +63,7 @@ export function throwRateLimitError(message = "Rate limit exceeded"): never {
   throw new ConvexError({
     code: ErrorCode.RATE_LIMITED,
     message,
-  })
+  });
 }
 
 /**
@@ -73,7 +73,7 @@ export function requireAuth<T>(
   userId: T | null | undefined,
 ): asserts userId is T {
   if (!userId) {
-    throwAuthError()
+    throwAuthError();
   }
 }
 
@@ -85,7 +85,7 @@ export function requireResource<T>(
   resourceName: string,
 ): asserts resource is T {
   if (!resource) {
-    throwNotFoundError(resourceName)
+    throwNotFoundError(resourceName);
   }
 }
 
@@ -97,6 +97,6 @@ export function requireAccess(
   message = "Access denied",
 ): asserts condition {
   if (!condition) {
-    throwPermissionError(message)
+    throwPermissionError(message);
   }
 }

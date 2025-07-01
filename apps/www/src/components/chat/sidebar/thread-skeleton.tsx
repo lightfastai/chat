@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { SidebarMenuItem } from "@lightfast/ui/components/ui/sidebar"
+import { SidebarMenuItem } from "@lightfast/ui/components/ui/sidebar";
 
 export function ThreadSkeleton() {
   return (
@@ -17,7 +17,7 @@ export function ThreadSkeleton() {
         </div>
       </div>
     </SidebarMenuItem>
-  )
+  );
 }
 
 export function ThreadListSkeleton({ count = 8 }: { count?: number }) {
@@ -27,5 +27,5 @@ export function ThreadListSkeleton({ count = 8 }: { count?: number }) {
         <ThreadSkeleton key={`skeleton-${i}`} />
       ))}
     </div>
-  )
+  );
 }

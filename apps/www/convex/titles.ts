@@ -1,9 +1,9 @@
-import { openai } from "@ai-sdk/openai"
-import { type CoreMessage, generateText } from "ai"
-import { v } from "convex/values"
-import { internal } from "./_generated/api.js"
-import { internalAction, internalMutation } from "./_generated/server.js"
-import { titleValidator, validateTitle } from "./validators.js"
+import { openai } from "@ai-sdk/openai";
+import { type CoreMessage, generateText } from "ai";
+import { v } from "convex/values";
+import { internal } from "./_generated/api.js";
+import { internalAction, internalMutation } from "./_generated/server.js";
+import { titleValidator, validateTitle } from "./validators.js";
 
 // Internal action to generate title using fast AI model
 export const generateTitle = internalAction({
@@ -18,12 +18,12 @@ export const generateTitle = internalAction({
       await ctx.runMutation(internal.titles.setTitleGenerating, {
         threadId: args.threadId,
         isGenerating: true,
-      })
+      });
 
       console.log(
         "Generating title for message:",
         args.userMessage.substring(0, 100),
-      )
+      );
 
       // Use gpt-4o-mini for fast title generation with AI SDK v5
       const messages: CoreMessage[] = [
@@ -39,60 +39,60 @@ export const generateTitle = internalAction({
           role: "user",
           content: args.userMessage,
         },
-      ]
+      ];
 
       const { text } = await generateText({
         model: openai("gpt-4o-mini"),
         messages,
         temperature: 0.3, // Lower temperature for more consistent titles
-      })
+      });
 
-      let generatedTitle = text.trim()
+      let generatedTitle = text.trim();
 
       if (generatedTitle) {
         // Ensure generated title doesn't exceed 80 characters
         if (generatedTitle.length > 80) {
-          generatedTitle = `${generatedTitle.substring(0, 77)}...`
+          generatedTitle = `${generatedTitle.substring(0, 77)}...`;
         }
 
-        console.log("Generated title:", generatedTitle)
+        console.log("Generated title:", generatedTitle);
 
         // Update the thread title
         await ctx.runMutation(internal.titles.updateThreadTitle, {
           threadId: args.threadId,
           title: generatedTitle,
-        })
+        });
       } else {
-        console.warn("Empty title generated, using fallback")
+        console.warn("Empty title generated, using fallback");
         // Fallback to truncated message if AI fails
         const fallbackTitle =
           args.userMessage.length > 77
             ? `${args.userMessage.substring(0, 77)}...`
-            : args.userMessage
+            : args.userMessage;
 
         await ctx.runMutation(internal.titles.updateThreadTitle, {
           threadId: args.threadId,
           title: fallbackTitle,
-        })
+        });
       }
     } catch (error) {
-      console.error("Error generating title:", error)
+      console.error("Error generating title:", error);
 
       // Fallback to truncated message on error
       const fallbackTitle =
         args.userMessage.length > 77
           ? `${args.userMessage.substring(0, 77)}...`
-          : args.userMessage
+          : args.userMessage;
 
       await ctx.runMutation(internal.titles.updateThreadTitle, {
         threadId: args.threadId,
         title: fallbackTitle,
-      })
+      });
     }
 
-    return null
+    return null;
   },
-})
+});
 
 // Internal mutation to update thread title
 export const updateThreadTitle = internalMutation({
@@ -104,16 +104,16 @@ export const updateThreadTitle = internalMutation({
   handler: async (ctx, args) => {
     // Validate title length
     if (!validateTitle(args.title)) {
-      throw new Error("Title must be between 1 and 80 characters")
+      throw new Error("Title must be between 1 and 80 characters");
     }
 
     await ctx.db.patch(args.threadId, {
       title: args.title,
       isTitleGenerating: false,
-    })
-    return null
+    });
+    return null;
   },
-})
+});
 
 // Internal mutation to set title generating status
 export const setTitleGenerating = internalMutation({
@@ -125,7 +125,7 @@ export const setTitleGenerating = internalMutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.threadId, {
       isTitleGenerating: args.isGenerating,
-    })
-    return null
+    });
+    return null;
   },
-})
+});

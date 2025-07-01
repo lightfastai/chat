@@ -1,6 +1,6 @@
-import { createEnv } from "@t3-oss/env-nextjs"
-import { vercel } from "@t3-oss/env-nextjs/presets-zod"
-import { z } from "zod"
+import { createEnv } from "@t3-oss/env-nextjs";
+import { vercel } from "@t3-oss/env-nextjs/presets-zod";
+import { z } from "zod";
 
 export const env = createEnv({
   extends: [vercel()],
@@ -104,15 +104,15 @@ export const env = createEnv({
    * `SOME_VAR: z.string()` and `SOME_VAR=''` will throw an error.
    */
   emptyStringAsUndefined: true,
-})
+});
 
 // Convex URL helpers
-export const getConvexUrl = () => env.NEXT_PUBLIC_CONVEX_URL
+export const getConvexUrl = () => env.NEXT_PUBLIC_CONVEX_URL;
 export const isLocalConvex = () =>
-  env.NEXT_PUBLIC_CONVEX_URL.includes("127.0.0.1")
+  env.NEXT_PUBLIC_CONVEX_URL.includes("127.0.0.1");
 
 // Environment helpers
-export const isDevelopment = () => env.NODE_ENV === "development"
-export const isProduction = () => env.NODE_ENV === "production"
-export const isTest = () => env.NODE_ENV === "test"
-export const isNonProduction = () => env.NODE_ENV !== "production"
+export const isDevelopment = () => env.NODE_ENV === "development";
+export const isProduction = () => env.NODE_ENV === "production";
+export const isTest = () => env.NODE_ENV === "test";
+export const isNonProduction = () => env.NODE_ENV !== "production";

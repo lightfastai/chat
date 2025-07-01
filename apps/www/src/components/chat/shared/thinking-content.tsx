@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { Brain, ChevronDown, ChevronRight } from "lucide-react"
-import { useState } from "react"
+import { Brain, ChevronDown, ChevronRight } from "lucide-react";
+import { useState } from "react";
 
 export interface ThinkingContentProps {
-  content: string
-  duration?: number | null
-  isExpanded?: boolean
-  onToggle?: (expanded: boolean) => void
-  isReasoningModel?: boolean
-  isStreaming?: boolean
+  content: string;
+  duration?: number | null;
+  isExpanded?: boolean;
+  onToggle?: (expanded: boolean) => void;
+  isReasoningModel?: boolean;
+  isStreaming?: boolean;
 }
 
 // Helper function to format duration
 export function formatDuration(ms: number) {
   if (ms < 1000) {
-    return `${Math.round(ms)}ms`
+    return `${Math.round(ms)}ms`;
   }
   if (ms < 60000) {
-    return `${(ms / 1000).toFixed(1)}s`
+    return `${(ms / 1000).toFixed(1)}s`;
   }
-  const minutes = Math.floor(ms / 60000)
-  const seconds = Math.floor((ms % 60000) / 1000)
-  return `${minutes}m ${seconds}s`
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  return `${minutes}m ${seconds}s`;
 }
 
 export function ThinkingContent({
@@ -33,19 +33,19 @@ export function ThinkingContent({
   isReasoningModel = false,
   isStreaming = false,
 }: ThinkingContentProps) {
-  const [localExpanded, setLocalExpanded] = useState(false)
+  const [localExpanded, setLocalExpanded] = useState(false);
 
   // Use controlled state if provided, otherwise use local state
   const isExpanded =
-    controlledExpanded !== undefined ? controlledExpanded : localExpanded
+    controlledExpanded !== undefined ? controlledExpanded : localExpanded;
 
   const handleToggle = (newExpanded: boolean) => {
     if (onToggle) {
-      onToggle(newExpanded)
+      onToggle(newExpanded);
     } else {
-      setLocalExpanded(newExpanded)
+      setLocalExpanded(newExpanded);
     }
-  }
+  };
 
   return (
     <div className="mb-4">
@@ -88,5 +88,5 @@ export function ThinkingContent({
         </div>
       )}
     </div>
-  )
+  );
 }

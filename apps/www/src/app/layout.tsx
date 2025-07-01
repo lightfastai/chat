@@ -1,13 +1,13 @@
-import type { Metadata, Viewport } from "next"
-import "@lightfast/ui/globals.css"
-import { ConvexClientProvider } from "@/lib/convex-provider"
-import { siteConfig, siteMetadata } from "@/lib/site-config"
-import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server"
-import { fonts } from "@lightfast/ui/lib/fonts"
-import { cn } from "@lightfast/ui/lib/utils"
-import { Analytics } from "@vercel/analytics/next"
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Toaster } from "sonner"
+import type { Metadata, Viewport } from "next";
+import "@lightfast/ui/globals.css";
+import { ConvexClientProvider } from "@/lib/convex-provider";
+import { siteConfig, siteMetadata } from "@/lib/site-config";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
+import { fonts } from "@lightfast/ui/lib/fonts";
+import { cn } from "@lightfast/ui/lib/utils";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: {
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-}
+};
 
 export const viewport: Viewport = {
   themeColor: "#09090b",
@@ -78,7 +78,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-}
+};
 
 export default function RootLayout({
   children,
@@ -94,5 +94,5 @@ export default function RootLayout({
         </body>
       </html>
     </ConvexAuthNextjsServerProvider>
-  )
+  );
 }

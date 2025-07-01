@@ -1,10 +1,10 @@
-import { siteConfig } from "@/lib/site-config"
-import { preloadQuery } from "convex/nextjs"
-import type { Metadata } from "next"
-import { Suspense } from "react"
-import { api } from "../../../convex/_generated/api"
-import { ChatInterface } from "../../components/chat/chat-interface"
-import { getAuthToken } from "../../lib/auth"
+import { siteConfig } from "@/lib/site-config";
+import { preloadQuery } from "convex/nextjs";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { api } from "../../../convex/_generated/api";
+import { ChatInterface } from "../../components/chat/chat-interface";
+import { getAuthToken } from "../../lib/auth";
 
 export const metadata: Metadata = {
   title: "New Chat",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     index: false,
     follow: false,
   },
-}
+};
 
 // Server component that enables SSR for the new chat page with prefetched user data
 export default function ChatPage() {
@@ -33,25 +33,25 @@ export default function ChatPage() {
     <Suspense fallback={<ChatInterface />}>
       <ChatPageWithPreloadedData />
     </Suspense>
-  )
+  );
 }
 
 // Server component that handles data preloading with PPR optimization
 async function ChatPageWithPreloadedData() {
   try {
     // Get authentication token for server-side requests
-    const token = await getAuthToken()
+    const token = await getAuthToken();
 
     // If no authentication token, render regular chat interface
     if (!token) {
-      return <ChatInterface />
+      return <ChatInterface />;
     }
 
     // Preload user data and settings for PPR - this will be cached and streamed instantly
     const [preloadedUser, preloadedUserSettings] = await Promise.all([
       preloadQuery(api.users.current, {}, { token }),
       preloadQuery(api.userSettings.getUserSettings, {}, { token }),
-    ])
+    ]);
 
     // Pass preloaded user data and settings to chat interface
     return (
@@ -59,12 +59,12 @@ async function ChatPageWithPreloadedData() {
         preloadedUser={preloadedUser}
         preloadedUserSettings={preloadedUserSettings}
       />
-    )
+    );
   } catch (error) {
     // Log error but still render - don't break the UI
-    console.warn("Server-side user preload failed:", error)
+    console.warn("Server-side user preload failed:", error);
 
     // Fallback to regular chat interface
-    return <ChatInterface />
+    return <ChatInterface />;
   }
 }

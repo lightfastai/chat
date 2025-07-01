@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import { Button } from "@lightfast/ui/components/ui/button"
-import { useQuery } from "convex/react"
-import { Download, ExternalLink, FileText, Image } from "lucide-react"
-import { api } from "../../../convex/_generated/api"
-import type { Doc, Id } from "../../../convex/_generated/dataModel"
+import { Button } from "@lightfast/ui/components/ui/button";
+import { useQuery } from "convex/react";
+import { Download, ExternalLink, FileText, Image } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 interface AttachmentPreviewProps {
-  attachmentIds: Id<"files">[]
+  attachmentIds: Id<"files">[];
 }
 
-type FileWithUrl = Doc<"files"> & { url: string | null }
+type FileWithUrl = Doc<"files"> & { url: string | null };
 
 export function AttachmentPreview({ attachmentIds }: AttachmentPreviewProps) {
-  const files = useQuery(api.files.getFiles, { fileIds: attachmentIds })
+  const files = useQuery(api.files.getFiles, { fileIds: attachmentIds });
 
-  if (!files || files.length === 0) return null
+  if (!files || files.length === 0) return null;
 
   return (
     <div className="mt-2 flex flex-wrap gap-2">
       {files.map((file: FileWithUrl | null) => {
-        if (!file) return null
+        if (!file) return null;
 
-        const isImage = file.fileType.startsWith("image/")
+        const isImage = file.fileType.startsWith("image/");
 
         return (
           <div
@@ -93,14 +93,14 @@ export function AttachmentPreview({ attachmentIds }: AttachmentPreviewProps) {
               </div>
             )}
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

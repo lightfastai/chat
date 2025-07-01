@@ -1,5 +1,5 @@
-import { createEnv } from "@t3-oss/env-core"
-import { z } from "zod"
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
 
 export const env = createEnv({
   server: {
@@ -34,15 +34,15 @@ export const env = createEnv({
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
   onValidationError: (error) => {
-    console.error("❌ Invalid environment variables in Convex:", error)
-    throw new Error("Invalid environment variables")
+    console.error("❌ Invalid environment variables in Convex:", error);
+    throw new Error("Invalid environment variables");
   },
   onInvalidAccess: (variable) => {
     throw new Error(
       `❌ Attempted to access a server-side environment variable on the client: ${variable}`,
-    )
+    );
   },
-})
+});
 
 // Type-safe environment variable access
-export type ConvexEnv = typeof env
+export type ConvexEnv = typeof env;

@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { captureException } from "@sentry/nextjs"
-import { AlertTriangle, RefreshCw } from "lucide-react"
-import { useEffect } from "react"
+import { captureException } from "@sentry/nextjs";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { useEffect } from "react";
 
 export default function GlobalError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
   useEffect(() => {
     // Log the error to console and Sentry
-    console.error("Global error boundary caught:", error)
-    captureException(error)
-  }, [error])
+    console.error("Global error boundary caught:", error);
+    captureException(error);
+  }, [error]);
 
   return (
     <div
@@ -109,10 +109,10 @@ export default function GlobalError({
             transition: "background-color 0.15s",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#1e293b"
+            e.currentTarget.style.backgroundColor = "#1e293b";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#0f172a"
+            e.currentTarget.style.backgroundColor = "#0f172a";
           }}
         >
           <RefreshCw style={{ width: "1rem", height: "1rem" }} />
@@ -120,5 +120,5 @@ export default function GlobalError({
         </button>
       </div>
     </div>
-  )
+  );
 }

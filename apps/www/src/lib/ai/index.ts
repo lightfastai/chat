@@ -21,7 +21,7 @@ export type {
   OpenAIModel,
   AnthropicModel,
   OpenRouterModel,
-} from "./schemas"
+} from "./schemas";
 
 export {
   // Core model data
@@ -56,7 +56,7 @@ export {
   getModelsByProvider,
   getAllModels,
   getModelById,
-} from "./schemas"
+} from "./schemas";
 
 // Legacy re-exports for backward compatibility (deprecated)
 // All types and functions are now exported from schemas above
@@ -76,13 +76,13 @@ export {
   getProviderDisplayName,
   getSupportedProviders,
   createGenerationOptions,
-} from "./providers"
+} from "./providers";
 
 // Capabilities
 export type {
   AttachmentType,
   ModelCapability,
-} from "./capabilities"
+} from "./capabilities";
 
 export {
   MODEL_CAPABILITIES,
@@ -93,4 +93,4 @@ export {
   validateAttachmentsForModel,
   getIncompatibilityMessage,
   shouldWarnAboutCapabilities,
-} from "./capabilities"
+} from "./capabilities";

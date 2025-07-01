@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useSidebar } from "@lightfast/ui/components/ui/sidebar"
-import { cn } from "@lightfast/ui/lib/utils"
-import { ChevronRight } from "lucide-react"
-import { useState } from "react"
+import { useSidebar } from "@lightfast/ui/components/ui/sidebar";
+import { cn } from "@lightfast/ui/lib/utils";
+import { ChevronRight } from "lucide-react";
+import { useState } from "react";
 
 export function SidebarHoverExpand() {
-  const { state, setOpen } = useSidebar()
-  const [isHovered, setIsHovered] = useState(false)
+  const { state, setOpen } = useSidebar();
+  const [isHovered, setIsHovered] = useState(false);
 
-  if (state === "expanded") return null
+  if (state === "expanded") return null;
 
   return (
     <div
@@ -22,8 +22,8 @@ export function SidebarHoverExpand() {
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          setOpen(true)
+          e.preventDefault();
+          setOpen(true);
         }
       }}
     >
@@ -40,5 +40,5 @@ export function SidebarHoverExpand() {
         <ChevronRight className="w-4 h-4" />
       </div>
     </div>
-  )
+  );
 }

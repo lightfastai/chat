@@ -7,20 +7,20 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
-} from "@lightfast/ui/components/ui/sidebar"
-import type { Preloaded } from "convex/react"
-import { MessageSquarePlus } from "lucide-react"
-import { Suspense } from "react"
-import type { api } from "../../../../convex/_generated/api"
-import { ActiveMenuItem } from "./active-menu-item"
-import { PlatformSidebarTrigger } from "./platform-sidebar-trigger"
-import { PreloadedThreadsList } from "./preloaded-threads-list"
-import { SidebarHoverExpand } from "./sidebar-hover-expand"
-import { SidebarUserMenu } from "./sidebar-user-menu"
+} from "@lightfast/ui/components/ui/sidebar";
+import type { Preloaded } from "convex/react";
+import { MessageSquarePlus } from "lucide-react";
+import { Suspense } from "react";
+import type { api } from "../../../../convex/_generated/api";
+import { ActiveMenuItem } from "./active-menu-item";
+import { PlatformSidebarTrigger } from "./platform-sidebar-trigger";
+import { PreloadedThreadsList } from "./preloaded-threads-list";
+import { SidebarHoverExpand } from "./sidebar-hover-expand";
+import { SidebarUserMenu } from "./sidebar-user-menu";
 
 interface ServerSidebarImplementationProps {
-  preloadedThreads: Preloaded<typeof api.threads.list>
-  preloadedUser: Preloaded<typeof api.users.current>
+  preloadedThreads: Preloaded<typeof api.threads.list>;
+  preloadedUser: Preloaded<typeof api.users.current>;
 }
 
 // Main server component - renders static parts with reactive threads list
@@ -83,5 +83,5 @@ export function ServerSidebarImplementation({
         </SidebarGroup>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

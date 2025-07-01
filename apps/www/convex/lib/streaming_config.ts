@@ -1,4 +1,4 @@
-import type { ModelId } from "../../src/lib/ai/schemas.js"
+import type { ModelId } from "../../src/lib/ai/schemas.js";
 
 /**
  * Model-specific streaming delay configuration
@@ -51,7 +51,7 @@ export const MODEL_STREAMING_DELAYS: Record<ModelId, number> = {
   "anthropic/claude-3.5-sonnet": 15, // OpenRouter Claude
   "openai/gpt-4o": 15, // OpenRouter GPT-4o
   "mistralai/mistral-large": 12, // Powerful model
-}
+};
 
 /**
  * Get the optimal streaming delay for a given model
@@ -59,7 +59,7 @@ export const MODEL_STREAMING_DELAYS: Record<ModelId, number> = {
  * @returns The delay in milliseconds (defaults to 15ms if model not found)
  */
 export function getModelStreamingDelay(modelId: ModelId): number {
-  return MODEL_STREAMING_DELAYS[modelId] ?? 15
+  return MODEL_STREAMING_DELAYS[modelId] ?? 15;
 }
 
 /**
@@ -71,4 +71,4 @@ export const STREAMING_PRESETS = {
   balanced: { delayInMs: 15, chunking: "word" as const },
   powerful: { delayInMs: 10, chunking: "word" as const },
   thinking: { delayInMs: 18, chunking: "word" as const },
-} as const
+} as const;

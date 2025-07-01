@@ -1,47 +1,47 @@
-"use client"
+"use client";
 
-import { Badge } from "@lightfast/ui/components/ui/badge"
+import { Badge } from "@lightfast/ui/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@lightfast/ui/components/ui/tooltip"
-import { Cpu } from "lucide-react"
+} from "@lightfast/ui/components/ui/tooltip";
+import { Cpu } from "lucide-react";
 
 interface MessageUsageChipProps {
   usage?: {
-    inputTokens?: number
-    outputTokens?: number
-    totalTokens?: number
-    reasoningTokens?: number
-    cachedInputTokens?: number
-  }
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+    reasoningTokens?: number;
+    cachedInputTokens?: number;
+  };
 }
 
 // Helper function to format token counts
 function formatTokenCount(count: number): string {
-  if (count === 0) return "0"
-  if (count < 1000) return count.toString()
+  if (count === 0) return "0";
+  if (count < 1000) return count.toString();
   if (count < 1000000) {
-    const k = count / 1000
-    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`
+    const k = count / 1000;
+    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`;
   }
-  const m = count / 1000000
-  return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
+  const m = count / 1000000;
+  return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
 }
 
 export function MessageUsageChip({ usage }: MessageUsageChipProps) {
   // Don't show if no usage data
   if (!usage || !usage.outputTokens) {
-    return null
+    return null;
   }
 
-  const outputTokens = usage.outputTokens || 0
-  const inputTokens = usage.inputTokens || 0
-  const totalTokens = usage.totalTokens || 0
-  const reasoningTokens = usage.reasoningTokens || 0
-  const cachedInputTokens = usage.cachedInputTokens || 0
+  const outputTokens = usage.outputTokens || 0;
+  const inputTokens = usage.inputTokens || 0;
+  const totalTokens = usage.totalTokens || 0;
+  const reasoningTokens = usage.reasoningTokens || 0;
+  const cachedInputTokens = usage.cachedInputTokens || 0;
 
   return (
     <TooltipProvider>
@@ -73,5 +73,5 @@ export function MessageUsageChip({ usage }: MessageUsageChipProps) {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  )
+  );
 }

@@ -1,11 +1,11 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
+import { getAuthUserId } from "@convex-dev/auth/server";
 import type {
   GenericActionCtx,
   GenericMutationCtx,
   GenericQueryCtx,
-} from "convex/server"
-import type { DataModel, Id } from "../_generated/dataModel.js"
-import { requireAuth } from "./errors.js"
+} from "convex/server";
+import type { DataModel, Id } from "../_generated/dataModel.js";
+import { requireAuth } from "./errors.js";
 
 /**
  * Get authenticated user ID with consistent error handling
@@ -17,9 +17,9 @@ export async function getAuthenticatedUserId(
     | GenericMutationCtx<DataModel>
     | GenericActionCtx<DataModel>,
 ): Promise<Id<"users">> {
-  const userId = await getAuthUserId(ctx)
-  requireAuth(userId)
-  return userId
+  const userId = await getAuthUserId(ctx);
+  requireAuth(userId);
+  return userId;
 }
 
 /**
@@ -32,7 +32,7 @@ export function requireOwnership<T extends { userId: string }>(
   resourceType: string,
 ): T {
   if (resource.userId !== userId) {
-    throw new Error(`You don't have permission to access this ${resourceType}`)
+    throw new Error(`You don't have permission to access this ${resourceType}`);
   }
-  return resource
+  return resource;
 }

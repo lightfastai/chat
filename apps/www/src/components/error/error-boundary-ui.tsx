@@ -1,34 +1,34 @@
-"use client"
+"use client";
 
-import { Button } from "@lightfast/ui/components/ui/button"
-import { cn } from "@lightfast/ui/lib/utils"
-import type { LucideIcon } from "lucide-react"
-import { env } from "../../env"
+import { Button } from "@lightfast/ui/components/ui/button";
+import { cn } from "@lightfast/ui/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import { env } from "../../env";
 
 export interface ErrorBoundaryAction {
-  label: string
-  icon?: LucideIcon
-  onClick?: () => void
-  href?: string
+  label: string;
+  icon?: LucideIcon;
+  onClick?: () => void;
+  href?: string;
   variant?:
     | "default"
     | "outline"
     | "secondary"
     | "ghost"
     | "link"
-    | "destructive"
+    | "destructive";
 }
 
 export interface ErrorBoundaryUIProps {
-  icon: LucideIcon
-  iconColor?: string
-  title: string
-  description: string
-  details?: string
-  actions?: ErrorBoundaryAction[]
-  error?: Error & { digest?: string }
-  showErrorDetails?: boolean
-  className?: string
+  icon: LucideIcon;
+  iconColor?: string;
+  title: string;
+  description: string;
+  details?: string;
+  actions?: ErrorBoundaryAction[];
+  error?: Error & { digest?: string };
+  showErrorDetails?: boolean;
+  className?: string;
 }
 
 export function ErrorBoundaryUI({
@@ -100,7 +100,7 @@ export function ErrorBoundaryUI({
                   action.variant || (index === 0 ? "default" : "outline"),
                 size: "sm" as const,
                 onClick: action.onClick,
-              }
+              };
 
               if (action.href) {
                 return (
@@ -110,7 +110,7 @@ export function ErrorBoundaryUI({
                       {action.label}
                     </a>
                   </Button>
-                )
+                );
               }
 
               return (
@@ -118,11 +118,11 @@ export function ErrorBoundaryUI({
                   {action.icon && <action.icon className="mr-2 h-4 w-4" />}
                   {action.label}
                 </Button>
-              )
+              );
             })}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }

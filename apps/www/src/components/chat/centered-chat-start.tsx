@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { useAuth } from "@/hooks/use-auth"
-import { useTimeGreeting } from "@/hooks/use-time-greeting"
-import type { Preloaded } from "convex/react"
-import { usePreloadedQuery } from "convex/react"
-import { ZapIcon } from "lucide-react"
-import { useRef, useState } from "react"
-import type { api } from "../../../convex/_generated/api"
-import type { Id } from "../../../convex/_generated/dataModel"
-import { ChatInput } from "./chat-input"
-import { PromptSuggestions } from "./prompt-suggestions"
+import { useAuth } from "@/hooks/use-auth";
+import { useTimeGreeting } from "@/hooks/use-time-greeting";
+import type { Preloaded } from "convex/react";
+import { usePreloadedQuery } from "convex/react";
+import { ZapIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import type { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
+import { ChatInput } from "./chat-input";
+import { PromptSuggestions } from "./prompt-suggestions";
 
 interface CenteredChatStartProps {
   onSendMessage: (
@@ -17,10 +17,10 @@ interface CenteredChatStartProps {
     modelId: string,
     attachments?: Id<"files">[],
     webSearchEnabled?: boolean,
-  ) => Promise<void> | void
-  disabled?: boolean
-  isLoading?: boolean
-  preloadedUser?: Preloaded<typeof api.users.current>
+  ) => Promise<void> | void;
+  disabled?: boolean;
+  isLoading?: boolean;
+  preloadedUser?: Preloaded<typeof api.users.current>;
 }
 
 export function CenteredChatStart({
@@ -29,31 +29,31 @@ export function CenteredChatStart({
   isLoading = false,
   preloadedUser,
 }: CenteredChatStartProps) {
-  const { displayName, email } = useAuth()
-  const greeting = useTimeGreeting()
-  const [message, setMessage] = useState("")
-  const chatInputRef = useRef<HTMLTextAreaElement>(null)
+  const { displayName, email } = useAuth();
+  const greeting = useTimeGreeting();
+  const [message, setMessage] = useState("");
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Use preloaded user data if available, otherwise fall back to regular auth hook
   const preloadedUserData = preloadedUser
     ? (() => {
         try {
-          return usePreloadedQuery(preloadedUser)
+          return usePreloadedQuery(preloadedUser);
         } catch {
-          return null // Fallback to regular auth hook if preloaded data fails
+          return null; // Fallback to regular auth hook if preloaded data fails
         }
       })()
-    : null
+    : null;
 
   const userName =
-    preloadedUserData?.email || preloadedUserData?.name || email || displayName
+    preloadedUserData?.email || preloadedUserData?.name || email || displayName;
 
   const handlePromptSelect = (prompt: string) => {
     // Populate the chat input with the selected prompt
-    setMessage(prompt)
+    setMessage(prompt);
     // Focus the textarea after selecting a prompt
-    chatInputRef.current?.focus()
-  }
+    chatInputRef.current?.focus();
+  };
 
   return (
     <div className="flex flex-col h-full min-h-0 px-2 md:px-4">
@@ -87,5 +87,5 @@ export function CenteredChatStart({
         </div>
       </div>
     </div>
-  )
+  );
 }

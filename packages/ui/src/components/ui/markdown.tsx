@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import React, { memo } from "react"
-import ReactMarkdown, { type Components } from "react-markdown"
-import remarkGfm from "remark-gfm"
-import { cn } from "../../lib/utils"
-import { CodeBlock } from "./code-block"
+import React, { memo } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { cn } from "../../lib/utils";
+import { CodeBlock } from "./code-block";
 
 // Properly typed component props based on react-markdown's actual types
 type MarkdownComponentProps = React.HTMLAttributes<HTMLElement> & {
-  node?: unknown // Using unknown instead of any for better type safety
-  children?: React.ReactNode
-}
+  node?: unknown; // Using unknown instead of any for better type safety
+  children?: React.ReactNode;
+};
 
 // Code component specific props
 interface CodeComponentProps extends MarkdownComponentProps {
-  inline?: boolean
+  inline?: boolean;
 }
 
 /**
@@ -36,33 +36,33 @@ const components: Partial<Components> = {
         >
           {children}
         </code>
-      )
+      );
     }
     // This shouldn't be reached for code blocks (handled by pre)
     return (
       <code className={className} {...props}>
         {children}
       </code>
-    )
+    );
   },
 
   // Pre component for code blocks - handles code blocks with syntax highlighting
   pre({ children, className, ...props }: MarkdownComponentProps) {
     // Check if this pre contains a code element
-    let codeContent = ""
-    let language = ""
+    let codeContent = "";
+    let language = "";
 
     // Extract code content and language from children
     if (React.isValidElement(children) && children.props) {
       const codeProps = children.props as {
-        children?: string
-        className?: string
-      }
+        children?: string;
+        className?: string;
+      };
       codeContent =
-        typeof codeProps.children === "string" ? codeProps.children : ""
-      language = codeProps.className?.replace("language-", "") || ""
+        typeof codeProps.children === "string" ? codeProps.children : "";
+      language = codeProps.className?.replace("language-", "") || "";
     } else if (typeof children === "string") {
-      codeContent = children
+      codeContent = children;
     }
 
     // If we have code content, use CodeBlock component
@@ -73,7 +73,7 @@ const components: Partial<Components> = {
           language={language}
           className={className}
         />
-      )
+      );
     }
 
     // Fallback to original pre element
@@ -91,7 +91,7 @@ const components: Partial<Components> = {
           {children}
         </pre>
       </div>
-    )
+    );
   },
 
   // Typography components
@@ -100,7 +100,7 @@ const components: Partial<Components> = {
       <strong className="font-semibold" {...props}>
         {children}
       </strong>
-    )
+    );
   },
 
   em({ children, ...props }: MarkdownComponentProps) {
@@ -108,12 +108,12 @@ const components: Partial<Components> = {
       <em className="italic" {...props}>
         {children}
       </em>
-    )
+    );
   },
 
   // Link component with Next.js best practices
   a({ href, children, ...props }: MarkdownComponentProps & { href?: string }) {
-    const isExternal = href?.startsWith("http")
+    const isExternal = href?.startsWith("http");
     return (
       <a
         href={href}
@@ -124,7 +124,7 @@ const components: Partial<Components> = {
       >
         {children}
       </a>
-    )
+    );
   },
 
   // Heading components with consistent styling
@@ -136,7 +136,7 @@ const components: Partial<Components> = {
       >
         {children}
       </h1>
-    )
+    );
   },
 
   h2({ children, ...props }: MarkdownComponentProps) {
@@ -147,7 +147,7 @@ const components: Partial<Components> = {
       >
         {children}
       </h2>
-    )
+    );
   },
 
   h3({ children, ...props }: MarkdownComponentProps) {
@@ -158,7 +158,7 @@ const components: Partial<Components> = {
       >
         {children}
       </h3>
-    )
+    );
   },
 
   h4({ children, ...props }: MarkdownComponentProps) {
@@ -169,7 +169,7 @@ const components: Partial<Components> = {
       >
         {children}
       </h4>
-    )
+    );
   },
 
   h5({ children, ...props }: MarkdownComponentProps) {
@@ -180,7 +180,7 @@ const components: Partial<Components> = {
       >
         {children}
       </h5>
-    )
+    );
   },
 
   h6({ children, ...props }: MarkdownComponentProps) {
@@ -191,7 +191,7 @@ const components: Partial<Components> = {
       >
         {children}
       </h6>
-    )
+    );
   },
 
   // Paragraph with proper spacing
@@ -200,7 +200,7 @@ const components: Partial<Components> = {
       <p className="leading-7 [&:not(:first-child)]:mt-3 break-all" {...props}>
         {children}
       </p>
-    )
+    );
   },
 
   // List components
@@ -212,7 +212,7 @@ const components: Partial<Components> = {
       >
         {children}
       </ul>
-    )
+    );
   },
 
   ol({ className, children, ...props }: MarkdownComponentProps) {
@@ -223,7 +223,7 @@ const components: Partial<Components> = {
       >
         {children}
       </ol>
-    )
+    );
   },
 
   li({ className, children, ...props }: MarkdownComponentProps) {
@@ -231,12 +231,12 @@ const components: Partial<Components> = {
       <li className={cn("leading-7 break-all", className)} {...props}>
         {children}
       </li>
-    )
+    );
   },
 
   // Horizontal rule
   hr({ ...props }: MarkdownComponentProps) {
-    return <hr className="my-6 border-border" {...props} />
+    return <hr className="my-6 border-border" {...props} />;
   },
 
   // Blockquote
@@ -251,7 +251,7 @@ const components: Partial<Components> = {
       >
         {children}
       </blockquote>
-    )
+    );
   },
 
   // Table components with better styling
@@ -262,7 +262,7 @@ const components: Partial<Components> = {
           {children}
         </table>
       </div>
-    )
+    );
   },
 
   thead({ className, children, ...props }: MarkdownComponentProps) {
@@ -270,7 +270,7 @@ const components: Partial<Components> = {
       <thead className={cn("border-b", className)} {...props}>
         {children}
       </thead>
-    )
+    );
   },
 
   tbody({ className, children, ...props }: MarkdownComponentProps) {
@@ -278,7 +278,7 @@ const components: Partial<Components> = {
       <tbody className={cn("[&_tr:last-child]:border-0", className)} {...props}>
         {children}
       </tbody>
-    )
+    );
   },
 
   tr({ className, children, ...props }: MarkdownComponentProps) {
@@ -292,7 +292,7 @@ const components: Partial<Components> = {
       >
         {children}
       </tr>
-    )
+    );
   },
 
   th({ className, children, ...props }: MarkdownComponentProps) {
@@ -306,7 +306,7 @@ const components: Partial<Components> = {
       >
         {children}
       </th>
-    )
+    );
   },
 
   td({ className, children, ...props }: MarkdownComponentProps) {
@@ -320,17 +320,17 @@ const components: Partial<Components> = {
       >
         {children}
       </td>
-    )
+    );
   },
-}
+};
 
 // Configure remark plugins
-const remarkPlugins = [remarkGfm]
+const remarkPlugins = [remarkGfm];
 
 // Props for the Markdown component
 export interface MarkdownProps {
-  children: string
-  className?: string
+  children: string;
+  className?: string;
 }
 
 /**
@@ -344,8 +344,8 @@ const NonMemoizedMarkdown = ({ children, className }: MarkdownProps) => {
         {children}
       </ReactMarkdown>
     </div>
-  )
-}
+  );
+};
 
 /**
  * Memoized Markdown component for better performance
@@ -354,7 +354,7 @@ const NonMemoizedMarkdown = ({ children, className }: MarkdownProps) => {
 export const Markdown = memo(
   NonMemoizedMarkdown,
   (prevProps, nextProps) => prevProps.children === nextProps.children,
-)
+);
 
 // Export the non-memoized version for cases where memoization isn't needed
-export { NonMemoizedMarkdown }
+export { NonMemoizedMarkdown };

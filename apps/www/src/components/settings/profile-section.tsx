@@ -2,31 +2,31 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@lightfast/ui/components/ui/avatar"
-import { Input } from "@lightfast/ui/components/ui/input"
-import { User } from "lucide-react"
-import { SettingsHeader } from "./settings-header"
-import { SettingsRow } from "./settings-row"
+} from "@lightfast/ui/components/ui/avatar";
+import { Input } from "@lightfast/ui/components/ui/input";
+import { User } from "lucide-react";
+import { SettingsHeader } from "./settings-header";
+import { SettingsRow } from "./settings-row";
 
 interface ProfileSectionProps {
   user: {
-    _id: string
-    _creationTime: number
-    name?: string
-    email?: string
-    image?: string
-    emailVerificationTime?: number
-    phoneVerificationTime?: number
-    isAnonymous?: boolean
-  }
+    _id: string;
+    _creationTime: number;
+    name?: string;
+    email?: string;
+    image?: string;
+    emailVerificationTime?: number;
+    phoneVerificationTime?: number;
+    isAnonymous?: boolean;
+  };
   userSettings:
     | {
-        hasOpenAIKey: boolean
-        hasAnthropicKey: boolean
-        hasOpenRouterKey: boolean
+        hasOpenAIKey: boolean;
+        hasAnthropicKey: boolean;
+        hasOpenRouterKey: boolean;
       }
     | null
-    | undefined // Not used in ProfileSection but passed for consistency
+    | undefined; // Not used in ProfileSection but passed for consistency
 }
 
 export function ProfileSection({ user }: ProfileSectionProps) {
@@ -35,8 +35,8 @@ export function ProfileSection({ user }: ProfileSectionProps) {
       year: "numeric",
       month: "long",
       day: "numeric",
-    })
-  }
+    });
+  };
 
   return (
     <div>
@@ -80,5 +80,5 @@ export function ProfileSection({ user }: ProfileSectionProps) {
         </SettingsRow>
       </div>
     </div>
-  )
+  );
 }

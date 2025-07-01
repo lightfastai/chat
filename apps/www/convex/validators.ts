@@ -1,5 +1,5 @@
-import { v } from "convex/values"
-import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js"
+import { v } from "convex/values";
+import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
 
 /**
  * Shared validators for type safety across Convex functions
@@ -12,67 +12,67 @@ import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js"
 // Model ID validator for all supported AI models (auto-synced from schemas)
 export const modelIdValidator = v.union(
   ...ALL_MODEL_IDS.map((id) => v.literal(id)),
-)
+);
 
 // Model provider validator (auto-synced from schemas)
 export const modelProviderValidator = v.union(
   ...ModelProviderSchema.options.map((provider) => v.literal(provider)),
-)
+);
 
 // ===== ID Validators =====
 // Client ID validator (nanoid format, typically 21 chars)
-export const clientIdValidator = v.string()
+export const clientIdValidator = v.string();
 
 // Share ID validator (nanoid format, 24 chars for security)
-export const shareIdValidator = v.string()
+export const shareIdValidator = v.string();
 
 // Stream ID validator (format: stream_<timestamp>_<random>)
-export const streamIdValidator = v.string()
+export const streamIdValidator = v.string();
 
 // Chunk ID validator (format: chunk_<timestamp>_<random>)
-export const chunkIdValidator = v.string()
+export const chunkIdValidator = v.string();
 
 // Storage ID validator for Convex file storage
-export const storageIdValidator = v.string()
+export const storageIdValidator = v.string();
 
 // ===== String Format Validators =====
 // Email validator with basic format checking
-export const emailValidator = v.string()
+export const emailValidator = v.string();
 
 // URL validator for links and images
-export const urlValidator = v.string()
+export const urlValidator = v.string();
 
 // Phone number validator
-export const phoneValidator = v.optional(v.string())
+export const phoneValidator = v.optional(v.string());
 
 // API key validators with provider-specific patterns
-export const openaiApiKeyValidator = v.string() // sk-...
-export const anthropicApiKeyValidator = v.string() // sk-ant-...
-export const openrouterApiKeyValidator = v.string()
+export const openaiApiKeyValidator = v.string(); // sk-...
+export const anthropicApiKeyValidator = v.string(); // sk-ant-...
+export const openrouterApiKeyValidator = v.string();
 
 // ===== Content Validators =====
 // Title validator with max length
-export const titleValidator = v.string() // Max 80 chars enforced in handler
+export const titleValidator = v.string(); // Max 80 chars enforced in handler
 
 // User name validator
-export const userNameValidator = v.string()
+export const userNameValidator = v.string();
 
 // Comment/feedback validator with reasonable length
-export const commentValidator = v.optional(v.string())
+export const commentValidator = v.optional(v.string());
 
 // ===== Share & Access Validators =====
 // IP hash validator for rate limiting
-export const ipHashValidator = v.optional(v.string())
+export const ipHashValidator = v.optional(v.string());
 
 // User agent validator for logging
-export const userAgentValidator = v.optional(v.string())
+export const userAgentValidator = v.optional(v.string());
 
 // Share settings validator
 export const shareSettingsValidator = v.optional(
   v.object({
     showThinking: v.optional(v.boolean()),
   }),
-)
+);
 
 // ===== Message & Stream Validators =====
 // Message type validator
@@ -80,7 +80,7 @@ export const messageTypeValidator = v.union(
   v.literal("user"),
   v.literal("assistant"),
   v.literal("system"),
-)
+);
 
 // Token usage validator
 export const tokenUsageValidator = v.optional(
@@ -96,14 +96,14 @@ export const tokenUsageValidator = v.optional(
     cacheHitTokens: v.optional(v.number()),
     cacheWriteTokens: v.optional(v.number()),
   }),
-)
+);
 
 // ===== File Validators =====
 // File name validator
-export const fileNameValidator = v.string()
+export const fileNameValidator = v.string();
 
 // MIME type validator
-export const mimeTypeValidator = v.string()
+export const mimeTypeValidator = v.string();
 
 // File metadata validator
 export const fileMetadataValidator = v.optional(
@@ -118,14 +118,14 @@ export const fileMetadataValidator = v.optional(
       }),
     ),
   }),
-)
+);
 
 // ===== Feedback Validators =====
 // Feedback rating validator
 export const feedbackRatingValidator = v.union(
   v.literal("thumbs_up"),
   v.literal("thumbs_down"),
-)
+);
 
 // Feedback reasons validator
 export const feedbackReasonsValidator = v.optional(
@@ -143,7 +143,7 @@ export const feedbackReasonsValidator = v.optional(
       v.literal("off_topic"),
     ),
   ),
-)
+);
 
 // ===== Thread Validators =====
 // Branch info validator
@@ -153,7 +153,7 @@ export const branchInfoValidator = v.optional(
     messageId: v.id("messages"),
     timestamp: v.number(),
   }),
-)
+);
 
 // Thread usage validator
 export const threadUsageValidator = v.optional(
@@ -178,7 +178,7 @@ export const threadUsageValidator = v.optional(
       ),
     ),
   }),
-)
+);
 
 // ===== User Settings Validators =====
 // User API keys validator
@@ -188,7 +188,7 @@ export const userApiKeysValidator = v.optional(
     anthropic: v.optional(v.string()),
     openrouter: v.optional(v.string()),
   }),
-)
+);
 
 // User preferences validator
 export const userPreferencesValidator = v.optional(
@@ -196,21 +196,21 @@ export const userPreferencesValidator = v.optional(
     defaultModel: v.optional(modelIdValidator),
     preferredProvider: v.optional(modelProviderValidator),
   }),
-)
+);
 
 // ===== Message Parts Validators (Vercel AI SDK v5) =====
 // Text part validator - represents a text segment in a message
 export const textPartValidator = v.object({
   type: v.literal("text"),
   text: v.string(),
-})
+});
 
 // Reasoning part validator - for Claude thinking/reasoning content
 export const reasoningPartValidator = v.object({
   type: v.literal("reasoning"),
   text: v.string(),
   providerMetadata: v.optional(v.any()),
-})
+});
 
 // File part validator - for generated files
 export const filePartValidator = v.object({
@@ -219,7 +219,7 @@ export const filePartValidator = v.object({
   mediaType: v.string(),
   data: v.optional(v.any()), // Base64 or binary data
   filename: v.optional(v.string()),
-})
+});
 
 // Source part validator - for citations and references
 export const sourcePartValidator = v.object({
@@ -231,26 +231,26 @@ export const sourcePartValidator = v.object({
   mediaType: v.optional(v.string()),
   filename: v.optional(v.string()),
   metadata: v.optional(v.any()),
-})
+});
 
 // Error part validator - for stream errors
 export const errorPartValidator = v.object({
   type: v.literal("error"),
   errorMessage: v.string(),
   errorDetails: v.optional(v.any()),
-})
+});
 
 // Raw part validator - for debugging raw provider responses
 export const rawPartValidator = v.object({
   type: v.literal("raw"),
   rawValue: v.any(),
-})
+});
 
 // Step part validator - for multi-step generation boundaries
 export const stepPartValidator = v.object({
   type: v.literal("step"),
   stepType: v.union(v.literal("start-step"), v.literal("finish-step")),
-})
+});
 
 // Stream control part validator - for start/finish/metadata events
 export const streamControlPartValidator = v.object({
@@ -263,7 +263,7 @@ export const streamControlPartValidator = v.object({
   finishReason: v.optional(v.string()),
   totalUsage: v.optional(v.any()),
   metadata: v.optional(v.any()),
-})
+});
 
 // Tool call part validator - Official Vercel AI SDK v5 compliant
 export const toolCallPartValidator = v.object({
@@ -278,7 +278,7 @@ export const toolCallPartValidator = v.object({
     v.literal("result"), // Tool execution completed with results
   ),
   step: v.optional(v.number()), // Official SDK step tracking for multi-step calls
-})
+});
 
 // Message part union validator - represents any type of message part
 export const messagePartValidator = v.union(
@@ -291,13 +291,13 @@ export const messagePartValidator = v.union(
   stepPartValidator,
   streamControlPartValidator,
   toolCallPartValidator,
-)
+);
 
 // Array of message parts validator
-export const messagePartsValidator = v.array(messagePartValidator)
+export const messagePartsValidator = v.array(messagePartValidator);
 
 // ===== Validation Functions =====
 // Title validation function
 export function validateTitle(title: string): boolean {
-  return title.length >= 1 && title.length <= 80
+  return title.length >= 1 && title.length <= 80;
 }

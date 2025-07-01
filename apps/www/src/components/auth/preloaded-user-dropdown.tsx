@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { siteConfig } from "@/lib/site-config"
-import { useAuthActions } from "@convex-dev/auth/react"
+import { siteConfig } from "@/lib/site-config";
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@lightfast/ui/components/ui/avatar"
-import { Button } from "@lightfast/ui/components/ui/button"
+} from "@lightfast/ui/components/ui/avatar";
+import { Button } from "@lightfast/ui/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,23 +15,29 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@lightfast/ui/components/ui/dropdown-menu"
-import { cn } from "@lightfast/ui/lib/utils"
-import type { Preloaded } from "convex/react"
-import { usePreloadedQuery } from "convex/react"
-import { ChevronDown, ExternalLink, LogOut, Settings, User } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import type { api } from "../../../convex/_generated/api"
+} from "@lightfast/ui/components/ui/dropdown-menu";
+import { cn } from "@lightfast/ui/lib/utils";
+import type { Preloaded } from "convex/react";
+import { usePreloadedQuery } from "convex/react";
+import {
+  ChevronDown,
+  ExternalLink,
+  LogOut,
+  Settings,
+  User,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { api } from "../../../convex/_generated/api";
 
 interface PreloadedUserDropdownProps {
-  preloadedUser: Preloaded<typeof api.users.current>
-  className?: string
-  showEmail?: boolean
-  showSettings?: boolean
-  settingsHref?: string
-  onSignOut?: () => void
-  redirectAfterSignOut?: boolean
+  preloadedUser: Preloaded<typeof api.users.current>;
+  className?: string;
+  showEmail?: boolean;
+  showSettings?: boolean;
+  settingsHref?: string;
+  onSignOut?: () => void;
+  redirectAfterSignOut?: boolean;
 }
 
 export function PreloadedUserDropdown({
@@ -43,28 +49,28 @@ export function PreloadedUserDropdown({
   onSignOut,
   redirectAfterSignOut = true,
 }: PreloadedUserDropdownProps) {
-  const { signOut } = useAuthActions()
-  const router = useRouter()
+  const { signOut } = useAuthActions();
+  const router = useRouter();
 
   // This will instantly hydrate from the preloaded data without any network request
-  const currentUser = usePreloadedQuery(preloadedUser)
+  const currentUser = usePreloadedQuery(preloadedUser);
 
   const handleSignOut = async () => {
     try {
-      onSignOut?.()
-      await signOut()
+      onSignOut?.();
+      await signOut();
 
       // Redirect to home page after successful signout
       if (redirectAfterSignOut) {
-        router.push("/")
+        router.push("/");
       }
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error("Error signing out:", error);
     }
-  }
+  };
 
-  const displayName = currentUser?.name || currentUser?.email || "User"
-  const displayEmail = currentUser?.email || "No email"
+  const displayName = currentUser?.name || currentUser?.email || "User";
+  const displayEmail = currentUser?.email || "No email";
 
   return (
     <DropdownMenu>
@@ -133,5 +139,5 @@ export function PreloadedUserDropdown({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

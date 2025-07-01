@@ -1,40 +1,40 @@
-"use client"
+"use client";
 
-import type { ToolCallPart } from "@/lib/message-parts"
-import { ChevronDown, ChevronRight, Loader2, Wrench } from "lucide-react"
-import { useState } from "react"
+import type { ToolCallPart } from "@/lib/message-parts";
+import { ChevronDown, ChevronRight, Loader2, Wrench } from "lucide-react";
+import { useState } from "react";
 
 export interface GenericToolDisplayProps {
-  toolCall: ToolCallPart
+  toolCall: ToolCallPart;
 }
 
 export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const getStatusIcon = () => {
     switch (toolCall.state) {
       case "partial-call":
       case "call":
-        return <Loader2 className="h-4 w-4 animate-spin" />
+        return <Loader2 className="h-4 w-4 animate-spin" />;
       case "result":
-        return <Wrench className="h-4 w-4 text-green-500" />
+        return <Wrench className="h-4 w-4 text-green-500" />;
       default:
-        return <Wrench className="h-4 w-4" />
+        return <Wrench className="h-4 w-4" />;
     }
-  }
+  };
 
   const getStatusText = () => {
     switch (toolCall.state) {
       case "partial-call":
-        return "Preparing tool..."
+        return "Preparing tool...";
       case "call":
-        return `Calling ${toolCall.toolName}...`
+        return `Calling ${toolCall.toolName}...`;
       case "result":
-        return `${toolCall.toolName} completed`
+        return `${toolCall.toolName} completed`;
       default:
-        return toolCall.toolName || "Tool"
+        return toolCall.toolName || "Tool";
     }
-  }
+  };
 
   return (
     <div className="my-2 rounded-lg border border-border bg-muted/50 p-3">
@@ -79,5 +79,5 @@ export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

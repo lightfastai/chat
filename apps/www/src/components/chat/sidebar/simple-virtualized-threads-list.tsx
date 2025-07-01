@@ -1,59 +1,59 @@
-"use client"
+"use client";
 
-import { Button } from "@lightfast/ui/components/ui/button"
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area"
+import { Button } from "@lightfast/ui/components/ui/button";
+import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-} from "@lightfast/ui/components/ui/sidebar"
-import { useVirtualizer } from "@tanstack/react-virtual"
+} from "@lightfast/ui/components/ui/sidebar";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   type Preloaded,
   useMutation,
   usePreloadedQuery,
   useQuery,
-} from "convex/react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { toast } from "sonner"
-import { api } from "../../../../convex/_generated/api"
-import type { Doc, Id } from "../../../../convex/_generated/dataModel"
-import { ThreadItem } from "./thread-item"
+} from "convex/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { api } from "../../../../convex/_generated/api";
+import type { Doc, Id } from "../../../../convex/_generated/dataModel";
+import { ThreadItem } from "./thread-item";
 
-type Thread = Doc<"threads">
+type Thread = Doc<"threads">;
 
 interface SimpleVirtualizedThreadsListProps {
-  preloadedThreads: Preloaded<typeof api.threads.list>
-  className?: string
+  preloadedThreads: Preloaded<typeof api.threads.list>;
+  className?: string;
 }
 
 // Separate pinned threads from unpinned threads
 function separatePinnedThreads(threads: Thread[]) {
-  const pinned: Thread[] = []
-  const unpinned: Thread[] = []
+  const pinned: Thread[] = [];
+  const unpinned: Thread[] = [];
 
   for (const thread of threads) {
     if (thread.pinned) {
-      pinned.push(thread)
+      pinned.push(thread);
     } else {
-      unpinned.push(thread)
+      unpinned.push(thread);
     }
   }
 
   // Sort pinned threads by lastMessageAt (newest first)
-  pinned.sort((a, b) => b.lastMessageAt - a.lastMessageAt)
+  pinned.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
 
-  return { pinned, unpinned }
+  return { pinned, unpinned };
 }
 
 // Group threads by date
 function groupThreadsByDate(threads: Thread[]) {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-  const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   const groups: Record<string, Thread[]> = {
     Today: [],
@@ -61,34 +61,34 @@ function groupThreadsByDate(threads: Thread[]) {
     "This Week": [],
     "This Month": [],
     Older: [],
-  }
+  };
 
   for (const thread of threads) {
-    const threadDate = new Date(thread.lastMessageAt)
+    const threadDate = new Date(thread.lastMessageAt);
 
     if (threadDate >= today) {
-      groups.Today.push(thread)
+      groups.Today.push(thread);
     } else if (threadDate >= yesterday) {
-      groups.Yesterday.push(thread)
+      groups.Yesterday.push(thread);
     } else if (threadDate >= weekAgo) {
-      groups["This Week"].push(thread)
+      groups["This Week"].push(thread);
     } else if (threadDate >= monthAgo) {
-      groups["This Month"].push(thread)
+      groups["This Month"].push(thread);
     } else {
-      groups.Older.push(thread)
+      groups.Older.push(thread);
     }
   }
 
-  return groups
+  return groups;
 }
 
 // Item types for virtualization
 type VirtualItem =
   | { type: "group"; categoryName: string; threads: Thread[] }
-  | { type: "load-more" }
+  | { type: "load-more" };
 
 // Constants for virtualization
-const ITEMS_PER_PAGE = 10 // Number of threads to load per page
+const ITEMS_PER_PAGE = 10; // Number of threads to load per page
 
 // Component to render a group of threads
 function ThreadGroup({
@@ -96,9 +96,9 @@ function ThreadGroup({
   threads,
   onPinToggle,
 }: {
-  categoryName: string
-  threads: Thread[]
-  onPinToggle: (threadId: Id<"threads">) => void
+  categoryName: string;
+  threads: Thread[];
+  onPinToggle: (threadId: Id<"threads">) => void;
 }) {
   return (
     <SidebarGroup className="w-58">
@@ -117,43 +117,43 @@ function ThreadGroup({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
 }
 
 export function SimpleVirtualizedThreadsList({
   preloadedThreads,
   className,
 }: SimpleVirtualizedThreadsListProps) {
-  const togglePinned = useMutation(api.threads.togglePinned)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
-  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null)
+  const togglePinned = useMutation(api.threads.togglePinned);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
   // Pagination state
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [additionalThreads, setAdditionalThreads] = useState<Thread[]>([])
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [additionalThreads, setAdditionalThreads] = useState<Thread[]>([]);
 
   // Use preloaded data with reactivity - this provides instant loading with real-time updates
-  const threads = usePreloadedQuery(preloadedThreads)
+  const threads = usePreloadedQuery(preloadedThreads);
 
   // Query for paginated results (only when we have a cursor and want to load more)
   const paginationArgs =
     isLoadingMore && hasMore && cursor !== null
       ? { paginationOpts: { numItems: ITEMS_PER_PAGE, cursor } }
-      : "skip"
+      : "skip";
 
-  const paginatedResult = useQuery(api.threads.listPaginated, paginationArgs)
+  const paginatedResult = useQuery(api.threads.listPaginated, paginationArgs);
 
   // Handle pagination results
   useEffect(() => {
     if (paginatedResult && isLoadingMore) {
-      setAdditionalThreads((prev) => [...prev, ...paginatedResult.page])
-      setCursor(paginatedResult.continueCursor)
-      setHasMore(!paginatedResult.isDone)
-      setIsLoadingMore(false)
+      setAdditionalThreads((prev) => [...prev, ...paginatedResult.page]);
+      setCursor(paginatedResult.continueCursor);
+      setHasMore(!paginatedResult.isDone);
+      setIsLoadingMore(false);
     }
-  }, [paginatedResult, isLoadingMore])
+  }, [paginatedResult, isLoadingMore]);
 
   // Initialize pagination state when threads are loaded
   useEffect(() => {
@@ -161,71 +161,74 @@ export function SimpleVirtualizedThreadsList({
     if (threads.length === 20 && cursor === null && hasMore) {
       // Set initial cursor to prepare for pagination
       // We'll need to set this when the user clicks "Load More"
-      setHasMore(true)
+      setHasMore(true);
     }
-  }, [threads.length, cursor, hasMore])
+  }, [threads.length, cursor, hasMore]);
 
   // Combine reactive threads with additional loaded threads
   const allThreads = useMemo(() => {
     // First 20 are reactive, additional ones are static
-    return [...threads, ...additionalThreads]
-  }, [threads, additionalThreads])
+    return [...threads, ...additionalThreads];
+  }, [threads, additionalThreads]);
 
   // Separate and group threads
   const { pinned, unpinned } = useMemo(
     () => separatePinnedThreads(allThreads),
     [allThreads],
-  )
-  const groupedThreads = useMemo(() => groupThreadsByDate(unpinned), [unpinned])
+  );
+  const groupedThreads = useMemo(
+    () => groupThreadsByDate(unpinned),
+    [unpinned],
+  );
 
   // Create virtual items for rendering
   const virtualItems = useMemo(() => {
-    const items: VirtualItem[] = []
+    const items: VirtualItem[] = [];
     const categoryOrder = [
       "Today",
       "Yesterday",
       "This Week",
       "This Month",
       "Older",
-    ]
+    ];
 
     // Add pinned threads section
     if (pinned.length > 0) {
-      items.push({ type: "group", categoryName: "Pinned", threads: pinned })
+      items.push({ type: "group", categoryName: "Pinned", threads: pinned });
     }
 
     // Add regular threads grouped by date
     for (const category of categoryOrder) {
-      const categoryThreads = groupedThreads[category]
+      const categoryThreads = groupedThreads[category];
       if (categoryThreads && categoryThreads.length > 0) {
         items.push({
           type: "group",
           categoryName: category,
           threads: categoryThreads,
-        })
+        });
       }
     }
 
     // Add load more button if there might be more threads
     if (hasMore && threads.length >= 20) {
-      items.push({ type: "load-more" })
+      items.push({ type: "load-more" });
     }
 
-    return items
-  }, [pinned, groupedThreads, hasMore, threads.length])
+    return items;
+  }, [pinned, groupedThreads, hasMore, threads.length]);
 
   // Handle load more
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore) {
-      setIsLoadingMore(true)
+      setIsLoadingMore(true);
       // For the first pagination, we need to set an initial cursor
       // Since we don't have the actual cursor from the first 20 items,
       // we'll use an empty string which the backend should handle
       if (cursor === null) {
-        setCursor("")
+        setCursor("");
       }
     }
-  }, [isLoadingMore, hasMore, cursor])
+  }, [isLoadingMore, hasMore, cursor]);
 
   // Handle pin toggle with optimistic update
   const handlePinToggle = useCallback(
@@ -233,31 +236,31 @@ export function SimpleVirtualizedThreadsList({
       try {
         await togglePinned.withOptimisticUpdate((localStore, args) => {
           // Get the current threads list
-          const currentThreads = localStore.getQuery(api.threads.list, {})
-          if (!currentThreads) return
+          const currentThreads = localStore.getQuery(api.threads.list, {});
+          if (!currentThreads) return;
 
           // Find the thread being toggled
           const threadIndex = currentThreads.findIndex(
             (t) => t._id === args.threadId,
-          )
-          if (threadIndex === -1) return
+          );
+          if (threadIndex === -1) return;
 
           // Create a new array with the updated thread
-          const updatedThreads = [...currentThreads]
-          const thread = { ...updatedThreads[threadIndex] }
-          thread.pinned = !thread.pinned
-          updatedThreads[threadIndex] = thread
+          const updatedThreads = [...currentThreads];
+          const thread = { ...updatedThreads[threadIndex] };
+          thread.pinned = !thread.pinned;
+          updatedThreads[threadIndex] = thread;
 
           // Update the query result
-          localStore.setQuery(api.threads.list, {}, updatedThreads)
-        })({ threadId })
+          localStore.setQuery(api.threads.list, {}, updatedThreads);
+        })({ threadId });
       } catch (error) {
-        console.error("Failed to toggle pin:", error)
-        toast.error("Failed to update pin status. Please try again.")
+        console.error("Failed to toggle pin:", error);
+        toast.error("Failed to update pin status. Please try again.");
       }
     },
     [togglePinned],
-  )
+  );
 
   // Find the scroll viewport element when component mounts
   useEffect(() => {
@@ -266,27 +269,27 @@ export function SimpleVirtualizedThreadsList({
       const timeoutId = setTimeout(() => {
         const viewport = scrollAreaRef.current?.querySelector(
           '[data-slot="scroll-area-viewport"]',
-        )
+        );
         if (viewport) {
-          setScrollElement(viewport as HTMLElement)
+          setScrollElement(viewport as HTMLElement);
         }
-      }, 0)
-      return () => clearTimeout(timeoutId)
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
-  }, [])
+  }, []);
 
   // Stable size estimator
   const estimateSize = useCallback(
     (index: number) => {
-      const item = virtualItems[index]
-      if (!item) return 40
-      if (item.type === "load-more") return 60
+      const item = virtualItems[index];
+      if (!item) return 40;
+      if (item.type === "load-more") return 60;
       // For groups, estimate based on number of threads
       // Each thread is ~40px, plus header ~32px, plus padding
-      return 32 + item.threads.length * 40 + 16
+      return 32 + item.threads.length * 40 + 16;
     },
     [virtualItems],
-  )
+  );
 
   // Set up virtualizer
   const virtualizer = useVirtualizer({
@@ -295,7 +298,7 @@ export function SimpleVirtualizedThreadsList({
     estimateSize,
     overscan: 2, // Render 2 extra groups outside viewport
     enabled: scrollElement !== null, // Disable virtualizer until scroll element is ready
-  })
+  });
 
   // Show empty state if no threads
   if (threads.length === 0) {
@@ -306,7 +309,7 @@ export function SimpleVirtualizedThreadsList({
           <p className="text-xs mt-1 opacity-75">Start a new chat to begin</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -321,8 +324,8 @@ export function SimpleVirtualizedThreadsList({
             }}
           >
             {virtualizer.getVirtualItems().map((virtualItem) => {
-              const item = virtualItems[virtualItem.index]
-              if (!item) return null
+              const item = virtualItems[virtualItem.index];
+              if (!item) return null;
 
               return (
                 <div
@@ -356,7 +359,7 @@ export function SimpleVirtualizedThreadsList({
                     </div>
                   ) : null}
                 </div>
-              )
+              );
             })}
           </div>
         ) : (
@@ -390,5 +393,5 @@ export function SimpleVirtualizedThreadsList({
         )}
       </div>
     </ScrollArea>
-  )
+  );
 }

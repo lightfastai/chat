@@ -1,7 +1,7 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
-import { v } from "convex/values"
-import { nanoid } from "nanoid"
-import { mutation, query } from "./_generated/server"
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+import { nanoid } from "nanoid";
+import { mutation, query } from "./_generated/server";
 import {
   ipHashValidator,
   messageTypeValidator,
@@ -15,7 +15,7 @@ import {
   urlValidator,
   userAgentValidator,
   userNameValidator,
-} from "./validators"
+} from "./validators";
 
 export const shareThread = mutation({
   args: {
@@ -28,21 +28,21 @@ export const shareThread = mutation({
   },
   returns: v.object({ shareId: shareIdValidator }),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error("Unauthorized")
+      throw new Error("Unauthorized");
     }
 
-    const thread = await ctx.db.get(args.threadId)
+    const thread = await ctx.db.get(args.threadId);
     if (!thread) {
-      throw new Error("Thread not found")
+      throw new Error("Thread not found");
     }
 
     if (thread.userId !== userId) {
-      throw new Error("Unauthorized: You don't own this thread")
+      throw new Error("Unauthorized: You don't own this thread");
     }
 
-    const now = Date.now()
+    const now = Date.now();
 
     // Handle race condition: if thread is already shared, use existing shareId
     if (thread.isPublic && thread.shareId) {
@@ -53,13 +53,13 @@ export const shareThread = mutation({
             ...thread.shareSettings,
             ...args.settings,
           },
-        })
+        });
       }
-      return { shareId: thread.shareId }
+      return { shareId: thread.shareId };
     }
 
     // Generate a unique share ID for new share (24 chars for security)
-    const shareId = thread.shareId || nanoid(24)
+    const shareId = thread.shareId || nanoid(24);
 
     await ctx.db.patch(args.threadId, {
       isPublic: true,
@@ -69,11 +69,11 @@ export const shareThread = mutation({
         thread.shareSettings || {
           showThinking: false,
         },
-    })
+    });
 
-    return { shareId }
+    return { shareId };
   },
-})
+});
 
 export const unshareThread = mutation({
   args: {
@@ -81,27 +81,27 @@ export const unshareThread = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error("Unauthorized")
+      throw new Error("Unauthorized");
     }
 
-    const thread = await ctx.db.get(args.threadId)
+    const thread = await ctx.db.get(args.threadId);
     if (!thread) {
-      throw new Error("Thread not found")
+      throw new Error("Thread not found");
     }
 
     if (thread.userId !== userId) {
-      throw new Error("Unauthorized: You don't own this thread")
+      throw new Error("Unauthorized: You don't own this thread");
     }
 
     await ctx.db.patch(args.threadId, {
       isPublic: false,
-    })
+    });
 
-    return { success: true }
+    return { success: true };
   },
-})
+});
 
 export const updateShareSettings = mutation({
   args: {
@@ -112,22 +112,22 @@ export const updateShareSettings = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new Error("Unauthorized")
+      throw new Error("Unauthorized");
     }
 
-    const thread = await ctx.db.get(args.threadId)
+    const thread = await ctx.db.get(args.threadId);
     if (!thread) {
-      throw new Error("Thread not found")
+      throw new Error("Thread not found");
     }
 
     if (thread.userId !== userId) {
-      throw new Error("Unauthorized: You don't own this thread")
+      throw new Error("Unauthorized: You don't own this thread");
     }
 
     if (!thread.isPublic) {
-      throw new Error("Thread is not shared")
+      throw new Error("Thread is not shared");
     }
 
     await ctx.db.patch(args.threadId, {
@@ -135,11 +135,11 @@ export const updateShareSettings = mutation({
         ...thread.shareSettings,
         ...args.settings,
       },
-    })
+    });
 
-    return { success: true }
+    return { success: true };
   },
-})
+});
 
 // Mutation to log share access attempts and perform rate limiting
 export const logShareAccess = mutation({
@@ -154,8 +154,8 @@ export const logShareAccess = mutation({
   },
   returns: v.object({ allowed: v.boolean() }),
   handler: async (ctx, args) => {
-    const now = Date.now()
-    const hourAgo = now - 60 * 60 * 1000 // 1 hour ago
+    const now = Date.now();
+    const hourAgo = now - 60 * 60 * 1000; // 1 hour ago
 
     // Rate limiting: Check access attempts from this IP in the last hour
     if (args.clientInfo?.ipHash) {
@@ -164,7 +164,7 @@ export const logShareAccess = mutation({
         .withIndex("by_ip_time", (q) =>
           q.eq("ipHash", args.clientInfo!.ipHash).gte("accessedAt", hourAgo),
         )
-        .collect()
+        .collect();
 
       // Allow max 100 attempts per hour per IP
       if (recentAttempts.length >= 100) {
@@ -175,8 +175,8 @@ export const logShareAccess = mutation({
           ipHash: args.clientInfo.ipHash,
           userAgent: args.clientInfo.userAgent,
           success: false,
-        })
-        return { allowed: false }
+        });
+        return { allowed: false };
       }
     }
 
@@ -184,9 +184,9 @@ export const logShareAccess = mutation({
     const thread = await ctx.db
       .query("threads")
       .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
-      .first()
+      .first();
 
-    const success = !!thread?.isPublic
+    const success = !!thread?.isPublic;
 
     // Log access attempt
     await ctx.db.insert("shareAccess", {
@@ -195,11 +195,11 @@ export const logShareAccess = mutation({
       ipHash: args.clientInfo?.ipHash,
       userAgent: args.clientInfo?.userAgent,
       success,
-    })
+    });
 
-    return { allowed: success }
+    return { allowed: success };
   },
-})
+});
 
 export const getSharedThread = query({
   args: {
@@ -253,17 +253,17 @@ export const getSharedThread = query({
     const thread = await ctx.db
       .query("threads")
       .withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
-      .first()
+      .first();
 
     if (!thread || !thread.isPublic) {
-      return null
+      return null;
     }
 
     // Get all messages for the thread
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
-      .collect()
+      .collect();
 
     // Filter out thinking content if not allowed
     const filteredMessages = messages.map((msg) => {
@@ -276,13 +276,13 @@ export const getSharedThread = query({
           thinkingContent: undefined,
           isThinking: false,
           hasThinkingContent: false,
-        }
+        };
       }
-      return msg
-    })
+      return msg;
+    });
 
     // Get thread owner info (just name/avatar for display)
-    const owner = await ctx.db.get(thread.userId)
+    const owner = await ctx.db.get(thread.userId);
 
     return {
       thread: {
@@ -299,9 +299,9 @@ export const getSharedThread = query({
             image: owner.image ?? null,
           }
         : null,
-    }
+    };
   },
-})
+});
 
 export const getThreadShareInfo = query({
   args: {
@@ -317,14 +317,14 @@ export const getThreadShareInfo = query({
     }),
   ),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      return null
+      return null;
     }
 
-    const thread = await ctx.db.get(args.threadId)
+    const thread = await ctx.db.get(args.threadId);
     if (!thread || thread.userId !== userId) {
-      return null
+      return null;
     }
 
     return {
@@ -332,6 +332,6 @@ export const getThreadShareInfo = query({
       shareId: thread.shareId,
       sharedAt: thread.sharedAt,
       shareSettings: thread.shareSettings,
-    }
+    };
   },
-})
+});

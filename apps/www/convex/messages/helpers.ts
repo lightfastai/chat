@@ -1,20 +1,23 @@
-import type { CoreMessage, TextStreamPart, ToolSet } from "ai"
-import { smoothStream, stepCountIs, streamText } from "ai"
-import type { Infer } from "convex/values"
-import type { ModelId } from "../../src/lib/ai/schemas.js"
+import type { CoreMessage, TextStreamPart, ToolSet } from "ai";
+import { smoothStream, stepCountIs, streamText } from "ai";
+import type { Infer } from "convex/values";
+import type { ModelId } from "../../src/lib/ai/schemas.js";
 import {
   getModelConfig,
   getProviderFromModelId,
   isThinkingMode,
-} from "../../src/lib/ai/schemas.js"
-import { internal } from "../_generated/api.js"
-import type { Id } from "../_generated/dataModel.js"
-import type { ActionCtx, MutationCtx } from "../_generated/server.js"
-import { createAIClient } from "../lib/ai_client.js"
-import { getModelStreamingDelay } from "../lib/streaming_config.js"
-import type { modelIdValidator, modelProviderValidator } from "../validators.js"
-import { createWebSearchTool } from "./tools.js"
-import type { MessageUsageUpdate } from "./types.js"
+} from "../../src/lib/ai/schemas.js";
+import { internal } from "../_generated/api.js";
+import type { Id } from "../_generated/dataModel.js";
+import type { ActionCtx, MutationCtx } from "../_generated/server.js";
+import { createAIClient } from "../lib/ai_client.js";
+import { getModelStreamingDelay } from "../lib/streaming_config.js";
+import type {
+  modelIdValidator,
+  modelProviderValidator,
+} from "../validators.js";
+import { createWebSearchTool } from "./tools.js";
+import type { MessageUsageUpdate } from "./types.js";
 
 /**
  * Updates thread usage totals with retry logic for concurrent updates
@@ -26,19 +29,20 @@ export async function updateThreadUsage(
   messageUsage: MessageUsageUpdate,
 ) {
   // RACE CONDITION FIX: Retry logic for concurrent updates
-  const maxRetries = 3
-  let retryCount = 0
+  const maxRetries = 3;
+  let retryCount = 0;
 
   while (retryCount < maxRetries) {
     try {
-      const thread = await ctx.db.get(threadId)
-      if (!thread) return
+      const thread = await ctx.db.get(threadId);
+      if (!thread) return;
 
-      const inputTokens = messageUsage.inputTokens || 0
-      const outputTokens = messageUsage.outputTokens || 0
-      const totalTokens = messageUsage.totalTokens || inputTokens + outputTokens
-      const reasoningTokens = messageUsage.reasoningTokens || 0
-      const cachedInputTokens = messageUsage.cachedInputTokens || 0
+      const inputTokens = messageUsage.inputTokens || 0;
+      const outputTokens = messageUsage.outputTokens || 0;
+      const totalTokens =
+        messageUsage.totalTokens || inputTokens + outputTokens;
+      const reasoningTokens = messageUsage.reasoningTokens || 0;
+      const cachedInputTokens = messageUsage.cachedInputTokens || 0;
 
       // Get existing usage or initialize
       const currentUsage = thread.usage || {
@@ -49,10 +53,10 @@ export async function updateThreadUsage(
         totalCachedInputTokens: 0,
         messageCount: 0,
         modelStats: {},
-      }
+      };
 
       // Get model-specific ID (e.g., "claude-sonnet-4-20250514" instead of just "anthropic")
-      const modelId = getFullModelId(model)
+      const modelId = getFullModelId(model);
 
       // Update totals
       const newUsage = {
@@ -86,23 +90,23 @@ export async function updateThreadUsage(
               cachedInputTokens,
           },
         },
-      }
+      };
 
       // Update thread with new usage
-      await ctx.db.patch(threadId, { usage: newUsage })
-      return // Success, exit retry loop
+      await ctx.db.patch(threadId, { usage: newUsage });
+      return; // Success, exit retry loop
     } catch (error) {
-      retryCount++
+      retryCount++;
       console.log(
         `Usage update retry ${retryCount}/${maxRetries} for thread ${threadId}`,
-      )
+      );
 
       if (retryCount >= maxRetries) {
         console.error(
           `Failed to update thread usage after ${maxRetries} retries:`,
           error,
-        )
-        throw error
+        );
+        throw error;
       }
 
       // Note: In mutations, we can't use setTimeout for delays
@@ -117,17 +121,17 @@ export async function updateThreadUsage(
 export function getFullModelId(model: string): string {
   // If it's already a full model ID, return as-is
   if (model.includes("-")) {
-    return model
+    return model;
   }
 
   // Otherwise, convert provider names to default model IDs
   switch (model) {
     case "anthropic":
-      return "claude-3-5-sonnet-20241022"
+      return "claude-3-5-sonnet-20241022";
     case "openai":
-      return "gpt-4o-mini"
+      return "gpt-4o-mini";
     default:
-      return model
+      return model;
   }
 }
 
@@ -135,14 +139,14 @@ export function getFullModelId(model: string): string {
  * Generates a unique stream ID for message streaming
  */
 export function generateStreamId(): string {
-  return `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  return `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
  * Generates a unique chunk ID for stream chunks
  */
 export function generateChunkId(): string {
-  return `chunk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  return `chunk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
@@ -155,23 +159,23 @@ export async function handleAIResponseError(
   threadId: Id<"threads">,
   messageId?: Id<"messages">,
   options?: {
-    modelId?: string
-    provider?: string
-    useStreamingUpdate?: boolean
+    modelId?: string;
+    provider?: string;
+    useStreamingUpdate?: boolean;
   },
 ): Promise<void> {
-  console.error("Error in AI response generation:", error)
+  console.error("Error in AI response generation:", error);
 
   // Add specific error details for debugging
   if (error instanceof Error) {
-    console.error(`Error name: ${error.name}`)
-    console.error(`Error message: ${error.message}`)
+    console.error(`Error name: ${error.name}`);
+    console.error(`Error message: ${error.message}`);
     if (error.stack) {
-      console.error(`Error stack: ${error.stack.substring(0, 500)}...`)
+      console.error(`Error stack: ${error.stack.substring(0, 500)}...`);
     }
   }
 
-  const errorMessage = `Error: ${error instanceof Error ? error.message : "Unknown error occurred"}. Please check your API keys.`
+  const errorMessage = `Error: ${error instanceof Error ? error.message : "Unknown error occurred"}. Please check your API keys.`;
 
   try {
     if (messageId && options?.useStreamingUpdate) {
@@ -179,38 +183,38 @@ export async function handleAIResponseError(
       await ctx.runMutation(internal.messages.updateStreamingMessage, {
         messageId,
         content: errorMessage,
-      })
+      });
       await ctx.runMutation(internal.messages.completeStreamingMessageLegacy, {
         messageId,
-      })
+      });
     } else if (messageId) {
       // Update existing message with error
       await ctx.runMutation(internal.messages.updateMessageError, {
         messageId,
         errorMessage,
-      })
+      });
     } else if (options?.provider) {
       // Create new error message
-      const streamId = generateStreamId()
+      const streamId = generateStreamId();
       await ctx.runMutation(internal.messages.createErrorMessage, {
         threadId,
         streamId,
         provider: options.provider as Infer<typeof modelProviderValidator>,
         modelId: options.modelId as Infer<typeof modelIdValidator>,
         errorMessage,
-      })
+      });
     }
   } catch (errorHandlingError) {
-    console.error("Error during error handling:", errorHandlingError)
+    console.error("Error during error handling:", errorHandlingError);
   } finally {
     // CRITICAL: Always clear generation flag, even if error handling fails
     try {
-      await clearGenerationFlagUtil(ctx, threadId)
+      await clearGenerationFlagUtil(ctx, threadId);
     } catch (flagClearError) {
       console.error(
         "CRITICAL: Failed to clear generation flag:",
         flagClearError,
-      )
+      );
       // This is a critical error that could leave the thread in a locked state
     }
   }
@@ -226,7 +230,7 @@ export async function createStreamingMessageUtil(
   streamId: string,
   usedUserApiKey: boolean,
 ): Promise<Id<"messages">> {
-  const provider = getProviderFromModelId(modelId)
+  const provider = getProviderFromModelId(modelId);
 
   return await ctx.runMutation(internal.messages.createStreamingMessage, {
     threadId,
@@ -234,7 +238,7 @@ export async function createStreamingMessageUtil(
     provider,
     modelId,
     usedUserApiKey,
-  })
+  });
 }
 
 /**
@@ -246,24 +250,24 @@ export async function updateThreadUsageUtil(
   modelId: ModelId,
   usage:
     | {
-        promptTokens?: number
-        inputTokens?: number
-        completionTokens?: number
-        outputTokens?: number
-        totalTokens?: number
-        completionTokensDetails?: { reasoningTokens?: number }
-        reasoningTokens?: number
-        promptTokensDetails?: { cachedTokens?: number }
-        cachedInputTokens?: number
+        promptTokens?: number;
+        inputTokens?: number;
+        completionTokens?: number;
+        outputTokens?: number;
+        totalTokens?: number;
+        completionTokensDetails?: { reasoningTokens?: number };
+        reasoningTokens?: number;
+        promptTokensDetails?: { cachedTokens?: number };
+        cachedInputTokens?: number;
       }
     | null
     | undefined,
 ) {
-  if (!usage) return
+  if (!usage) return;
 
-  const promptTokens = usage.promptTokens || usage.inputTokens || 0
-  const completionTokens = usage.completionTokens || usage.outputTokens || 0
-  const totalTokens = usage.totalTokens || promptTokens + completionTokens
+  const promptTokens = usage.promptTokens || usage.inputTokens || 0;
+  const completionTokens = usage.completionTokens || usage.outputTokens || 0;
+  const totalTokens = usage.totalTokens || promptTokens + completionTokens;
 
   await ctx.runMutation(internal.messages.updateThreadUsageMutation, {
     threadId,
@@ -279,7 +283,7 @@ export async function updateThreadUsageUtil(
         usage.promptTokensDetails?.cachedTokens || usage.cachedInputTokens || 0,
       modelId,
     },
-  })
+  });
 }
 
 /**
@@ -291,7 +295,7 @@ export async function clearGenerationFlagUtil(
 ) {
   await ctx.runMutation(internal.messages.clearGenerationFlag, {
     threadId,
-  })
+  });
 }
 
 /**
@@ -303,14 +307,14 @@ export async function streamAIResponse(
   messages: CoreMessage[],
   messageId: Id<"messages">,
   userApiKeys: {
-    openai?: string
-    anthropic?: string
-    openrouter?: string
+    openai?: string;
+    anthropic?: string;
+    openrouter?: string;
   } | null,
   webSearchEnabled?: boolean,
 ) {
-  const provider = getProviderFromModelId(modelId)
-  const aiClient = createAIClient(modelId, userApiKeys)
+  const provider = getProviderFromModelId(modelId);
+  const aiClient = createAIClient(modelId, userApiKeys);
 
   // Prepare generation options
   const generationOptions: Parameters<typeof streamText>[0] = {
@@ -321,19 +325,19 @@ export async function streamAIResponse(
       delayInMs: getModelStreamingDelay(modelId),
       chunking: "word", // Stream word by word
     }),
-  }
+  };
 
   // Add web search tool if enabled
   if (webSearchEnabled) {
     generationOptions.tools = {
       web_search: createWebSearchTool(),
-    }
-    generationOptions.stopWhen = stepCountIs(5)
+    };
+    generationOptions.stopWhen = stepCountIs(5);
   }
 
   // For Claude 4.0 thinking mode, enable thinking/reasoning
   if (provider === "anthropic" && isThinkingMode(modelId)) {
-    const modelConfig = getModelConfig(modelId)
+    const modelConfig = getModelConfig(modelId);
     if (modelConfig.thinkingConfig) {
       generationOptions.providerOptions = {
         anthropic: {
@@ -342,33 +346,33 @@ export async function streamAIResponse(
             budgetTokens: modelConfig.thinkingConfig.defaultBudgetTokens,
           },
         },
-      }
+      };
     }
   }
 
   // Use the AI SDK v5 streamText
-  const result = streamText(generationOptions)
+  const result = streamText(generationOptions);
 
-  let fullText = ""
-  let hasContent = false
+  let fullText = "";
+  let hasContent = false;
 
   // Use fullStream to capture all part types including reasoning
   for await (const streamPart of result.fullStream) {
-    const part: TextStreamPart<ToolSet> = streamPart
+    const part: TextStreamPart<ToolSet> = streamPart;
 
     switch (part.type) {
       case "text":
         // Handle text content
         if (part.text) {
-          fullText += part.text
-          hasContent = true
+          fullText += part.text;
+          hasContent = true;
 
           await ctx.runMutation(internal.messages.addTextPart, {
             messageId,
             text: part.text,
-          })
+          });
         }
-        break
+        break;
 
       case "reasoning":
         // Handle Claude thinking/reasoning content
@@ -377,17 +381,17 @@ export async function streamAIResponse(
             messageId,
             text: part.text,
             providerMetadata: part.providerMetadata,
-          })
+          });
         }
-        break
+        break;
 
       case "reasoning-part-finish":
         // Mark reasoning section as complete
         await ctx.runMutation(internal.messages.addStreamControlPart, {
           messageId,
           controlType: "reasoning-part-finish",
-        })
-        break
+        });
+        break;
 
       case "tool-call":
         // Handle tool calls
@@ -396,8 +400,8 @@ export async function streamAIResponse(
           toolCallId: part.toolCallId,
           args: part.input,
           state: "call",
-        })
-        break
+        });
+        break;
 
       case "tool-call-streaming-start":
         // Add tool call part in "partial-call" state
@@ -411,20 +415,20 @@ export async function streamAIResponse(
             toolCallId: part.toolCallId,
             toolName: part.toolName,
             state: "partial-call",
-          })
+          });
         }
-        break
+        break;
 
       case "tool-result": {
         // Handle tool results
-        const toolResult = part.output
+        const toolResult = part.output;
         await ctx.runMutation(internal.messages.updateToolCallPart, {
           messageId,
           toolCallId: part.toolCallId,
           state: "result",
           result: toolResult,
-        })
-        break
+        });
+        break;
       }
 
       case "finish":
@@ -435,22 +439,22 @@ export async function streamAIResponse(
             controlType: "finish",
             finishReason: part.finishReason,
             totalUsage: part.totalUsage,
-          })
+          });
         }
-        break
+        break;
 
       // Skip other part types for now
       default:
-        break
+        break;
     }
   }
 
   // Get final usage with optional chaining
-  const finalUsage = await result.usage
+  const finalUsage = await result.usage;
 
   return {
     fullText,
     hasContent,
     usage: finalUsage,
-  }
+  };
 }

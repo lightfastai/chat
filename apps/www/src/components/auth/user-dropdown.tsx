@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useAuthActions } from "@convex-dev/auth/react"
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@lightfast/ui/components/ui/avatar"
-import { Button } from "@lightfast/ui/components/ui/button"
+} from "@lightfast/ui/components/ui/avatar";
+import { Button } from "@lightfast/ui/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,21 +14,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@lightfast/ui/components/ui/dropdown-menu"
-import { cn } from "@lightfast/ui/lib/utils"
-import { useQuery } from "convex/react"
-import { ChevronDown, LogOut, Settings, User } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { api } from "../../../convex/_generated/api"
+} from "@lightfast/ui/components/ui/dropdown-menu";
+import { cn } from "@lightfast/ui/lib/utils";
+import { useQuery } from "convex/react";
+import { ChevronDown, LogOut, Settings, User } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { api } from "../../../convex/_generated/api";
 
 interface UserDropdownProps {
-  className?: string
-  showEmail?: boolean
-  showSettings?: boolean
-  settingsHref?: string
-  onSignOut?: () => void
-  redirectAfterSignOut?: boolean
+  className?: string;
+  showEmail?: boolean;
+  showSettings?: boolean;
+  settingsHref?: string;
+  onSignOut?: () => void;
+  redirectAfterSignOut?: boolean;
 }
 
 export function UserDropdown({
@@ -39,26 +39,26 @@ export function UserDropdown({
   onSignOut,
   redirectAfterSignOut = true,
 }: UserDropdownProps) {
-  const { signOut } = useAuthActions()
-  const currentUser = useQuery(api.users.current)
-  const router = useRouter()
+  const { signOut } = useAuthActions();
+  const currentUser = useQuery(api.users.current);
+  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
-      onSignOut?.()
-      await signOut()
+      onSignOut?.();
+      await signOut();
 
       // Redirect to home page after successful signout
       if (redirectAfterSignOut) {
-        router.push("/")
+        router.push("/");
       }
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error("Error signing out:", error);
     }
-  }
+  };
 
-  const displayName = currentUser?.name || currentUser?.email || "User"
-  const displayEmail = currentUser?.email || "No email"
+  const displayName = currentUser?.name || currentUser?.email || "User";
+  const displayEmail = currentUser?.email || "No email";
 
   return (
     <DropdownMenu>
@@ -113,5 +113,5 @@ export function UserDropdown({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

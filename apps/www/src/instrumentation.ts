@@ -1,11 +1,11 @@
-import { captureRequestError, init } from "@sentry/nextjs"
+import { captureRequestError, init } from "@sentry/nextjs";
 
-import { env } from "@/env"
+import { env } from "@/env";
 
 const register = () => {
   // Only initialize if DSN is provided
   if (!env.NEXT_PUBLIC_SENTRY_DSN) {
-    return
+    return;
   }
 
   // eslint-disable-next-line turbo/no-undeclared-env-vars, no-restricted-properties
@@ -15,7 +15,7 @@ const register = () => {
       environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
       tracesSampleRate: 1,
       debug: false,
-    })
+    });
   }
 
   // eslint-disable-next-line turbo/no-undeclared-env-vars, no-restricted-properties
@@ -25,10 +25,10 @@ const register = () => {
       environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
       tracesSampleRate: 1,
       debug: false,
-    })
+    });
   }
-}
+};
 
-register()
+register();
 
-export const onRequestError = captureRequestError
+export const onRequestError = captureRequestError;

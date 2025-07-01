@@ -1,32 +1,32 @@
-"use client"
+"use client";
 
-import { api } from "@/convex/_generated/api"
-import { getModelDisplayName } from "@/lib/ai"
-import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert"
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area"
-import { useMutation, useQuery } from "convex/react"
-import { AlertCircle, Info, Loader2 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
-import { MessageItem } from "./shared"
+import { api } from "@/convex/_generated/api";
+import { getModelDisplayName } from "@/lib/ai";
+import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
+import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
+import { useMutation, useQuery } from "convex/react";
+import { AlertCircle, Info, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { MessageItem } from "./shared";
 
 interface SharedChatViewProps {
-  shareId: string
+  shareId: string;
 }
 
 function hashString(str: string): string {
-  let hash = 0
+  let hash = 0;
   for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash // Convert to 32bit integer
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
   }
-  return Math.abs(hash).toString(36)
+  return Math.abs(hash).toString(36);
 }
 
 export function SharedChatView({ shareId }: SharedChatViewProps) {
   // Create a simple client fingerprint for rate limiting
   const clientInfo = useMemo(() => {
-    if (typeof window === "undefined") return undefined
+    if (typeof window === "undefined") return undefined;
 
     // Create a basic fingerprint without tracking personal info
     const fingerprint = [
@@ -34,34 +34,34 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
       screen.width,
       screen.height,
       new Date().getTimezoneOffset(),
-    ].join("|")
+    ].join("|");
 
     return {
       ipHash: hashString(fingerprint), // Client-side hash, not real IP
       userAgent: navigator.userAgent.substring(0, 100), // Limit length
-    }
-  }, [])
+    };
+  }, []);
 
-  const logAccess = useMutation(api.share.logShareAccess)
-  const [accessAllowed, setAccessAllowed] = useState<boolean | null>(null)
+  const logAccess = useMutation(api.share.logShareAccess);
+  const [accessAllowed, setAccessAllowed] = useState<boolean | null>(null);
 
   const sharedData = useQuery(
     api.share.getSharedThread,
     accessAllowed ? { shareId } : "skip",
-  )
+  );
 
   // Log access attempt on component mount
   useEffect(() => {
     if (accessAllowed === null) {
       logAccess({ shareId, clientInfo })
         .then((result) => {
-          setAccessAllowed(result.allowed)
+          setAccessAllowed(result.allowed);
         })
         .catch(() => {
-          setAccessAllowed(false)
-        })
+          setAccessAllowed(false);
+        });
     }
-  }, [shareId, clientInfo, logAccess, accessAllowed])
+  }, [shareId, clientInfo, logAccess, accessAllowed]);
 
   // Show loading while checking access or loading data
   if (accessAllowed === null || (accessAllowed && sharedData === undefined)) {
@@ -69,7 +69,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
-    )
+    );
   }
 
   // Show error if access not allowed or data not found
@@ -82,10 +82,10 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
           This chat may have been deleted or the link has expired.
         </p>
       </div>
-    )
+    );
   }
 
-  const { thread, messages, owner } = sharedData!
+  const { thread, messages, owner } = sharedData!;
 
   return (
     <div className="flex flex-col h-screen">
@@ -110,14 +110,14 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
               </AlertDescription>
             </Alert>
             {messages.map((message) => {
-              const isAI = message.messageType === "assistant"
+              const isAI = message.messageType === "assistant";
               const modelName = isAI
                 ? message.modelId
                   ? getModelDisplayName(message.modelId)
                   : message.model
                     ? getModelDisplayName(message.model)
                     : "AI Assistant"
-                : undefined
+                : undefined;
 
               return (
                 <MessageItem
@@ -128,7 +128,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
                   showActions={false}
                   modelName={modelName}
                 />
-              )
+              );
             })}
           </div>
         </div>
@@ -141,5 +141,5 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
         </p>
       </footer>
     </div>
-  )
+  );
 }

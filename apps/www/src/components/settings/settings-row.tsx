@@ -1,9 +1,9 @@
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
 interface SettingsRowProps {
-  title: string
-  description: ReactNode
-  children: ReactNode
+  title: string;
+  description: ReactNode;
+  children: ReactNode;
 }
 
 export function SettingsRow({
@@ -19,5 +19,5 @@ export function SettingsRow({
       </div>
       <div className="flex items-center space-x-2">{children}</div>
     </div>
-  )
+  );
 }

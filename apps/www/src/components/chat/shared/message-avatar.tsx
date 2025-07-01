@@ -2,14 +2,14 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@lightfast/ui/components/ui/avatar"
-import { Icons } from "@lightfast/ui/components/ui/icons"
-import { User } from "lucide-react"
+} from "@lightfast/ui/components/ui/avatar";
+import { Icons } from "@lightfast/ui/components/ui/icons";
+import { User } from "lucide-react";
 
 export interface MessageAvatarProps {
-  messageType: "user" | "assistant" | "system"
-  userImage?: string
-  userName?: string
+  messageType: "user" | "assistant" | "system";
+  userImage?: string;
+  userName?: string;
 }
 
 export function MessageAvatar({
@@ -17,7 +17,7 @@ export function MessageAvatar({
   userImage,
   userName,
 }: MessageAvatarProps) {
-  const isAssistant = messageType === "assistant"
+  const isAssistant = messageType === "assistant";
 
   return (
     <Avatar className="w-8 h-8 shrink-0 rounded-md">
@@ -42,5 +42,5 @@ export function MessageAvatar({
         )}
       </AvatarFallback>
     </Avatar>
-  )
+  );
 }

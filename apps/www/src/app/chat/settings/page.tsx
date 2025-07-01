@@ -1,10 +1,10 @@
-import { SettingsContent } from "@/components/settings/settings-content"
-import { getAuthToken } from "@/lib/auth"
-import { siteConfig } from "@/lib/site-config"
-import { preloadQuery } from "convex/nextjs"
-import type { Metadata } from "next"
-import { Suspense } from "react"
-import { api } from "../../../../convex/_generated/api"
+import { SettingsContent } from "@/components/settings/settings-content";
+import { getAuthToken } from "@/lib/auth";
+import { siteConfig } from "@/lib/site-config";
+import { preloadQuery } from "convex/nextjs";
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { api } from "../../../../convex/_generated/api";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     index: false,
     follow: false,
   },
-}
+};
 
 export default async function SettingsPage() {
   return (
@@ -33,24 +33,24 @@ export default async function SettingsPage() {
         </Suspense>
       </div>
     </div>
-  )
+  );
 }
 
 async function SettingsPageWithData() {
   try {
     // Get authentication token for server-side requests
-    const token = await getAuthToken()
+    const token = await getAuthToken();
 
     // Middleware ensures authentication, so token should exist
     if (!token) {
-      return <SettingUnauthenticated />
+      return <SettingUnauthenticated />;
     }
 
     // Preload both user data and settings for instant tab switching
     const [preloadedUser, preloadedUserSettings] = await Promise.all([
       preloadQuery(api.users.current, {}, { token }),
       preloadQuery(api.userSettings.getUserSettings, {}, { token }),
-    ])
+    ]);
 
     // Pass preloaded data to unified settings component
     return (
@@ -58,10 +58,10 @@ async function SettingsPageWithData() {
         preloadedUser={preloadedUser}
         preloadedUserSettings={preloadedUserSettings}
       />
-    )
+    );
   } catch (error) {
-    console.error("Error loading settings:", error)
-    return <SettingsError />
+    console.error("Error loading settings:", error);
+    return <SettingsError />;
   }
 }
 
@@ -75,7 +75,7 @@ function SkeletonRow({ controlWidth = "w-48" }: { controlWidth?: string }) {
       </div>
       <div className={`h-10 ${controlWidth} animate-pulse rounded bg-muted`} />
     </div>
-  )
+  );
 }
 
 // Loading skeleton for settings
@@ -112,7 +112,7 @@ function SettingsSkeleton() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // Error state
@@ -127,7 +127,7 @@ function SettingsError() {
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function SettingUnauthenticated() {
@@ -141,5 +141,5 @@ function SettingUnauthenticated() {
         <p className="text-sm">You need to be logged in to access this page.</p>
       </div>
     </div>
-  )
+  );
 }

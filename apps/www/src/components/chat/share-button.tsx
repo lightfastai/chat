@@ -1,29 +1,29 @@
-"use client"
+"use client";
 
-import type { Id } from "@/convex/_generated/dataModel"
-import { Button } from "@lightfast/ui/components/ui/button"
+import type { Id } from "@/convex/_generated/dataModel";
+import { Button } from "@lightfast/ui/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@lightfast/ui/components/ui/tooltip"
-import { Share } from "lucide-react"
-import { useState } from "react"
-import { ShareDialog } from "./share-dialog"
+} from "@lightfast/ui/components/ui/tooltip";
+import { Share } from "lucide-react";
+import { useState } from "react";
+import { ShareDialog } from "./share-dialog";
 
 interface ShareButtonProps {
-  threadId?: Id<"threads">
-  hasContent?: boolean
+  threadId?: Id<"threads">;
+  hasContent?: boolean;
 }
 
 export function ShareButton({
   threadId,
   hasContent = false,
 }: ShareButtonProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
-  const isDisabled = !hasContent
-  const isLoading = hasContent && !threadId // Has content but thread not ready yet
+  const isDisabled = !hasContent;
+  const isLoading = hasContent && !threadId; // Has content but thread not ready yet
 
   const button = (
     <Button
@@ -35,7 +35,7 @@ export function ShareButton({
       <Share className="w-4 h-4" />
       <span className="hidden sm:inline text-xs">Share</span>
     </Button>
-  )
+  );
 
   if (isDisabled) {
     return (
@@ -43,7 +43,7 @@ export function ShareButton({
         <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent>Start a conversation to share this chat</TooltipContent>
       </Tooltip>
-    )
+    );
   }
 
   if (isLoading) {
@@ -52,7 +52,7 @@ export function ShareButton({
         <TooltipTrigger asChild>{button}</TooltipTrigger>
         <TooltipContent>Preparing chat for sharing...</TooltipContent>
       </Tooltip>
-    )
+    );
   }
 
   return (
@@ -64,5 +64,5 @@ export function ShareButton({
         onOpenChange={setIsOpen}
       />
     </>
-  )
+  );
 }

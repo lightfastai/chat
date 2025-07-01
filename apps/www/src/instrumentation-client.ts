@@ -1,6 +1,6 @@
-import * as Sentry from "@sentry/nextjs"
+import * as Sentry from "@sentry/nextjs";
 
-import { env } from "@/env"
+import { env } from "@/env";
 
 // Only initialize if DSN is provided
 if (env.NEXT_PUBLIC_SENTRY_DSN) {
@@ -34,7 +34,7 @@ if (env.NEXT_PUBLIC_SENTRY_DSN) {
         blockAllMedia: true,
       }),
     ],
-  })
+  });
 }
 
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

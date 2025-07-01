@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   Card,
@@ -6,28 +6,28 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@lightfast/ui/components/ui/card"
-import { useQuery } from "convex/react"
-import { MessageSquare, ThumbsDown, ThumbsUp } from "lucide-react"
-import { api } from "../../../convex/_generated/api"
-import type { Id } from "../../../convex/_generated/dataModel"
+} from "@lightfast/ui/components/ui/card";
+import { useQuery } from "convex/react";
+import { MessageSquare, ThumbsDown, ThumbsUp } from "lucide-react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 interface FeedbackSummaryProps {
-  threadId: Id<"threads">
+  threadId: Id<"threads">;
 }
 
 export function FeedbackSummary({ threadId }: FeedbackSummaryProps) {
-  const feedback = useQuery(api.feedback.getThreadFeedback, { threadId })
+  const feedback = useQuery(api.feedback.getThreadFeedback, { threadId });
 
   if (!feedback || feedback.length === 0) {
-    return null
+    return null;
   }
 
-  const positiveCount = feedback.filter((f) => f.rating === "thumbs_up").length
+  const positiveCount = feedback.filter((f) => f.rating === "thumbs_up").length;
   const negativeCount = feedback.filter(
     (f) => f.rating === "thumbs_down",
-  ).length
-  const withComments = feedback.filter((f) => f.comment).length
+  ).length;
+  const withComments = feedback.filter((f) => f.comment).length;
 
   return (
     <Card className="mb-4">
@@ -56,5 +56,5 @@ export function FeedbackSummary({ threadId }: FeedbackSummaryProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

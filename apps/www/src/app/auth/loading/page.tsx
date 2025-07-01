@@ -1,17 +1,17 @@
-import { Loader2 } from "lucide-react"
-import { redirect } from "next/navigation"
-import { Suspense } from "react"
-import { AuthLoadingClient } from "./client"
+import { Loader2 } from "lucide-react";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { AuthLoadingClient } from "./client";
 
 export default async function AuthLoadingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ provider?: string; redirectTo?: string }>
+  searchParams: Promise<{ provider?: string; redirectTo?: string }>;
 }) {
-  const params = await searchParams
+  const params = await searchParams;
   // If no provider is specified, redirect to signin
   if (!params.provider) {
-    redirect("/signin")
+    redirect("/signin");
   }
 
   return (
@@ -43,5 +43,5 @@ export default async function AuthLoadingPage({
         </noscript>
       </div>
     </div>
-  )
+  );
 }

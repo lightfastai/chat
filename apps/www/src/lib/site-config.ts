@@ -1,4 +1,4 @@
-import type { SiteConfig } from "@lightfast/ui/types/site"
+import type { SiteConfig } from "@lightfast/ui/types/site";
 
 type SiteLinks =
   | "twitter"
@@ -7,7 +7,7 @@ type SiteLinks =
   | "privacy"
   | "terms"
   | "chat"
-  | "docs"
+  | "docs";
 
 export const siteConfig: SiteConfig<SiteLinks> = {
   name: "Lightfast Chat",
@@ -51,7 +51,7 @@ export const siteConfig: SiteConfig<SiteLinks> = {
     },
   },
   location: "3141, Melbourne, VIC, Australia",
-}
+};
 
 // Export additional metadata that was previously in the config
 export const siteMetadata = {
@@ -84,4 +84,4 @@ export const siteMetadata = {
     },
   ],
   creator: "Lightfast",
-}
+};

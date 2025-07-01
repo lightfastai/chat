@@ -1,20 +1,20 @@
-import { Dot } from "lucide-react"
-import Link from "next/link"
-import { cn } from "../lib/utils"
-import { Icons } from "./ui/icons"
+import { Dot } from "lucide-react";
+import Link from "next/link";
+import { cn } from "../lib/utils";
+import { Icons } from "./ui/icons";
 
 export interface SiteFooterProps {
-  className?: string
-  siteName: string
-  homeUrl: string
+  className?: string;
+  siteName: string;
+  homeUrl: string;
   links?: {
-    github?: string
-    discord?: string
-    twitter?: string
-    privacy?: string
-    terms?: string
-    docs?: string
-  }
+    github?: string;
+    discord?: string;
+    twitter?: string;
+    privacy?: string;
+    terms?: string;
+    docs?: string;
+  };
 }
 
 export function SiteFooter({
@@ -23,8 +23,8 @@ export function SiteFooter({
   homeUrl,
   links,
 }: SiteFooterProps) {
-  const currentYear = new Date().getFullYear()
-  const companyName = siteName.split(" ")[0]
+  const currentYear = new Date().getFullYear();
+  const companyName = siteName.split(" ")[0];
 
   return (
     <footer className={cn("w-full py-8", className)}>
@@ -131,5 +131,5 @@ export function SiteFooter({
         </div>
       </div>
     </footer>
-  )
+  );
 }

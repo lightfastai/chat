@@ -1,4 +1,4 @@
-import { v } from "convex/values"
+import { v } from "convex/values";
 import {
   messagePartsValidator,
   messageTypeValidator,
@@ -6,7 +6,7 @@ import {
   modelProviderValidator,
   streamIdValidator,
   tokenUsageValidator,
-} from "../validators.js"
+} from "../validators.js";
 
 // Shared message return type for queries
 export const messageReturnValidator = v.object({
@@ -32,48 +32,48 @@ export const messageReturnValidator = v.object({
   streamVersion: v.optional(v.number()),
   // Message parts array following Vercel AI SDK v5 structure
   parts: v.optional(messagePartsValidator),
-})
+});
 
 // Type for message usage updates
 export interface MessageUsageUpdate {
-  inputTokens?: number
-  outputTokens?: number
-  totalTokens?: number
-  reasoningTokens?: number
-  cachedInputTokens?: number
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  reasoningTokens?: number;
+  cachedInputTokens?: number;
 }
 
 // Type for formatted usage data
 export interface FormattedUsage {
-  inputTokens: number
-  outputTokens: number
-  totalTokens: number
-  reasoningTokens: number
-  cachedInputTokens: number
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  reasoningTokens: number;
+  cachedInputTokens: number;
 }
 
 // Type for AI SDK usage data
 export interface AISDKUsage {
-  promptTokens?: number
-  completionTokens?: number
-  inputTokens?: number
-  outputTokens?: number
-  totalTokens?: number
-  reasoningTokens?: number
-  cachedInputTokens?: number
+  promptTokens?: number;
+  completionTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  reasoningTokens?: number;
+  cachedInputTokens?: number;
   completionTokensDetails?: {
-    reasoningTokens?: number
-  }
+    reasoningTokens?: number;
+  };
   promptTokensDetails?: {
-    cachedTokens?: number
-  }
+    cachedTokens?: number;
+  };
 }
 
 // Helper to format usage data from AI SDK
 export function formatUsageData(
   usage: AISDKUsage | undefined | null,
 ): FormattedUsage | undefined {
-  if (!usage) return undefined
+  if (!usage) return undefined;
 
   return {
     inputTokens: usage.inputTokens ?? usage.promptTokens ?? 0,
@@ -88,5 +88,5 @@ export function formatUsageData(
       0,
     cachedInputTokens:
       usage.cachedInputTokens ?? usage.promptTokensDetails?.cachedTokens ?? 0,
-  }
+  };
 }

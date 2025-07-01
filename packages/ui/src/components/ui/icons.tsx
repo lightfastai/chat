@@ -1,6 +1,6 @@
-import type React from "react"
+import type React from "react";
 
-type IconProps = React.SVGProps<SVGSVGElement>
+type IconProps = React.SVGProps<SVGSVGElement>;
 
 export const Icons = {
   logo: (props: IconProps) => (
@@ -84,4 +84,4 @@ export const Icons = {
       />
     </svg>
   ),
-}
+};

@@ -1,35 +1,35 @@
-"use client"
+"use client";
 
-import { getMessageParts } from "@/lib/message-parts"
-import { Markdown } from "@lightfast/ui/components/ui/markdown"
-import { cn } from "@lightfast/ui/lib/utils"
-import type React from "react"
-import type { Doc } from "../../../../convex/_generated/dataModel"
-import { ToolCallRenderer } from "../tools/tool-call-renderer"
-import { AssistantMessageHeader } from "./assistant-message-header"
-import { MessageLayout } from "./message-layout"
+import { getMessageParts } from "@/lib/message-parts";
+import { Markdown } from "@lightfast/ui/components/ui/markdown";
+import { cn } from "@lightfast/ui/lib/utils";
+import type React from "react";
+import type { Doc } from "../../../../convex/_generated/dataModel";
+import { ToolCallRenderer } from "../tools/tool-call-renderer";
+import { AssistantMessageHeader } from "./assistant-message-header";
+import { MessageLayout } from "./message-layout";
 
-type Message = Doc<"messages">
+type Message = Doc<"messages">;
 
 export interface MessageItemProps {
-  message: Message
+  message: Message;
   owner?: {
-    name?: string | null
-    image?: string | null
-  }
+    name?: string | null;
+    image?: string | null;
+  };
   currentUser?: {
-    name?: string | null
-    image?: string | null
-  }
-  showActions?: boolean
-  isReadOnly?: boolean
-  modelName?: string
-  streamingText?: string
-  isStreaming?: boolean
-  isComplete?: boolean
-  actions?: React.ReactNode
-  className?: string
-  forceActionsVisible?: boolean
+    name?: string | null;
+    image?: string | null;
+  };
+  showActions?: boolean;
+  isReadOnly?: boolean;
+  modelName?: string;
+  streamingText?: string;
+  isStreaming?: boolean;
+  isComplete?: boolean;
+  actions?: React.ReactNode;
+  className?: string;
+  forceActionsVisible?: boolean;
 }
 
 export function MessageItem({
@@ -44,17 +44,17 @@ export function MessageItem({
   className,
   forceActionsVisible = false,
 }: MessageItemProps) {
-  const isAssistant = message.messageType === "assistant"
+  const isAssistant = message.messageType === "assistant";
 
   // Avatar component - removed to clean up UI
-  const avatar = null
+  const avatar = null;
 
   // Determine what text to show
   const displayText =
-    isStreaming && streamingText ? streamingText : message.body
+    isStreaming && streamingText ? streamingText : message.body;
 
   // Check if message has parts (new system) vs legacy body-only
-  const hasParts = message.parts && message.parts.length > 0
+  const hasParts = message.parts && message.parts.length > 0;
 
   // Content component
   const content = (
@@ -83,12 +83,12 @@ export function MessageItem({
           if (hasParts) {
             // Always use grouped parts to prevent line breaks between text chunks
             // The grouping function handles both streaming and completed states
-            const parts = getMessageParts(message)
+            const parts = getMessageParts(message);
 
             // Filter out reasoning and control parts since they're handled separately
             const displayParts = parts.filter(
               (part) => part.type !== "reasoning" && part.type !== "control",
-            )
+            );
 
             return (
               <div className="space-y-2">
@@ -97,7 +97,7 @@ export function MessageItem({
                   const partKey =
                     part.type === "tool-call"
                       ? `tool-call-${(part as any).toolCallId}`
-                      : `text-${index}`
+                      : `text-${index}`;
 
                   switch (part.type) {
                     case "text":
@@ -116,15 +116,15 @@ export function MessageItem({
                               <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
                             )}
                         </div>
-                      )
+                      );
                     case "tool-call":
-                      return <ToolCallRenderer key={partKey} toolCall={part} />
+                      return <ToolCallRenderer key={partKey} toolCall={part} />;
                     default:
-                      return null
+                      return null;
                   }
                 })}
               </div>
-            )
+            );
           }
           // Legacy text rendering for messages without parts
           return displayText ? (
@@ -140,14 +140,14 @@ export function MessageItem({
                 <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
               )}
             </>
-          ) : null
+          ) : null;
         })()}
       </div>
     </div>
-  )
+  );
 
   // Timestamp - disabled for now
-  const timestamp = undefined
+  const timestamp = undefined;
 
   // Actions (only for assistant messages in interactive mode)
   const messageActions =
@@ -157,7 +157,7 @@ export function MessageItem({
     message.isComplete !== false &&
     !message.isStreaming
       ? actions
-      : undefined
+      : undefined;
 
   return (
     <MessageLayout
@@ -169,5 +169,5 @@ export function MessageItem({
       className={undefined}
       forceActionsVisible={forceActionsVisible}
     />
-  )
+  );
 }

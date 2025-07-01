@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { ChevronDown } from "lucide-react"
-import { useEffect, useState } from "react"
+import { ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ThinkingIndicatorProps {
-  label?: string
-  showChevron?: boolean
-  onChevronClick?: () => void
+  label?: string;
+  showChevron?: boolean;
+  onChevronClick?: () => void;
 }
 
 export function ThinkingIndicator({
@@ -14,16 +14,16 @@ export function ThinkingIndicator({
   showChevron = false,
   onChevronClick,
 }: ThinkingIndicatorProps) {
-  const [mounted, setMounted] = useState(false)
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   if (!mounted) {
     // Simple fallback for SSR
-    return <span className="text-xs text-muted-foreground">{label}...</span>
+    return <span className="text-xs text-muted-foreground">{label}...</span>;
   }
 
   return (
@@ -99,35 +99,35 @@ export function ThinkingIndicator({
       </svg>
 
       <style jsx>{`
-				@keyframes pulse {
-					0%, 100% {
-						opacity: 0.4;
-					}
-					50% {
-						opacity: 0.7;
-					}
-				}
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 0.4;
+          }
+          50% {
+            opacity: 0.7;
+          }
+        }
 
-				@keyframes gradient {
-					0% {
-						background-position: 0% 50%;
-					}
-					50% {
-						background-position: 100% 50%;
-					}
-					100% {
-						background-position: 0% 50%;
-					}
-				}
+        @keyframes gradient {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
 
-				.animate-pulse {
-					animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-				}
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
 
-				.animate-gradient {
-					animation: gradient 3s ease infinite;
-				}
-			`}</style>
+        .animate-gradient {
+          animation: gradient 3s ease infinite;
+        }
+      `}</style>
     </div>
-  )
+  );
 }

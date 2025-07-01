@@ -1,8 +1,12 @@
-import { z } from "zod"
+import { z } from "zod";
 
 // Base schemas
-export const ModelProviderSchema = z.enum(["openai", "anthropic", "openrouter"])
-export type ModelProvider = z.infer<typeof ModelProviderSchema>
+export const ModelProviderSchema = z.enum([
+  "openai",
+  "anthropic",
+  "openrouter",
+]);
+export type ModelProvider = z.infer<typeof ModelProviderSchema>;
 
 // Model feature schema
 export const ModelFeaturesSchema = z.object({
@@ -11,15 +15,15 @@ export const ModelFeaturesSchema = z.object({
   vision: z.boolean(),
   thinking: z.boolean().optional(),
   pdfSupport: z.boolean().optional(),
-})
-export type ModelFeatures = z.infer<typeof ModelFeaturesSchema>
+});
+export type ModelFeatures = z.infer<typeof ModelFeaturesSchema>;
 
 // Thinking config schema
 export const ThinkingConfigSchema = z.object({
   enabled: z.boolean(),
   defaultBudgetTokens: z.number(),
-})
-export type ThinkingConfig = z.infer<typeof ThinkingConfigSchema>
+});
+export type ThinkingConfig = z.infer<typeof ThinkingConfigSchema>;
 
 // Model configuration schema
 export const ModelConfigSchema = z.object({
@@ -38,8 +42,8 @@ export const ModelConfigSchema = z.object({
   deprecated: z.boolean().optional(),
   replacedBy: z.string().optional(),
   hidden: z.boolean().optional(),
-})
-export type ModelConfig = z.infer<typeof ModelConfigSchema>
+});
+export type ModelConfig = z.infer<typeof ModelConfigSchema>;
 
 // Define all models in one place
 export const MODELS = {
@@ -603,37 +607,37 @@ export const MODELS = {
       thinking: true,
     },
   }),
-} as const
+} as const;
 
 // Type validation to ensure model IDs match their keys is done at schema parse time
 
 // Export derived types
-export type ModelId = keyof typeof MODELS
+export type ModelId = keyof typeof MODELS;
 
 // Utility types for provider-specific models
 export type ModelsForProvider<P extends ModelProvider> = {
-  [K in ModelId]: (typeof MODELS)[K]["provider"] extends P ? K : never
-}[ModelId]
+  [K in ModelId]: (typeof MODELS)[K]["provider"] extends P ? K : never;
+}[ModelId];
 
-export type OpenAIModelId = ModelsForProvider<"openai">
-export type AnthropicModelId = ModelsForProvider<"anthropic">
-export type OpenRouterModelId = ModelsForProvider<"openrouter">
+export type OpenAIModelId = ModelsForProvider<"openai">;
+export type AnthropicModelId = ModelsForProvider<"anthropic">;
+export type OpenRouterModelId = ModelsForProvider<"openrouter">;
 
 // API key validation schemas
 export const OpenAIKeySchema = z
   .string()
   .min(1)
-  .regex(/^sk-[a-zA-Z0-9]{48,}$/, "Invalid OpenAI API key format")
+  .regex(/^sk-[a-zA-Z0-9]{48,}$/, "Invalid OpenAI API key format");
 
 export const AnthropicKeySchema = z
   .string()
   .min(1)
-  .regex(/^sk-ant-[a-zA-Z0-9]{90,}$/, "Invalid Anthropic API key format")
+  .regex(/^sk-ant-[a-zA-Z0-9]{90,}$/, "Invalid Anthropic API key format");
 
 export const OpenRouterKeySchema = z
   .string()
   .min(1)
-  .regex(/^sk-or-[a-zA-Z0-9]{50,}$/, "Invalid OpenRouter API key format")
+  .regex(/^sk-or-[a-zA-Z0-9]{50,}$/, "Invalid OpenRouter API key format");
 
 // Validation function
 export function validateApiKey(provider: ModelProvider, key: string) {
@@ -641,144 +645,144 @@ export function validateApiKey(provider: ModelProvider, key: string) {
     openai: OpenAIKeySchema,
     anthropic: AnthropicKeySchema,
     openrouter: OpenRouterKeySchema,
-  }
+  };
 
-  return schemas[provider].safeParse(key)
+  return schemas[provider].safeParse(key);
 }
 
 // Export collections
-export const ALL_MODEL_IDS = Object.keys(MODELS) as ModelId[]
+export const ALL_MODEL_IDS = Object.keys(MODELS) as ModelId[];
 export const OPENAI_MODEL_IDS = ALL_MODEL_IDS.filter(
   (id) => MODELS[id].provider === "openai",
-) as OpenAIModelId[]
+) as OpenAIModelId[];
 export const ANTHROPIC_MODEL_IDS = ALL_MODEL_IDS.filter(
   (id) => MODELS[id].provider === "anthropic",
-) as AnthropicModelId[]
+) as AnthropicModelId[];
 export const OPENROUTER_MODEL_IDS = ALL_MODEL_IDS.filter(
   (id) => MODELS[id].provider === "openrouter",
-) as OpenRouterModelId[]
+) as OpenRouterModelId[];
 
 // Helper functions
 export function getModelConfig(modelId: ModelId): ModelConfig {
-  return MODELS[modelId]
+  return MODELS[modelId];
 }
 
 export function getModelsForProvider(provider: ModelProvider): ModelConfig[] {
-  return Object.values(MODELS).filter((model) => model.provider === provider)
+  return Object.values(MODELS).filter((model) => model.provider === provider);
 }
 
 export function getVisibleModels(): ModelConfig[] {
-  return Object.values(MODELS).filter((model) => !model.hidden)
+  return Object.values(MODELS).filter((model) => !model.hidden);
 }
 
 export function getDeprecatedModels(): ModelConfig[] {
-  return Object.values(MODELS).filter((model) => model.deprecated)
+  return Object.values(MODELS).filter((model) => model.deprecated);
 }
 
 export function getLegacyModelMapping(): Record<string, string> {
-  const mapping: Record<string, string> = {}
+  const mapping: Record<string, string> = {};
 
   for (const model of Object.values(MODELS)) {
     if (model.deprecated && model.replacedBy) {
-      mapping[model.id] = model.replacedBy
+      mapping[model.id] = model.replacedBy;
     }
   }
 
-  return mapping
+  return mapping;
 }
 
 // Default model ID
-export const DEFAULT_MODEL_ID: ModelId = "gpt-4o-mini"
+export const DEFAULT_MODEL_ID: ModelId = "gpt-4o-mini";
 
 // Additional utility functions
 export function getAllModelsIncludingHidden(): ModelConfig[] {
-  return Object.values(MODELS)
+  return Object.values(MODELS);
 }
 
 export function getModelDisplayName(modelId: string): string {
-  const model = MODELS[modelId as ModelId]
-  return model?.displayName ?? "Unknown Model"
+  const model = MODELS[modelId as ModelId];
+  return model?.displayName ?? "Unknown Model";
 }
 
 export function modelSupportsFeature(
   modelId: string,
   feature: keyof ModelFeatures,
 ): boolean {
-  const model = MODELS[modelId as ModelId]
-  return model?.features[feature] ?? false
+  const model = MODELS[modelId as ModelId];
+  return model?.features[feature] ?? false;
 }
 
 // Additional types and interfaces
 export interface ChatMessage {
-  role: "system" | "user" | "assistant"
-  content: string
+  role: "system" | "user" | "assistant";
+  content: string;
 }
 
 export interface ModelSelectionProps {
-  selectedModel: string
-  onModelChange: (modelId: string) => void
-  disabled?: boolean
+  selectedModel: string;
+  onModelChange: (modelId: string) => void;
+  disabled?: boolean;
 }
 
 export interface AIGenerationOptions {
-  modelId: string
-  messages: ChatMessage[]
-  maxTokens?: number
-  temperature?: number
-  stream?: boolean
+  modelId: string;
+  messages: ChatMessage[];
+  maxTokens?: number;
+  temperature?: number;
+  stream?: boolean;
 }
 
 // Legacy type aliases for backward compatibility
-export type OpenAIModel = OpenAIModelId
-export type AnthropicModel = AnthropicModelId
-export type OpenRouterModel = OpenRouterModelId
+export type OpenAIModel = OpenAIModelId;
+export type AnthropicModel = AnthropicModelId;
+export type OpenRouterModel = OpenRouterModelId;
 
 // Provider constants
-export const MODEL_PROVIDERS = ["openai", "anthropic", "openrouter"] as const
+export const MODEL_PROVIDERS = ["openai", "anthropic", "openrouter"] as const;
 
 // Type-safe model ID validation
 export function isValidModelId(modelId: string): modelId is ModelId {
-  return (ALL_MODEL_IDS as readonly string[]).includes(modelId)
+  return (ALL_MODEL_IDS as readonly string[]).includes(modelId);
 }
 
 // Extract provider from modelId (type-safe)
 export function getProviderFromModelId(modelId: ModelId): ModelProvider {
-  const model = getModelConfig(modelId)
-  return model.provider
+  const model = getModelConfig(modelId);
+  return model.provider;
 }
 
 // Get actual model name for API calls (removes -thinking suffix)
 export function getActualModelName(modelId: ModelId): string {
-  const model = getModelConfig(modelId)
-  return model.name
+  const model = getModelConfig(modelId);
+  return model.name;
 }
 
 // Check if model is in thinking mode
 export function isThinkingMode(modelId: ModelId): boolean {
-  const model = getModelConfig(modelId)
+  const model = getModelConfig(modelId);
   return (
     model.features.thinking === true && model.thinkingConfig?.enabled === true
-  )
+  );
 }
 
 // Legacy model collections for backward compatibility
 export const OPENAI_MODELS: Record<string, ModelConfig> = Object.fromEntries(
   getModelsForProvider("openai").map((model) => [model.id, model]),
-)
+);
 
 export const ANTHROPIC_MODELS: Record<string, ModelConfig> = Object.fromEntries(
   getModelsForProvider("anthropic").map((model) => [model.id, model]),
-)
+);
 
 export const OPENROUTER_MODELS: Record<string, ModelConfig> =
   Object.fromEntries(
     getModelsForProvider("openrouter").map((model) => [model.id, model]),
-  )
+  );
 
 // Re-export the complete models object for backward compatibility
-export const ALL_MODELS = MODELS
+export const ALL_MODELS = MODELS;
 
 // Legacy function aliases for backward compatibility (deprecated)
-export const getModelsByProvider = getModelsForProvider
-export const getAllModels = getVisibleModels
-export const getModelById = getModelConfig
+export const getModelsByProvider = getModelsForProvider;
+export const getAllModels = getVisibleModels;
+export const getModelById = getModelConfig;

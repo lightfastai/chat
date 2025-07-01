@@ -1,8 +1,8 @@
-"use server"
+"use server";
 
-import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server"
-import { fetchMutation, fetchQuery } from "convex/nextjs"
-import { api } from "../../convex/_generated/api"
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
+import { api } from "../../convex/_generated/api";
 
 /**
  * Get the current user's information on the server side
@@ -10,16 +10,16 @@ import { api } from "../../convex/_generated/api"
  */
 export async function getCurrentUser() {
   try {
-    const token = await convexAuthNextjsToken()
+    const token = await convexAuthNextjsToken();
     if (!token) {
-      return null
+      return null;
     }
 
-    const user = await fetchQuery(api.users.current, {}, { token })
-    return user
+    const user = await fetchQuery(api.users.current, {}, { token });
+    return user;
   } catch (error) {
-    console.error("Error getting current user:", error)
-    return null
+    console.error("Error getting current user:", error);
+    return null;
   }
 }
 
@@ -29,11 +29,11 @@ export async function getCurrentUser() {
  */
 export async function isAuthenticated(): Promise<boolean> {
   try {
-    const token = await convexAuthNextjsToken()
-    return !!token
+    const token = await convexAuthNextjsToken();
+    return !!token;
   } catch (error) {
-    console.error("Error checking authentication:", error)
-    return false
+    console.error("Error checking authentication:", error);
+    return false;
   }
 }
 
@@ -42,10 +42,10 @@ export async function isAuthenticated(): Promise<boolean> {
  */
 export async function getAuthToken() {
   try {
-    return await convexAuthNextjsToken()
+    return await convexAuthNextjsToken();
   } catch (error) {
-    console.error("Error getting auth token:", error)
-    return null
+    console.error("Error getting auth token:", error);
+    return null;
   }
 }
 
@@ -55,23 +55,23 @@ export async function getAuthToken() {
  */
 export async function serverCreateThread(title: string) {
   try {
-    const token = await convexAuthNextjsToken()
+    const token = await convexAuthNextjsToken();
     if (!token) {
-      throw new Error("User must be authenticated")
+      throw new Error("User must be authenticated");
     }
 
     const threadId = await fetchMutation(
       api.threads.create,
       { title },
       { token },
-    )
+    );
 
-    return { success: true, threadId }
+    return { success: true, threadId };
   } catch (error) {
-    console.error("Error creating thread:", error)
+    console.error("Error creating thread:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
-    }
+    };
   }
 }

@@ -1,17 +1,17 @@
-import { Icons } from "@lightfast/ui/components/ui/icons"
+import { Icons } from "@lightfast/ui/components/ui/icons";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-} from "@lightfast/ui/components/ui/sidebar"
-import { preloadQuery } from "convex/nextjs"
-import Link from "next/link"
-import { Suspense } from "react"
-import { api } from "../../../../convex/_generated/api"
-import { getAuthToken } from "../../../lib/auth"
-import { ServerSidebarImplementation } from "./server-sidebar-implementation"
-import { SidebarSkeleton } from "./sidebar-skeleton"
+} from "@lightfast/ui/components/ui/sidebar";
+import { preloadQuery } from "convex/nextjs";
+import Link from "next/link";
+import { Suspense } from "react";
+import { api } from "../../../../convex/_generated/api";
+import { getAuthToken } from "../../../lib/auth";
+import { ServerSidebarImplementation } from "./server-sidebar-implementation";
+import { SidebarSkeleton } from "./sidebar-skeleton";
 
 // Server component wrapper for the sidebar that preloads threads for PPR
 export async function ServerSidebar() {
@@ -19,25 +19,29 @@ export async function ServerSidebar() {
     <Suspense fallback={<SidebarSkeleton />}>
       <SidebarWithPreloadedData />
     </Suspense>
-  )
+  );
 }
 
 // Server component that handles data preloading with PPR optimization
 async function SidebarWithPreloadedData() {
   try {
     // Get authentication token for server-side requests
-    const token = await getAuthToken()
+    const token = await getAuthToken();
 
     // If no authentication token, render empty sidebar with prompt to sign in
     if (!token) {
-      return <SidebarUnauthenticated />
+      return <SidebarUnauthenticated />;
     }
 
     // Preload threads data for PPR - this will be cached and streamed instantly
-    const preloadedThreads = await preloadQuery(api.threads.list, {}, { token })
+    const preloadedThreads = await preloadQuery(
+      api.threads.list,
+      {},
+      { token },
+    );
 
     // Preload user data for PPR - this will be cached and streamed instantly
-    const preloadedUser = await preloadQuery(api.users.current, {}, { token })
+    const preloadedUser = await preloadQuery(api.users.current, {}, { token });
 
     // Pass preloaded data to server component - only threads list will be client-side
     return (
@@ -45,13 +49,13 @@ async function SidebarWithPreloadedData() {
         preloadedThreads={preloadedThreads}
         preloadedUser={preloadedUser}
       />
-    )
+    );
   } catch (error) {
     // Log error but still render - don't break the UI
-    console.warn("Server-side thread preload failed:", error)
+    console.warn("Server-side thread preload failed:", error);
 
     // Fallback to loading state - client component will handle the error
-    return <SidebarSkeleton />
+    return <SidebarSkeleton />;
   }
 }
 
@@ -84,5 +88,5 @@ function SidebarUnauthenticated() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

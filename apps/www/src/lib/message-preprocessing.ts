@@ -6,40 +6,44 @@
  * Detects if text contains code that should be wrapped in markdown code blocks
  */
 function detectCodeContent(text: string): boolean {
-  const lines = text.split("\n")
+  const lines = text.split("\n");
 
   // Skip if already has markdown code blocks
   if (text.includes("```")) {
-    return false
+    return false;
   }
 
   // Must have multiple lines (at least 3 lines for code block treatment)
   if (lines.length < 3) {
-    return false
+    return false;
   }
 
   // Count lines that look like code
-  let codeLines = 0
-  const totalLines = lines.filter((line) => line.trim().length > 0).length
+  let codeLines = 0;
+  const totalLines = lines.filter((line) => line.trim().length > 0).length;
 
   // If less than 3 non-empty lines, don't treat as code
   if (totalLines < 3) {
-    return false
+    return false;
   }
 
   for (const line of lines) {
-    const trimmed = line.trim()
-    if (trimmed.length === 0) continue
+    const trimmed = line.trim();
+    if (trimmed.length === 0) continue;
 
     // Code indicators
-    const hasIndentation = line.startsWith("  ") || line.startsWith("\t")
-    const hasCodeSymbols = /[{}();=><]/.test(trimmed)
-    const hasImport = /^(import|from|export|#include|require\()/i.test(trimmed)
+    const hasIndentation = line.startsWith("  ") || line.startsWith("\t");
+    const hasCodeSymbols = /[{}();=><]/.test(trimmed);
+    const hasImport = /^(import|from|export|#include|require\()/i.test(trimmed);
     const hasFunction =
-      /^(function|def |class |public |private |const |let |var )/i.test(trimmed)
-    const hasHtmlTags = /<[^>]+>/.test(trimmed)
+      /^(function|def |class |public |private |const |let |var )/i.test(
+        trimmed,
+      );
+    const hasHtmlTags = /<[^>]+>/.test(trimmed);
     const hasCodeKeywords =
-      /\b(if|else|for|while|return|async|await|try|catch|throw)\b/.test(trimmed)
+      /\b(if|else|for|while|return|async|await|try|catch|throw)\b/.test(
+        trimmed,
+      );
 
     if (
       hasIndentation ||
@@ -49,19 +53,19 @@ function detectCodeContent(text: string): boolean {
       hasHtmlTags ||
       hasCodeKeywords
     ) {
-      codeLines++
+      codeLines++;
     }
   }
 
   // If 60% or more lines look like code, treat as code block
-  return codeLines / totalLines >= 0.6
+  return codeLines / totalLines >= 0.6;
 }
 
 /**
  * Attempts to detect the programming language from code content
  */
 function detectLanguage(text: string): string {
-  const lowercaseText = text.toLowerCase()
+  const lowercaseText = text.toLowerCase();
 
   // JavaScript/TypeScript
   if (
@@ -77,9 +81,9 @@ function detectLanguage(text: string): string {
       lowercaseText.includes("type ") ||
       (text.includes(":") && text.includes("{"))
     ) {
-      return "typescript"
+      return "typescript";
     }
-    return "javascript"
+    return "javascript";
   }
 
   // Python
@@ -90,7 +94,7 @@ function detectLanguage(text: string): string {
     lowercaseText.includes("class ") ||
     lowercaseText.includes("print(")
   ) {
-    return "python"
+    return "python";
   }
 
   // Java
@@ -99,7 +103,7 @@ function detectLanguage(text: string): string {
     lowercaseText.includes("private ") ||
     lowercaseText.includes("public static void main")
   ) {
-    return "java"
+    return "java";
   }
 
   // C/C++
@@ -109,7 +113,7 @@ function detectLanguage(text: string): string {
     lowercaseText.includes("printf") ||
     lowercaseText.includes("iostream")
   ) {
-    return "cpp"
+    return "cpp";
   }
 
   // HTML
@@ -118,7 +122,7 @@ function detectLanguage(text: string): string {
     lowercaseText.includes("<!doctype") ||
     (lowercaseText.includes("<div") && lowercaseText.includes("</div>"))
   ) {
-    return "html"
+    return "html";
   }
 
   // CSS
@@ -128,7 +132,7 @@ function detectLanguage(text: string): string {
     text.includes(":") &&
     /\.([\w-]+)\s*{/.test(text)
   ) {
-    return "css"
+    return "css";
   }
 
   // JSON
@@ -137,8 +141,8 @@ function detectLanguage(text: string): string {
     (text.trim().startsWith("[") && text.trim().endsWith("]"))
   ) {
     try {
-      JSON.parse(text.trim())
-      return "json"
+      JSON.parse(text.trim());
+      return "json";
     } catch {
       // Not valid JSON
     }
@@ -148,7 +152,7 @@ function detectLanguage(text: string): string {
   if (
     /\b(select|insert|update|delete|create|alter|drop)\b/i.test(lowercaseText)
   ) {
-    return "sql"
+    return "sql";
   }
 
   // Shell/Bash
@@ -158,31 +162,31 @@ function detectLanguage(text: string): string {
     lowercaseText.includes("yarn ") ||
     text.includes("$ ")
   ) {
-    return "bash"
+    return "bash";
   }
 
   // Default to no language specification
-  return ""
+  return "";
 }
 
 /**
  * Preprocesses user message text to automatically wrap code blocks
  */
 export function preprocessUserMessage(text: string): string {
-  const trimmed = text.trim()
+  const trimmed = text.trim();
 
   // Don't process if empty or already has code blocks
   if (!trimmed || trimmed.includes("```")) {
-    return text
+    return text;
   }
 
   // Check if this looks like code content
   if (detectCodeContent(trimmed)) {
-    const language = detectLanguage(trimmed)
-    const langSuffix = language ? language : ""
+    const language = detectLanguage(trimmed);
+    const langSuffix = language ? language : "";
 
-    return `\`\`\`${langSuffix}\n${trimmed}\n\`\`\``
+    return `\`\`\`${langSuffix}\n${trimmed}\n\`\`\``;
   }
 
-  return text
+  return text;
 }

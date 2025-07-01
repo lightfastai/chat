@@ -1,9 +1,9 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
-import { ConvexError, v } from "convex/values"
-import { internalMutation, mutation, query } from "./_generated/server"
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { ConvexError, v } from "convex/values";
+import { internalMutation, mutation, query } from "./_generated/server";
 
 // Import proper encryption utilities
-import { decrypt, encrypt } from "./lib/encryption.js"
+import { decrypt, encrypt } from "./lib/encryption.js";
 
 // Import validators
 import {
@@ -12,7 +12,7 @@ import {
   modelProviderValidator,
   openaiApiKeyValidator,
   openrouterApiKeyValidator,
-} from "./validators"
+} from "./validators";
 
 // Get user settings
 export const getUserSettings = query({
@@ -36,18 +36,18 @@ export const getUserSettings = query({
     }),
   ),
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      return null
+      return null;
     }
 
     const settings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first()
+      .first();
 
     if (!settings) {
-      return null
+      return null;
     }
 
     // Return settings without decrypted API keys for security
@@ -60,9 +60,9 @@ export const getUserSettings = query({
       hasOpenAIKey: !!settings.apiKeys?.openai,
       hasAnthropicKey: !!settings.apiKeys?.anthropic,
       hasOpenRouterKey: !!settings.apiKeys?.openrouter,
-    }
+    };
   },
-})
+});
 
 // Update user API keys
 export const updateApiKeys = mutation({
@@ -73,44 +73,44 @@ export const updateApiKeys = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { openaiKey, anthropicKey, openrouterKey }) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new ConvexError("Unauthorized")
+      throw new ConvexError("Unauthorized");
     }
 
     const existingSettings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first()
+      .first();
 
-    const now = Date.now()
+    const now = Date.now();
 
     // Prepare encrypted API keys
     const apiKeys: {
-      openai?: string
-      anthropic?: string
-      openrouter?: string
-    } = {}
+      openai?: string;
+      anthropic?: string;
+      openrouter?: string;
+    } = {};
 
     if (openaiKey) {
-      apiKeys.openai = await encrypt(openaiKey)
+      apiKeys.openai = await encrypt(openaiKey);
     } else if (existingSettings?.apiKeys?.openai) {
       // Keep existing key if not updating
-      apiKeys.openai = existingSettings.apiKeys.openai
+      apiKeys.openai = existingSettings.apiKeys.openai;
     }
 
     if (anthropicKey) {
-      apiKeys.anthropic = await encrypt(anthropicKey)
+      apiKeys.anthropic = await encrypt(anthropicKey);
     } else if (existingSettings?.apiKeys?.anthropic) {
       // Keep existing key if not updating
-      apiKeys.anthropic = existingSettings.apiKeys.anthropic
+      apiKeys.anthropic = existingSettings.apiKeys.anthropic;
     }
 
     if (openrouterKey) {
-      apiKeys.openrouter = await encrypt(openrouterKey)
+      apiKeys.openrouter = await encrypt(openrouterKey);
     } else if (existingSettings?.apiKeys?.openrouter) {
       // Keep existing key if not updating
-      apiKeys.openrouter = existingSettings.apiKeys.openrouter
+      apiKeys.openrouter = existingSettings.apiKeys.openrouter;
     }
 
     if (existingSettings) {
@@ -118,7 +118,7 @@ export const updateApiKeys = mutation({
       await ctx.db.patch(existingSettings._id, {
         apiKeys,
         updatedAt: now,
-      })
+      });
     } else {
       // Create new settings
       await ctx.db.insert("userSettings", {
@@ -126,12 +126,12 @@ export const updateApiKeys = mutation({
         apiKeys,
         createdAt: now,
         updatedAt: now,
-      })
+      });
     }
 
-    return { success: true }
+    return { success: true };
   },
-})
+});
 
 // Update user preferences
 export const updatePreferences = mutation({
@@ -141,28 +141,28 @@ export const updatePreferences = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { defaultModel, preferredProvider }) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new ConvexError("Unauthorized")
+      throw new ConvexError("Unauthorized");
     }
 
     const existingSettings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first()
+      .first();
 
-    const now = Date.now()
+    const now = Date.now();
     const preferences = {
       defaultModel,
       preferredProvider,
-    }
+    };
 
     if (existingSettings) {
       // Update existing settings
       await ctx.db.patch(existingSettings._id, {
         preferences,
         updatedAt: now,
-      })
+      });
     } else {
       // Create new settings
       await ctx.db.insert("userSettings", {
@@ -170,12 +170,12 @@ export const updatePreferences = mutation({
         preferences,
         createdAt: now,
         updatedAt: now,
-      })
+      });
     }
 
-    return { success: true }
+    return { success: true };
   },
-})
+});
 
 // Remove specific API key
 export const removeApiKey = mutation({
@@ -184,31 +184,31 @@ export const removeApiKey = mutation({
   },
   returns: v.object({ success: v.boolean() }),
   handler: async (ctx, { provider }) => {
-    const userId = await getAuthUserId(ctx)
+    const userId = await getAuthUserId(ctx);
     if (!userId) {
-      throw new ConvexError("Unauthorized")
+      throw new ConvexError("Unauthorized");
     }
 
     const existingSettings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first()
+      .first();
 
     if (!existingSettings) {
-      throw new ConvexError("Settings not found")
+      throw new ConvexError("Settings not found");
     }
 
-    const apiKeys = { ...existingSettings.apiKeys }
-    delete apiKeys[provider]
+    const apiKeys = { ...existingSettings.apiKeys };
+    delete apiKeys[provider];
 
     await ctx.db.patch(existingSettings._id, {
       apiKeys,
       updatedAt: Date.now(),
-    })
+    });
 
-    return { success: true }
+    return { success: true };
   },
-})
+});
 
 // Internal function to get decrypted API keys (for use in other Convex functions)
 export const getDecryptedApiKeys = internalMutation({
@@ -225,10 +225,10 @@ export const getDecryptedApiKeys = internalMutation({
     const settings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first()
+      .first();
 
     if (!settings?.apiKeys) {
-      return null
+      return null;
     }
 
     return {
@@ -241,6 +241,6 @@ export const getDecryptedApiKeys = internalMutation({
       openrouter: settings.apiKeys.openrouter
         ? await decrypt(settings.apiKeys.openrouter)
         : undefined,
-    }
+    };
   },
-})
+});
