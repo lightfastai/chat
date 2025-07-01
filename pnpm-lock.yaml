@@ -4,25 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-catalogs:
-  tailwind4:
-    '@tailwindcss/postcss':
-      specifier: ^4.1.10
-      version: 4.1.10
-    tailwindcss:
-      specifier: ^4.1.10
-      version: 4.1.10
-
 importers:
 
   .:
-    dependencies:
-      posthog-js:
-        specifier: ^1.256.0
-        version: 1.256.0
-      posthog-node:
-        specifier: ^5.1.1
-        version: 5.1.1
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.9.4
@@ -184,6 +168,12 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      posthog-js:
+        specifier: ^1.256.0
+        version: 1.256.0
+      posthog-node:
+        specifier: ^5.1.1
+        version: 5.1.1
       react:
         specifier: ^19.1.0
         version: 19.1.0
