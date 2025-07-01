@@ -56,10 +56,17 @@ export const features = {
   },
 } as const;
 
-// Helper functions for feature flag checks
-export const isFeatureEnabled = (feature: keyof typeof features): boolean => {
-  const featureConfig = features[feature];
-  return "enabled" in featureConfig ? featureConfig.enabled : false;
+// Type-safe helper functions for feature flag checks
+export type FeatureKey = keyof typeof features;
+export type EnabledFeatureKey = {
+  [K in FeatureKey]: "enabled" extends keyof typeof features[K] ? K : never;
+}[FeatureKey];
+
+export const isFeatureEnabled = <T extends EnabledFeatureKey>(
+  feature: T
+): boolean => {
+  const featureConfig = features[feature] as { enabled: boolean };
+  return featureConfig.enabled;
 };
 
 export const getAuthMode = (): AuthMode => features.auth.mode;
@@ -68,11 +75,32 @@ export const isAuthModeEnabled = (mode: AuthMode): boolean => {
   return features.auth.providers[mode] ?? false;
 };
 
-// Development helpers
+// Track feature usage for analytics
+export const trackFeatureUsage = (feature: string, enabled: boolean) => {
+  if (features.posthog.enabled && typeof window !== "undefined") {
+    // This will be available in components that use PostHog
+    (window as any).posthog?.capture?.("feature_flag_evaluated", {
+      feature,
+      enabled,
+      environment: env.NODE_ENV,
+      timestamp: Date.now(),
+    });
+  }
+};
+
+// Development helpers and debugging tools
 export const getFeatureStatus = () => {
   if (env.NODE_ENV === "production") {
     return null;
   }
+
+  const enabledFeatures = Object.entries(features)
+    .filter(([_, config]) => 
+      typeof config === "object" && 
+      "enabled" in config && 
+      config.enabled
+    )
+    .map(([name]) => name);
 
   return {
     sentry: features.sentry.enabled ? "enabled" : "disabled",
@@ -81,5 +109,33 @@ export const getFeatureStatus = () => {
     authProviders: Object.entries(features.auth.providers)
       .filter(([_, enabled]) => enabled)
       .map(([provider]) => provider),
+    enabledFeatures,
+    totalFlags: Object.keys(features).length,
+    environment: env.NODE_ENV,
   };
+};
+
+// Development-only feature override (client-side only)
+export const getDevFeatureOverrides = (): Record<string, boolean> => {
+  if (env.NODE_ENV === "production" || typeof window === "undefined") {
+    return {};
+  }
+  
+  try {
+    const overrides = localStorage.getItem("dev-feature-overrides");
+    return overrides ? JSON.parse(overrides) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const setDevFeatureOverride = (feature: string, enabled: boolean) => {
+  if (env.NODE_ENV === "production" || typeof window === "undefined") {
+    return;
+  }
+  
+  const overrides = getDevFeatureOverrides();
+  overrides[feature] = enabled;
+  localStorage.setItem("dev-feature-overrides", JSON.stringify(overrides));
+  console.log(`Dev override set: ${feature} = ${enabled}`);
 };

@@ -728,7 +728,7 @@ pnpm run typecheck      # Type check all packages
 
 ## 🚩 Feature Flags
 
-Opt-in services are controlled via environment variables in `apps/www/src/lib/features.ts`.
+**Philosophy**: Environment-based build-time feature flags for infrastructure services. Perfect for opt-in services and deployment-time decisions.
 
 **Current flags:**
 - `NEXT_PUBLIC_POSTHOG_KEY` → enables PostHog analytics
@@ -737,12 +737,23 @@ Opt-in services are controlled via environment variables in `apps/www/src/lib/fe
 
 **Usage:**
 ```typescript
-import { features } from "@/lib/features"
+import { features, isFeatureEnabled } from "@/lib/features"
 
-if (features.posthog.enabled) {
+// Type-safe feature checking
+if (isFeatureEnabled('posthog')) {
   // Feature-specific code
 }
+
+// Track feature usage (dev analytics)
+trackFeatureUsage('new-feature', features.myFeature.enabled)
 ```
+
+**When to use this approach:**
+- ✅ Infrastructure services (monitoring, auth)
+- ✅ Deployment-time configuration
+- ✅ Environment-specific behavior
+- ❌ User-specific features (need runtime flags)
+- ❌ A/B testing (need percentage rollouts)
 
 ## Key Reminders
 
