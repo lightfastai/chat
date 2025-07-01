@@ -1,9 +1,11 @@
 "use client"
 
-import { ErrorBoundaryUI } from "@/components/error/error-boundary-ui"
+import { captureException } from "@sentry/nextjs"
 import { MessageSquareOff, Plus, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+
+import { ErrorBoundaryUI } from "@/components/error/error-boundary-ui"
 
 export default function ChatError({
   error,
@@ -15,8 +17,9 @@ export default function ChatError({
   const router = useRouter()
 
   useEffect(() => {
-    // Log the error to an error reporting service
+    // Log the error to console and Sentry
     console.error("Chat error boundary caught:", error)
+    captureException(error)
   }, [error])
 
   const handleNewChat = () => {

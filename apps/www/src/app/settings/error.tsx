@@ -1,11 +1,13 @@
 "use client"
 
+import { captureException } from "@sentry/nextjs"
+import { Home, RefreshCw, Settings } from "lucide-react"
+import { useEffect } from "react"
+
 import {
   type ErrorBoundaryAction,
   ErrorBoundaryUI,
 } from "@/components/error/error-boundary-ui"
-import { Home, RefreshCw, Settings } from "lucide-react"
-import { useEffect } from "react"
 
 export default function SettingsError({
   error,
@@ -15,8 +17,9 @@ export default function SettingsError({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
+    // Log the error to console and Sentry
     console.error("Settings error boundary caught:", error)
+    captureException(error)
   }, [error])
 
   const isAuthError =

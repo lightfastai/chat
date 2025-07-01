@@ -1,12 +1,14 @@
 "use client"
 
+import { captureException } from "@sentry/nextjs"
+import { ArrowLeft, MessageSquareX, Plus, RefreshCw } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+
 import {
   type ErrorBoundaryAction,
   ErrorBoundaryUI,
 } from "@/components/error/error-boundary-ui"
-import { ArrowLeft, MessageSquareX, Plus, RefreshCw } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 
 export default function ThreadError({
   error,
@@ -18,8 +20,9 @@ export default function ThreadError({
   const router = useRouter()
 
   useEffect(() => {
-    // Log the error to an error reporting service
+    // Log the error to console and Sentry
     console.error("Thread error boundary caught:", error)
+    captureException(error)
   }, [error])
 
   const handleGoBack = () => {

@@ -1,11 +1,13 @@
 "use client"
 
+import { captureException } from "@sentry/nextjs"
+import { Home, MessageSquare, RefreshCw, Share2 } from "lucide-react"
+import { useEffect } from "react"
+
 import {
   type ErrorBoundaryAction,
   ErrorBoundaryUI,
 } from "@/components/error/error-boundary-ui"
-import { Home, MessageSquare, RefreshCw, Share2 } from "lucide-react"
-import { useEffect } from "react"
 
 export default function ShareError({
   error,
@@ -15,8 +17,9 @@ export default function ShareError({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
+    // Log the error to console and Sentry
     console.error("Share error boundary caught:", error)
+    captureException(error)
   }, [error])
 
   const isNotFound =

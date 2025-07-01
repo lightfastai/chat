@@ -1,5 +1,6 @@
 "use client"
 
+import { captureException } from "@sentry/nextjs"
 import { AlertTriangle, RefreshCw } from "lucide-react"
 import { useEffect } from "react"
 
@@ -11,8 +12,9 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
+    // Log the error to console and Sentry
     console.error("Global error boundary caught:", error)
+    captureException(error)
   }, [error])
 
   return (
@@ -76,6 +78,18 @@ export default function GlobalError({
           A critical error occurred that prevented the application from loading
           properly. Please try refreshing the page.
         </p>
+
+        {error.digest && (
+          <p
+            style={{
+              fontSize: "0.75rem",
+              color: "#94a3b8",
+              margin: 0,
+            }}
+          >
+            Error ID: {error.digest}
+          </p>
+        )}
 
         <button
           type="button"

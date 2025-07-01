@@ -33,6 +33,11 @@ export const env = createEnv({
 		JWKS: z.string(),
 		// Docs deployment URL for rewrites
 		DOCS_URL: z.string().url().default("https://lightfast-docs.vercel.app"),
+
+		// Sentry configuration (optional for server-side source map uploads)
+		SENTRY_ORG: z.string().default("lightfast"),
+		SENTRY_PROJECT: z.string().default("lightfast-chat"),
+		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 	/*
 	 * Environment variables available on the client (and server).
@@ -46,9 +51,16 @@ export const env = createEnv({
 		NEXT_PUBLIC_VERCEL_ENV: z
 			.enum(["production", "preview", "development"])
 			.optional(),
+
 		// PostHog Analytics
 		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
+
+		// Sentry client configuration
+		NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
+			.enum(["development", "production"])
+			.default("development"),
 	},
 	/*
 	 * Shared environment variables, available on both client and server.
@@ -75,11 +87,16 @@ export const env = createEnv({
 		JWT_PRIVATE_KEY: process.env.JWT_PRIVATE_KEY,
 		JWKS: process.env.JWKS,
 		DOCS_URL: process.env.DOCS_URL,
+		SENTRY_ORG: process.env.SENTRY_ORG,
+		SENTRY_PROJECT: process.env.SENTRY_PROJECT,
+		SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
 		// Client-side
 		NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
 		NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
 		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+		NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 		// Shared
 		NODE_ENV: process.env.NODE_ENV,
 	},
