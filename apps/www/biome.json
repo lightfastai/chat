@@ -1,6 +1,6 @@
 {
-  "extends": ["../../biome.json"],
-  "files": {
-    "ignore": [".next/**/*", "next-env.d.ts", "convex/_generated/**"]
-  }
+	"extends": ["../../biome.json"],
+	"files": {
+		"ignore": [".next/**/*", "next-env.d.ts", "convex/_generated/**"]
+	}
 }

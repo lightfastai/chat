@@ -9,14 +9,14 @@ import type { ClientErrorContext } from "./types";
 
 // Create a singleton reporter instance
 const reportError = createSentryReporter({
-  disableLogger: env.NODE_ENV === "production",
+	disableLogger: env.NODE_ENV === "production",
 });
 
 export const useErrorReporter = () => {
-  return useCallback((context: Omit<ClientErrorContext, "errorType">) => {
-    reportError({
-      ...context,
-      errorType: "ClientError",
-    });
-  }, []);
+	return useCallback((context: Omit<ClientErrorContext, "errorType">) => {
+		reportError({
+			...context,
+			errorType: "ClientError",
+		});
+	}, []);
 };

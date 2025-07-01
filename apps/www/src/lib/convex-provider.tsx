@@ -6,17 +6,17 @@ import type { ReactNode } from "react";
 import { env } from "../env";
 
 const convex = new ConvexReactClient(env.NEXT_PUBLIC_CONVEX_URL, {
-  verbose: true,
+	verbose: true,
 });
 
 export const ConvexClientProvider = ({
-  children,
+	children,
 }: {
-  children: ReactNode;
+	children: ReactNode;
 }) => {
-  return (
-    <ConvexAuthNextjsProvider client={convex}>
-      {children}
-    </ConvexAuthNextjsProvider>
-  );
+	return (
+		<ConvexAuthNextjsProvider client={convex}>
+			{children}
+		</ConvexAuthNextjsProvider>
+	);
 };
