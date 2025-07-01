@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 export default async function Page({
-  params,
+	params,
 }: {
   params: Promise<{ slug?: string[] }>;
 }) {
@@ -35,7 +35,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({
-  params,
+	params,
 }: { params: Promise<{ slug?: string[] }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const page = getPage(resolvedParams.slug);

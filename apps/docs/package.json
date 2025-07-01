@@ -1,41 +1,41 @@
 {
-  "name": "@lightfast/docs",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --port 3002 --turbo",
-    "build": "next build",
-    "start": "next start",
-    "lint": "biome check --write .",
-    "format": "biome format --write .",
-    "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .next .turbo dist .source tsconfig.tsbuildinfo",
-    "postinstall": "fumadocs-mdx"
-  },
-  "dependencies": {
-    "clsx": "^2.1.1",
-    "@lightfast/ui": "workspace:*",
-    "fumadocs-core": "^15.3.4",
-    "fumadocs-mdx": "^11.6.5",
-    "fumadocs-ui": "^15.3.4",
-    "geist": "^1.4.2",
-    "lucide-react": "^0.468.0",
-    "next": "^15.2.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.10"
-  },
-  "devDependencies": {
-    "@repo/biome": "workspace:*",
-    "@repo/typescript": "workspace:*",
-    "@tailwindcss/postcss": "^4.1.10",
-    "@types/mdx": "^2.0.13",
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.1.7",
-    "@types/react-dom": "^19.1.6",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.5",
-    "typescript": "^5.8.3"
-  }
+	"name": "@lightfast/docs",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev --port 3002 --turbo",
+		"build": "next build",
+		"start": "next start",
+		"lint": "biome check --write .",
+		"format": "biome format --write .",
+		"typecheck": "tsc --noEmit",
+		"clean": "rm -rf .next .turbo dist .source tsconfig.tsbuildinfo",
+		"postinstall": "fumadocs-mdx"
+	},
+	"dependencies": {
+		"clsx": "^2.1.1",
+		"@lightfast/ui": "workspace:*",
+		"fumadocs-core": "^15.3.4",
+		"fumadocs-mdx": "^11.6.5",
+		"fumadocs-ui": "^15.3.4",
+		"geist": "^1.4.2",
+		"lucide-react": "^0.468.0",
+		"next": "^15.2.1",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"tailwind-merge": "^3.3.1",
+		"tailwindcss": "^4.1.10"
+	},
+	"devDependencies": {
+		"@repo/biome": "workspace:*",
+		"@repo/typescript": "workspace:*",
+		"@tailwindcss/postcss": "^4.1.10",
+		"@types/mdx": "^2.0.13",
+		"@types/node": "^24.0.0",
+		"@types/react": "^19.1.7",
+		"@types/react-dom": "^19.1.6",
+		"autoprefixer": "^10.4.20",
+		"postcss": "^8.5.5",
+		"typescript": "^5.8.3"
+	}
 }

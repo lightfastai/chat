@@ -29,26 +29,26 @@ const nextConfig: NextConfig = {
 
 // Sentry configuration
 const sentryWebpackPluginOptions = {
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options
+	// For all available options, see:
+	// https://github.com/getsentry/sentry-webpack-plugin#options
 
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
+	org: process.env.SENTRY_ORG,
+	project: process.env.SENTRY_PROJECT,
+	authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  // Only upload sourcemaps in production and on Vercel
-  disableSourceMapUpload:
-    process.env.NODE_ENV !== "production" || !process.env.VERCEL,
+	// Only upload sourcemaps in production and on Vercel
+	disableSourceMapUpload:
+		process.env.NODE_ENV !== "production" || !process.env.VERCEL,
 
-  silent: true, // Suppresses source map uploading logs during build
-  tunnelRoute: "/monitoring", // Tunnel to avoid ad-blockers
-  hideSourceMaps: true, // Hides source maps from generated client bundles
+	silent: true, // Suppresses source map uploading logs during build
+	tunnelRoute: "/monitoring", // Tunnel to avoid ad-blockers
+	hideSourceMaps: true, // Hides source maps from generated client bundles
 
-  // Tree shake logger statements on the client for bundle size reduction
-  disableLogger: true,
+	// Tree shake logger statements on the client for bundle size reduction
+	disableLogger: true,
 
-  // Enables automatic instrumentation of Vercel Cron Monitors
-  automaticVercelMonitors: true,
+	// Enables automatic instrumentation of Vercel Cron Monitors
+	automaticVercelMonitors: true,
 
   // Enables React component annotations
   reactComponentAnnotation: {
