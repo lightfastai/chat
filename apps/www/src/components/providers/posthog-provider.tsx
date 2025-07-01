@@ -10,7 +10,7 @@ function PostHogPageView() {
 	const searchParams = useSearchParams();
 
 	useEffect(() => {
-		if (pathname) {
+		if (pathname && posthogClient) {
 			const url = window.origin + pathname;
 			const fullUrl = searchParams?.toString()
 				? `${url}?${searchParams.toString()}`
@@ -26,6 +26,11 @@ function PostHogPageView() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
+	// If PostHog is not enabled, just render children
+	if (!posthogClient) {
+		return <>{children}</>;
+	}
+
 	return (
 		<PHProvider client={posthogClient}>
 			<Suspense fallback={null}>

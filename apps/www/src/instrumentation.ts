@@ -1,10 +1,11 @@
 import { captureRequestError, init } from "@sentry/nextjs"
 
 import { env } from "@/env"
+import { features } from "@/lib/features"
 
 const register = () => {
-  // Only initialize if DSN is provided
-  if (!env.NEXT_PUBLIC_SENTRY_DSN) {
+  // Only initialize if Sentry feature is enabled
+  if (!features.sentry.enabled) {
     return
   }
 
