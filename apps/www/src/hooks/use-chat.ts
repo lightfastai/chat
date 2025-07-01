@@ -237,20 +237,31 @@ export function useChat({
 				// Use the same chatId that was passed to useVercelChat for consistency
 				chatClientId = chatId;
 
-				// Update URL using replaceState for seamless navigation FIRST
-				window.history.replaceState({}, "", `/chat/${chatClientId}`);
-
-				// Then create thread optimistically after URL update
+				// Create thread and messages optimistically FIRST (instant UI update)
 				try {
-					// This will instantly update the UI with the new thread
-					const newThreadId = await createThreadOptimistic({
+					// This will instantly update the UI with the new thread AND messages
+					const result = await createThreadOptimistic({
 						clientId: chatClientId,
 						title: "New chat", // Title will be generated server-side
+						userMessage: message, // Include user message for optimistic creation
+						modelId: selectedModelId, // Include model for optimistic creation
 					});
-					threadIdToUse = newThreadId;
+					
+					threadIdToUse = result.threadId;
+					
+					// Update URL after optimistic creation for seamless navigation
+					window.history.replaceState({}, "", `/chat/${chatClientId}`);
+					
+					console.log("[use-chat] Created optimistic thread and messages:", {
+						threadId: result.threadId,
+						userMessageId: result.userMessageId,
+						assistantMessageId: result.assistantMessageId,
+					});
 				} catch (error) {
 					console.error("Failed to create thread optimistically:", error);
 					// Continue without thread ID - HTTP endpoint will create it
+					// Still update URL for navigation consistency
+					window.history.replaceState({}, "", `/chat/${chatClientId}`);
 				}
 			}
 
