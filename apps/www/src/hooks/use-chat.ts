@@ -195,7 +195,6 @@ export function useChat({
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
-		setMessages,
 	} = useVercelChat({
 		id: chatId,
 		transport,
@@ -241,17 +240,6 @@ export function useChat({
 				// Update URL FIRST for immediate navigation feedback
 				window.history.replaceState({}, "", `/chat/${chatClientId}`);
 
-				// Add user message immediately with setMessages for instant UI feedback
-				const userMessage = {
-					id: nanoid(),
-					role: "user" as const,
-					parts: [{ type: "text" as const, text: message }],
-				};
-
-				// Set messages immediately for instant UI update (just user message)
-				// The assistant response will be added naturally when streaming starts
-				setMessages([...uiMessages, userMessage]);
-
 				// Create thread optimistically (just thread, not messages)
 				try {
 					const threadId = await createThreadOptimistic({
@@ -269,6 +257,8 @@ export function useChat({
 			}
 
 			try {
+				// Let vercelSendMessage handle adding the user message naturally
+				// This should be fast since we've already updated the URL and created the thread
 				await vercelSendMessage(
 					{
 						role: "user",
