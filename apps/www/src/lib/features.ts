@@ -42,16 +42,16 @@ export const features = {
 
 	/**
 	 * Authentication configuration
-	 * Default mode is 'password' if AUTH_MODE is not set
-	 * GitHub OAuth requires both AUTH_MODE='github' and GitHub credentials
-	 * Google OAuth is future-ready
+	 * Default mode is 'github' if AUTH_MODE is not set
+	 * GitHub OAuth requires GitHub credentials (AUTH_GITHUB_ID and AUTH_GITHUB_SECRET)
+	 * Password and Google OAuth are future-ready
 	 */
 	auth: {
-		mode: (env.AUTH_MODE || AUTH_MODES.PASSWORD) as AuthMode,
+		mode: (env.AUTH_MODE || AUTH_MODES.GITHUB) as AuthMode,
 		providers: {
-			password: !env.AUTH_MODE || env.AUTH_MODE === AUTH_MODES.PASSWORD,
+			password: env.AUTH_MODE === AUTH_MODES.PASSWORD,
 			github:
-				env.AUTH_MODE === AUTH_MODES.GITHUB &&
+				(!env.AUTH_MODE || env.AUTH_MODE === AUTH_MODES.GITHUB) &&
 				!!env.AUTH_GITHUB_ID &&
 				!!env.AUTH_GITHUB_SECRET,
 			google:
