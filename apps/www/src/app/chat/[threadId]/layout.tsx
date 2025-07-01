@@ -1,10 +1,10 @@
-import type React from "react"
+import type React from "react";
 
 interface ThreadLayoutProps {
-  children: React.ReactNode
+	children: React.ReactNode;
 }
 
 // Thread-specific layout that bypasses the main chat layout to enable prefetching
 export default function ThreadLayout({ children }: ThreadLayoutProps) {
-  return children
+	return children;
 }
