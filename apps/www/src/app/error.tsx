@@ -1,8 +1,10 @@
 "use client"
 
-import { ErrorBoundaryUI } from "@/components/error/error-boundary-ui"
+import { captureException } from "@sentry/nextjs"
 import { AlertCircle, Home, RefreshCw } from "lucide-react"
 import { useEffect } from "react"
+
+import { ErrorBoundaryUI } from "@/components/error/error-boundary-ui"
 
 export default function ErrorBoundary({
   error,
@@ -12,8 +14,9 @@ export default function ErrorBoundary({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
+    // Log the error to console and Sentry
     console.error("App error boundary caught:", error)
+    captureException(error)
   }, [error])
 
   return (
