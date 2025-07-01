@@ -70,6 +70,8 @@ pnpm run build:docs   # Build
 
 ## Adding Third-Party Integrations
 
+**🚨 IMPORTANT**: When adding ANY service, ask: "Is this an opt-in feature that should be disabled when the env var is not provided?"
+
 Quick checklist for adding services like PostHog, Sentry, etc:
 
 ### 1. Install Dependencies
@@ -153,47 +155,23 @@ if (!posthogClient) {
 - **Always**: Update env.ts, turbo.json, .env.example
 - **Test**: Run `SKIP_ENV_VALIDATION=true pnpm run build`
 
-## Feature Flags System
+## Feature Flags
 
-The WWW app uses environment-based feature flags for opt-in services:
+Opt-in services use `apps/www/src/lib/features.ts`:
 
-### Current Feature Flags
-
-#### Analytics & Monitoring
-- **PostHog**: `NEXT_PUBLIC_POSTHOG_KEY` enables product analytics
-- **Sentry**: `NEXT_PUBLIC_SENTRY_DSN` enables error tracking
-
-#### Authentication
-- **AUTH_MODE**: Controls authentication provider
-  - `github` (default): GitHub OAuth
-  - `password`: Email/password (future)
-  - `google`: Google OAuth (future)
-
-### Implementation Pattern
-
-1. **Define in features.ts**:
 ```typescript
-export const features = {
-  myFeature: {
-    enabled: !!env.NEXT_PUBLIC_MY_FEATURE_KEY,
-    config: env.NEXT_PUBLIC_MY_FEATURE_KEY,
-  }
+// Check if enabled
+if (features.posthog.enabled) {
+  // Initialize service
+}
+
+// Graceful fallback in components
+if (!features.sentry.enabled) {
+  return <>{children}</>
 }
 ```
 
-2. **Use conditionally**:
-```typescript
-if (features.myFeature.enabled) {
-  // Feature-specific code
-}
-```
-
-3. **Handle in providers**:
-```tsx
-if (!features.myFeature.enabled) {
-  return <>{children}</> // Graceful fallback
-}
-```
+**Current flags:** PostHog analytics, Sentry errors, Auth modes
 
 ## Best Practices
 

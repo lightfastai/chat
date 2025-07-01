@@ -698,6 +698,8 @@ pnpm run typecheck      # Type check all packages
 ```
 
 ## Environment Variables
+
+### Core Requirements
 - `ANTHROPIC_API_KEY` - Claude Sonnet 4 (required)
 - `OPENAI_API_KEY` - GPT models (required)
 - `OPENROUTER_API_KEY` - OpenRouter API key (required)
@@ -706,60 +708,39 @@ pnpm run typecheck      # Type check all packages
 - `JWT_PRIVATE_KEY` - JWT private key for auth (required)
 - `JWKS` - JWT public keys for verification (required)
 - `DOCS_URL` - Documentation deployment URL (optional)
-- **Authentication**: `AUTH_MODE` controls provider ("github" default, "password", "google")
-- **GitHub OAuth**: `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` (required when AUTH_MODE="github")
-- **Google OAuth**: `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` (required when AUTH_MODE="google")
-- **Analytics (opt-in)**: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
-- **Error Tracking (opt-in)**: `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT`
+
+### Authentication
+- `AUTH_MODE` - Controls provider ("github" default, "password", "google")
+- `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` - GitHub OAuth
+- `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` - Google OAuth (future)
+
+### Opt-in Services
+- `NEXT_PUBLIC_POSTHOG_KEY` - Enables PostHog analytics
+- `NEXT_PUBLIC_SENTRY_DSN` - Enables Sentry error tracking
+
+### 🚨 IMPORTANT: Adding New Environment Variables
+
+**When adding ANY new environment variable, YOU MUST:**
+1. Ask the user: "Is this an opt-in feature that should be disabled when the env var is not provided?"
+2. If YES → Add to `features.ts` with conditional initialization
+3. If NO → Add directly to env.ts as required/optional
+4. Always update: `env.ts`, `turbo.json`, `.env.example`
 
 ## 🚩 Feature Flags
 
-The project uses environment-based feature flags to control opt-in services and authentication modes. Configuration is centralized in `apps/www/src/lib/features.ts`.
+Opt-in services are controlled via environment variables in `apps/www/src/lib/features.ts`.
 
-### Available Feature Flags
+**Current flags:**
+- `NEXT_PUBLIC_POSTHOG_KEY` → enables PostHog analytics
+- `NEXT_PUBLIC_SENTRY_DSN` → enables Sentry error tracking  
+- `AUTH_MODE` → controls auth provider (github/password/google)
 
-#### Analytics & Monitoring
-- **PostHog**: Enabled when `NEXT_PUBLIC_POSTHOG_KEY` is provided
-- **Sentry**: Enabled when `NEXT_PUBLIC_SENTRY_DSN` is provided
-
-#### Authentication Modes
-Control via `AUTH_MODE` environment variable:
-- `github` (default): GitHub OAuth authentication
-- `password`: Email/password authentication (future)
-- `google`: Google OAuth authentication (future)
-
-### Adding New Feature Flags
-
-1. **Update Environment Schema** - Add to `apps/www/src/env.ts`:
-   ```typescript
-   NEXT_PUBLIC_MY_FEATURE: z.string().optional(),
-   ```
-
-2. **Update Feature Configuration** - Add to `apps/www/src/lib/features.ts`:
-   ```typescript
-   myFeature: {
-     enabled: !!env.NEXT_PUBLIC_MY_FEATURE,
-     config: env.NEXT_PUBLIC_MY_FEATURE,
-   }
-   ```
-
-3. **Add to Turbo Config** - Update `turbo.json` globalEnv array
-
-4. **Document** - Add to `.env.example` with description
-
-### Usage in Code
-
+**Usage:**
 ```typescript
 import { features } from "@/lib/features"
 
-// Conditional initialization
 if (features.posthog.enabled) {
-  // Initialize PostHog
-}
-
-// Check auth mode
-if (features.auth.mode === 'github') {
-  // GitHub auth flow
+  // Feature-specific code
 }
 ```
 
