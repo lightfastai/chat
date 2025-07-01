@@ -41,9 +41,20 @@ OPENAI_API_KEY=sk-your-openai-api-key-here            # Required for GPT models
 OPENROUTER_API_KEY=sk-or-your-openrouter-key-here     # Required for additional AI models
 EXA_API_KEY=your-exa-api-key-here                     # Required for web search functionality
 
-# Authentication
+# Authentication Configuration
+# AUTH_MODE controls which authentication provider is active
+# Options: "github" (default), "password", "google" (future)
+AUTH_MODE=github
+
+# GitHub OAuth (required when AUTH_MODE is "github" or not set)
 AUTH_GITHUB_ID=your-github-oauth-client-id             # Required for GitHub OAuth
 AUTH_GITHUB_SECRET=your-github-oauth-client-secret     # Required for GitHub OAuth
+
+# Google OAuth (required when AUTH_MODE is "google") - Future support
+AUTH_GOOGLE_ID=your-google-oauth-client-id             # For Google OAuth (future)
+AUTH_GOOGLE_SECRET=your-google-oauth-client-secret     # For Google OAuth (future)
+
+# JWT Configuration (always required)
 JWT_PRIVATE_KEY=your-jwt-private-key                  # Required for API key encryption
 JWKS=your-jwks-json-string                            # Required for JWT verification (JSON format)
 ENCRYPTION_KEY=your-encryption-key                    # Optional fallback encryption key
@@ -53,6 +64,19 @@ CONVEX_SITE_URL=https://your-site-url.com             # Optional for auth config
 
 # Vercel Environment (optional)
 NEXT_PUBLIC_VERCEL_ENV=development                     # deployment environment
+
+# Feature Flags - Opt-in Services
+# These services are only enabled when their respective keys are provided
+
+# PostHog Analytics (optional - opt-in)
+# To enable: provide both NEXT_PUBLIC_POSTHOG_KEY and optionally NEXT_PUBLIC_POSTHOG_HOST
+NEXT_PUBLIC_POSTHOG_KEY=phc-your-posthog-project-key       # PostHog project API key
+NEXT_PUBLIC_POSTHOG_HOST=https://us.posthog.com           # PostHog host URL (optional)
+
+# Sentry Error Tracking (optional - opt-in)
+# To enable: provide NEXT_PUBLIC_SENTRY_DSN
+NEXT_PUBLIC_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id  # Sentry DSN
+NEXT_PUBLIC_SENTRY_ENVIRONMENT=development                            # Sentry environment
 
 # Node Environment
 NODE_ENV=development
@@ -66,17 +90,27 @@ These are only available on the server-side and will throw an error if accessed 
 - `OPENAI_API_KEY` - GPT models API access (required)
 - `OPENROUTER_API_KEY` - Additional AI models via OpenRouter (required)
 - `EXA_API_KEY` - Web search functionality (required)
-- `AUTH_GITHUB_ID` - GitHub OAuth client ID (required)
-- `AUTH_GITHUB_SECRET` - GitHub OAuth client secret (required)
+- `AUTH_MODE` - Authentication provider selection: "github", "password", "google" (optional, defaults to "github")
+- `AUTH_GITHUB_ID` - GitHub OAuth client ID (required when AUTH_MODE is "github")
+- `AUTH_GITHUB_SECRET` - GitHub OAuth client secret (required when AUTH_MODE is "github")
+- `AUTH_GOOGLE_ID` - Google OAuth client ID (required when AUTH_MODE is "google")
+- `AUTH_GOOGLE_SECRET` - Google OAuth client secret (required when AUTH_MODE is "google")
 - `JWT_PRIVATE_KEY` - JWT token signing for API key encryption (required)
 - `JWKS` - JWT verification keys in JSON format (required)
 - `ENCRYPTION_KEY` - Fallback encryption key if JWT_PRIVATE_KEY unavailable (optional)
 - `CONVEX_SITE_URL` - Site URL for authentication configuration (optional)
+- `SENTRY_ORG` - Sentry organization for source maps (optional)
+- `SENTRY_PROJECT` - Sentry project for source maps (optional)
+- `SENTRY_AUTH_TOKEN` - Sentry auth token for source maps (optional)
 
 #### **🌐 Client-accessible Variables**
 These are available on both server and client (must be prefixed with `NEXT_PUBLIC_`):
-- `NEXT_PUBLIC_CONVEX_URL` - Convex backend URL
-- `NEXT_PUBLIC_VERCEL_ENV` - Deployment environment detection
+- `NEXT_PUBLIC_CONVEX_URL` - Convex backend URL (required)
+- `NEXT_PUBLIC_VERCEL_ENV` - Deployment environment detection (optional)
+- `NEXT_PUBLIC_POSTHOG_KEY` - PostHog project API key (optional - enables PostHog when provided)
+- `NEXT_PUBLIC_POSTHOG_HOST` - PostHog host URL (optional, defaults to us.posthog.com)
+- `NEXT_PUBLIC_SENTRY_DSN` - Sentry DSN for error tracking (optional - enables Sentry when provided)
+- `NEXT_PUBLIC_SENTRY_ENVIRONMENT` - Sentry environment label (optional, defaults to "development")
 
 #### **⚙️ Shared Variables**
 Available on both client and server:
@@ -125,9 +159,58 @@ node -e "console.log('ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toStr
 
 This creates a cryptographically secure 256-bit key for fallback encryption.
 
+## 🚩 Feature Flags
+
+This project uses an environment-based feature flag system to control opt-in services and authentication modes. Features are configured in `apps/www/src/lib/features.ts`.
+
+### Available Feature Flags
+
+#### **Analytics & Monitoring**
+- **PostHog Analytics**: Enabled when `NEXT_PUBLIC_POSTHOG_KEY` is provided
+  - Product analytics, user behavior tracking, and feature adoption metrics
+  - Configure with `NEXT_PUBLIC_POSTHOG_KEY` and optionally `NEXT_PUBLIC_POSTHOG_HOST`
+  
+- **Sentry Error Tracking**: Enabled when `NEXT_PUBLIC_SENTRY_DSN` is provided
+  - Real-time error monitoring and performance tracking
+  - Configure with `NEXT_PUBLIC_SENTRY_DSN` and optionally `NEXT_PUBLIC_SENTRY_ENVIRONMENT`
+
+#### **Authentication Modes**
+Control authentication providers via the `AUTH_MODE` environment variable:
+- `github` (default): GitHub OAuth authentication
+- `password`: Email/password authentication (future implementation)
+- `google`: Google OAuth authentication (future implementation)
+
+### Feature Flag Usage
+
+```typescript
+import { features, isFeatureEnabled } from "@/lib/features"
+
+// Check if a feature is enabled
+if (features.posthog.enabled) {
+  // PostHog-specific code
+}
+
+// Use helper functions
+if (isFeatureEnabled('sentry')) {
+  // Sentry-specific code
+}
+
+// Check authentication mode
+if (features.auth.mode === 'github') {
+  // GitHub auth flow
+}
+```
+
+### Implementing New Feature Flags
+
+1. Add environment variable to `apps/www/src/env.ts`
+2. Update the feature configuration in `apps/www/src/lib/features.ts`
+3. Add to `turbo.json` globalEnv array
+4. Document in `.env.example`
+
 ## Authentication Setup
 
-This app uses GitHub OAuth for authentication. To set up authentication:
+This app supports multiple authentication providers controlled by the `AUTH_MODE` environment variable. By default, it uses GitHub OAuth.
 
 ### 1. Create a GitHub OAuth App
 
@@ -246,9 +329,10 @@ SKIP_ENV_VALIDATION=true pnpm run build
 - **Git Workflows**: Automated worktree management and deployment
 
 ### 🔐 Security & Auth
-- **GitHub OAuth**: Secure authentication with Convex Auth
+- **Multiple Auth Providers**: GitHub OAuth (default), with password and Google auth coming soon
 - **API Key Management**: Secure storage and validation of user API keys
 - **Privacy Controls**: Self-hostable with your own infrastructure
+- **Feature Flags**: Environment-based control of authentication modes and opt-in services
 
 ## 🏗️ Architecture
 
@@ -420,20 +504,34 @@ Simply visit [chat.lightfast.ai](https://chat.lightfast.ai) and start chatting w
 
 ### Environment Variables for Self-Hosting
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Claude Sonnet 4 API access |
-| `OPENAI_API_KEY` | Yes | GPT models API access |
-| `OPENROUTER_API_KEY` | Yes | Additional AI models via OpenRouter |
-| `EXA_API_KEY` | Yes | Web search functionality |
-| `AUTH_GITHUB_ID` | Yes | GitHub OAuth client ID |
-| `AUTH_GITHUB_SECRET` | Yes | GitHub OAuth client secret |
-| `JWT_PRIVATE_KEY` | Yes | JWT token signing key |
-| `JWKS` | Yes | JWT verification keys |
-| `ENCRYPTION_KEY` | Yes | Fallback encryption key if JWT_PRIVATE_KEY is not available
-| `NEXT_PUBLIC_CONVEX_URL` | Yes | Convex deployment URL |
-| `CONVEX_DEPLOYMENT` | Production | Convex deployment identifier |
-| `NEXT_PUBLIC_VERCEL_ENV` | Optional | Deployment environment detection |
+#### Required Variables
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_API_KEY` | Claude Sonnet 4 API access |
+| `OPENAI_API_KEY` | GPT models API access |
+| `OPENROUTER_API_KEY` | Additional AI models via OpenRouter |
+| `EXA_API_KEY` | Web search functionality |
+| `JWT_PRIVATE_KEY` | JWT token signing key |
+| `JWKS` | JWT verification keys |
+| `NEXT_PUBLIC_CONVEX_URL` | Convex deployment URL |
+
+#### Authentication (at least one required)
+| Variable | Description |
+|----------|-------------|
+| `AUTH_MODE` | Set to "github", "password", or "google" (defaults to "github") |
+| `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` | Required for GitHub OAuth |
+| `AUTH_GOOGLE_ID` + `AUTH_GOOGLE_SECRET` | Required for Google OAuth (future) |
+
+#### Optional Variables
+| Variable | Description |
+|----------|-------------|
+| `ENCRYPTION_KEY` | Fallback encryption key |
+| `CONVEX_DEPLOYMENT` | Convex deployment identifier (production only) |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Enables PostHog analytics when provided |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog host URL (defaults to us.posthog.com) |
+| `NEXT_PUBLIC_SENTRY_DSN` | Enables Sentry error tracking when provided |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | Sentry environment label |
+| `NEXT_PUBLIC_VERCEL_ENV` | Deployment environment detection |
 
 ## 📚 Documentation
 

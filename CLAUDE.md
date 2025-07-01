@@ -706,7 +706,62 @@ pnpm run typecheck      # Type check all packages
 - `JWT_PRIVATE_KEY` - JWT private key for auth (required)
 - `JWKS` - JWT public keys for verification (required)
 - `DOCS_URL` - Documentation deployment URL (optional)
-- Optional: `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `SITE_URL`
+- **Authentication**: `AUTH_MODE` controls provider ("github" default, "password", "google")
+- **GitHub OAuth**: `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` (required when AUTH_MODE="github")
+- **Google OAuth**: `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` (required when AUTH_MODE="google")
+- **Analytics (opt-in)**: `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
+- **Error Tracking (opt-in)**: `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_ENVIRONMENT`
+
+## 🚩 Feature Flags
+
+The project uses environment-based feature flags to control opt-in services and authentication modes. Configuration is centralized in `apps/www/src/lib/features.ts`.
+
+### Available Feature Flags
+
+#### Analytics & Monitoring
+- **PostHog**: Enabled when `NEXT_PUBLIC_POSTHOG_KEY` is provided
+- **Sentry**: Enabled when `NEXT_PUBLIC_SENTRY_DSN` is provided
+
+#### Authentication Modes
+Control via `AUTH_MODE` environment variable:
+- `github` (default): GitHub OAuth authentication
+- `password`: Email/password authentication (future)
+- `google`: Google OAuth authentication (future)
+
+### Adding New Feature Flags
+
+1. **Update Environment Schema** - Add to `apps/www/src/env.ts`:
+   ```typescript
+   NEXT_PUBLIC_MY_FEATURE: z.string().optional(),
+   ```
+
+2. **Update Feature Configuration** - Add to `apps/www/src/lib/features.ts`:
+   ```typescript
+   myFeature: {
+     enabled: !!env.NEXT_PUBLIC_MY_FEATURE,
+     config: env.NEXT_PUBLIC_MY_FEATURE,
+   }
+   ```
+
+3. **Add to Turbo Config** - Update `turbo.json` globalEnv array
+
+4. **Document** - Add to `.env.example` with description
+
+### Usage in Code
+
+```typescript
+import { features } from "@/lib/features"
+
+// Conditional initialization
+if (features.posthog.enabled) {
+  // Initialize PostHog
+}
+
+// Check auth mode
+if (features.auth.mode === 'github') {
+  // GitHub auth flow
+}
+```
 
 ## Key Reminders
 
@@ -717,6 +772,7 @@ pnpm run typecheck      # Type check all packages
 5. **WORKTREE CLEANUP** - Remove before merging to prevent errors
 6. **USE TEMPLATES** - Always use issue templates with file references
 7. **BIOME NOT ESLINT** - Use `pnpm run lint`, not ESLint commands
+8. **FEATURE FLAGS** - Use environment-based feature flags for opt-in services
 
 ## Technology-Specific Documentation
 

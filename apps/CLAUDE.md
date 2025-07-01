@@ -120,12 +120,31 @@ import { env } from "@/env"  // ✅ Always use this
 // NOT process.env.NEXT_PUBLIC_POSTHOG_KEY ❌
 ```
 
-### 4. Handle Optional Integrations
+### 4. Use Feature Flags
 ```typescript
-// Only init if key exists
-export const posthog = env.NEXT_PUBLIC_POSTHOG_KEY 
-  ? posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {...})
+// Create feature flag in apps/www/src/lib/features.ts
+export const features = {
+  posthog: {
+    enabled: !!env.NEXT_PUBLIC_POSTHOG_KEY,
+    key: env.NEXT_PUBLIC_POSTHOG_KEY,
+  }
+}
+```
+
+### 5. Handle Optional Integrations
+```typescript
+// In initialization files
+import { features } from "@/lib/features"
+
+// Only init if feature is enabled
+export const posthogClient = features.posthog.enabled
+  ? posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY!, {...})
   : null
+
+// In components
+if (!posthogClient) {
+  return <>{children}</> // Gracefully handle disabled features
+}
 ```
 
 ### Quick Reference
@@ -133,6 +152,48 @@ export const posthog = env.NEXT_PUBLIC_POSTHOG_KEY
 - **Server vars**: No prefix needed
 - **Always**: Update env.ts, turbo.json, .env.example
 - **Test**: Run `SKIP_ENV_VALIDATION=true pnpm run build`
+
+## Feature Flags System
+
+The WWW app uses environment-based feature flags for opt-in services:
+
+### Current Feature Flags
+
+#### Analytics & Monitoring
+- **PostHog**: `NEXT_PUBLIC_POSTHOG_KEY` enables product analytics
+- **Sentry**: `NEXT_PUBLIC_SENTRY_DSN` enables error tracking
+
+#### Authentication
+- **AUTH_MODE**: Controls authentication provider
+  - `github` (default): GitHub OAuth
+  - `password`: Email/password (future)
+  - `google`: Google OAuth (future)
+
+### Implementation Pattern
+
+1. **Define in features.ts**:
+```typescript
+export const features = {
+  myFeature: {
+    enabled: !!env.NEXT_PUBLIC_MY_FEATURE_KEY,
+    config: env.NEXT_PUBLIC_MY_FEATURE_KEY,
+  }
+}
+```
+
+2. **Use conditionally**:
+```typescript
+if (features.myFeature.enabled) {
+  // Feature-specific code
+}
+```
+
+3. **Handle in providers**:
+```tsx
+if (!features.myFeature.enabled) {
+  return <>{children}</> // Graceful fallback
+}
+```
 
 ## Best Practices
 
@@ -143,3 +204,4 @@ export const posthog = env.NEXT_PUBLIC_POSTHOG_KEY
 5. **Document deployment** - Each app should document its deployment process
 6. **Validate environment variables** - Always use env.ts for type safety
 7. **Handle optional integrations** - Don't break the app if keys are missing
+8. **Use feature flags** - Control opt-in services via environment variables

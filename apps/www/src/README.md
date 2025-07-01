@@ -121,8 +121,11 @@ Components are organized by feature domain:
 - **`/ai`**: AI model configuration and provider management
 - `auth.ts`: Server-side authentication utilities
 - `convex-provider.tsx`: Convex client provider wrapper
+- `features.ts`: Feature flag configuration for opt-in services
 - `site-config.ts`: Site-wide configuration
 - `nanoid.ts`: ID generation utilities
+- `posthog.ts` & `posthog-server.ts`: Analytics integration (opt-in)
+- **`/error-reporting`**: Error tracking abstractions
 
 ### 2. Key Components and Their Purposes
 
@@ -241,6 +244,43 @@ Reusable message display components:
 - **Accessibility**: ARIA labels and keyboard navigation
 - **Error Boundaries**: Graceful error handling
 
+## Feature Flags
+
+The application uses environment-based feature flags to control opt-in services and authentication modes. Configuration is centralized in `/lib/features.ts`.
+
+### Available Feature Flags
+
+#### Analytics & Monitoring (Opt-in)
+- **PostHog Analytics**: Enabled when `NEXT_PUBLIC_POSTHOG_KEY` is provided
+  - Product analytics and user behavior tracking
+  - Configured in `/lib/posthog.ts` and `/components/providers/posthog-provider.tsx`
+  
+- **Sentry Error Tracking**: Enabled when `NEXT_PUBLIC_SENTRY_DSN` is provided
+  - Real-time error monitoring and performance tracking
+  - Configured in `/instrumentation.ts`
+
+#### Authentication Modes
+Control authentication providers via the `AUTH_MODE` environment variable:
+- `github` (default): GitHub OAuth authentication
+- `password`: Email/password authentication (future implementation)
+- `google`: Google OAuth authentication (future implementation)
+
+### Usage Example
+
+```typescript
+import { features, isFeatureEnabled } from "@/lib/features"
+
+// Check if a feature is enabled
+if (features.posthog.enabled) {
+  // Initialize PostHog analytics
+}
+
+// Check authentication mode
+if (features.auth.mode === 'github') {
+  // Show GitHub sign-in button
+}
+```
+
 ## Key Technologies
 
 - **Next.js 15**: App Router with PPR support
@@ -250,6 +290,8 @@ Reusable message display components:
 - **Shadcn/UI**: Component library
 - **Biome**: Code quality tooling
 - **Zod**: Schema validation
+- **PostHog**: Product analytics (optional)
+- **Sentry**: Error tracking (optional)
 
 ## Development Workflow
 
