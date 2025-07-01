@@ -54,5 +54,9 @@
     "@biomejs/biome",
     "@tailwindcss/oxide",
     "@vercel/speed-insights"
-  ]
+  ],
+  "dependencies": {
+    "posthog-js": "^1.256.0",
+    "posthog-node": "^5.1.1"
+  }
 }
