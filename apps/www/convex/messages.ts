@@ -32,8 +32,6 @@ import {
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
-import { updateThreadUsage } from "./messages/helpers.js";
-import type { MessageUsageUpdate } from "./messages/types.js";
 
 // Type definitions for multimodal content
 type TextPart = { type: "text"; text: string };
@@ -400,35 +398,6 @@ export const updateMessageApiKeyStatus = internalMutation({
 		await ctx.db.patch(args.messageId, {
 			usedUserApiKey: args.usedUserApiKey,
 		});
-		return null;
-	},
-});
-
-// Internal mutation to update thread usage
-export const updateThreadUsageMutation = internalMutation({
-	args: {
-		threadId: v.id("threads"),
-		usage: v.object({
-			promptTokens: v.number(),
-			completionTokens: v.number(),
-			totalTokens: v.number(),
-			reasoningTokens: v.number(),
-			cachedTokens: v.number(),
-			modelId: modelIdValidator,
-		}),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const { threadId, usage } = args;
-		const messageUsage: MessageUsageUpdate = {
-			inputTokens: usage.promptTokens,
-			outputTokens: usage.completionTokens,
-			totalTokens: usage.totalTokens,
-			reasoningTokens: usage.reasoningTokens,
-			cachedInputTokens: usage.cachedTokens,
-		};
-
-		await updateThreadUsage(ctx, threadId, usage.modelId, messageUsage);
 		return null;
 	},
 });
