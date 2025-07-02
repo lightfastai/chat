@@ -1,6 +1,6 @@
 "use client";
 
-import type { ToolCallPart } from "@/lib/message-parts";
+import type { ToolCallPart } from "../../../../convex/validators";
 import { GenericToolDisplay } from "./generic-tool-display";
 import { WebSearchTool } from "./web-search-tool";
 

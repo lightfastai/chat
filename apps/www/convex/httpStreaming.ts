@@ -11,32 +11,30 @@
  */
 
 import {
-  type ModelMessage,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
+import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/message_builder";
 import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
-import {
-  httpStreamingRequestValidator
-} from "./validators";
-import { getAuthenticatedUserId } from "./lib/auth";
+import type { httpStreamingRequestValidator } from "./validators";
 
 // Types from validators
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
@@ -63,9 +61,15 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 	try {
 		// Parse and validate request body
 		const body = (await request.json()) as HTTPStreamingRequest;
-		const { threadClientId, messages: uiMessages, options, userMessageId, id } = body;
+		const {
+			threadClientId,
+			messages: uiMessages,
+			options,
+			userMessageId,
+			id,
+		} = body;
 
-    console.log("[streamChatResponse] body", body);
+		console.log("[streamChatResponse] body", body);
 
 		// Validate required fields
 		if (!threadClientId) {
@@ -75,19 +79,19 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			});
 		}
 
-    if (!userMessageId) {
-      return new Response("User message ID is required", {
-        status: 400,
-        headers: corsHeaders(),
-      });
-    }
+		if (!userMessageId) {
+			return new Response("User message ID is required", {
+				status: 400,
+				headers: corsHeaders(),
+			});
+		}
 
-    if (!id) {
-      return new Response("Assistant message ID is required", {
-        status: 400,
-        headers: corsHeaders(),
-      });
-    }
+		if (!id) {
+			return new Response("Assistant message ID is required", {
+				status: 400,
+				headers: corsHeaders(),
+			});
+		}
 
 		if (!uiMessages || uiMessages.length === 0) {
 			return new Response("Messages are required", {
@@ -96,18 +100,20 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			});
 		}
 
-    // run auth check
-    const userId = await getAuthenticatedUserId(ctx);
-    if (!userId) {
-      return new Response("Unauthorized", {
-        status: 401,
-        headers: corsHeaders(),
-      });
-    }
+		// run auth check
+		const userId = await getAuthenticatedUserId(ctx);
+		if (!userId) {
+			return new Response("Unauthorized", {
+				status: 401,
+				headers: corsHeaders(),
+			});
+		}
 
 		// Get the thread by client ID
 		// The thread, user message, and assistant message should already exist from optimistic creation
-		const thread = await ctx.runQuery(api.threads.getByClientId, { clientId: threadClientId });
+		const thread = await ctx.runQuery(api.threads.getByClientId, {
+			clientId: threadClientId,
+		});
 		if (!thread) {
 			return new Response(
 				"Thread not found. Ensure thread is created before streaming.",
@@ -118,30 +124,34 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			);
 		}
 
-    // get the assistant message
-    const assistantMessage = await ctx.runQuery(api.messages.get, { messageId: id });
-    if (!assistantMessage) {
-      return new Response("Assistant message not found", {
-        status: 404,
-        headers: corsHeaders(),
-      });
-    }
+		// get the assistant message
+		const assistantMessage = await ctx.runQuery(api.messages.get, {
+			messageId: id,
+		});
+		if (!assistantMessage) {
+			return new Response("Assistant message not found", {
+				status: 404,
+				headers: corsHeaders(),
+			});
+		}
 
-    // get the user message
-    const userMessage = await ctx.runQuery(api.messages.get, { messageId: userMessageId });
-    if (!userMessage) {
-      return new Response("User message not found", {
-        status: 404,
-        headers: corsHeaders(),
-      });
-    }
+		// get the user message
+		const userMessage = await ctx.runQuery(api.messages.get, {
+			messageId: userMessageId,
+		});
+		if (!userMessage) {
+			return new Response("User message not found", {
+				status: 404,
+				headers: corsHeaders(),
+			});
+		}
 
-    console.log("[streamChatResponse] userMessage", userMessage);
-    console.log("[streamChatResponse] assistantMessage", assistantMessage);
-    console.log("[streamChatResponse] thread", thread.userId);
+		console.log("[streamChatResponse] userMessage", userMessage);
+		console.log("[streamChatResponse] assistantMessage", assistantMessage);
+		console.log("[streamChatResponse] thread", thread.userId);
 
 		// Get user's API keys for the AI provider
-    // @todo rework.
+		// @todo rework.
 		const userApiKeys = (await ctx.runMutation(
 			internal.userSettings.getDecryptedApiKeys,
 			{ userId: thread.userId },
@@ -153,7 +163,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 		// Convert UIMessages to ModelMessages for the AI SDK
 		const convertedMessages = convertToModelMessages(uiMessages as UIMessage[]);
-    const modelId = assistantMessage.modelId;
+		const modelId = assistantMessage.modelId;
 
 		// Build the final messages array with system prompt
 		const systemPrompt = createSystemPrompt(
@@ -352,10 +362,13 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						threadId: thread._id,
 					});
 
-					console.log(`Streaming completed for message ${assistantMessage._id}`, {
-						fullTextLength: fullText.length,
-						usage,
-					});
+					console.log(
+						`Streaming completed for message ${assistantMessage._id}`,
+						{
+							fullTextLength: fullText.length,
+							usage,
+						},
+					);
 				},
 			};
 
@@ -403,11 +416,17 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 			console.error("Streaming error:", error);
 
-			await handleAIResponseError(ctx, error, thread._id, assistantMessage._id, {
-				modelId: modelId as ModelId,
-				provider: getProviderFromModelId(modelId as ModelId),
-				useStreamingUpdate: true,
-			});
+			await handleAIResponseError(
+				ctx,
+				error,
+				thread._id,
+				assistantMessage._id,
+				{
+					modelId: modelId as ModelId,
+					provider: getProviderFromModelId(modelId as ModelId),
+					useStreamingUpdate: true,
+				},
+			);
 
 			throw error;
 		}

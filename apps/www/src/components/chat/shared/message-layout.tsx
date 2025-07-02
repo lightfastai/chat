@@ -1,12 +1,13 @@
 import { cn } from "@lightfast/ui/lib/utils";
 import type React from "react";
+import { Role } from "../../../../convex/validators";
 
 export interface MessageLayoutProps {
 	avatar: React.ReactNode;
 	content: React.ReactNode;
 	timestamp?: React.ReactNode;
 	actions?: React.ReactNode;
-	messageType: "user" | "assistant" | "system";
+	role: Role;
 	className?: string;
 	forceActionsVisible?: boolean;
 }
@@ -15,7 +16,7 @@ export function MessageLayout({
 	content,
 	timestamp,
 	actions,
-	messageType,
+	role: messageType,
 	className,
 	forceActionsVisible = false,
 }: MessageLayoutProps) {

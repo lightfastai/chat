@@ -456,11 +456,10 @@ export const httpStreamingRequestValidator = v.object({
 	userMessageId: v.id("messages"),
 	modelId: modelIdValidator,
 	messages: v.optional(uiMessagesValidator), // Optional UIMessages array for v2
-	options:
-		v.object({
-			webSearchEnabled: v.optional(v.boolean()),
-			attachments: v.optional(v.array(v.id("files"))),
-			modelId: v.optional(modelIdValidator),
+	options: v.object({
+		webSearchEnabled: v.optional(v.boolean()),
+		attachments: v.optional(v.array(v.id("files"))),
+		modelId: v.optional(modelIdValidator),
 	}),
 });
 
@@ -506,6 +505,9 @@ export type TextPart = Infer<typeof textPartValidator>;
 export type ToolCallPart = Infer<typeof toolCallPartValidator>;
 export type ReasoningPart = Infer<typeof reasoningPartValidator>;
 export type ErrorPart = Infer<typeof errorPartValidator>;
+
+// ===== Role Types =====
+export type Role = Infer<typeof roleValidator>;
 
 // ===== Type Guards =====
 

@@ -14,16 +14,16 @@ import { internal } from "./_generated/api.js";
 import type { Doc } from "./_generated/dataModel.js";
 import { internalMutation, internalQuery, query } from "./_generated/server.js";
 import {
-  branchInfoValidator,
-  chatStatusValidator,
-  clientIdValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  shareIdValidator,
-  shareSettingsValidator,
-  textPartValidator,
-  threadUsageValidator,
-  tokenUsageValidator,
+	branchInfoValidator,
+	chatStatusValidator,
+	clientIdValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	shareIdValidator,
+	shareSettingsValidator,
+	textPartValidator,
+	threadUsageValidator,
+	tokenUsageValidator,
 } from "./validators.js";
 
 // Import utility functions from messages/ directory

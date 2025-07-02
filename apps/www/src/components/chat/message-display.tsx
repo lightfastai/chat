@@ -1,7 +1,7 @@
 "use client";
 
+import type { Doc } from "@/convex/_generated/dataModel";
 import { getModelDisplayName } from "@/lib/ai";
-import type { UIMessage } from "ai";
 import { useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
@@ -10,7 +10,7 @@ import { MessageActions } from "./message-actions";
 import { MessageItem } from "./shared";
 
 interface MessageDisplayProps {
-	message: UIMessage;
+	message: Doc<"messages">;
 	status?: "ready" | "streaming" | "submitted" | "error";
 	isLastAssistantMessage?: boolean;
 }
@@ -26,43 +26,18 @@ export function MessageDisplay({
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 	const isAI = message.role === "assistant";
-	const metadata = (message.metadata as any) || {};
 
 	// Model name for AI messages
-	const modelName = isAI
-		? metadata.modelId
-			? getModelDisplayName(metadata.modelId)
-			: metadata.model
-				? getModelDisplayName(metadata.model)
-				: "AI Assistant"
-		: undefined;
-
-	// Debug logging for model display issues
-	if (isAI && process.env.NODE_ENV === "development") {
-		console.log("MessageDisplay debug:", {
-			messageId: message.id,
-			modelId: metadata.modelId,
-			model: metadata.model,
-			modelName,
-			isStreaming: metadata.isStreaming,
-			usedUserApiKey: metadata.usedUserApiKey,
-			hasThinkingContent: metadata.hasThinkingContent,
-			isComplete: metadata.isComplete,
-		});
-	}
-
-	// Calculate thinking duration
-	const thinkingDuration =
-		metadata.thinkingStartedAt && metadata.thinkingCompletedAt
-			? metadata.thinkingCompletedAt - metadata.thinkingStartedAt
-			: null;
+	const modelName =
+		isAI && message.modelId
+			? getModelDisplayName(message.modelId)
+			: "AI Assistant";
 
 	// Actions component
 	const actions = (
 		<MessageActions
 			message={message}
 			modelName={modelName}
-			thinkingDuration={thinkingDuration}
 			onDropdownStateChange={setIsDropdownOpen}
 		/>
 	);
@@ -74,17 +49,18 @@ export function MessageDisplay({
 				currentUser={currentUser || undefined}
 				showActions={true}
 				isReadOnly={false}
-				modelName={modelName}
-				isStreaming={!!metadata.isStreaming}
-				isComplete={metadata.isComplete !== false}
+				isStreaming={message.status === "streaming"}
+				isComplete={
+					message.status !== "streaming" && message.status !== "submitted"
+				}
 				actions={actions}
 				forceActionsVisible={isDropdownOpen}
 				status={status}
 				isLastAssistantMessage={isLastAssistantMessage}
 			/>
 			{/* Show attachments if present */}
-			{metadata.attachments && metadata.attachments.length > 0 && (
-				<AttachmentPreview attachmentIds={metadata.attachments} />
+			{message.attachments && message.attachments.length > 0 && (
+				<AttachmentPreview attachmentIds={message.attachments} />
 			)}
 		</>
 	);

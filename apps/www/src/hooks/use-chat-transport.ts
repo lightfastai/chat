@@ -38,7 +38,7 @@ export function useChatTransport({
 			prepareSendMessagesRequest: ({
 				body,
 				headers,
-        messages,
+				messages,
 				credentials,
 				api,
 			}) => {
@@ -48,9 +48,9 @@ export function useChatTransport({
 					headers,
 					body: {
 						id: body?.id,
-            threadClientId: body?.threadClientId,
-            userMessageId: body?.userMessageId,
-            messages,
+						threadClientId: body?.threadClientId,
+						userMessageId: body?.userMessageId,
+						messages,
 						options: {
 							webSearchEnabled: (body?.webSearchEnabled as boolean) || false,
 							attachments: body?.attachments as Id<"files">[] | undefined,

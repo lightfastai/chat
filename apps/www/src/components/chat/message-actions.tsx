@@ -1,35 +1,27 @@
 "use client";
 
-import {
-  extractUIMessageText,
-  isValidConvexId,
-} from "@/lib/ai/message-converters";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
 import { cn } from "@lightfast/ui/lib/utils";
-import type { UIMessage } from "ai";
 import { useMutation, useQuery } from "convex/react";
 import {
-  CheckIcon,
-  ClipboardIcon,
-  Key,
-  ThumbsDown,
-  ThumbsUp,
+	CheckIcon,
+	ClipboardIcon,
+	Key,
+	ThumbsDown,
+	ThumbsUp,
 } from "lucide-react";
 import React from "react";
 import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
 import { FeedbackModal } from "./feedback-modal";
 import { MessageUsageChip } from "./message-usage-chip";
 import { ModelBranchDropdown } from "./model-branch-dropdown";
-import { formatDuration } from "./shared/thinking-content";
-
 interface MessageActionsProps {
-	message: UIMessage;
+	message: Doc<"messages">;
 	className?: string;
 	modelName?: string;
-	thinkingDuration?: number | null;
 	onDropdownStateChange?: (isOpen: boolean) => void;
 }
 
@@ -37,26 +29,21 @@ export function MessageActions({
 	message,
 	className,
 	modelName,
-	thinkingDuration,
 	onDropdownStateChange,
 }: MessageActionsProps) {
 	const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
 	const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 	const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 });
-	const metadata = (message.metadata as any) || {};
 
 	// Notify parent when dropdown state changes
 	React.useEffect(() => {
 		onDropdownStateChange?.(isDropdownOpen);
 	}, [isDropdownOpen, onDropdownStateChange]);
 
-	// Check if the message has a valid Convex ID before querying
-	const hasValidConvexId = isValidConvexId(message.id);
-
-	const feedback = useQuery(
-		api.feedback.getUserFeedbackForMessage,
-		hasValidConvexId ? { messageId: message.id as Id<"messages"> } : "skip",
-	);
+	// For Convex messages, we always have a valid ID
+	const feedback = useQuery(api.feedback.getUserFeedbackForMessage, {
+		messageId: message._id,
+	});
 
 	const submitFeedback = useMutation(api.feedback.submitFeedback);
 	const removeFeedback = useMutation(api.feedback.removeFeedback);
@@ -204,22 +191,16 @@ export function MessageActions({
 	// });
 
 	const handleFeedback = async (rating: "thumbs_up" | "thumbs_down") => {
-		// Skip feedback for streaming messages without valid Convex IDs
-		if (!hasValidConvexId) {
-			console.log("Feedback not available for streaming messages");
-			return;
-		}
-
 		if (rating === "thumbs_down") {
 			setShowFeedbackModal(true);
 			return;
 		}
 
 		if (feedback?.rating === rating) {
-			await removeFeedback({ messageId: message.id as Id<"messages"> });
+			await removeFeedback({ messageId: message._id });
 		} else {
 			await submitFeedback({
-				messageId: message.id as Id<"messages">,
+				messageId: message._id,
 				rating: "thumbs_up",
 				comment: feedback?.comment,
 				reasons: feedback?.reasons,
@@ -228,7 +209,26 @@ export function MessageActions({
 	};
 
 	const handleCopy = () => {
-		const text = extractUIMessageText(message);
+		// Extract text from message parts
+		let text = "";
+
+		if (message.parts && message.parts.length > 0) {
+			// Extract text from text and reasoning parts
+			const textParts = message.parts
+				.filter((part) => part.type === "text" || part.type === "reasoning")
+				.map((part) => {
+					if (part.type === "text" || part.type === "reasoning") {
+						return part.text;
+					}
+					return "";
+				})
+				.join("\n");
+
+			if (textParts) {
+				text = textParts;
+			}
+		}
+
 		if (text) {
 			copy(text);
 		}
@@ -272,10 +272,8 @@ export function MessageActions({
 						"h-8 w-8 transition-colors",
 						feedback?.rating === "thumbs_up" &&
 							"text-green-600 hover:text-green-700",
-						!hasValidConvexId && "opacity-50 cursor-not-allowed",
 					)}
 					onClick={() => handleFeedback("thumbs_up")}
-					disabled={!hasValidConvexId}
 					aria-label="Like message"
 				>
 					<ThumbsUp className="h-4 w-4" />
@@ -287,15 +285,13 @@ export function MessageActions({
 						"h-8 w-8 transition-colors",
 						feedback?.rating === "thumbs_down" &&
 							"text-red-600 hover:text-red-700",
-						!hasValidConvexId && "opacity-50 cursor-not-allowed",
 					)}
 					onClick={() => handleFeedback("thumbs_down")}
-					disabled={!hasValidConvexId}
 					aria-label="Dislike message"
 				>
 					<ThumbsDown className="h-4 w-4" />
 				</Button>
-				{extractUIMessageText(message) && (
+				{message.parts && message.parts.length > 0 && (
 					<Button
 						variant="ghost"
 						size="icon"
@@ -324,40 +320,28 @@ export function MessageActions({
 					{modelName && <span>{modelName}</span>}
 
 					{/* API Key badge */}
-					{metadata.usedUserApiKey && (
+					{message.usedUserApiKey && (
 						<Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-auto">
 							<Key className="w-3 h-3 mr-1" />
 							Your API Key
 						</Badge>
 					)}
 
-					{/* Thinking duration */}
-					{thinkingDuration && (
-						<>
-							{(modelName || metadata.usedUserApiKey) && <span>•</span>}
-							<span className="font-mono">
-								Thought for {formatDuration(thinkingDuration)}
-							</span>
-						</>
-					)}
-
 					{/* Usage chip */}
-					{metadata.usage && (
+					{message.usage && (
 						<>
-							{(modelName || metadata.usedUserApiKey || thinkingDuration) && (
-								<span>•</span>
-							)}
-							<MessageUsageChip usage={metadata.usage} />
+							{(modelName || message.usedUserApiKey) && <span>•</span>}
+							<MessageUsageChip usage={message.usage} />
 						</>
 					)}
 				</div>
 			</div>
 
-			{showFeedbackModal && hasValidConvexId && (
+			{showFeedbackModal && (
 				<FeedbackModal
 					isOpen={showFeedbackModal}
 					onClose={() => setShowFeedbackModal(false)}
-					messageId={message.id as Id<"messages">}
+					messageId={message._id}
 					existingFeedback={feedback}
 				/>
 			)}

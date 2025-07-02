@@ -1,6 +1,5 @@
 "use client";
 
-import type { ToolCallPart } from "@/lib/message-parts";
 import {
 	Accordion,
 	AccordionContent,
@@ -8,6 +7,7 @@ import {
 	AccordionTrigger,
 } from "@lightfast/ui/components/ui/accordion";
 import { ExternalLink, Loader2, Search } from "lucide-react";
+import type { ToolCallPart } from "../../../../convex/validators";
 
 export interface WebSearchToolProps {
 	toolCall: ToolCallPart;

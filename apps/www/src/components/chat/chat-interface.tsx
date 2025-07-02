@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@/hooks/use-chat";
+import { useMergedMessages } from "@/hooks/use-merged-messages";
 import type { ThreadContext, ValidThread } from "@/types/schema";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
@@ -31,7 +32,7 @@ export function ChatInterface({
 		: undefined;
 
 	// Extract database messages from preloaded query if available and thread is resolved
-	const databaseMessages =
+	const preloadedMessagesFromDb =
 		preloadedMessages && thread?._id
 			? usePreloadedQuery(preloadedMessages)
 			: undefined;
@@ -42,8 +43,11 @@ export function ChatInterface({
 		preloadedUserSettings,
 	});
 
+	// Merge Convex and Vercel messages
+	const mergedMessages = useMergedMessages(preloadedMessagesFromDb, messages);
+
 	// Show centered layout only for new chats with no messages
-	if (threadContext.type === "new" && messages.length === 0) {
+	if (threadContext.type === "new" && mergedMessages.length === 0) {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
@@ -56,11 +60,7 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages
-				messages={messages}
-				databaseMessages={databaseMessages}
-				status={status}
-			/>
+			<ChatMessages messages={mergedMessages} status={status} />
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}

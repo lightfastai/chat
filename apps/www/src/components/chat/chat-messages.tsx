@@ -3,14 +3,12 @@
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
-import type { UIMessage } from "../../types/schema";
 import { MessageDisplay } from "./message-display";
 import { MessageLayout } from "./shared/message-layout";
 import { ThinkingIndicator } from "./shared/thinking-indicator";
 
 interface ChatMessagesProps {
-	messages: UIMessage[];
-	databaseMessages?: Doc<"messages">[] | null; // Database messages from Convex
+	messages: Doc<"messages">[];
 	status?: "ready" | "streaming" | "submitted" | "error";
 	emptyState?: {
 		icon?: React.ReactNode;
@@ -21,15 +19,12 @@ interface ChatMessagesProps {
 
 export function ChatMessages({
 	messages,
-	databaseMessages,
 	status = "ready",
 }: ChatMessagesProps) {
 	// Debug: Log messages received by ChatMessages
 	console.log("[ChatMessages] messages:", messages);
 	console.log("[ChatMessages] messages length:", messages.length);
-	console.log("[ChatMessages] databaseMessages:", databaseMessages);
 	console.log("[ChatMessages] status:", status);
-
 
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -112,13 +107,9 @@ export function ChatMessages({
 		lastMessageCountRef.current = messages.length;
 
 		// Check if any message is currently streaming
-		// For UIMessages, check if there's an assistant message with incomplete parts
-		const hasStreamingMessage = messages.some((msg) => {
-			if (msg.role !== "assistant") return false;
-			// Check if the message has metadata indicating streaming
-			const metadata = msg.metadata as any;
-			return metadata?.isStreaming && !metadata?.isComplete;
-		});
+		const hasStreamingMessage = messages.some(
+			(msg) => msg.status === "streaming",
+		);
 
 		// Auto-scroll if:
 		// 1. User is NOT actively scrolling
@@ -135,10 +126,7 @@ export function ChatMessages({
 
 		// If there's a new message and user is scrolling, reset the user scrolling flag
 		// This ensures they see their own messages
-		if (
-			hasNewMessage &&
-			messages[messages.length - 1]?.role === "user"
-		) {
+		if (hasNewMessage && messages[messages.length - 1]?.role === "user") {
 			setIsUserScrolling(false);
 			scrollToBottom(false);
 		}
@@ -153,8 +141,8 @@ export function ChatMessages({
 		<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
 			<div className="p-2 md:p-4 pb-16">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-					{messages?.slice().map((msg, index) => {
-						console.log(`[ChatMessages] Rendering message ${index}:`, msg);
+					{messages.map((message, index) => {
+						console.log(`[ChatMessages] Rendering message ${index}:`, message);
 
 						// Find the index of the last assistant message
 						const lastAssistantIndex =
@@ -164,12 +152,12 @@ export function ChatMessages({
 								.pop()?.index ?? -1;
 
 						const isLastAssistantMessage =
-							msg.role === "assistant" && index === lastAssistantIndex;
+							message.role === "assistant" && index === lastAssistantIndex;
 
 						return (
 							<MessageDisplay
-								key={msg.id}
-								message={msg}
+								key={message._id}
+								message={message}
 								status={status}
 								isLastAssistantMessage={isLastAssistantMessage}
 							/>
@@ -181,7 +169,7 @@ export function ChatMessages({
 						<MessageLayout
 							avatar={null}
 							content={<ThinkingIndicator />}
-							messageType="assistant"
+							role="assistant"
 						/>
 					)}
 				</div>

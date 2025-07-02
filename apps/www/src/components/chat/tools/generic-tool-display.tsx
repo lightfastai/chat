@@ -1,8 +1,8 @@
 "use client";
 
-import type { ToolCallPart } from "@/lib/message-parts";
 import { ChevronDown, ChevronRight, Loader2, Wrench } from "lucide-react";
 import { useState } from "react";
+import type { ToolCallPart } from "../../../../convex/validators";
 
 export interface GenericToolDisplayProps {
 	toolCall: ToolCallPart;

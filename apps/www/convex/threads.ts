@@ -6,11 +6,11 @@ import { mutation, query } from "./_generated/server.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getWithOwnership } from "./lib/database.js";
 import {
-  clientIdValidator,
-  clientThreadIdValidator,
-  modelIdValidator, textPartValidator
+	clientIdValidator,
+	clientThreadIdValidator,
+	modelIdValidator,
+	textPartValidator,
 } from "./validators.js";
-
 
 // List initial threads for preloading (first 20)
 export const list = query({
@@ -133,7 +133,8 @@ export const createThreadWithFirstMessage = mutation({
 			return {
 				threadId: existing._id,
 				userMessageId: firstMessage?._id || ("" as Id<"messages">), // Fallback for edge case
-				assistantMessageId: firstAssistantMessage?._id || ("" as Id<"messages">), // Fallback for edge case
+				assistantMessageId:
+					firstAssistantMessage?._id || ("" as Id<"messages">), // Fallback for edge case
 			};
 		}
 
@@ -144,7 +145,7 @@ export const createThreadWithFirstMessage = mutation({
 			userId: userId,
 			createdAt: now,
 			lastMessageAt: now,
-      // @todo depcreate these...
+			// @todo depcreate these...
 			isTitleGenerating: true, // Will be updated when first message is sent
 			// Initialize usage field
 			usage: {
@@ -163,16 +164,22 @@ export const createThreadWithFirstMessage = mutation({
 			firstMessage: args.message,
 		});
 
-    const userMessageId: Id<"messages"> = await ctx.runMutation(internal.messages.createUserMessage, {
-			threadId,
-			modelId: args.modelId,
-			part: args.message,
-		});
+		const userMessageId: Id<"messages"> = await ctx.runMutation(
+			internal.messages.createUserMessage,
+			{
+				threadId,
+				modelId: args.modelId,
+				part: args.message,
+			},
+		);
 
-    const assistantMessageId: Id<"messages"> = await ctx.runMutation(internal.messages.createAssistantMessage, {
-			threadId,
-			modelId: args.modelId,
-		});
+		const assistantMessageId: Id<"messages"> = await ctx.runMutation(
+			internal.messages.createAssistantMessage,
+			{
+				threadId,
+				modelId: args.modelId,
+			},
+		);
 
 		return { threadId, userMessageId, assistantMessageId };
 	},

@@ -1,6 +1,5 @@
 "use client";
 
-import type { MessagePart } from "@/lib/message-parts";
 import { nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
@@ -9,6 +8,7 @@ import { usePreloadedQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
 import type { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import type { MessagePart } from "../../convex/validators";
 import type { ModelId } from "../lib/ai/schemas";
 import type { UIMessage, ValidThread } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
@@ -122,13 +122,13 @@ export function useChat({
 				modelId: selectedModelId,
 			});
 
-      const { threadId, userMessageId, assistantMessageId } = data;
+			const { threadId, userMessageId, assistantMessageId } = data;
 
-      console.log("[useChat] sendMessage", {
-        threadId,
-        userMessageId,
-        assistantMessageId,
-      });
+			console.log("[useChat] sendMessage", {
+				threadId,
+				userMessageId,
+				assistantMessageId,
+			});
 
 			try {
 				// TODO: Temporarily disabled for optimistic message creation
@@ -136,17 +136,17 @@ export function useChat({
 					{
 						role: "user",
 						parts: [{ type: "text", text: message }],
-            id: userMessageId,
+						id: userMessageId,
 					},
 					{
 						body: {
 							id: assistantMessageId,
-              userMessageId,
+							userMessageId,
 							threadClientId: threadContext.clientId,
-              options: {
-                webSearchEnabled: webSearchEnabledOverride || false,
-                attachments,
-              },
+							options: {
+								webSearchEnabled: webSearchEnabledOverride || false,
+								attachments,
+							},
 						},
 					},
 				);

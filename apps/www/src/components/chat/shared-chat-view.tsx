@@ -1,8 +1,6 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { getModelDisplayName } from "@/lib/ai";
-import { convexMessageToUIMessage } from "@/lib/ai/message-converters";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useMutation, useQuery } from "convex/react";
@@ -111,26 +109,13 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 							</AlertDescription>
 						</Alert>
 						{messages.map((message) => {
-							const isAI = message.messageType === "assistant";
-							const modelName = isAI
-								? message.modelId
-									? getModelDisplayName(message.modelId)
-									: message.model
-										? getModelDisplayName(message.model)
-										: "AI Assistant"
-								: undefined;
-
-							// Convert Convex message to UIMessage
-							const uiMessage = convexMessageToUIMessage(message);
-
 							return (
 								<MessageItem
 									key={message._id}
-									message={uiMessage}
-									owner={owner || undefined}
+									message={message}
+									currentUser={owner || undefined}
 									isReadOnly={true}
 									showActions={false}
-									modelName={modelName}
 								/>
 							);
 						})}
