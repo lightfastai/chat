@@ -10,11 +10,12 @@ import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ChatInput } from "./chat-input";
 import { PromptSuggestions } from "./prompt-suggestions";
+import { ModelId } from "../../lib/ai/schemas";
 
 interface CenteredChatStartProps {
 	onSendMessage: (
 		message: string,
-		modelId: string,
+		modelId: ModelId,
 		attachments?: Id<"files">[],
 		webSearchEnabled?: boolean,
 	) => Promise<void> | void;

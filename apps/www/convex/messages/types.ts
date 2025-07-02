@@ -1,33 +1,3 @@
-import { v } from "convex/values";
-import {
-	chatStatusValidator,
-	messagePartsValidator,
-	messageTypeValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	tokenUsageValidator,
-} from "../validators.js";
-
-// Shared message return type for queries
-export const messageReturnValidator = v.object({
-	_id: v.id("messages"),
-	_creationTime: v.number(),
-	threadId: v.id("threads"),
-	timestamp: v.number(),
-	messageType: messageTypeValidator,
-	model: v.optional(modelProviderValidator),
-	modelId: v.optional(modelIdValidator),
-	thinkingStartedAt: v.optional(v.number()),
-	thinkingCompletedAt: v.optional(v.number()),
-	attachments: v.optional(v.array(v.id("files"))),
-	usedUserApiKey: v.optional(v.boolean()),
-	usage: tokenUsageValidator,
-	// Message parts array following Vercel AI SDK v5 structure
-	parts: v.optional(messagePartsValidator),
-	// Message status following Vercel AI SDK v5 ChatStatus enum
-	status: chatStatusValidator,
-});
-
 // Type for message usage updates
 export interface MessageUsageUpdate {
 	inputTokens?: number;

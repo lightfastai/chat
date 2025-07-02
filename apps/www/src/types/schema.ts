@@ -12,7 +12,10 @@ export const ThreadContextSchema = z.discriminatedUnion("type", [
 	}),
 	z.object({
 		type: z.literal("existing"),
-		clientId: z.string().min(1).describe("ClientId from URL for existing chats"),
+		clientId: z
+			.string()
+			.min(1)
+			.describe("ClientId from URL for existing chats"),
 	}),
 	z.object({
 		type: z.literal("error"),

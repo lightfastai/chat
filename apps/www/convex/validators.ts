@@ -44,6 +44,9 @@ export const chatStatusValidator = v.union(
 // Client ID validator (nanoid format, typically 21 chars)
 export const clientIdValidator = v.string();
 
+// Client thread ID validator (nanoid format, typically 21 chars)
+export const clientThreadIdValidator = v.string();
+
 // Share ID validator (nanoid format, 24 chars for security)
 export const shareIdValidator = v.string();
 
@@ -91,7 +94,7 @@ export const shareSettingsValidator = v.optional(
 
 // ===== Message & Stream Validators =====
 // Message type validator
-export const messageTypeValidator = v.union(
+export const roleValidator = v.union(
 	v.literal("user"),
 	v.literal("assistant"),
 	v.literal("system"),
@@ -336,14 +339,12 @@ export const messagePartsValidator = v.array(messagePartValidator);
 export const uiTextPartValidator = v.object({
 	type: v.literal("text"),
 	text: v.string(),
-	state: v.optional(v.union(v.literal("streaming"), v.literal("done"))),
 });
 
 // UIMessage reasoning part validator
 export const uiReasoningPartValidator = v.object({
 	type: v.literal("reasoning"),
 	text: v.string(),
-	state: v.optional(v.union(v.literal("streaming"), v.literal("done"))),
 	providerMetadata: v.optional(v.any()),
 });
 
@@ -425,7 +426,7 @@ export const uiMessagePartValidator = v.union(
 // UIMessage validator
 export const uiMessageValidator = v.object({
 	id: v.string(),
-	role: v.union(v.literal("system"), v.literal("user"), v.literal("assistant")),
+	role: roleValidator,
 	parts: v.array(uiMessagePartValidator),
 	metadata: v.optional(v.any()),
 });

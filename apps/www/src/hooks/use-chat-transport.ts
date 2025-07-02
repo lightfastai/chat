@@ -66,7 +66,8 @@ export function useChatTransport({
 					modelId: (requestBody?.modelId as string) || defaultModel,
 					messages: messages,
 					options: {
-						webSearchEnabled: (requestBody?.webSearchEnabled as boolean) || false,
+						webSearchEnabled:
+							(requestBody?.webSearchEnabled as boolean) || false,
 						attachments: requestBody?.attachments as Id<"files">[] | undefined,
 						trigger,
 					},

@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 // Server component that enables SSR for the new chat page with prefetched user data
 export default function ChatPage() {
 	return (
-		<Suspense fallback={<ChatInterface threadContext={{type: "error"}} />}>
+		<Suspense fallback={<ChatInterface threadContext={{ type: "error" }} />}>
 			<ChatPageWithPreloadedData />
 		</Suspense>
 	);
@@ -46,15 +46,11 @@ async function ChatPageWithPreloadedData() {
 
 		// If no authentication token, render regular chat interface
 		if (!token) {
-      const threadContext: ThreadContext = {
-        type: "error",
-      };
+			const threadContext: ThreadContext = {
+				type: "error",
+			};
 
-			return (
-				<ChatInterface
-					threadContext={threadContext}
-				/>
-			);
+			return <ChatInterface threadContext={threadContext} />;
 		}
 
 		// Preload user data and settings for PPR - this will be cached and streamed instantly
@@ -63,13 +59,13 @@ async function ChatPageWithPreloadedData() {
 			preloadQuery(api.userSettings.getUserSettings, {}, { token }),
 		]);
 
-    	// Generate a stable ID for new chats on the server side
-	  const threadContext: ThreadContext = {
-		  type: "new",
-		  clientId: nanoid(),
-	  };
+		// Generate a stable ID for new chats on the server side
+		const threadContext: ThreadContext = {
+			type: "new",
+			clientId: nanoid(),
+		};
 
-    console.log("threadContext", threadContext);
+		console.log("threadContext", threadContext);
 
 		// Pass preloaded user data and settings to chat interface
 		return (
@@ -84,15 +80,11 @@ async function ChatPageWithPreloadedData() {
 		// Log error but still render - don't break the UI
 		console.warn("Server-side user preload failed:", error);
 
-    const threadContext: ThreadContext = {
-      type: "error",
-    };
+		const threadContext: ThreadContext = {
+			type: "error",
+		};
 
 		// Fallback to regular chat interface
-		return (
-			<ChatInterface
-				threadContext={threadContext}
-			/>
-		);
+		return <ChatInterface threadContext={threadContext} />;
 	}
 }

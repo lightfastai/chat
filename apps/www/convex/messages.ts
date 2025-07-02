@@ -8,18 +8,15 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
-import type { CoreMessage } from "ai";
-import { v } from "convex/values";
+import { Infer, v } from "convex/values";
 import {
 	type ModelId,
 	getModelById,
 	getProviderFromModelId,
 } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
-import type { Doc, Id } from "./_generated/dataModel.js";
+import type { Doc } from "./_generated/dataModel.js";
 import {
-	type ActionCtx,
-	internalAction,
 	internalMutation,
 	internalQuery,
 	mutation,
@@ -28,34 +25,25 @@ import {
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { enforceModelCapabilities } from "./lib/capability_guards.js";
 import { getWithOwnership } from "./lib/database.js";
-import { requireResource, throwConflictError } from "./lib/errors.js";
-import { createSystemPrompt } from "./lib/message_builder.js";
+import { throwConflictError } from "./lib/errors.js";
 import {
 	branchInfoValidator,
 	chatStatusValidator,
 	clientIdValidator,
 	messagePartsValidator,
-	messageTypeValidator,
+	roleValidator,
 	modelIdValidator,
 	modelProviderValidator,
 	shareIdValidator,
 	shareSettingsValidator,
 	threadUsageValidator,
 	tokenUsageValidator,
+	textPartValidator,
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
-import {
-	clearGenerationFlagUtil,
-	handleAIResponseError,
-	streamAIResponse,
-	updateThreadUsage,
-	updateThreadUsageUtil,
-} from "./messages/helpers.js";
-import {
-	type MessageUsageUpdate,
-	messageReturnValidator,
-} from "./messages/types.js";
+import { updateThreadUsage } from "./messages/helpers.js";
+import { type MessageUsageUpdate } from "./messages/types.js";
 
 // Type definitions for multimodal content
 type TextPart = { type: "text"; text: string };
@@ -80,7 +68,6 @@ export const get = query({
 	args: {
 		messageId: v.id("messages"),
 	},
-	returns: v.union(v.null(), messageReturnValidator),
 	handler: async (ctx, args) => {
 		const userId = await getAuthUserId(ctx);
 		if (!userId) {
@@ -106,7 +93,6 @@ export const listByClientId = query({
 	args: {
 		clientId: clientIdValidator,
 	},
-	returns: v.array(messageReturnValidator),
 	handler: async (ctx, args) => {
 		const userId = await getAuthUserId(ctx);
 		if (!userId) {
@@ -141,7 +127,6 @@ export const list = query({
 	args: {
 		threadId: v.id("threads"),
 	},
-	returns: v.array(messageReturnValidator),
 	handler: async (ctx, args) => {
 		const userId = await getAuthUserId(ctx);
 		if (!userId) {
@@ -263,7 +248,7 @@ export const getRecentContext = internalQuery({
 	returns: v.array(
 		v.object({
 			parts: v.optional(messagePartsValidator),
-			messageType: messageTypeValidator,
+			messageType: roleValidator,
 			attachments: v.optional(v.array(v.id("files"))),
 		}),
 	),
@@ -1119,228 +1104,6 @@ export const updateToolCallPart = internalMutation({
 	},
 });
 
-// ===== ACTIONS =====
-
-// Helper function to build conversation messages using utility functions
-async function buildConversationMessages(
-	ctx: ActionCtx,
-	threadId: Id<"threads">,
-	modelId: ModelId,
-	attachments?: Id<"files">[],
-	webSearchEnabled?: boolean,
-): Promise<CoreMessage[]> {
-	// Get recent conversation context
-	const recentMessages: Array<{
-		parts?: any[];
-		messageType: "user" | "assistant" | "system";
-		attachments?: Id<"files">[];
-	}> = await ctx.runQuery(internal.messages.getRecentContext, { threadId });
-
-	const provider = getProviderFromModelId(modelId);
-	const systemPrompt = createSystemPrompt(modelId, webSearchEnabled);
-
-	// Prepare messages for AI SDK v5 with multimodal support
-	const messages: CoreMessage[] = [
-		{
-			role: "system",
-			content: systemPrompt,
-		},
-	];
-
-	// Build conversation history with attachments
-	for (let i = 0; i < recentMessages.length; i++) {
-		const msg = recentMessages[i];
-		const isLastUserMessage =
-			i === recentMessages.length - 1 && msg.messageType === "user";
-
-		// For the last user message, include the current attachments
-		const attachmentsToUse =
-			isLastUserMessage && attachments ? attachments : msg.attachments;
-
-		// Extract text from parts
-		const text =
-			msg.parts
-				?.filter((part: any) => part.type === "text")
-				.map((part: any) => part.text)
-				.join("") || "";
-
-		// Build message content with attachments using mutation
-		const content = await ctx.runMutation(
-			internal.messages.buildMessageContent,
-			{
-				text,
-				attachmentIds: attachmentsToUse,
-				provider,
-				modelId,
-			},
-		);
-
-		messages.push({
-			role: msg.messageType === "user" ? "user" : "assistant",
-			content,
-		} as CoreMessage);
-	}
-
-	return messages;
-}
-
-// New action that uses pre-created message ID
-
-// Internal action to generate AI response using AI SDK v5
-export const generateAIResponse = internalAction({
-	args: {
-		threadId: v.id("threads"),
-		userMessage: v.string(),
-		modelId: modelIdValidator, // Use validated modelId
-		attachments: v.optional(v.array(v.id("files"))),
-		webSearchEnabled: v.optional(v.boolean()),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		let messageId: Id<"messages"> | undefined = undefined;
-		try {
-			// Get thread and user information
-			const thread = (await ctx.runQuery(internal.messages.getThreadById, {
-				threadId: args.threadId,
-			})) as { userId: Id<"users"> } | null;
-			requireResource(thread, "Thread");
-
-			// Validate model capabilities against attachments before processing
-			await enforceModelCapabilities(
-				ctx,
-				args.modelId as ModelId,
-				args.attachments,
-			);
-
-			// Derive provider from modelId
-			const provider = getProviderFromModelId(args.modelId as ModelId);
-
-			// Get user's API keys if available
-			const userApiKeys = (await ctx.runMutation(
-				internal.userSettings.getDecryptedApiKeys,
-				{ userId: thread.userId },
-			)) as {
-				anthropic?: string;
-				openai?: string;
-				openrouter?: string;
-			} | null;
-
-			// Create new streaming message
-			// Note: In HTTP streaming mode, the assistant message is pre-created by send/createThreadAndSend mutations
-			messageId = await ctx.runMutation(internal.messages.create, {
-				threadId: args.threadId,
-				messageType: "assistant",
-				body: "",
-				modelId: args.modelId as ModelId,
-				isStreaming: true,
-			});
-
-			// Build conversation messages
-			const messages = await buildConversationMessages(
-				ctx,
-				args.threadId,
-				args.modelId as ModelId,
-				args.attachments,
-				args.webSearchEnabled,
-			);
-
-			console.log(
-				`Attempting to call ${provider} with model ID ${args.modelId} and ${messages.length} messages`,
-			);
-			console.log(`Schema fix timestamp: ${Date.now()}`);
-			console.log(`Web search enabled: ${args.webSearchEnabled}`);
-
-			// Stream AI response using shared utility
-			const { usage: finalUsage } = await streamAIResponse(
-				ctx,
-				args.modelId as ModelId,
-				messages,
-				messageId,
-				userApiKeys,
-				args.webSearchEnabled,
-			);
-
-			// Update thread usage with final usage
-			if (finalUsage) {
-				await updateThreadUsageUtil(
-					ctx,
-					args.threadId,
-					args.modelId as ModelId,
-					finalUsage,
-				);
-			}
-
-			// Mark the message as complete
-			await ctx.runMutation(internal.messages.markComplete, {
-				messageId,
-			});
-		} catch (error) {
-			await handleAIResponseError(ctx, error, args.threadId, messageId, {
-				modelId: args.modelId,
-				provider: getProviderFromModelId(args.modelId as ModelId),
-				useStreamingUpdate: !!messageId,
-			});
-		} finally {
-			// Always clear generation flag
-			await clearGenerationFlagUtil(ctx, args.threadId);
-		}
-
-		return null;
-	},
-});
-
-// HTTP Streaming mutations for 200ms batching optimization
-
-export const create = internalMutation({
-	args: {
-		threadId: v.id("threads"),
-		role: v.optional(messageTypeValidator), // Optional for backward compatibility
-		messageType: v.optional(messageTypeValidator), // New field name
-		body: v.optional(v.string()), // Optional - use parts array instead
-		modelId: v.optional(modelIdValidator),
-		isStreaming: v.optional(v.boolean()),
-	},
-	returns: v.id("messages"),
-	handler: async (ctx, args) => {
-		const now = Date.now();
-		const messageType = args.messageType || args.role || "assistant";
-
-		// Determine status based on message type and streaming state
-		let status: "submitted" | "streaming" | "ready" | "error";
-		if (messageType === "user") {
-			// User messages are complete when saved
-			status = "ready";
-		} else if (args.isStreaming) {
-			// Assistant message that's actively streaming
-			status = "streaming";
-		} else {
-			// Assistant message waiting to start streaming
-			status = "submitted";
-		}
-
-		const messageId = await ctx.db.insert("messages", {
-			threadId: args.threadId,
-			parts: args.body ? [{ type: "text", text: args.body }] : [],
-			timestamp: now,
-			messageType,
-			modelId: args.modelId,
-			model: args.modelId
-				? getProviderFromModelId(args.modelId as ModelId)
-				: undefined,
-			status,
-			usage: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				reasoningTokens: 0,
-				cachedInputTokens: 0,
-			},
-		});
-
-		return messageId;
-	},
-});
-
 export const markComplete = internalMutation({
 	args: {
 		messageId: v.id("messages"),
@@ -1394,4 +1157,32 @@ export const updateMessageStatus = internalMutation({
 	},
 });
 
-// Sync message body from stream chunks (new stream system)
+export const createUserMessage = internalMutation({
+	args: {
+		threadId: v.id("threads"),
+		role: roleValidator,
+		part: textPartValidator,
+		modelId: modelIdValidator,
+	},
+	returns: v.id("messages"),
+	handler: async (ctx, args) => {
+		const now = Date.now();
+
+		// Determine status based on message type and streaming state
+		let status: Infer<typeof chatStatusValidator> = "ready";
+		if (args.role === "assistant") {
+			status = "streaming";
+		}
+
+		const messageId = await ctx.db.insert("messages", {
+			threadId: args.threadId,
+			parts: [args.part],
+			timestamp: now,
+			role: args.role,
+			modelId: args.modelId,
+			status,
+		});
+
+		return messageId;
+	},
+});

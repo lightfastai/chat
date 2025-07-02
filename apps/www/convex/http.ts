@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { auth } from "./auth";
-import { streamChatResponse } from "./httpStreaming";
+import { corsHandler, streamChatResponse } from "./httpStreaming";
 
 const http = httpRouter();
 
@@ -17,7 +17,7 @@ http.route({
 http.route({
 	path: "/stream-chat",
 	method: "OPTIONS",
-	handler: streamChatResponse, // Same handler handles OPTIONS internally
+	handler: corsHandler,
 });
 
 export default http;

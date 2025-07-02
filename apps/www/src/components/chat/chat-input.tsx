@@ -62,7 +62,7 @@ import { useKeyboardShortcutsContext } from "../providers/keyboard-shortcuts-pro
 interface ChatInputProps {
 	onSendMessage: (
 		message: string,
-		modelId: string,
+		modelId: ModelId,
 		attachments?: Id<"files">[],
 		webSearchEnabled?: boolean,
 	) => Promise<void> | void;
@@ -125,13 +125,13 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
 		// Initialize selectedModelId - load from sessionStorage after mount to avoid hydration issues
 		const [selectedModelId, setSelectedModelId] =
-			useState<string>(DEFAULT_MODEL_ID);
+			useState<ModelId>(DEFAULT_MODEL_ID);
 
 		// Load persisted model selection after mount
 		useEffect(() => {
 			const storedModel = sessionStorage.getItem("selectedModelId");
 			if (storedModel) {
-				setSelectedModelId(storedModel);
+				setSelectedModelId(storedModel as ModelId);
 			}
 		}, []);
 
@@ -444,7 +444,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
 		const [dropdownOpen, setDropdownOpen] = useState(false);
 
-		const handleModelChange = useCallback((value: string) => {
+		const handleModelChange = useCallback((value: ModelId) => {
 			setSelectedModelId(value);
 			// Persist to sessionStorage to maintain selection across navigation
 			if (typeof window !== "undefined") {
@@ -651,7 +651,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 																			<DropdownMenuItem
 																				key={model.id}
 																				onClick={() =>
-																					handleModelChange(model.id)
+																					handleModelChange(model.id as ModelId)
 																				}
 																				className="flex flex-col items-start py-3"
 																			>

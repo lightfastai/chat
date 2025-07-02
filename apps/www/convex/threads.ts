@@ -8,9 +8,11 @@ import { requireResource, throwConflictError } from "./lib/errors.js";
 import {
 	branchInfoValidator,
 	clientIdValidator,
+	clientThreadIdValidator,
 	modelIdValidator,
 	shareIdValidator,
 	shareSettingsValidator,
+	textPartValidator,
 	threadUsageValidator,
 	titleValidator,
 } from "./validators.js";
@@ -190,10 +192,12 @@ const threadWithCategoryValidator = v.object({
 });
 
 // Create a new thread with optimistic update
-export const createOptimistic = mutation({
+// @todo call the title generation mutation here
+export const createThreadWithFirstMessage = mutation({
 	args: {
-		clientId: clientIdValidator,
-		title: v.optional(titleValidator),
+		clientThreadId: clientThreadIdValidator,
+		message: textPartValidator,
+		modelId: modelIdValidator,
 	},
 	returns: v.id("threads"),
 	handler: async (ctx, args) => {
@@ -202,18 +206,19 @@ export const createOptimistic = mutation({
 		// Check for collision if clientId is provided (extremely rare with nanoid)
 		const existing = await ctx.db
 			.query("threads")
-			.withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
+			.withIndex("by_client_id", (q) => q.eq("clientId", args.clientThreadId))
 			.first();
 
 		if (existing) {
 			// Return existing thread ID instead of throwing error for idempotency
+			// @todo actually handle this correcttly...
 			return existing._id;
 		}
 
 		const now = Date.now();
 		const threadId = await ctx.db.insert("threads", {
-			clientId: args.clientId,
-			title: args.title || "New chat",
+			clientId: args.clientThreadId,
+			title: "",
 			userId: userId,
 			createdAt: now,
 			lastMessageAt: now,
@@ -228,6 +233,13 @@ export const createOptimistic = mutation({
 				messageCount: 0,
 				modelStats: {},
 			},
+		});
+
+		await ctx.runMutation(internal.messages.createUserMessage, {
+			threadId,
+			role: "user",
+			modelId: args.modelId,
+			part: args.message,
 		});
 
 		return threadId;

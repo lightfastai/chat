@@ -13,6 +13,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { useChatTransport } from "./use-chat-transport";
 import { useOptimisticThreadCreate } from "./use-optimistic-thread-create";
 import type { ValidThread } from "../types/schema";
+import { ModelId } from "../lib/ai/schemas";
 
 interface UseChatProps {
 	/** The chat context - type and clientId */
@@ -83,7 +84,7 @@ export function useChat({
 		return converted;
 	}, [threadContext.type, threadContext.clientId]);
 
-  // Use Vercel AI SDK with custom transport and preloaded messages
+	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
 		messages: uiMessages,
 		status,
@@ -93,7 +94,7 @@ export function useChat({
 		id: threadContext.clientId,
 		transport,
 		generateId: () => nanoid(),
-		// messages: initialMessages,
+		messages: initialMessages,
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
@@ -108,7 +109,7 @@ export function useChat({
 	const sendMessage = useCallback(
 		async (
 			message: string,
-			selectedModelId: string,
+			selectedModelId: ModelId,
 			attachments?: Id<"files">[],
 			webSearchEnabledOverride?: boolean,
 		) => {
@@ -117,37 +118,46 @@ export function useChat({
 				window.history.replaceState({}, "", `/chat/${threadContext.clientId}`);
 			}
 
-      setMessages([
-        {
-          id: nanoid(),
-          role: "user",
-          parts: [{ type: "text", text: message }],
-        },
-      ]);
+			setMessages([
+				{
+					id: nanoid(),
+					role: "user",
+					parts: [{ type: "text", text: message }],
+				},
+			]);
 
-      createThreadOptimistic({clientId: threadContext.clientId})
+			createThreadOptimistic({
+				clientThreadId: threadContext.clientId,
+				message: { type: "text", text: message },
+				modelId: selectedModelId,
+			});
 
-			// try {
-			// 	await vercelSendMessage(
-			// 		{
-			// 			role: "user",
-			// 			parts: [{ type: "text", text: message }],
-			// 		},
-			// 		{
-			// 			body: {
-			// 				threadId: resolvedThreadId,
-			// 				clientId: threadContext.clientId,
-			// 				modelId: selectedModelId,
-			// 				webSearchEnabled: webSearchEnabledOverride || false,
-			// 				attachments,
-			// 			},
-			// 		},
-			// 	);
-			// } catch (error) {
-			// 	throw error;
-			// }
+			try {
+				// TODO: Temporarily disabled for optimistic message creation
+				// await vercelSendMessage(
+				// 	{
+				// 		role: "user",
+				// 		parts: [{ type: "text", text: message }],
+				// 	},
+				// 	{
+				// 		body: {
+				// 			clientId: threadContext.clientId,
+				// 			modelId: selectedModelId,
+				// 			webSearchEnabled: webSearchEnabledOverride || false,
+				// 			attachments,
+				// 		},
+				// 	},
+				// );
+			} catch (error) {
+				throw error;
+			}
 		},
-		[vercelSendMessage, threadContext.clientId, createThreadOptimistic, setMessages],
+		[
+			vercelSendMessage,
+			threadContext.clientId,
+			createThreadOptimistic,
+			setMessages,
+		],
 	);
 
 	return {

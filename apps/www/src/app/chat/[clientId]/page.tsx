@@ -47,7 +47,7 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 	}
 
 	return (
-		<Suspense fallback={<ChatInterface threadContext={{type: "error"}} />}>
+		<Suspense fallback={<ChatInterface threadContext={{ type: "error" }} />}>
 			<ChatThreadPageWithPreloadedData clientId={clientId} />
 		</Suspense>
 	);
@@ -65,7 +65,7 @@ async function ChatThreadPageWithPreloadedData({
 
 		// If no authentication token, render regular chat interface
 		if (!token) {
-			return <ChatInterface threadContext={{type: "error"}} />;
+			return <ChatInterface threadContext={{ type: "error" }} />;
 		}
 
 		// Preload user settings
@@ -89,10 +89,10 @@ async function ChatThreadPageWithPreloadedData({
 			{ token },
 		);
 
-    const threadContext: ThreadContext = {
-      type: "existing",
-      clientId,
-    };
+		const threadContext: ThreadContext = {
+			type: "existing",
+			clientId,
+		};
 
 		return (
 			<ChatPreloadProvider
@@ -112,6 +112,6 @@ async function ChatThreadPageWithPreloadedData({
 		console.warn("Server-side chat data preload failed:", error);
 
 		// Fallback to regular chat interface
-		return <ChatInterface threadContext={{type: "error"}} />;
+		return <ChatInterface threadContext={{ type: "error" }} />;
 	}
 }

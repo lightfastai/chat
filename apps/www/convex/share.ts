@@ -2,15 +2,11 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { nanoid } from "nanoid";
 import { mutation, query } from "./_generated/server";
-import { messageReturnValidator } from "./messages/types";
 import {
 	ipHashValidator,
 	shareIdValidator,
 	shareSettingsValidator,
-	titleValidator,
-	urlValidator,
 	userAgentValidator,
-	userNameValidator,
 } from "./validators";
 
 export const shareThread = mutation({
@@ -201,26 +197,6 @@ export const getSharedThread = query({
 	args: {
 		shareId: shareIdValidator,
 	},
-	returns: v.union(
-		v.null(),
-		v.object({
-			thread: v.object({
-				_id: v.id("threads"),
-				title: titleValidator,
-				createdAt: v.number(),
-				lastMessageAt: v.number(),
-				shareSettings: shareSettingsValidator,
-			}),
-			messages: v.array(messageReturnValidator),
-			owner: v.union(
-				v.null(),
-				v.object({
-					name: v.union(userNameValidator, v.null()),
-					image: v.union(urlValidator, v.null()),
-				}),
-			),
-		}),
-	),
 	handler: async (ctx, args) => {
 		// Find thread by shareId
 		const thread = await ctx.db

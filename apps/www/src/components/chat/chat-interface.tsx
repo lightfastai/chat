@@ -24,13 +24,12 @@ export function ChatInterface({
 	preloadedUser,
 	preloadedUserSettings,
 }: ChatInterfaceProps) {
-	const { messages, sendMessage, status, canSendMessage } =
-		useChat({
-			threadContext: threadContext as ValidThread, // @note: quick hack,
-			preloadedThreadByClientId,
-			preloadedMessages,
-			preloadedUserSettings,
-		});
+	const { messages, sendMessage, status, canSendMessage } = useChat({
+		threadContext: threadContext as ValidThread, // @note: quick hack,
+		preloadedThreadByClientId,
+		preloadedMessages,
+		preloadedUserSettings,
+	});
 
 	// Show centered layout only for new chats with no messages
 	if (threadContext.type === "new" && messages.length === 0) {
@@ -46,10 +45,7 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages
-				messages={messages}
-				status={status}
-			/>
+			<ChatMessages messages={messages} status={status} />
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}

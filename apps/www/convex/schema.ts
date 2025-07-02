@@ -12,7 +12,7 @@ import {
   fileNameValidator,
   ipHashValidator,
   messagePartsValidator,
-  messageTypeValidator,
+  roleValidator,
   mimeTypeValidator,
   modelIdValidator,
   modelProviderValidator,
@@ -79,21 +79,22 @@ export default defineSchema({
 	messages: defineTable({
 		threadId: v.id("threads"),
 		timestamp: v.number(),
-		messageType: messageTypeValidator,
-		model: v.optional(modelProviderValidator),
+		messageType: v.optional(roleValidator),
 		modelId: v.optional(modelIdValidator),
+		model: v.optional(modelProviderValidator),
 		// Attachments - array of file IDs
 		attachments: v.optional(v.array(v.id("files"))),
 		thinkingStartedAt: v.optional(v.number()),
 		thinkingCompletedAt: v.optional(v.number()),
 		usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
 		// Token usage tracking per message
-		usage: tokenUsageValidator,
+		usage: v.optional(tokenUsageValidator),
 		// Message parts array following Vercel AI SDK v5 structure
 		// Stores text, tool calls, and tool results in chronological order
+		// V2 Schema.
 		parts: v.optional(messagePartsValidator),
-		// Message status following Vercel AI SDK v5 ChatStatus enum
-		status: chatStatusValidator,
+		role: v.optional(roleValidator),
+		status: v.optional(chatStatusValidator),
 	}).index("by_thread", ["threadId"]),
 
 	feedback: defineTable({

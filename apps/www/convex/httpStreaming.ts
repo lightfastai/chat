@@ -27,86 +27,31 @@ import type { httpStreamingRequestValidator } from "./validators";
 // Types from validators
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
 
+export const corsHandler = httpAction(async (ctx, request) => {
+	return new Response(null, {
+		status: 200,
+		headers: {
+			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Methods": "POST, OPTIONS",
+			"Access-Control-Allow-Headers": "Content-Type, Authorization",
+			"Access-Control-Expose-Headers": "X-Thread-Id",
+			"Access-Control-Max-Age": "86400",
+		},
+	});
+});
+
 export const streamChatResponse = httpAction(async (ctx, request) => {
-	console.log("[HTTP Streaming] ===== REQUEST START =====");
-	console.log("[HTTP Streaming] Method:", request.method);
-	console.log("[HTTP Streaming] URL:", request.url);
-
-	// Handle CORS preflight
-	if (request.method === "OPTIONS") {
-		console.log("[HTTP Streaming] Handling CORS preflight");
-		return new Response(null, {
-			status: 200,
-			headers: {
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "POST, OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type, Authorization",
-				"Access-Control-Expose-Headers": "X-Thread-Id",
-				"Access-Control-Max-Age": "86400",
-			},
-		});
-	}
-
 	try {
 		// Parse and validate request body
-		console.log("[HTTP Streaming] Parsing request body...");
 		const body = (await request.json()) as HTTPStreamingRequest;
 
-		console.log("[HTTP Streaming] Raw body:", JSON.stringify(body, null, 2));
-
-		const {
-			threadId: requestThreadId,
-			clientId,
-			modelId,
-			messages: uiMessages,
-			options,
-		} = body;
-
-		console.log("[HTTP Streaming] Parsed request:", {
-			threadId: requestThreadId,
-			clientId,
-			modelId,
-			hasUIMessages: !!uiMessages,
-			messageCount: uiMessages?.length,
-			options,
-		});
-
-		if (uiMessages && uiMessages.length > 0) {
-			console.log("[HTTP Streaming] UI Messages:");
-			uiMessages.forEach((msg, idx) => {
-				console.log(
-					`  [${idx}] Role: ${msg.role}, Parts: ${msg.parts?.length || 0}`,
-				);
-				if (msg.parts) {
-					msg.parts.forEach((part, partIdx) => {
-						if (part.type === "text") {
-							console.log(
-								`    [${partIdx}] Text: ${(part as { text: string }).text.substring(0, 100)}...`,
-							);
-						} else {
-							console.log(`    [${partIdx}] Type: ${part.type}`);
-						}
-					});
-				}
-			});
-		}
+		const { clientId, modelId, messages: uiMessages, options } = body;
 
 		// Handle thread creation for new chats
 		let threadId: Id<"threads">;
 		let thread: Doc<"threads"> | null;
 
-		console.log(
-			"[HTTP Streaming] Thread resolution - requestThreadId:",
-			requestThreadId,
-			"clientId:",
-			clientId,
-		);
-
-		if (!requestThreadId && !clientId) {
-			// No thread ID or client ID provided
-			console.error(
-				"[HTTP Streaming] ERROR: No thread ID or client ID provided",
-			);
+		if (!clientId) {
 			return new Response("Thread ID or client ID required", {
 				status: 400,
 				headers: {
@@ -118,127 +63,15 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			});
 		}
 
-		// Try to find thread by clientId first, then by threadId
-		if (clientId) {
-			console.log("[HTTP Streaming] Looking up thread by clientId:", clientId);
-			thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
-			if (!thread) {
-				// Create new thread for this clientId (without messages - we'll create them below)
-				console.log(
-					"[HTTP Streaming] Creating new thread for clientId:",
-					clientId,
-				);
-
-				// Get authenticated user ID first
-				const authHeader = request.headers.get("authorization");
-				if (!authHeader?.startsWith("Bearer ")) {
-					throw new Error("No valid authentication provided");
-				}
-
-				// Extract the first user message for title generation
-				let firstUserMessage = "";
-				if (uiMessages && uiMessages.length > 0) {
-					const userMessages = uiMessages.filter((msg) => msg.role === "user");
-					if (userMessages.length > 0) {
-						const firstMsg = userMessages[0];
-						firstUserMessage =
-							firstMsg.parts
-								?.filter((part) => part.type === "text")
-								?.map((part) => (part as { text: string }).text)
-								?.join("\n") || "";
-					}
-				}
-
-				// Use the existing auth handling from the endpoint
-				threadId = await ctx.runMutation(api.threads.create, {
-					clientId,
-					firstUserMessage, // Pass first user message for title generation
-				});
-
-				// Fetch the newly created thread
-				thread = await ctx.runQuery(api.threads.get, { threadId });
-				if (!thread) {
-					console.error(
-						"[HTTP Streaming] ERROR: Failed to fetch newly created thread",
-					);
-					return new Response("Failed to create thread", {
-						status: 500,
-						headers: {
-							"Access-Control-Allow-Origin": "*",
-							"Access-Control-Allow-Methods": "POST",
-							"Access-Control-Allow-Headers": "Content-Type, Authorization",
-							"Access-Control-Expose-Headers": "X-Thread-Id",
-						},
-					});
-				}
-				console.log("[HTTP Streaming] Created new thread:", threadId);
-			} else {
-				threadId = thread._id;
-				console.log(
-					"[HTTP Streaming] Found existing thread by clientId. ThreadId:",
-					threadId,
-				);
-
-				// If thread exists but title generation hasn't been scheduled yet
-				// (e.g., thread was created optimistically), schedule it now
-				if (thread.isTitleGenerating && thread.title === "New chat") {
-					// Extract the first user message for title generation
-					let firstUserMessage = "";
-					if (uiMessages && uiMessages.length > 0) {
-						const userMessages = uiMessages.filter(
-							(msg) => msg.role === "user",
-						);
-						if (userMessages.length > 0) {
-							const firstMsg = userMessages[0];
-							firstUserMessage =
-								firstMsg.parts
-									?.filter((part) => part.type === "text")
-									?.map((part) => (part as { text: string }).text)
-									?.join("\n") || "";
-						}
-					}
-
-					// Schedule title generation for the optimistically created thread
-					if (firstUserMessage && firstUserMessage.trim()) {
-						console.log(
-							"[HTTP Streaming] Scheduling title generation for optimistic thread:",
-							threadId,
-						);
-						await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
-							threadId,
-							userMessage: firstUserMessage,
-						});
-					}
-				}
-			}
-		} else if (requestThreadId) {
-			threadId = requestThreadId;
-			console.log("[HTTP Streaming] Looking up thread by threadId:", threadId);
-			thread = await ctx.runQuery(api.threads.get, { threadId });
-			if (!thread) {
-				console.error(
-					"[HTTP Streaming] ERROR: Thread not found by threadId:",
-					threadId,
-				);
-				return new Response("Thread not found", {
-					status: 404,
-					headers: {
-						"Access-Control-Allow-Origin": "*",
-						"Access-Control-Allow-Methods": "POST",
-						"Access-Control-Allow-Headers": "Content-Type, Authorization",
-					},
-				});
-			}
-			console.log("[HTTP Streaming] Found thread by threadId");
-		} else {
-			// This should never happen due to the check above
-			console.error("[HTTP Streaming] ERROR: Invalid request state");
-			return new Response("Invalid request", {
-				status: 400,
+		thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
+		if (!thread) {
+			return new Response("Failed to create thread", {
+				status: 500,
 				headers: {
 					"Access-Control-Allow-Origin": "*",
 					"Access-Control-Allow-Methods": "POST",
 					"Access-Control-Allow-Headers": "Content-Type, Authorization",
+					"Access-Control-Expose-Headers": "X-Thread-Id",
 				},
 			});
 		}
@@ -246,65 +79,42 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		// Save the latest user message to database
 		// The HTTP streaming request is triggered by a new user message, so we only need to save the latest one
 		if (uiMessages && uiMessages.length > 0) {
-			console.log(
-				"[HTTP Streaming] Looking for the latest user message to save...",
-			);
-
 			// Find the latest user message (the one that triggered this request)
 			const userMessages = uiMessages.filter((msg) => msg.role === "user");
 
-			if (userMessages.length > 0) {
-				const latestUserMessage = userMessages[userMessages.length - 1];
-
-				// Extract text content from the latest user message
-				const textParts = latestUserMessage.parts
-					.filter((part) => part.type === "text")
-					.map((part) => (part as { text: string }).text)
-					.join("\n");
-
-				if (textParts.trim()) {
-					// Save only the latest user message with parts
-					const savedMessageId = await ctx.runMutation(
-						internal.messages.create,
-						{
-							threadId,
-							messageType: "user",
-						},
-					);
-					console.log(
-						"[HTTP Streaming] Saved latest user message with ID:",
-						savedMessageId,
-					);
-
-					// Add the parts from the user message
-					// Since user messages are text-only, we just need to add text parts
-					await ctx.runMutation(internal.messages.addTextPart, {
-						messageId: savedMessageId,
-						text: textParts,
-					});
-				}
+			if (userMessages.length < 1) {
+				throw new Error("No user messages provided");
 			}
-		}
 
-		let messageId: Id<"messages">;
+			const latestUserMessage = userMessages[userMessages.length - 1];
 
-		// Use existing message or create new one
-		if (options?.useExistingMessage) {
-			messageId = options.useExistingMessage;
-			console.log("[HTTP Streaming] Using existing message:", messageId);
-		} else {
-			// Create new message
-			console.log("[HTTP Streaming] Creating new assistant message...");
-			try {
-				messageId = await ctx.runMutation(internal.messages.create, {
-					threadId,
-					messageType: "assistant",
-					modelId: modelId as ModelId,
+			// Extract text content from the latest user message
+			const textParts = latestUserMessage.parts
+				.filter((part) => part.type === "text")
+				.map((part) => (part as { text: string }).text)
+				.join("\n");
+
+			if (textParts.trim()) {
+				// Save only the latest user message with parts
+				const savedMessageId = await ctx.runMutation(
+					internal.messages.createUserMessage,
+					{
+						threadId: thread._id,
+						role: "user",
+						parts: {
+							type: "text",
+							text: textParts,
+						},
+						modelId: modelId as ModelId,
+					},
+				);
+
+				// Add the parts from the user message
+				// Since user messages are text-only, we just need to add text parts
+				await ctx.runMutation(internal.messages.addTextPart, {
+					messageId: savedMessageId,
+					text: textParts,
 				});
-				console.log("[HTTP Streaming] Created new message:", messageId);
-			} catch (error) {
-				console.error("[HTTP Streaming] ERROR creating message:", error);
-				throw error;
 			}
 		}
 
@@ -325,15 +135,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			);
 		}
 
-		console.log("[HTTP Streaming] Converting UIMessages to ModelMessages...");
-
 		// Convert UIMessages to ModelMessages using SDK function
 		const convertedMessages = convertToModelMessages(uiMessages as UIMessage[]);
-
-		console.log(
-			"[HTTP Streaming] Raw converted messages:",
-			JSON.stringify(convertedMessages, null, 2),
-		);
 
 		// Filter out messages with empty content (Anthropic doesn't allow this)
 		const validMessages = convertedMessages.filter((msg) => {
@@ -341,20 +144,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				? msg.content.length > 0
 				: msg.content && msg.content.trim().length > 0;
 
-			if (!hasValidContent) {
-				console.log(
-					"[HTTP Streaming] Filtering out message with empty content:",
-					JSON.stringify(msg, null, 2),
-				);
-			}
-
 			return hasValidContent;
 		});
-
-		console.log(
-			"[HTTP Streaming] Valid messages after filtering:",
-			JSON.stringify(validMessages, null, 2),
-		);
 
 		// Add system prompt at the beginning
 		const systemPrompt = createSystemPrompt(
@@ -369,14 +160,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			...validMessages,
 		];
 
-		console.log("[HTTP Streaming] Final messages count:", messages.length);
-
 		const provider = getProviderFromModelId(modelId as ModelId);
 		const model = getModelById(modelId as ModelId);
-
-		console.log(
-			`[HTTP Streaming] Starting AI generation with ${provider} model ${model.id}`,
-		);
 
 		// Create AI client
 		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
@@ -619,17 +404,19 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			}
 
 			console.log("[HTTP Streaming] Returning UI message stream response");
-			
+
 			// Filter out user messages from the response to prevent duplicates
 			// Frontend will handle user messages optimistically
-			const filteredUIMessages = uiMessages?.filter(msg => msg.role !== "user") || [];
-			
+			const filteredUIMessages =
+				uiMessages?.filter((msg) => msg.role !== "user") || [];
+
 			console.log("[HTTP Streaming] Filtered UI messages:", {
 				originalCount: uiMessages?.length || 0,
 				filteredCount: filteredUIMessages.length,
-				removedUserMessages: (uiMessages?.length || 0) - filteredUIMessages.length
+				removedUserMessages:
+					(uiMessages?.length || 0) - filteredUIMessages.length,
 			});
-			
+
 			return result.toUIMessageStreamResponse({
 				headers: responseHeaders,
 				originalMessages: filteredUIMessages as UIMessage[],
