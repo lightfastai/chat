@@ -3,29 +3,17 @@
 import type { Doc } from "@/convex/_generated/dataModel";
 import { mergeTextParts } from "@/hooks/use-merged-messages";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
-import { cn } from "@lightfast/ui/lib/utils";
 import type React from "react";
 import { MessageLayout } from "./message-layout";
 import { ThinkingIndicator } from "./thinking-indicator";
 
 export interface MessageItemProps {
 	message: Doc<"messages">;
-	owner?: {
-		name?: string | null;
-		image?: string | null;
-	};
-	currentUser?: {
-		name?: string | null;
-		image?: string | null;
-	};
+  status?: "ready" | "streaming" | "submitted" | "error";
 	showActions?: boolean;
 	isReadOnly?: boolean;
-	isStreaming?: boolean;
-	isComplete?: boolean;
 	actions?: React.ReactNode;
-	className?: string;
 	forceActionsVisible?: boolean;
-	status?: "ready" | "streaming" | "submitted" | "error";
 	isLastAssistantMessage?: boolean;
 }
 
@@ -33,22 +21,14 @@ export function MessageItem({
 	message,
 	showActions = true,
 	isReadOnly = false,
-	isStreaming,
-	isComplete,
 	actions,
-	className,
 	forceActionsVisible = false,
 	status,
 	isLastAssistantMessage = false,
 }: MessageItemProps) {
-	const isAssistant = message.role === "assistant";
-
-	// Avatar is removed for clean UI
-	const avatar = null;
-
 	// Content component
 	const content = (
-		<div className={cn("space-y-1", className)}>
+		<div className="space-y-1">
 			{/* Show thinking indicator when status is submitted */}
 			{status === "submitted" && isLastAssistantMessage && (
 				<div className="mb-2">
@@ -69,7 +49,7 @@ export function MessageItem({
 									if (part.type === "text") {
 										return (
 											<div key={`text-${index}`}>
-												{isAssistant ? (
+												{message.role === "assistant" ? (
 													<Markdown className="text-sm">{part.text}</Markdown>
 												) : (
 													<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -77,8 +57,7 @@ export function MessageItem({
 													</div>
 												)}
 												{/* Show streaming cursor for last text part */}
-												{isStreaming &&
-													!isComplete &&
+												{status === "streaming" &&
 													index === mergedParts.length - 1 && (
 														<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
 													)}
@@ -112,13 +91,12 @@ export function MessageItem({
 		(status === "streaming" || status === "submitted");
 
 	const messageActions =
-		!isReadOnly && showActions && isAssistant && !shouldDisableActions
+		!isReadOnly && showActions && message.role === "assistant" && !shouldDisableActions
 			? actions
 			: undefined;
 
 	return (
 		<MessageLayout
-			avatar={avatar}
 			content={content}
 			timestamp={timestamp}
 			actions={messageActions}

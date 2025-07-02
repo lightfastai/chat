@@ -3,7 +3,6 @@ import type React from "react";
 import { Role } from "../../../../convex/validators";
 
 export interface MessageLayoutProps {
-	avatar: React.ReactNode;
 	content: React.ReactNode;
 	timestamp?: React.ReactNode;
 	actions?: React.ReactNode;

@@ -49,10 +49,6 @@ export function MessageDisplay({
 				currentUser={currentUser || undefined}
 				showActions={true}
 				isReadOnly={false}
-				isStreaming={message.status === "streaming"}
-				isComplete={
-					message.status !== "streaming" && message.status !== "submitted"
-				}
 				actions={actions}
 				forceActionsVisible={isDropdownOpen}
 				status={status}
