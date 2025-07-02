@@ -102,17 +102,17 @@ export function useOptimisticThreadCreateWithUserAndAssistantMessage() {
 		};
 
 		const existingMessages =
-			localStore.getQuery(api.messages.list, {
-				threadId: optimisticThreadId,
+			localStore.getQuery(api.messages.listByClientId, {
+				clientId: clientThreadId,
 			}) || [];
 
 		// Update local store - add both messages to beginning of list
 		// Order: user message first, then assistant message
-		localStore.setQuery(api.messages.list, { threadId: optimisticThreadId }, [
-			optimisticUserMessage,
-			optimisticAssistantMessage,
-			...existingMessages,
-		]);
+		localStore.setQuery(
+			api.messages.listByClientId,
+			{ clientId: clientThreadId },
+			[optimisticUserMessage, optimisticAssistantMessage, ...existingMessages],
+		);
 
 		// Also update the thread to show it's generating
 		localStore.setQuery(

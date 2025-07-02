@@ -22,6 +22,13 @@ export function useOptimisticMessageCreate() {
 				return;
 			}
 
+			// Get the thread to access its clientId
+			const thread = localStore.getQuery(api.threads.get, { threadId });
+			if (!thread?.clientId) {
+				console.error("Thread or clientId not found");
+				return;
+			}
+
 			const now = Date.now();
 
 			// Create optimistic user message
@@ -49,17 +56,23 @@ export function useOptimisticMessageCreate() {
 				status: "submitted", // Shows thinking indicator
 			};
 
-			// Get existing messages for this thread
+			// Get existing messages for this thread using clientId
 			const existingMessages =
-				localStore.getQuery(api.messages.list, { threadId }) || [];
+				localStore.getQuery(api.messages.listByClientId, {
+					clientId: thread.clientId,
+				}) || [];
 
 			// Update local store - add both messages to beginning of list
 			// Order: user message first, then assistant message
-			localStore.setQuery(api.messages.list, { threadId }, [
-				optimisticUserMessage,
-				optimisticAssistantMessage,
-				...existingMessages,
-			]);
+			localStore.setQuery(
+				api.messages.listByClientId,
+				{ clientId: thread.clientId },
+				[
+					optimisticUserMessage,
+					optimisticAssistantMessage,
+					...existingMessages,
+				],
+			);
 
 			// Get the current thread to update its state
 			const currentThread = localStore.getQuery(api.threads.get, { threadId });

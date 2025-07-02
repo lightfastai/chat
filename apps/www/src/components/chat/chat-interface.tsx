@@ -82,10 +82,9 @@ function ChatInterfaceWithPreloadedQueries({
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }) {
 	// Extract data from preloaded queries
-	const dbMessages =
-		preloadedMessages
-			? usePreloadedQuery(preloadedMessages)
-			: undefined;
+	const dbMessages = preloadedMessages
+		? usePreloadedQuery(preloadedMessages)
+		: undefined;
 
 	return (
 		<SharedChatComponent

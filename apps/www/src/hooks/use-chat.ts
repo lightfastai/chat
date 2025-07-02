@@ -43,7 +43,9 @@ export function useChat({
 		(state) => state.threadContext,
 	);
 	const setThreadId = useThreadContextStore((state) => state.setThreadId);
-	const thread = useQuery(api.threads.getByClientId, { clientId: threadContext.clientId });
+	const thread = useQuery(api.threads.getByClientId, {
+		clientId: threadContext.clientId,
+	});
 
 	// Extract data from preloaded queries if available
 	let userSettings = null;
@@ -141,13 +143,13 @@ export function useChat({
 				setThreadId(data.threadId);
 			}
 
-			if (threadContextFromStore.type === "existing" ) {
-        if (!thread?._id) {
-          console.error("Thread not found", {
-            threadContext,
-          });
-          return;
-        }
+			if (threadContextFromStore.type === "existing") {
+				if (!thread?._id) {
+					console.error("Thread not found", {
+						threadContext,
+					});
+					return;
+				}
 
 				const data = await createMessageOptimistic({
 					threadId: thread._id,
@@ -159,12 +161,12 @@ export function useChat({
 			}
 
 			if (!userMessageId || !assistantMessageId) {
-        // @todo need to deep test so this never happens or rewrite our logic.
+				// @todo need to deep test so this never happens or rewrite our logic.
 				console.error("User or assistant message ID not found", {
 					userMessageId,
 					assistantMessageId,
 				});
-        return;
+				return;
 			}
 
 			// TODO: Temporarily disabled for optimistic message creation

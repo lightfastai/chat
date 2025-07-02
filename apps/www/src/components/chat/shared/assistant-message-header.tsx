@@ -1,8 +1,8 @@
 "use client";
 
 import type { UIMessage } from "ai";
+import type { ReasoningPart, TextPart } from "../../../../convex/validators";
 import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
-import { ReasoningPart, TextPart } from "../../../../convex/validators";
 
 interface MessageMetadata {
 	hasThinkingContent?: boolean;
