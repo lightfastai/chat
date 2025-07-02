@@ -12,10 +12,12 @@
 
 import {
   type ModelMessage,
-  ReasoningUIPart, TextUIPart,
-  UIMessage, convertToModelMessages,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type UIMessage,
+  convertToModelMessages,
   smoothStream,
-  streamText
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
@@ -170,22 +172,21 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				return {
 					id: message._id,
 					role: message.role as UIMessage["role"],
-					parts:
-						message.parts?.map((part) => {
-							if (part.type === "text") {
-								return {
-									type: "text",
-									text: part.text,
-								} as TextUIPart;
-							}
+					parts: message.parts?.map((part) => {
+						if (part.type === "text") {
+							return {
+								type: "text",
+								text: part.text,
+							} as TextUIPart;
+						}
 
-							if (part.type === "reasoning") {
-								return {
-									type: "reasoning",
-									text: part.text,
-								} as ReasoningUIPart;
-							}
-						}) as UIMessage["parts"],
+						if (part.type === "reasoning") {
+							return {
+								type: "reasoning",
+								text: part.text,
+							} as ReasoningUIPart;
+						}
+					}) as UIMessage["parts"],
 				};
 			});
 		};

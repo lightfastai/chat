@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
-import { Doc } from "./_generated/dataModel.js";
+import type { Doc } from "./_generated/dataModel.js";
 
 /**
  * Comprehensive validators for the chat application

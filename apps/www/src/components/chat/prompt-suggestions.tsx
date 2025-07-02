@@ -102,7 +102,7 @@ export function PromptSuggestions({ onSelectPrompt }: PromptSuggestionsProps) {
 					<div className="grid gap-1">
 						{selectedCategoryData?.prompts.map((prompt, index) => (
 							<div
-								key={index}
+								key={`${selectedCategory}-${prompt}`}
 								className={cn(
 									"opacity-0 translate-y-4 transition-all duration-500 ease-out",
 									index < visiblePrompts && "opacity-100 translate-y-0",

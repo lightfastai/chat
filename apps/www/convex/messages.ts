@@ -11,8 +11,13 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { type Infer, v } from "convex/values";
 import { getModelById } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
-import type { Doc } from "./_generated/dataModel.js";
-import { internalMutation, internalQuery, query } from "./_generated/server.js";
+import type { Doc, Id } from "./_generated/dataModel.js";
+import {
+	internalMutation,
+	internalQuery,
+	mutation,
+	query,
+} from "./_generated/server.js";
 import {
 	branchInfoValidator,
 	chatStatusValidator,
@@ -896,7 +901,10 @@ export const markComplete = internalMutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const updateData: any = {
+		const updateData: {
+			status: "ready";
+			usage?: Infer<typeof tokenUsageValidator>;
+		} = {
 			status: "ready",
 		};
 
@@ -987,5 +995,62 @@ export const createAssistantMessage = internalMutation({
 		});
 
 		return messageId;
+	},
+});
+
+// ===== PUBLIC MUTATIONS =====
+
+// Mutation to create messages in existing threads (for optimistic updates)
+export const create = mutation({
+	args: {
+		threadId: v.id("threads"),
+		message: textPartValidator,
+		modelId: modelIdValidator,
+	},
+	returns: v.object({
+		userMessageId: v.id("messages"),
+		assistantMessageId: v.id("messages"),
+	}),
+	handler: async (ctx, args) => {
+		const userId = await getAuthUserId(ctx);
+		if (!userId) {
+			throw new Error("Not authenticated");
+		}
+
+		// Verify the user owns this thread
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread || thread.userId !== userId) {
+			throw new Error("Thread not found");
+		}
+
+		// Create user message
+		const userMessageId: Id<"messages"> = await ctx.runMutation(
+			internal.messages.createUserMessage,
+			{
+				threadId: args.threadId,
+				part: args.message,
+				modelId: args.modelId,
+			},
+		);
+
+		// Create assistant message placeholder
+		const assistantMessageId: Id<"messages"> = await ctx.runMutation(
+			internal.messages.createAssistantMessage,
+			{
+				threadId: args.threadId,
+				modelId: args.modelId,
+			},
+		);
+
+		// Update thread state
+		await ctx.db.patch(args.threadId, {
+			isGenerating: true,
+			lastMessageAt: Date.now(),
+		});
+
+		return {
+			userMessageId,
+			assistantMessageId,
+		};
 	},
 });

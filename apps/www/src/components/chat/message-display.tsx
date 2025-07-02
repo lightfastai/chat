@@ -2,11 +2,11 @@
 
 import type { Doc } from "@/convex/_generated/dataModel";
 import { getModelDisplayName } from "@/lib/ai";
+import type { ChatStatus } from "ai";
 import { useState } from "react";
 import { AttachmentPreview } from "./attachment-preview";
 import { MessageActions } from "./message-actions";
 import { MessageItem } from "./shared";
-import { ChatStatus } from "ai";
 
 interface MessageDisplayProps {
 	message: Doc<"messages">;

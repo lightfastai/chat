@@ -8,7 +8,7 @@ import type { Doc, Id } from "../../convex/_generated/dataModel";
  * Hook for creating threads with optimistic updates
  * Makes thread creation feel instant in the UI
  */
-export function useOptimisticThreadCreate() {
+export function useOptimisticThreadCreateWithUserAndAssistantMessage() {
 	// Get the current user to use in optimistic updates
 	const currentUser = useQuery(api.users.current);
 

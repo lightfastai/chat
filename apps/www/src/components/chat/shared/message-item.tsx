@@ -2,10 +2,10 @@
 
 import type { Doc } from "@/convex/_generated/dataModel";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
+import type { ChatStatus } from "ai";
 import type React from "react";
 import { MessageLayout } from "./message-layout";
 import { ThinkingIndicator } from "./thinking-indicator";
-import { ChatStatus } from "ai";
 
 export interface MessageItemProps {
 	message: Doc<"messages">;
@@ -69,7 +69,7 @@ export function MessageItem({
 					{message.parts.map((part, index) => {
 						if (part.type === "text") {
 							return (
-								<div key={`text-${index}`}>
+								<div key={`${message._id}-text-${index}`}>
 									{message.role === "assistant" ? (
 										<Markdown className="text-sm">{part.text}</Markdown>
 									) : (

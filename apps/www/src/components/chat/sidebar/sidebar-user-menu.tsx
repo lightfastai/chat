@@ -46,7 +46,9 @@ export function SidebarUserMenu({ preloadedUser }: SidebarUserMenuProps) {
 
 	// Close dropdown when sidebar state changes
 	useEffect(() => {
-		setOpen(false);
+		if (state === "collapsed") {
+			setOpen(false);
+		}
 	}, [state]);
 
 	const handleSignOut = async () => {

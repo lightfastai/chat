@@ -72,7 +72,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 	}
 
 	// Show error if access not allowed or data not found
-	if (!accessAllowed || sharedData === null) {
+	if (!accessAllowed || !sharedData) {
 		return (
 			<div className="flex flex-col items-center justify-center h-screen gap-4">
 				<AlertCircle className="h-12 w-12 text-muted-foreground" />
@@ -84,7 +84,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 		);
 	}
 
-	const { thread, messages, owner } = sharedData!;
+	const { thread, messages, owner } = sharedData;
 
 	return (
 		<div className="flex flex-col h-screen">

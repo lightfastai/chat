@@ -1,5 +1,6 @@
 "use client";
 
+import { ThreadContextStoreProvider } from "@/components/providers/thread-context-provider";
 import { useChat } from "@/hooks/use-chat";
 import type { ThreadContext, ValidThread } from "@/types/schema";
 import type { Preloaded } from "convex/react";
@@ -163,31 +164,24 @@ export function ChatInterface({
 		);
 	}
 
-	// Handle existing threads with preloaded queries
-	if (threadContext.type === "existing") {
-		return (
-			<ChatInterfaceWithPreloadedQueries
-				threadContext={threadContext}
-				preloadedThreadByClientId={preloadedThreadByClientId}
-				preloadedMessages={preloadedMessages}
-				preloadedUser={preloadedUser}
-				preloadedUserSettings={preloadedUserSettings}
-			/>
-		);
-	}
-
-	// Handle new threads with regular queries
-	if (threadContext.type === "new") {
-		return (
-			<ChatInterfaceWithRegularQueries
-				threadContext={threadContext}
-				preloadedUser={preloadedUser}
-				preloadedUserSettings={preloadedUserSettings}
-			/>
-		);
-	}
-
-	// TypeScript exhaustiveness check - should never reach here
-	const _exhaustive: never = threadContext;
-	return _exhaustive;
+	// Wrap valid thread contexts with the store provider
+	return (
+		<ThreadContextStoreProvider initialContext={threadContext}>
+			{threadContext.type === "existing" ? (
+				<ChatInterfaceWithPreloadedQueries
+					threadContext={threadContext}
+					preloadedThreadByClientId={preloadedThreadByClientId}
+					preloadedMessages={preloadedMessages}
+					preloadedUser={preloadedUser}
+					preloadedUserSettings={preloadedUserSettings}
+				/>
+			) : (
+				<ChatInterfaceWithRegularQueries
+					threadContext={threadContext}
+					preloadedUser={preloadedUser}
+					preloadedUserSettings={preloadedUserSettings}
+				/>
+			)}
+		</ThreadContextStoreProvider>
+	);
 }

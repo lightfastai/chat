@@ -2,6 +2,12 @@
 
 import type { UIMessage } from "ai";
 import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
+import { ReasoningPart, TextPart } from "../../../../convex/validators";
+
+interface MessageMetadata {
+	hasThinkingContent?: boolean;
+	thinkingContent?: string;
+}
 
 interface AssistantMessageHeaderProps {
 	modelName?: string;
@@ -27,7 +33,7 @@ export function AssistantMessageHeader({
 	hasParts,
 	message,
 }: AssistantMessageHeaderProps) {
-	const metadata = (message?.metadata as any) || {};
+	const metadata = (message?.metadata as MessageMetadata) || {};
 
 	// Check if message has reasoning parts
 	const hasReasoningParts = Boolean(
@@ -39,8 +45,8 @@ export function AssistantMessageHeader({
 	const reasoningContent = (() => {
 		// First try new parts-based system
 		const partsContent = message?.parts
-			?.filter((part) => part.type === "reasoning")
-			.map((part) => (part as any).text)
+			?.filter((part): part is ReasoningPart => part.type === "reasoning")
+			.map((part) => part.text)
 			.join("\n");
 
 		if (partsContent?.trim()) {
@@ -65,8 +71,8 @@ export function AssistantMessageHeader({
 			return message.parts.some(
 				(part) =>
 					(part.type === "text" &&
-						(part as any).text &&
-						(part as any).text.trim().length > 0) ||
+						(part as TextPart).text &&
+						(part as TextPart).text.trim().length > 0) ||
 					part.type.startsWith("tool-"),
 			);
 		}

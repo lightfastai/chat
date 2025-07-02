@@ -1,5 +1,6 @@
 "use client";
 
+import { useThreadContextStore } from "@/components/providers/thread-context-provider";
 import { nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
@@ -12,7 +13,8 @@ import type { MessagePart } from "../../convex/validators";
 import type { ModelId } from "../lib/ai/schemas";
 import type { UIMessage, ValidThread } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
-import { useOptimisticThreadCreate } from "./use-optimistic-thread-create";
+import { useOptimisticMessageCreate } from "./use-optimistic-message-create";
+import { useOptimisticThreadCreateWithUserAndAssistantMessage } from "./use-optimistic-thread-create";
 
 interface UseChatProps {
 	/** The chat context - type and clientId */
@@ -31,7 +33,17 @@ export function useChat({
 	preloadedUserSettings,
 }: UseChatProps) {
 	const authToken = useAuthToken();
-	const createThreadOptimistic = useOptimisticThreadCreate();
+	const createThreadOptimistic =
+		useOptimisticThreadCreateWithUserAndAssistantMessage();
+	const createMessageOptimistic = useOptimisticMessageCreate();
+	const transitionToExisting = useThreadContextStore(
+		(state) => state.transitionToExisting,
+	);
+	const threadContextFromStore = useThreadContextStore(
+		(state) => state.threadContext,
+	);
+	const setThreadId = useThreadContextStore((state) => state.setThreadId);
+	const threadIdFromStore = useThreadContextStore((state) => state.threadId);
 
 	// Extract data from preloaded queries if available
 	let userSettings = null;
@@ -110,48 +122,61 @@ export function useChat({
 			attachments?: Id<"files">[],
 			webSearchEnabledOverride?: boolean,
 		) => {
-			if (threadContext.type === "new") {
+			let userMessageId: string | undefined;
+			let assistantMessageId: string | undefined;
+
+			if (threadContextFromStore.type === "new") {
 				// Update URL using replaceState for seamless navigation
 				window.history.replaceState({}, "", `/chat/${threadContext.clientId}`);
+				const data = await createThreadOptimistic({
+					clientThreadId: threadContext.clientId,
+					message: { type: "text", text: message },
+					modelId: selectedModelId,
+				});
+				userMessageId = data.userMessageId;
+				assistantMessageId = data.assistantMessageId;
+
+				// Transition thread context from "new" to "existing"
+				transitionToExisting(threadContextFromStore.clientId);
+				setThreadId(data.threadId);
 			}
 
-			const data = await createThreadOptimistic({
-				clientThreadId: threadContext.clientId,
-				message: { type: "text", text: message },
-				modelId: selectedModelId,
-			});
-
-			const { userMessageId, assistantMessageId } = data;
-
-			try {
-				// TODO: Temporarily disabled for optimistic message creation
-				await vercelSendMessage(
-					{
-						role: "user",
-						parts: [{ type: "text", text: message }],
-						id: userMessageId,
-					},
-					{
-						body: {
-							id: assistantMessageId,
-							userMessageId,
-							threadClientId: threadContext.clientId,
-							options: {
-								webSearchEnabled: webSearchEnabledOverride || false,
-								attachments,
-							},
+			if (threadContextFromStore.type === "existing" && threadIdFromStore) {
+				const data = await createMessageOptimistic({
+					threadId: threadIdFromStore,
+					message: { type: "text", text: message },
+					modelId: selectedModelId,
+				});
+				userMessageId = data.userMessageId;
+				assistantMessageId = data.assistantMessageId;
+			}
+			// TODO: Temporarily disabled for optimistic message creation
+			await vercelSendMessage(
+				{
+					role: "user",
+					parts: [{ type: "text", text: message }],
+					id: userMessageId,
+				},
+				{
+					body: {
+						id: assistantMessageId,
+						userMessageId,
+						threadClientId: threadContext.clientId,
+						options: {
+							webSearchEnabled: webSearchEnabledOverride || false,
+							attachments,
 						},
 					},
-				);
-			} catch (error) {
-				throw error;
-			}
+				},
+			);
 		},
 		[
 			vercelSendMessage,
 			threadContext.clientId,
 			createThreadOptimistic,
+			createMessageOptimistic,
 			setMessages,
+			transitionToExisting,
 		],
 	);
 

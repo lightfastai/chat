@@ -58,11 +58,13 @@ export function ShareButton({
 	return (
 		<>
 			{button}
-			<ShareDialog
-				threadId={threadId!}
-				open={isOpen}
-				onOpenChange={setIsOpen}
-			/>
+			{threadId && (
+				<ShareDialog
+					threadId={threadId}
+					open={isOpen}
+					onOpenChange={setIsOpen}
+				/>
+			)}
 		</>
 	);
 }
