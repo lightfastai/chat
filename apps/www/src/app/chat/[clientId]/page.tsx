@@ -7,6 +7,7 @@ import { api } from "../../../../convex/_generated/api";
 import { ChatInterface } from "../../../components/chat/chat-interface";
 import { ChatPreloadProvider } from "../../../components/chat/chat-preload-context";
 import { getAuthToken } from "../../../lib/auth";
+import type { ThreadContext } from "../../../types/schema";
 
 export const metadata: Metadata = {
 	title: "Chat Thread",
@@ -46,7 +47,7 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 	}
 
 	return (
-		<Suspense fallback={<ChatInterface />}>
+		<Suspense fallback={<ChatInterface threadContext={{type: "error"}} />}>
 			<ChatThreadPageWithPreloadedData clientId={clientId} />
 		</Suspense>
 	);
@@ -64,7 +65,7 @@ async function ChatThreadPageWithPreloadedData({
 
 		// If no authentication token, render regular chat interface
 		if (!token) {
-			return <ChatInterface key={`existing-chat-${clientId}`} />;
+			return <ChatInterface threadContext={{type: "error"}} />;
 		}
 
 		// Preload user settings
@@ -88,16 +89,21 @@ async function ChatThreadPageWithPreloadedData({
 			{ token },
 		);
 
+    const threadContext: ThreadContext = {
+      type: "existing",
+      clientId,
+    };
+
 		return (
 			<ChatPreloadProvider
 				preloadedThreadByClientId={preloadedThreadByClientId}
 				preloadedMessages={preloadedMessages}
 			>
 				<ChatInterface
-					key={`existing-chat-${clientId}`}
 					preloadedThreadByClientId={preloadedThreadByClientId}
 					preloadedMessages={preloadedMessages}
 					preloadedUserSettings={preloadedUserSettings}
+					threadContext={threadContext}
 				/>
 			</ChatPreloadProvider>
 		);
@@ -106,6 +112,6 @@ async function ChatThreadPageWithPreloadedData({
 		console.warn("Server-side chat data preload failed:", error);
 
 		// Fallback to regular chat interface
-		return <ChatInterface key={`existing-chat-${clientId}`} />;
+		return <ChatInterface threadContext={{type: "error"}} />;
 	}
 }

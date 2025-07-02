@@ -1,4 +1,3 @@
-import { nanoid } from "@/lib/nanoid";
 import { siteConfig } from "@/lib/site-config";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
@@ -6,6 +5,8 @@ import { Suspense } from "react";
 import { api } from "../../../convex/_generated/api";
 import { ChatInterface } from "../../components/chat/chat-interface";
 import { getAuthToken } from "../../lib/auth";
+import { nanoid } from "nanoid";
+import type { ThreadContext } from "../../types/schema";
 
 export const metadata: Metadata = {
 	title: "New Chat",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
 // Server component that enables SSR for the new chat page with prefetched user data
 export default function ChatPage() {
 	return (
-		<Suspense fallback={<ChatInterface />}>
+		<Suspense fallback={<ChatInterface threadContext={{type: "error"}} />}>
 			<ChatPageWithPreloadedData />
 		</Suspense>
 	);
@@ -39,19 +40,19 @@ export default function ChatPage() {
 
 // Server component that handles data preloading with PPR optimization
 async function ChatPageWithPreloadedData() {
-	// Generate a stable ID for new chats on the server side
-	const fallbackChatId = nanoid();
-
 	try {
 		// Get authentication token for server-side requests
 		const token = await getAuthToken();
 
 		// If no authentication token, render regular chat interface
 		if (!token) {
+      const threadContext: ThreadContext = {
+        type: "error",
+      };
+
 			return (
 				<ChatInterface
-					key={`new-chat-${fallbackChatId}`}
-					fallbackChatId={fallbackChatId}
+					threadContext={threadContext}
 				/>
 			);
 		}
@@ -62,24 +63,34 @@ async function ChatPageWithPreloadedData() {
 			preloadQuery(api.userSettings.getUserSettings, {}, { token }),
 		]);
 
+    	// Generate a stable ID for new chats on the server side
+	  const threadContext: ThreadContext = {
+		  type: "new",
+		  clientId: nanoid(),
+	  };
+
+    console.log("threadContext", threadContext);
+
 		// Pass preloaded user data and settings to chat interface
 		return (
 			<ChatInterface
-				key={`new-chat-${fallbackChatId}`}
 				preloadedUser={preloadedUser}
 				preloadedUserSettings={preloadedUserSettings}
-				fallbackChatId={fallbackChatId}
+				threadContext={threadContext}
 			/>
 		);
 	} catch (error) {
 		// Log error but still render - don't break the UI
 		console.warn("Server-side user preload failed:", error);
 
+    const threadContext: ThreadContext = {
+      type: "error",
+    };
+
 		// Fallback to regular chat interface
 		return (
 			<ChatInterface
-				key={`new-chat-${fallbackChatId}`}
-				fallbackChatId={fallbackChatId}
+				threadContext={threadContext}
 			/>
 		);
 	}

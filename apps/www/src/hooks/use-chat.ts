@@ -1,27 +1,25 @@
 "use client";
 
-import { env } from "@/env";
-import { createStreamUrl } from "@/lib/create-base-url";
 import type { MessagePart } from "@/lib/message-parts";
 import { nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
-import { usePathname } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import type { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { useChatTransport } from "./use-chat-transport";
 import { useOptimisticThreadCreate } from "./use-optimistic-thread-create";
-
-type ChatState = "new" | "existing";
+import type { ValidThread } from "../types/schema";
 
 interface UseChatProps {
+	/** The chat context - type and clientId */
+	threadContext: ValidThread;
 	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
-	fallbackChatId?: string;
 }
 
 /**
@@ -29,12 +27,11 @@ interface UseChatProps {
  * Uses Vercel AI SDK with custom Convex transport for streaming
  */
 export function useChat({
+	threadContext,
 	preloadedThreadByClientId,
 	preloadedMessages,
 	preloadedUserSettings,
-	fallbackChatId,
-}: UseChatProps = {}) {
-	const pathname = usePathname();
+}: UseChatProps) {
 	const authToken = useAuthToken();
 	const createThreadOptimistic = useOptimisticThreadCreate();
 
@@ -55,94 +52,25 @@ export function useChat({
 		messages = usePreloadedQuery(preloadedMessages);
 	}
 
-	// Determine chat state and extract client ID from pathname
-	const { chatState, clientId } = useMemo(() => {
-		console.log("[use-chat] pathname changed:", pathname);
-
-		if (pathname === "/chat") {
-			console.log("[use-chat] detected new chat state");
-			return { chatState: "new" as ChatState, clientId: null };
-		}
-
-		const match = pathname.match(/^\/chat\/(.+)$/);
-		if (!match) {
-			console.log("[use-chat] no match for chat path, defaulting to new");
-			return { chatState: "new" as ChatState, clientId: null };
-		}
-
-		console.log(
-			"[use-chat] detected existing chat state with clientId:",
-			match[1],
-		);
-		return { chatState: "existing" as ChatState, clientId: match[1] };
-	}, [pathname]);
-
 	// Get the resolved thread ID from the clientId (if thread exists)
 	const resolvedThreadId = threadByClientId?._id || null;
 
 	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
 
-	// Construct Convex HTTP endpoint URL
-	const convexUrl = env.NEXT_PUBLIC_CONVEX_URL;
-	const streamUrl = createStreamUrl(convexUrl);
-
-	// Create transport with proper Convex integration
-	const transport = useMemo(() => {
-		if (!authToken) return undefined;
-
-		return new DefaultChatTransport({
-			api: streamUrl,
-			headers: {
-				Authorization: `Bearer ${authToken}`,
-			},
-			prepareSendMessagesRequest: ({
-				messages,
-				body,
-				headers,
-				credentials,
-				api,
-				trigger,
-			}) => {
-				const requestBody = body as Record<string, unknown>;
-
-				const convexBody = {
-					threadId: requestBody?.threadId || resolvedThreadId,
-					clientId: requestBody?.clientId || clientId,
-					modelId: requestBody?.modelId || defaultModel,
-					messages: messages,
-					options: {
-						webSearchEnabled: requestBody?.webSearchEnabled || false,
-						attachments: requestBody?.attachments as Id<"files">[] | undefined,
-						trigger,
-					},
-				};
-
-				return {
-					api: api,
-					headers: headers,
-					body: convexBody,
-					credentials: credentials,
-				};
-			},
-		});
-	}, [authToken, resolvedThreadId, clientId, defaultModel, streamUrl]);
+	// Create transport using the dedicated hook
+	const transport = useChatTransport({
+		authToken,
+		resolvedThreadId,
+		threadContext,
+		defaultModel,
+	});
 
 	// Convert preloaded messages to Vercel AI SDK format - only for existing chats
 	const initialMessages = useMemo(() => {
 		// Only process messages for existing chats to prevent leakage to new chats
-		if (chatState !== "existing" || !messages || messages.length === 0) {
-			console.log("[use-chat] initialMessages: returning undefined for", {
-				chatState,
-				hasMessages: !!messages,
-			});
+		if (threadContext.type === "new" || !messages || messages.length === 0) {
 			return undefined;
 		}
-
-		console.log(
-			"[use-chat] initialMessages: converting",
-			messages.length,
-			"messages for existing chat",
-		);
 
 		// Convert Convex messages to Vercel AI UIMessage format
 		const converted = messages.map((msg) => ({
@@ -159,36 +87,10 @@ export function useChat({
 				}
 				return part;
 			}),
-			metadata: {
-				modelId: msg.modelId,
-				isComplete: true,
-				isStreaming: false,
-				thinkingStartedAt: msg.thinkingStartedAt,
-				thinkingCompletedAt: msg.thinkingCompletedAt,
-				usage: msg.usage,
-			},
 		})) as UIMessage[];
 
 		return converted;
-	}, [chatState, messages]);
-
-	// Generate chatId based on chat state
-	const chatId = useMemo(() => {
-		const id =
-			chatState === "existing"
-				? clientId! // We know clientId exists for existing chats
-				: fallbackChatId || nanoid(); // Use server ID for new chats, nanoid as fallback
-
-		console.log("[use-chat] chatId generation:", {
-			chatState,
-			clientId,
-			fallbackChatId,
-			finalChatId: id,
-			pathname,
-		});
-
-		return id;
-	}, [chatState, clientId, fallbackChatId, pathname]);
+	}, [threadContext.type, messages]);
 
 	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
@@ -197,30 +99,19 @@ export function useChat({
 		sendMessage: vercelSendMessage,
 		setMessages,
 	} = useVercelChat({
-		id: chatId,
+		id: threadContext.clientId,
 		transport,
 		generateId: () => nanoid(),
-		messages: initialMessages, // initialMessages already handles the chatState logic
+		messages: initialMessages,
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
-	});
-
-	// Debug logging
-	console.log("[use-chat] Vercel AI state:", {
-		chatState,
-		chatId,
-		uiMessagesCount: uiMessages.length,
-		status,
-		pathname,
-		clientId,
 	});
 
 	// Computed values
 	const isEmpty = uiMessages.length === 0;
 	const totalMessages = uiMessages.length;
 	const canSendMessage = status !== "streaming" && !!authToken;
-	const isNewChat = chatState === "new";
 
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
@@ -230,73 +121,42 @@ export function useChat({
 			attachments?: Id<"files">[],
 			webSearchEnabledOverride?: boolean,
 		) => {
-			// Handle URL update and thread creation for new chats
-			let chatClientId = clientId;
-			let threadIdToUse = resolvedThreadId;
-
-			if (chatState === "new") {
-				// Use the same chatId that was passed to useVercelChat for consistency
-				chatClientId = chatId;
-
-				// Update URL FIRST for immediate navigation feedback
-				window.history.replaceState({}, "", `/chat/${chatClientId}`);
-
-				// Add user message immediately for instant UI feedback
-				const userMessage = {
-					id: nanoid(),
-					role: "user" as const,
-					parts: [{ type: "text" as const, text: message }],
-				};
-
-				// Set messages immediately for instant user feedback
-				setMessages([...uiMessages, userMessage]);
-
-				// Create thread optimistically (just thread, not messages)
-				try {
-					const threadId = await createThreadOptimistic({
-						clientId: chatClientId,
-						title: "New chat", // Title will be generated server-side
-					});
-					
-					threadIdToUse = threadId;
-					
-					console.log("[use-chat] Created optimistic thread:", threadId);
-				} catch (error) {
-					console.error("Failed to create thread optimistically:", error);
-					// Continue without thread ID - HTTP endpoint will create it
-				}
+			if (threadContext.type === "new") {
+				// Update URL using replaceState for seamless navigation
+				window.history.replaceState({}, "", `/chat/${threadContext.clientId}`);
 			}
 
-			try {
-				// Let vercelSendMessage handle adding the user message naturally
-				// This should be fast since we've already updated the URL and created the thread
-				await vercelSendMessage(
-					{
-						role: "user",
-						parts: [{ type: "text", text: message }],
-					},
-					{
-						body: {
-							threadId: threadIdToUse,
-							clientId: chatClientId,
-							modelId: selectedModelId,
-							webSearchEnabled: webSearchEnabledOverride || false,
-							attachments,
-						},
-					},
-				);
-			} catch (error) {
-				throw error;
-			}
+      setMessages([
+        {
+          id: nanoid(),
+          role: "user",
+          parts: [{ type: "text", text: message }],
+        },
+      ]);
+
+      createThreadOptimistic({clientId: threadContext.clientId})
+
+			// try {
+			// 	await vercelSendMessage(
+			// 		{
+			// 			role: "user",
+			// 			parts: [{ type: "text", text: message }],
+			// 		},
+			// 		{
+			// 			body: {
+			// 				threadId: resolvedThreadId,
+			// 				clientId: threadContext.clientId,
+			// 				modelId: selectedModelId,
+			// 				webSearchEnabled: webSearchEnabledOverride || false,
+			// 				attachments,
+			// 			},
+			// 		},
+			// 	);
+			// } catch (error) {
+			// 	throw error;
+			// }
 		},
-		[
-			vercelSendMessage,
-			resolvedThreadId,
-			clientId,
-			chatState,
-			chatId,
-			createThreadOptimistic,
-		],
+		[vercelSendMessage, resolvedThreadId, threadContext.clientId, createThreadOptimistic, setMessages],
 	);
 
 	return {
@@ -308,12 +168,6 @@ export function useChat({
 		// Status - direct from Vercel AI SDK
 		status,
 		canSendMessage,
-		isNewChat,
-
-		// Identifiers
-		clientId,
-		chatState,
-		chatId,
 
 		// Actions
 		sendMessage,

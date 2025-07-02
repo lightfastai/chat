@@ -2,11 +2,10 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 
 export interface CreateThreadArgs {
 	clientId: string;
-	title?: string;
 }
 
 /**
@@ -19,7 +18,7 @@ export function useOptimisticThreadCreate() {
 
 	return useMutation(api.threads.createOptimistic).withOptimisticUpdate(
 		(localStore, args: CreateThreadArgs) => {
-			const { clientId, title } = args;
+			const { clientId } = args;
 
 			// Get current threads list
 			const existingThreads = localStore.getQuery(api.threads.list, {});
@@ -28,14 +27,15 @@ export function useOptimisticThreadCreate() {
 			// If we don't have a user ID yet, we can't create an optimistic thread
 			// This shouldn't happen in practice as the user should be authenticated
 			if (!currentUser?._id) return;
+      const optimisticThreadId = crypto.randomUUID() as Id<"threads"> ;
 
 			// Create optimistic thread
 			const now = Date.now();
-			const optimisticThread = {
-				_id: `temp_${clientId}` as Id<"threads">,
+			const optimisticThread: Doc<"threads"> = {
+        _id: optimisticThreadId,
 				_creationTime: now,
 				clientId,
-				title: title || "New chat",
+				title: "",
 				userId: currentUser._id,
 				createdAt: now,
 				lastMessageAt: now,
@@ -70,7 +70,7 @@ export function useOptimisticThreadCreate() {
 			localStore.setQuery(
 				api.threads.getByClientId,
 				{ clientId },
-				optimisticThread,
+				optimisticThread as Doc<"threads">,
 			);
 		},
 	);

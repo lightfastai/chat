@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@/hooks/use-chat";
+import type { ThreadContext, ValidThread } from "@/types/schema";
 import type { Preloaded } from "convex/react";
 import type { api } from "../../../convex/_generated/api";
 import { CenteredChatStart } from "./centered-chat-start";
@@ -8,30 +9,31 @@ import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
 
 interface ChatInterfaceProps {
+	/** Chat context passed from the page */
+	threadContext: ThreadContext;
 	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
-	fallbackChatId?: string;
 }
 
 export function ChatInterface({
+	threadContext,
 	preloadedThreadByClientId,
 	preloadedMessages,
 	preloadedUser,
 	preloadedUserSettings,
-	fallbackChatId,
 }: ChatInterfaceProps) {
-	const { messages, isNewChat, sendMessage, status, canSendMessage, chatId } =
+	const { messages, sendMessage, status, canSendMessage } =
 		useChat({
+			threadContext: threadContext as ValidThread, // @note: quick hack,
 			preloadedThreadByClientId,
 			preloadedMessages,
 			preloadedUserSettings,
-			fallbackChatId,
 		});
 
 	// Show centered layout only for new chats with no messages
-	if (isNewChat && messages.length === 0) {
+	if (threadContext.type === "new" && messages.length === 0) {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
@@ -45,7 +47,6 @@ export function ChatInterface({
 	return (
 		<div className="flex flex-col h-full ">
 			<ChatMessages
-				key={chatId || "default"}
 				messages={messages}
 				status={status}
 			/>
