@@ -16,8 +16,8 @@
 		"with-env": "dotenv -e ../../.env.local --"
 	},
 	"dependencies": {
-		"@ai-sdk/anthropic": "alpha",
-		"@ai-sdk/openai": "alpha",
+		"@ai-sdk/anthropic": "catalog:",
+		"@ai-sdk/openai": "catalog:",
 		"@ai-sdk/react": "catalog:",
 		"@auth/core": "^0.39.1",
 		"@convex-dev/auth": "^0.0.87",
@@ -30,7 +30,7 @@
 		"@types/mdx": "^2.0.13",
 		"@vercel/analytics": "^1.5.0",
 		"@vercel/speed-insights": "^1.2.0",
-		"ai": "alpha",
+		"ai": "catalog:",
 		"convex": "^1.24.8",
 		"convex-helpers": "^0.1.93",
 		"date-fns": "^4.1.0",

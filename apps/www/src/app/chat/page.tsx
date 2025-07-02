@@ -74,6 +74,7 @@ async function ChatPageWithPreloadedData() {
 		// Pass preloaded user data and settings to chat interface
 		return (
 			<ChatInterface
+				key={threadContext.clientId}
 				preloadedUser={preloadedUser}
 				preloadedUserSettings={preloadedUserSettings}
 				threadContext={threadContext}

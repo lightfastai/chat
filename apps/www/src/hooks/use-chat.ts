@@ -36,13 +36,8 @@ export function useChat({
 	const createThreadOptimistic = useOptimisticThreadCreate();
 
 	// Extract data from preloaded queries if available
-	let threadByClientId = null;
 	let userSettings = null;
 	let messages = null;
-
-	if (preloadedThreadByClientId) {
-		threadByClientId = usePreloadedQuery(preloadedThreadByClientId);
-	}
 
 	if (preloadedUserSettings) {
 		userSettings = usePreloadedQuery(preloadedUserSettings);
@@ -52,15 +47,11 @@ export function useChat({
 		messages = usePreloadedQuery(preloadedMessages);
 	}
 
-	// Get the resolved thread ID from the clientId (if thread exists)
-	const resolvedThreadId = threadByClientId?._id || null;
-
 	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
 
 	// Create transport using the dedicated hook
 	const transport = useChatTransport({
 		authToken,
-		resolvedThreadId,
 		threadContext,
 		defaultModel,
 	});
@@ -90,9 +81,9 @@ export function useChat({
 		})) as UIMessage[];
 
 		return converted;
-	}, [threadContext.type, messages]);
+	}, [threadContext.type, threadContext.clientId]);
 
-	// Use Vercel AI SDK with custom transport and preloaded messages
+  // Use Vercel AI SDK with custom transport and preloaded messages
 	const {
 		messages: uiMessages,
 		status,
@@ -102,7 +93,7 @@ export function useChat({
 		id: threadContext.clientId,
 		transport,
 		generateId: () => nanoid(),
-		messages: initialMessages,
+		// messages: initialMessages,
 		onError: (error) => {
 			console.error("Chat error:", error);
 		},
@@ -156,7 +147,7 @@ export function useChat({
 			// 	throw error;
 			// }
 		},
-		[vercelSendMessage, resolvedThreadId, threadContext.clientId, createThreadOptimistic, setMessages],
+		[vercelSendMessage, threadContext.clientId, createThreadOptimistic, setMessages],
 	);
 
 	return {

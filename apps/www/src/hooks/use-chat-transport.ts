@@ -10,8 +10,6 @@ import type { ValidThread } from "../types/schema";
 interface UseChatTransportProps {
 	/** Authentication token for Convex requests */
 	authToken: string | null;
-	/** Resolved Convex thread ID (if exists) */
-	resolvedThreadId?: string | null;
 	/** Client-generated ID for the chat */
 	threadContext: ValidThread;
 	/** Default AI model to use */
@@ -40,7 +38,6 @@ interface ConvexChatRequestBody {
  */
 export function useChatTransport({
 	authToken,
-	resolvedThreadId,
 	threadContext,
 	defaultModel,
 }: UseChatTransportProps): ChatTransport<UIMessage> | undefined {
@@ -65,7 +62,6 @@ export function useChatTransport({
 
 				// Transform request body to Convex format
 				const convexBody: ConvexChatRequestBody = {
-					threadId: (requestBody?.threadId as string) || resolvedThreadId,
 					clientId: (requestBody?.clientId as string) || threadContext.clientId,
 					modelId: (requestBody?.modelId as string) || defaultModel,
 					messages: messages,
@@ -84,7 +80,7 @@ export function useChatTransport({
 				};
 			},
 		});
-	}, [authToken, resolvedThreadId, threadContext.clientId, defaultModel]);
+	}, [authToken, threadContext.clientId, defaultModel]);
 
 	return transport;
 }
