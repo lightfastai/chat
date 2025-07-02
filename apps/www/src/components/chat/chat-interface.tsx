@@ -14,7 +14,6 @@ import { ChatMessages } from "./chat-messages";
 interface ChatInterfaceProps {
 	/** Chat context passed from the page */
 	threadContext: ThreadContext;
-	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
@@ -124,7 +123,6 @@ function ChatInterfaceWithRegularQueries({
 
 export function ChatInterface({
 	threadContext,
-	preloadedThreadByClientId,
 	preloadedMessages,
 	preloadedUser,
 	preloadedUserSettings,

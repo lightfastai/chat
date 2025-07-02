@@ -74,13 +74,6 @@ async function ChatThreadPageWithPreloadedData({
 			{ token },
 		);
 
-		// Preload thread by client ID
-		const preloadedThreadByClientId = await preloadQuery(
-			api.threads.getByClientId,
-			{ clientId },
-			{ token },
-		);
-
 		// Preload messages by client ID for better performance
 		const preloadedMessages = await preloadQuery(
 			api.messages.listByClientId,
@@ -95,7 +88,6 @@ async function ChatThreadPageWithPreloadedData({
 
 		return (
 			<ChatInterface
-				preloadedThreadByClientId={preloadedThreadByClientId}
 				preloadedMessages={preloadedMessages}
 				preloadedUserSettings={preloadedUserSettings}
 				threadContext={threadContext}
