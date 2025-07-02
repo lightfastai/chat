@@ -122,14 +122,7 @@ export function MessageItem({
 			content={content}
 			timestamp={timestamp}
 			actions={messageActions}
-			role={
-				message.role === "user"
-					? "user"
-					: message.role === "assistant"
-						? "assistant"
-						: "system"
-			}
-			className={undefined}
+			role={message.role}
 			forceActionsVisible={forceActionsVisible}
 		/>
 	);

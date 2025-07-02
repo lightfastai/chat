@@ -7,8 +7,7 @@ export interface MessageLayoutProps {
 	content: React.ReactNode;
 	timestamp?: React.ReactNode;
 	actions?: React.ReactNode;
-	role: Role;
-	className?: string;
+	role?: Role;
 	forceActionsVisible?: boolean;
 }
 
@@ -16,13 +15,13 @@ export function MessageLayout({
 	content,
 	timestamp,
 	actions,
-	role: messageType,
-	className,
+	role,
 	forceActionsVisible = false,
 }: MessageLayoutProps) {
-	const isAssistant = messageType === "assistant";
-	const isSystem = messageType === "system";
-	const isUser = messageType === "user";
+	// @todo quick hack to handle system messages using !role due to optional role
+	const isAssistant = role === "assistant" || !role;
+	const isSystem = role === "system";
+	const isUser = role === "user";
 
 	return (
 		<div
@@ -30,7 +29,6 @@ export function MessageLayout({
 				"group/message",
 				isAssistant ? "mt-12" : isSystem ? "mt-2" : "mt-4",
 				isUser && "flex justify-end",
-				className,
 			)}
 		>
 			<div
