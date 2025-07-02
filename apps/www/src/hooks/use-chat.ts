@@ -135,7 +135,7 @@ export function useChat({
 						body: {
 							id: assistantMessageId,
 							userMessageId,
-							threadClientId: threadId,
+							threadClientId: threadContext.clientId,
 							options: {
 								webSearchEnabled: webSearchEnabledOverride || false,
 								attachments,
