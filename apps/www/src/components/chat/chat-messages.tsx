@@ -1,7 +1,7 @@
 "use client";
 
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { UIMessage } from "../../types/schema";
 import { MessageDisplay } from "./message-display";
@@ -30,57 +30,12 @@ export function ChatMessages({
 	console.log("[ChatMessages] databaseMessages:", databaseMessages);
 	console.log("[ChatMessages] status:", status);
 
-	// Merge database user messages with UI assistant messages
-	const mergedMessages = useMemo(() => {
-		// If no database messages, just use UI messages
-		if (!databaseMessages || databaseMessages.length === 0) {
-			return messages;
-		}
-
-		// Create a map of database messages by ID for quick lookup
-		const dbMessageMap = new Map(databaseMessages.map((msg) => [msg._id, msg]));
-
-		// Filter UI messages to only include assistant messages
-		const assistantMessages = messages.filter(
-			(msg) => msg.role === "assistant",
-		);
-
-		console.log("[ChatMessages] assistantMessages:", assistantMessages);
-
-		// Convert database user messages to UIMessage format
-		// @todo make convert function.
-		const userMessages: UIMessage[] = databaseMessages
-			.filter((msg) => msg.role === "user")
-			.map((msg) => ({
-				id: msg._id,
-				role: "user",
-				parts: msg.parts as UIMessage["parts"], // Include parts for compatibility
-				createdAt: new Date(msg._creationTime), // Use createdAt, fallback to _creationTime
-			}));
-
-		// Combine and sort by timestamp
-		const combined = [...userMessages, ...assistantMessages].sort((a, b) => {
-			const timeA = a.metadata?.createdAt?.getTime() || 0;
-			const timeB = b.metadata?.createdAt?.getTime() || 0;
-			return timeA - timeB;
-		});
-
-		console.log("[ChatMessages] mergedMessages:", combined);
-		console.log("[ChatMessages] userMessages from DB:", userMessages.length);
-		console.log(
-			"[ChatMessages] assistantMessages from UI:",
-			assistantMessages.length,
-		);
-		return combined;
-	}, [messages, databaseMessages]);
-
-	console.log("[ChatMessages] mergedMessages:", mergedMessages);
 
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
 	const [isNearBottom, setIsNearBottom] = useState(true);
 	const [isUserScrolling, setIsUserScrolling] = useState(false);
-	const lastMessageCountRef = useRef(mergedMessages.length);
+	const lastMessageCountRef = useRef(messages.length);
 	const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	const lastScrollPositionRef = useRef(0);
 
@@ -151,14 +106,14 @@ export function ChatMessages({
 
 	// Auto-scroll when new messages arrive
 	useEffect(() => {
-		if (!mergedMessages.length) return;
+		if (!messages.length) return;
 
-		const hasNewMessage = mergedMessages.length > lastMessageCountRef.current;
-		lastMessageCountRef.current = mergedMessages.length;
+		const hasNewMessage = messages.length > lastMessageCountRef.current;
+		lastMessageCountRef.current = messages.length;
 
 		// Check if any message is currently streaming
 		// For UIMessages, check if there's an assistant message with incomplete parts
-		const hasStreamingMessage = mergedMessages.some((msg) => {
+		const hasStreamingMessage = messages.some((msg) => {
 			if (msg.role !== "assistant") return false;
 			// Check if the message has metadata indicating streaming
 			const metadata = msg.metadata as any;
@@ -182,12 +137,12 @@ export function ChatMessages({
 		// This ensures they see their own messages
 		if (
 			hasNewMessage &&
-			mergedMessages[mergedMessages.length - 1]?.role === "user"
+			messages[messages.length - 1]?.role === "user"
 		) {
 			setIsUserScrolling(false);
 			scrollToBottom(false);
 		}
-	}, [mergedMessages, isNearBottom, isUserScrolling, scrollToBottom]);
+	}, [messages, isNearBottom, isUserScrolling, scrollToBottom]);
 
 	// Scroll to bottom on initial load
 	useEffect(() => {
@@ -198,12 +153,12 @@ export function ChatMessages({
 		<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
 			<div className="p-2 md:p-4 pb-16">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-					{mergedMessages?.slice().map((msg, index) => {
+					{messages?.slice().map((msg, index) => {
 						console.log(`[ChatMessages] Rendering message ${index}:`, msg);
 
 						// Find the index of the last assistant message
 						const lastAssistantIndex =
-							mergedMessages
+							messages
 								.map((m, i) => ({ role: m.role, index: i }))
 								.filter((m) => m.role === "assistant")
 								.pop()?.index ?? -1;
@@ -233,7 +188,7 @@ export function ChatMessages({
 			</div>
 
 			{/* Scroll to bottom button when user has scrolled up */}
-			{!isNearBottom && mergedMessages.length > 0 && (
+			{!isNearBottom && messages.length > 0 && (
 				<button
 					type="button"
 					onClick={() => {

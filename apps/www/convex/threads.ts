@@ -6,39 +6,11 @@ import { mutation, query } from "./_generated/server.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getWithOwnership } from "./lib/database.js";
 import {
-  branchInfoValidator,
   clientIdValidator,
   clientThreadIdValidator,
-  modelIdValidator,
-  shareIdValidator,
-  shareSettingsValidator,
-  textPartValidator,
-  threadUsageValidator,
-  titleValidator,
+  modelIdValidator, textPartValidator
 } from "./validators.js";
 
-// Thread object validator used in returns
-const threadObjectValidator = v.object({
-	_id: v.id("threads"),
-	_creationTime: v.number(),
-	clientId: v.optional(clientIdValidator),
-	title: titleValidator,
-	userId: v.id("users"),
-	createdAt: v.number(),
-	lastMessageAt: v.number(),
-	isTitleGenerating: v.optional(v.boolean()),
-	isGenerating: v.optional(v.boolean()),
-	pinned: v.optional(v.boolean()),
-	// Branch information
-	branchedFrom: branchInfoValidator,
-	// Share functionality
-	isPublic: v.optional(v.boolean()),
-	shareId: v.optional(shareIdValidator),
-	sharedAt: v.optional(v.number()),
-	shareSettings: shareSettingsValidator,
-	// Thread-level usage tracking (denormalized for performance)
-	usage: threadUsageValidator,
-});
 
 // List initial threads for preloading (first 20)
 export const list = query({

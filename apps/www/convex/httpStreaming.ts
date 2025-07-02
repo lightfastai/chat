@@ -19,8 +19,6 @@ import {
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
-import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
   getModelById,
@@ -29,16 +27,16 @@ import {
   isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
-import { httpAction, internalMutation } from "./_generated/server";
+import { httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
 import { createSystemPrompt } from "./lib/message_builder";
 import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
 import {
-  type httpStreamingRequestValidator,
-  modelIdValidator,
+  httpStreamingRequestValidator
 } from "./validators";
+import { getAuthenticatedUserId } from "./lib/auth";
 
 // Types from validators
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
@@ -53,35 +51,11 @@ function corsHeaders(): HeadersInit {
 }
 
 // CORS preflight handler
-export const corsHandler = httpAction(async (ctx, request) => {
+export const corsHandler = httpAction(async () => {
 	return new Response(null, {
 		status: 200,
 		headers: corsHeaders(),
 	});
-});
-
-// Internal mutation to create assistant message placeholder
-export const createAssistantMessage = internalMutation({
-	args: {
-		threadId: v.id("threads"),
-		modelId: modelIdValidator,
-	},
-	returns: v.id("messages"),
-	handler: async (ctx, args) => {
-		const provider = getProviderFromModelId(args.modelId as ModelId);
-
-		// Create assistant message with "submitted" status
-		const messageId = await ctx.db.insert("messages", {
-			threadId: args.threadId,
-			parts: [], // Start with empty parts, will be filled during streaming
-			role: "assistant",
-			modelId: args.modelId,
-			model: provider,
-			status: "submitted",
-		});
-
-		return messageId;
-	},
 });
 
 // Main streaming handler
@@ -89,15 +63,31 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 	try {
 		// Parse and validate request body
 		const body = (await request.json()) as HTTPStreamingRequest;
-		const { clientId, modelId, messages: uiMessages, options, assistantMessageId } = body;
+		const { threadClientId, messages: uiMessages, options, userMessageId, id } = body;
+
+    console.log("[streamChatResponse] body", body);
 
 		// Validate required fields
-		if (!clientId) {
-			return new Response("Client ID is required", {
+		if (!threadClientId) {
+			return new Response("Thread client ID is required", {
 				status: 400,
 				headers: corsHeaders(),
 			});
 		}
+
+    if (!userMessageId) {
+      return new Response("User message ID is required", {
+        status: 400,
+        headers: corsHeaders(),
+      });
+    }
+
+    if (!id) {
+      return new Response("Assistant message ID is required", {
+        status: 400,
+        headers: corsHeaders(),
+      });
+    }
 
 		if (!uiMessages || uiMessages.length === 0) {
 			return new Response("Messages are required", {
@@ -106,9 +96,18 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			});
 		}
 
+    // run auth check
+    const userId = await getAuthenticatedUserId(ctx);
+    if (!userId) {
+      return new Response("Unauthorized", {
+        status: 401,
+        headers: corsHeaders(),
+      });
+    }
+
 		// Get the thread by client ID
-		// The thread and user message should already exist from optimistic creation
-		const thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
+		// The thread, user message, and assistant message should already exist from optimistic creation
+		const thread = await ctx.runQuery(api.threads.getByClientId, { clientId: threadClientId });
 		if (!thread) {
 			return new Response(
 				"Thread not found. Ensure thread is created before streaming.",
@@ -119,29 +118,30 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			);
 		}
 
-		const threadId = thread._id;
+    // get the assistant message
+    const assistantMessage = await ctx.runQuery(api.messages.get, { messageId: id });
+    if (!assistantMessage) {
+      return new Response("Assistant message not found", {
+        status: 404,
+        headers: corsHeaders(),
+      });
+    }
 
-		// Use provided assistant message ID or create a new one
-		let messageId: Id<"messages">;
+    // get the user message
+    const userMessage = await ctx.runQuery(api.messages.get, { messageId: userMessageId });
+    if (!userMessage) {
+      return new Response("User message not found", {
+        status: 404,
+        headers: corsHeaders(),
+      });
+    }
 
-		if (assistantMessageId) {
-			// Use the optimistically created assistant message
-			messageId = assistantMessageId as Id<"messages">;
-
-			// Update the message status to indicate streaming is starting
-			await ctx.runMutation(internal.messages.updateMessageStatus, {
-				messageId,
-				status: "submitted",
-			});
-		} else {
-			// Create assistant message placeholder (fallback for non-optimistic flows)
-			messageId = await ctx.runMutation(createAssistantMessage, {
-				threadId,
-				modelId: modelId as ModelId,
-			});
-		}
+    console.log("[streamChatResponse] userMessage", userMessage);
+    console.log("[streamChatResponse] assistantMessage", assistantMessage);
+    console.log("[streamChatResponse] thread", thread.userId);
 
 		// Get user's API keys for the AI provider
+    // @todo rework.
 		const userApiKeys = (await ctx.runMutation(
 			internal.userSettings.getDecryptedApiKeys,
 			{ userId: thread.userId },
@@ -153,26 +153,20 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 		// Convert UIMessages to ModelMessages for the AI SDK
 		const convertedMessages = convertToModelMessages(uiMessages as UIMessage[]);
-
-		// Filter out messages with empty content
-		const validMessages = convertedMessages.filter((msg) => {
-			const hasValidContent = Array.isArray(msg.content)
-				? msg.content.length > 0
-				: msg.content && msg.content.trim().length > 0;
-			return hasValidContent;
-		});
+    const modelId = assistantMessage.modelId;
 
 		// Build the final messages array with system prompt
 		const systemPrompt = createSystemPrompt(
 			modelId as ModelId,
 			options?.webSearchEnabled,
 		);
+
 		const messages: ModelMessage[] = [
 			{
 				role: "system",
 				content: systemPrompt,
 			},
-			...validMessages,
+			...convertedMessages,
 		];
 
 		const provider = getProviderFromModelId(modelId as ModelId);
@@ -194,7 +188,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 			// Add text part to parts array
 			await ctx.runMutation(internal.messages.addTextPart, {
-				messageId,
+				messageId: assistantMessage._id,
 				text: pendingText,
 			});
 
@@ -207,7 +201,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 			// Add reasoning part to parts array
 			await ctx.runMutation(internal.messages.addReasoningPart, {
-				messageId,
+				messageId: assistantMessage._id,
 				text: pendingReasoning,
 				providerMetadata: undefined,
 			});
@@ -219,7 +213,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		const transitionToStreaming = async () => {
 			if (!hasTransitionedToStreaming) {
 				await ctx.runMutation(internal.messages.updateMessageStatus, {
-					messageId,
+					messageId: assistantMessage._id,
 					status: "streaming",
 				});
 				hasTransitionedToStreaming = true;
@@ -268,7 +262,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							// Add source part to database
 							if (chunk.sourceType === "url") {
 								await ctx.runMutation(internal.messages.addSourcePart, {
-									messageId,
+									messageId: assistantMessage._id,
 									sourceId: chunk.id || "",
 									sourceType: "url",
 									title: chunk.title || "",
@@ -280,7 +274,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							} else {
 								// Document type source
 								await ctx.runMutation(internal.messages.addSourcePart, {
-									messageId,
+									messageId: assistantMessage._id,
 									sourceId: chunk.id || "",
 									sourceType: "document",
 									title: chunk.title || "",
@@ -295,7 +289,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						case "raw":
 							// Add raw part for unstructured data
 							await ctx.runMutation(internal.messages.addRawPart, {
-								messageId,
+								messageId: assistantMessage._id,
 								rawValue: chunk,
 							});
 							break;
@@ -303,7 +297,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						case "tool-call":
 							// Add tool call to database
 							await ctx.runMutation(internal.messages.addToolCallPart, {
-								messageId,
+								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
 								toolName: chunk.toolName,
 								args: chunk.input || {},
@@ -314,17 +308,11 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						case "tool-result":
 							// Update tool call with result
 							await ctx.runMutation(internal.messages.updateToolCallPart, {
-								messageId,
+								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
 								result: chunk.output,
 								state: "result",
 							});
-							break;
-
-						case "tool-call-streaming-start":
-						case "tool-call-delta":
-							// These are intermediate streaming states for tools
-							// We handle the complete tool call in the 'tool-call' case
 							break;
 
 						default:
@@ -355,16 +343,16 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 					// Mark message as complete with usage data
 					await ctx.runMutation(internal.messages.markComplete, {
-						messageId,
+						messageId: assistantMessage._id,
 						usage,
 					});
 
 					// Clear generation flag
 					await ctx.runMutation(internal.messages.clearGenerationFlag, {
-						threadId,
+						threadId: thread._id,
 					});
 
-					console.log(`Streaming completed for message ${messageId}`, {
+					console.log(`Streaming completed for message ${assistantMessage._id}`, {
 						fullTextLength: fullText.length,
 						usage,
 					});
@@ -415,7 +403,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 			console.error("Streaming error:", error);
 
-			await handleAIResponseError(ctx, error, threadId, messageId, {
+			await handleAIResponseError(ctx, error, thread._id, assistantMessage._id, {
 				modelId: modelId as ModelId,
 				provider: getProviderFromModelId(modelId as ModelId),
 				useStreamingUpdate: true,

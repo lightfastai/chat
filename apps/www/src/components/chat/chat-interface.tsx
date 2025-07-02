@@ -38,7 +38,6 @@ export function ChatInterface({
 
 	const { messages, sendMessage, status, canSendMessage } = useChat({
 		threadContext: threadContext as ValidThread, // @note: quick hack,
-		preloadedThreadByClientId,
 		preloadedMessages,
 		preloadedUserSettings,
 	});

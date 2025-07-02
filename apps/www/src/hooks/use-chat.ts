@@ -17,7 +17,6 @@ import { useOptimisticThreadCreate } from "./use-optimistic-thread-create";
 interface UseChatProps {
 	/** The chat context - type and clientId */
 	threadContext: ValidThread;
-	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
@@ -28,7 +27,6 @@ interface UseChatProps {
  */
 export function useChat({
 	threadContext,
-	preloadedThreadByClientId,
 	preloadedMessages,
 	preloadedUserSettings,
 }: UseChatProps) {
@@ -138,6 +136,7 @@ export function useChat({
 					{
 						role: "user",
 						parts: [{ type: "text", text: message }],
+            id: userMessageId,
 					},
 					{
 						body: {
@@ -147,7 +146,6 @@ export function useChat({
               options: {
                 webSearchEnabled: webSearchEnabledOverride || false,
                 attachments,
-                modelId: selectedModelId,
               },
 						},
 					},

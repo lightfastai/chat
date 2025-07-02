@@ -54,7 +54,6 @@ export function useChatTransport({
 						options: {
 							webSearchEnabled: (body?.webSearchEnabled as boolean) || false,
 							attachments: body?.attachments as Id<"files">[] | undefined,
-							modelId: body?.modelId,
 						},
 					},
 					credentials: credentials,

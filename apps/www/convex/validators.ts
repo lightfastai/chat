@@ -460,7 +460,7 @@ export const httpStreamingRequestValidator = v.object({
 		v.object({
 			webSearchEnabled: v.optional(v.boolean()),
 			attachments: v.optional(v.array(v.id("files"))),
-			modelId: modelIdValidator,
+			modelId: v.optional(modelIdValidator),
 	}),
 });
 
