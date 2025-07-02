@@ -1,7 +1,6 @@
 "use client";
 
 import { useChat } from "@/hooks/use-chat";
-import { useMergedMessages } from "@/hooks/use-merged-messages";
 import type { ThreadContext, ValidThread } from "@/types/schema";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
@@ -48,11 +47,12 @@ function ChatInterfaceWithPreloadedQueries({
 		preloadedUserSettings,
 	});
 
-	// Merge Convex and Vercel messages
-	const mergedMessages = useMergedMessages(dbMessages, messages, status);
-
 	// Show centered layout only for new chats with no messages
-	if (threadContext.type === "new" && mergedMessages.length === 0) {
+	if (
+		threadContext.type === "new" &&
+		(!dbMessages || dbMessages.length === 0) &&
+		messages.length === 0
+	) {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
@@ -65,7 +65,11 @@ function ChatInterfaceWithPreloadedQueries({
 
 	return (
 		<div className="flex flex-col h-full">
-			<ChatMessages messages={mergedMessages} status={status} />
+			<ChatMessages
+				dbMessages={dbMessages}
+				vercelMessages={messages}
+				status={status}
+			/>
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}
@@ -85,10 +89,6 @@ function ChatInterfaceWithRegularQueries({
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }) {
 	// Use regular queries for non-existing threads
-	const thread = useQuery(api.threads.getByClientId, {
-		clientId: threadContext.clientId,
-	});
-
 	const dbMessages = useQuery(api.messages.listByClientId, {
 		clientId: threadContext.clientId,
 	});
@@ -99,11 +99,12 @@ function ChatInterfaceWithRegularQueries({
 		preloadedUserSettings,
 	});
 
-	// Merge Convex and Vercel messages
-	const mergedMessages = useMergedMessages(dbMessages, messages, status);
-
 	// Show centered layout only for new chats with no messages
-	if (threadContext.type === "new" && mergedMessages.length === 0) {
+	if (
+		threadContext.type === "new" &&
+		(!dbMessages || dbMessages.length === 0) &&
+		messages.length === 0
+	) {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
@@ -116,7 +117,11 @@ function ChatInterfaceWithRegularQueries({
 
 	return (
 		<div className="flex flex-col h-full">
-			<ChatMessages messages={mergedMessages} status={status} />
+			<ChatMessages
+				dbMessages={dbMessages}
+				vercelMessages={messages}
+				status={status}
+			/>
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}

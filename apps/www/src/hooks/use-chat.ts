@@ -35,7 +35,6 @@ export function useChat({
 
 	// Extract data from preloaded queries if available
 	let userSettings = null;
-	const messages = null;
 
 	if (preloadedUserSettings) {
 		userSettings = usePreloadedQuery(preloadedUserSettings);

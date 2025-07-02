@@ -1,7 +1,6 @@
 "use client";
 
 import type { Doc } from "@/convex/_generated/dataModel";
-import { mergeTextParts } from "@/hooks/use-merged-messages";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import type React from "react";
 import { MessageLayout } from "./message-layout";
@@ -50,10 +49,8 @@ export function MessageItem({
 
 		// If message has parts, render them (even if empty initially)
 		if (message.parts && message.parts.length > 0) {
-			const mergedParts = mergeTextParts(message.parts);
-
 			// If we have parts but they're all empty, show a minimal placeholder to prevent layout shift
-			const allPartsEmpty = !mergedParts.some(
+			const allPartsEmpty = !message.parts.some(
 				(part) => part.type === "text" && part.text && part.text.length > 0,
 			);
 
@@ -68,7 +65,7 @@ export function MessageItem({
 
 			return (
 				<div className="space-y-2">
-					{mergedParts.map((part, index) => {
+					{message.parts.map((part, index) => {
 						if (part.type === "text") {
 							return (
 								<div key={`text-${index}`}>
@@ -79,9 +76,9 @@ export function MessageItem({
 											{part.text}
 										</div>
 									)}
-									{/* Show streaming cursor for last text part */}
+									{/* Show streaming cursor for last text part @todo fix. the - 1 part.*/}
 									{messageStatus === "streaming" &&
-										index === mergedParts.length - 1 && (
+										index === (message.parts?.length || 0) - 1 && (
 											<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
 										)}
 								</div>
