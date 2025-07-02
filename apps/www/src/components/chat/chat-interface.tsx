@@ -5,6 +5,7 @@ import type { ThreadContext, ValidThread } from "@/types/schema";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Doc } from "../../../convex/_generated/dataModel";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
@@ -18,29 +19,19 @@ interface ChatInterfaceProps {
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
 
-function ChatInterfaceWithPreloadedQueries({
-	threadContext,
-	preloadedThreadByClientId,
-	preloadedMessages,
-	preloadedUser,
-	preloadedUserSettings,
-}: {
+interface SharedChatComponentProps {
 	threadContext: ValidThread;
-	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
-	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
+	dbMessages: Doc<"messages">[] | undefined;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
-}) {
-	// Extract data from preloaded queries
-	const thread = preloadedThreadByClientId
-		? usePreloadedQuery(preloadedThreadByClientId)
-		: undefined;
+}
 
-	const dbMessages =
-		preloadedMessages && thread?._id
-			? usePreloadedQuery(preloadedMessages)
-			: undefined;
-
+function SharedChatComponent({
+	threadContext,
+	dbMessages,
+	preloadedUser,
+	preloadedUserSettings,
+}: SharedChatComponentProps) {
 	const { messages, sendMessage, status, canSendMessage } = useChat({
 		threadContext,
 		dbMessages,
@@ -79,6 +70,39 @@ function ChatInterfaceWithPreloadedQueries({
 	);
 }
 
+function ChatInterfaceWithPreloadedQueries({
+	threadContext,
+	preloadedThreadByClientId,
+	preloadedMessages,
+	preloadedUser,
+	preloadedUserSettings,
+}: {
+	threadContext: ValidThread;
+	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
+	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
+	preloadedUser?: Preloaded<typeof api.users.current>;
+	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
+}) {
+	// Extract data from preloaded queries
+	const thread = preloadedThreadByClientId
+		? usePreloadedQuery(preloadedThreadByClientId)
+		: undefined;
+
+	const dbMessages =
+		preloadedMessages && thread?._id
+			? usePreloadedQuery(preloadedMessages)
+			: undefined;
+
+	return (
+		<SharedChatComponent
+			threadContext={threadContext}
+			dbMessages={dbMessages}
+			preloadedUser={preloadedUser}
+			preloadedUserSettings={preloadedUserSettings}
+		/>
+	);
+}
+
 function ChatInterfaceWithRegularQueries({
 	threadContext,
 	preloadedUser,
@@ -93,41 +117,13 @@ function ChatInterfaceWithRegularQueries({
 		clientId: threadContext.clientId,
 	});
 
-	const { messages, sendMessage, status, canSendMessage } = useChat({
-		threadContext,
-		dbMessages,
-		preloadedUserSettings,
-	});
-
-	// Show centered layout only for new chats with no messages
-	if (
-		threadContext.type === "new" &&
-		(!dbMessages || dbMessages.length === 0) &&
-		messages.length === 0
-	) {
-		return (
-			<CenteredChatStart
-				onSendMessage={sendMessage}
-				disabled={!canSendMessage}
-				status={status}
-				preloadedUser={preloadedUser}
-			/>
-		);
-	}
-
 	return (
-		<div className="flex flex-col h-full">
-			<ChatMessages
-				dbMessages={dbMessages}
-				vercelMessages={messages}
-				status={status}
-			/>
-			<ChatInput
-				onSendMessage={sendMessage}
-				disabled={!canSendMessage}
-				status={status}
-			/>
-		</div>
+		<SharedChatComponent
+			threadContext={threadContext}
+			dbMessages={dbMessages}
+			preloadedUser={preloadedUser}
+			preloadedUserSettings={preloadedUserSettings}
+		/>
 	);
 }
 
@@ -156,7 +152,15 @@ export function ChatInterface({
 
 	// Handle fallback/loading state
 	if (threadContext.type === "fallback") {
-		return null;
+		return (
+			<div className="flex flex-col h-full items-center justify-center">
+				<div className="text-center">
+					<h2 className="text-lg font-semibold text-foreground mb-2">
+						Loading chat...
+					</h2>
+				</div>
+			</div>
+		);
 	}
 
 	// Handle existing threads with preloaded queries

@@ -121,7 +121,7 @@ export function useChat({
 				modelId: selectedModelId,
 			});
 
-			const { threadId, userMessageId, assistantMessageId } = data;
+			const { userMessageId, assistantMessageId } = data;
 
 			try {
 				// TODO: Temporarily disabled for optimistic message creation
