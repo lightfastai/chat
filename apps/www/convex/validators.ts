@@ -451,42 +451,17 @@ export const uiMessagesValidator = v.array(uiMessageValidator);
  * HTTP request to start a new stream
  */
 export const httpStreamingRequestValidator = v.object({
-	threadId: v.union(v.id("threads"), v.null()), // Can be null for new threads
-	clientId: v.optional(clientIdValidator), // Optional clientId for optimistic threads
+	id: v.id("messages"),
+	threadClientId: clientThreadIdValidator, // Can be null for new threads
+	userMessageId: v.id("messages"),
 	modelId: modelIdValidator,
 	messages: v.optional(uiMessagesValidator), // Optional UIMessages array for v2
-	// Optional configuration
-	options: v.optional(
+	options:
 		v.object({
-			temperature: v.optional(v.number()),
-			maxTokens: v.optional(v.number()),
-			tools: v.optional(v.array(v.any())), // Tool definitions
-			systemPrompt: v.optional(v.string()),
-
-			// Streaming options
-			streamingMode: v.optional(
-				v.union(
-					v.literal("balanced"), // Default - balance latency and efficiency
-					v.literal("low-latency"), // Optimize for first token
-					v.literal("efficient"), // Batch for efficiency
-				),
-			),
-
-			// Use existing structures for the response
-			useExistingMessage: v.optional(v.id("messages")),
 			webSearchEnabled: v.optional(v.boolean()),
-
-			// Trigger type for reconnection/regeneration
-			trigger: v.optional(
-				v.union(
-					v.literal("submit-user-message"),
-					v.literal("resume-stream"),
-					v.literal("submit-tool-result"),
-					v.literal("regenerate-assistant-message"),
-				),
-			),
-		}),
-	),
+			attachments: v.optional(v.array(v.id("files"))),
+			modelId: modelIdValidator,
+	}),
 });
 
 // ===== Response Validators =====

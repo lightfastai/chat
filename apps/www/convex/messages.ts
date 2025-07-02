@@ -9,24 +9,21 @@
 
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { type Infer, v } from "convex/values";
-import {
-  getModelById
-} from "../src/lib/ai/schemas.js";
+import { getModelById } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc } from "./_generated/dataModel.js";
-import {
-  internalMutation,
-  internalQuery, query
-} from "./_generated/server.js";
+import { internalMutation, internalQuery, query } from "./_generated/server.js";
 import {
   branchInfoValidator,
   chatStatusValidator,
-  clientIdValidator, modelIdValidator,
-  modelProviderValidator, shareIdValidator,
+  clientIdValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  shareIdValidator,
   shareSettingsValidator,
   textPartValidator,
   threadUsageValidator,
-  tokenUsageValidator
+  tokenUsageValidator,
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
@@ -965,6 +962,28 @@ export const createUserMessage = internalMutation({
 			role: "user",
 			modelId: args.modelId,
 			status,
+		});
+
+		return messageId;
+	},
+});
+
+export const createAssistantMessage = internalMutation({
+	args: {
+		threadId: v.id("threads"),
+		modelId: modelIdValidator,
+	},
+	returns: v.id("messages"),
+	handler: async (ctx, args) => {
+		const now = Date.now();
+
+		const messageId = await ctx.db.insert("messages", {
+			threadId: args.threadId,
+			parts: [],
+			timestamp: now,
+			role: "assistant",
+			modelId: args.modelId,
+			status: "ready",
 		});
 
 		return messageId;

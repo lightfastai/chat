@@ -28,13 +28,13 @@ export function ChatInterface({
 	// Extract thread from preloaded query if available
 	const thread = preloadedThreadByClientId
 		? usePreloadedQuery(preloadedThreadByClientId)
-		: null;
+		: undefined;
 
 	// Extract database messages from preloaded query if available and thread is resolved
 	const databaseMessages =
 		preloadedMessages && thread?._id
 			? usePreloadedQuery(preloadedMessages)
-			: null;
+			: undefined;
 
 	const { messages, sendMessage, status, canSendMessage } = useChat({
 		threadContext: threadContext as ValidThread, // @note: quick hack,

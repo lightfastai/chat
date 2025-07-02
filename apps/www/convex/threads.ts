@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
+import type { Id } from "./_generated/dataModel.js";
 import { mutation, query } from "./_generated/server.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getWithOwnership } from "./lib/database.js";
@@ -117,12 +118,6 @@ function getDateCategory(lastMessageAt: number): string {
 	return "Older";
 }
 
-// Thread with date category for grouped results
-const threadWithCategoryValidator = v.object({
-	...threadObjectValidator.fields,
-	dateCategory: v.string(),
-});
-
 // Create a new thread with optimistic update
 export const createThreadWithFirstMessage = mutation({
 	args: {
@@ -130,6 +125,11 @@ export const createThreadWithFirstMessage = mutation({
 		message: textPartValidator,
 		modelId: modelIdValidator,
 	},
+	returns: v.object({
+		threadId: v.id("threads"),
+		userMessageId: v.id("messages"),
+		assistantMessageId: v.id("messages"),
+	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
 
@@ -141,8 +141,28 @@ export const createThreadWithFirstMessage = mutation({
 
 		if (existing) {
 			// Return existing thread ID instead of throwing error for idempotency
-			// @todo actually handle this correcttly...
-			return existing._id;
+			// @todo actually handle this correctly...
+			// For now, we need to get the first user message from this thread
+			const firstMessage = await ctx.db
+				.query("messages")
+				.withIndex("by_thread", (q) => q.eq("threadId", existing._id))
+				.filter((q) => q.eq(q.field("role"), "user"))
+				.order("asc")
+				.first();
+
+			// Also get the first assistant message
+			const firstAssistantMessage = await ctx.db
+				.query("messages")
+				.withIndex("by_thread", (q) => q.eq("threadId", existing._id))
+				.filter((q) => q.eq(q.field("role"), "assistant"))
+				.order("asc")
+				.first();
+
+			return {
+				threadId: existing._id,
+				userMessageId: firstMessage?._id || ("" as Id<"messages">), // Fallback for edge case
+				assistantMessageId: firstAssistantMessage?._id || ("" as Id<"messages">), // Fallback for edge case
+			};
 		}
 
 		const now = Date.now();
@@ -152,6 +172,7 @@ export const createThreadWithFirstMessage = mutation({
 			userId: userId,
 			createdAt: now,
 			lastMessageAt: now,
+      // @todo depcreate these...
 			isTitleGenerating: true, // Will be updated when first message is sent
 			// Initialize usage field
 			usage: {
@@ -170,13 +191,18 @@ export const createThreadWithFirstMessage = mutation({
 			firstMessage: args.message,
 		});
 
-		await ctx.runMutation(internal.messages.createUserMessage, {
+    const userMessageId: Id<"messages"> = await ctx.runMutation(internal.messages.createUserMessage, {
 			threadId,
 			modelId: args.modelId,
 			part: args.message,
 		});
 
-		return threadId;
+    const assistantMessageId: Id<"messages"> = await ctx.runMutation(internal.messages.createAssistantMessage, {
+			threadId,
+			modelId: args.modelId,
+		});
+
+		return { threadId, userMessageId, assistantMessageId };
 	},
 });
 

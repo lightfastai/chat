@@ -3,10 +3,10 @@
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import type { UIMessage } from "../../types/schema";
 import { MessageDisplay } from "./message-display";
 import { MessageLayout } from "./shared/message-layout";
 import { ThinkingIndicator } from "./shared/thinking-indicator";
-import type { UIMessage } from "../../types/schema";
 
 interface ChatMessagesProps {
 	messages: UIMessage[];
@@ -48,7 +48,7 @@ export function ChatMessages({
 		console.log("[ChatMessages] assistantMessages:", assistantMessages);
 
 		// Convert database user messages to UIMessage format
-    // @todo make convert function.
+		// @todo make convert function.
 		const userMessages: UIMessage[] = databaseMessages
 			.filter((msg) => msg.role === "user")
 			.map((msg) => ({

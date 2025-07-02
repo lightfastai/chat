@@ -1,3 +1,15 @@
+/**
+ * HTTP Streaming Handler for AI Chat Responses
+ *
+ * This handler receives requests from the frontend after user messages are
+ * created optimistically. It's responsible for:
+ * 1. Creating an assistant message placeholder
+ * 2. Streaming AI responses and updating the message
+ * 3. Handling errors and updating message status
+ *
+ * User messages are NOT created here - they're handled optimistically by the frontend
+ */
+
 import {
   type ModelMessage,
   type UIMessage,
@@ -7,6 +19,8 @@ import {
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
+import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
   getModelById,
@@ -15,110 +29,119 @@ import {
   isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import { httpAction } from "./_generated/server";
+import { httpAction, internalMutation } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
 import { createSystemPrompt } from "./lib/message_builder";
 import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
-import type { httpStreamingRequestValidator } from "./validators";
+import {
+  type httpStreamingRequestValidator,
+  modelIdValidator,
+} from "./validators";
 
 // Types from validators
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
 
+// Helper function for CORS headers
+function corsHeaders(): HeadersInit {
+	return {
+		"Access-Control-Allow-Origin": "*",
+		"Access-Control-Allow-Methods": "POST, OPTIONS",
+		"Access-Control-Allow-Headers": "Content-Type, Authorization",
+	};
+}
+
+// CORS preflight handler
 export const corsHandler = httpAction(async (ctx, request) => {
 	return new Response(null, {
 		status: 200,
-		headers: {
-			"Access-Control-Allow-Origin": "*",
-			"Access-Control-Allow-Methods": "POST, OPTIONS",
-			"Access-Control-Allow-Headers": "Content-Type, Authorization",
-			"Access-Control-Expose-Headers": "X-Thread-Id",
-			"Access-Control-Max-Age": "86400",
-		},
+		headers: corsHeaders(),
 	});
 });
 
+// Internal mutation to create assistant message placeholder
+export const createAssistantMessage = internalMutation({
+	args: {
+		threadId: v.id("threads"),
+		modelId: modelIdValidator,
+	},
+	returns: v.id("messages"),
+	handler: async (ctx, args) => {
+		const provider = getProviderFromModelId(args.modelId as ModelId);
+
+		// Create assistant message with "submitted" status
+		const messageId = await ctx.db.insert("messages", {
+			threadId: args.threadId,
+			parts: [], // Start with empty parts, will be filled during streaming
+			role: "assistant",
+			modelId: args.modelId,
+			model: provider,
+			status: "submitted",
+		});
+
+		return messageId;
+	},
+});
+
+// Main streaming handler
 export const streamChatResponse = httpAction(async (ctx, request) => {
 	try {
 		// Parse and validate request body
 		const body = (await request.json()) as HTTPStreamingRequest;
+		const { clientId, modelId, messages: uiMessages, options, assistantMessageId } = body;
 
-		const { clientId, modelId, messages: uiMessages, options } = body;
-
-		// Handle thread creation for new chats
-		let threadId: Id<"threads">;
-		let thread: Doc<"threads"> | null;
-
+		// Validate required fields
 		if (!clientId) {
-			return new Response("Thread ID or client ID required", {
+			return new Response("Client ID is required", {
 				status: 400,
-				headers: {
-					"Access-Control-Allow-Origin": "*",
-					"Access-Control-Allow-Methods": "POST",
-					"Access-Control-Allow-Headers": "Content-Type, Authorization",
-					"Access-Control-Expose-Headers": "X-Thread-Id",
-				},
+				headers: corsHeaders(),
 			});
 		}
 
-		thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
+		if (!uiMessages || uiMessages.length === 0) {
+			return new Response("Messages are required", {
+				status: 400,
+				headers: corsHeaders(),
+			});
+		}
+
+		// Get the thread by client ID
+		// The thread and user message should already exist from optimistic creation
+		const thread = await ctx.runQuery(api.threads.getByClientId, { clientId });
 		if (!thread) {
-			return new Response("Failed to create thread", {
-				status: 500,
-				headers: {
-					"Access-Control-Allow-Origin": "*",
-					"Access-Control-Allow-Methods": "POST",
-					"Access-Control-Allow-Headers": "Content-Type, Authorization",
-					"Access-Control-Expose-Headers": "X-Thread-Id",
+			return new Response(
+				"Thread not found. Ensure thread is created before streaming.",
+				{
+					status: 404,
+					headers: corsHeaders(),
 				},
+			);
+		}
+
+		const threadId = thread._id;
+
+		// Use provided assistant message ID or create a new one
+		let messageId: Id<"messages">;
+
+		if (assistantMessageId) {
+			// Use the optimistically created assistant message
+			messageId = assistantMessageId as Id<"messages">;
+
+			// Update the message status to indicate streaming is starting
+			await ctx.runMutation(internal.messages.updateMessageStatus, {
+				messageId,
+				status: "submitted",
+			});
+		} else {
+			// Create assistant message placeholder (fallback for non-optimistic flows)
+			messageId = await ctx.runMutation(createAssistantMessage, {
+				threadId,
+				modelId: modelId as ModelId,
 			});
 		}
 
-		// Save the latest user message to database
-		// The HTTP streaming request is triggered by a new user message, so we only need to save the latest one
-		if (uiMessages && uiMessages.length > 0) {
-			// Find the latest user message (the one that triggered this request)
-			const userMessages = uiMessages.filter((msg) => msg.role === "user");
-
-			if (userMessages.length < 1) {
-				throw new Error("No user messages provided");
-			}
-
-			const latestUserMessage = userMessages[userMessages.length - 1];
-
-			// Extract text content from the latest user message
-			const textParts = latestUserMessage.parts
-				.filter((part) => part.type === "text")
-				.map((part) => (part as { text: string }).text)
-				.join("\n");
-
-			if (textParts.trim()) {
-				// Save only the latest user message with parts
-				const savedMessageId = await ctx.runMutation(
-					internal.messages.createUserMessage,
-					{
-						threadId: thread._id,
-						role: "user",
-						parts: {
-							type: "text",
-							text: textParts,
-						},
-						modelId: modelId as ModelId,
-					},
-				);
-
-				// Add the parts from the user message
-				// Since user messages are text-only, we just need to add text parts
-				await ctx.runMutation(internal.messages.addTextPart, {
-					messageId: savedMessageId,
-					text: textParts,
-				});
-			}
-		}
-
-		// Get user's API keys
+		// Get user's API keys for the AI provider
 		const userApiKeys = (await ctx.runMutation(
 			internal.userSettings.getDecryptedApiKeys,
 			{ userId: thread.userId },
@@ -128,26 +151,18 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			openrouter?: string;
 		} | null;
 
-		// Build conversation messages using modern parts-based approach
-		if (!uiMessages || uiMessages.length === 0) {
-			throw new Error(
-				"UIMessages required - legacy thread-based fallback removed",
-			);
-		}
-
-		// Convert UIMessages to ModelMessages using SDK function
+		// Convert UIMessages to ModelMessages for the AI SDK
 		const convertedMessages = convertToModelMessages(uiMessages as UIMessage[]);
 
-		// Filter out messages with empty content (Anthropic doesn't allow this)
+		// Filter out messages with empty content
 		const validMessages = convertedMessages.filter((msg) => {
 			const hasValidContent = Array.isArray(msg.content)
 				? msg.content.length > 0
 				: msg.content && msg.content.trim().length > 0;
-
 			return hasValidContent;
 		});
 
-		// Add system prompt at the beginning
+		// Build the final messages array with system prompt
 		const systemPrompt = createSystemPrompt(
 			modelId as ModelId,
 			options?.webSearchEnabled,
@@ -313,7 +328,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							break;
 
 						default:
-							// This should never happen with the known types
+							// Log unexpected chunk types for debugging
 							console.warn("Unexpected chunk type", chunk);
 					}
 				},
@@ -356,6 +371,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				},
 			};
 
+			// Add thinking mode configuration for Anthropic
 			if (provider === "anthropic" && isThinkingMode(modelId as ModelId)) {
 				const modelConfig = getModelConfig(modelId as ModelId);
 				if (modelConfig.thinkingConfig) {
@@ -386,40 +402,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			);
 			const result = streamText(generationOptions);
 
-			// Add thread ID to response headers for new chats
-			const responseHeaders: HeadersInit = {
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "POST",
-				"Access-Control-Allow-Headers": "Content-Type, Authorization",
-				"Access-Control-Expose-Headers": "X-Thread-Id",
-			};
-
-			// Include thread ID in headers for the client to update its state
-			if (!requestThreadId && threadId) {
-				responseHeaders["X-Thread-Id"] = threadId;
-				console.log(
-					"[HTTP Streaming] Including thread ID in response headers:",
-					threadId,
-				);
-			}
-
-			console.log("[HTTP Streaming] Returning UI message stream response");
-
-			// Filter out user messages from the response to prevent duplicates
-			// Frontend will handle user messages optimistically
-			const filteredUIMessages =
-				uiMessages?.filter((msg) => msg.role !== "user") || [];
-
-			console.log("[HTTP Streaming] Filtered UI messages:", {
-				originalCount: uiMessages?.length || 0,
-				filteredCount: filteredUIMessages.length,
-				removedUserMessages:
-					(uiMessages?.length || 0) - filteredUIMessages.length,
-			});
-
+			// Return the stream response
+			// The frontend will handle merging assistant messages with user messages
 			return result.toUIMessageStreamResponse({
-				headers: responseHeaders,
-				originalMessages: filteredUIMessages as UIMessage[],
+				headers: corsHeaders(),
 			});
 		} catch (error) {
 			// Clean up timer on error
@@ -438,14 +424,17 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			throw error;
 		}
 	} catch (error) {
-		console.error("HTTP streaming setup error:", error);
+		console.error("HTTP streaming error:", error);
 		return new Response(
-			JSON.stringify({ error: "Failed to start streaming" }),
+			JSON.stringify({
+				error:
+					error instanceof Error ? error.message : "Failed to start streaming",
+			}),
 			{
 				status: 500,
 				headers: {
 					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*",
+					...corsHeaders(),
 				},
 			},
 		);

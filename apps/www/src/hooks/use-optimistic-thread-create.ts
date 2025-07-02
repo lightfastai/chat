@@ -88,15 +88,46 @@ export function useOptimisticThreadCreate() {
 			status: "ready",
 		};
 
+		// Create optimistic assistant message placeholder
+		const optimisticAssistantMessage: Doc<"messages"> = {
+			_id: crypto.randomUUID() as Id<"messages">,
+			_creationTime: now + 1, // Slightly after user message
+			threadId: optimisticThreadId,
+			parts: [], // Empty parts, will be filled during streaming
+			role: "assistant",
+			modelId,
+			model: modelId.split("/")[0] as any, // Extract provider from modelId
+			timestamp: now + 1,
+			status: "submitted", // Shows thinking indicator
+		};
+
 		const existingMessages =
 			localStore.getQuery(api.messages.list, {
 				threadId: optimisticThreadId,
 			}) || [];
 
-		// Update local store - add to beginning of list
+		// Update local store - add both messages to beginning of list
+		// Order: user message first, then assistant message
 		localStore.setQuery(api.messages.list, { threadId: optimisticThreadId }, [
 			optimisticUserMessage,
+			optimisticAssistantMessage,
 			...existingMessages,
 		]);
+
+		// Also update the thread to show it's generating
+		localStore.setQuery(
+			api.threads.get,
+			{ threadId: optimisticThreadId },
+			{
+				...optimisticThread,
+				isGenerating: true,
+			},
+		);
+
+		return {
+			threadId: optimisticThreadId,
+			userMessageId: optimisticUserMessage._id,
+			assistantMessageId: optimisticAssistantMessage._id,
+		};
 	});
 }

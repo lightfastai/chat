@@ -1,31 +1,17 @@
 "use client";
 
 import { createStreamUrl } from "@/lib/create-base-url";
-import type { ChatTransport, UIMessage } from "ai";
+import type { ChatTransport } from "ai";
 import { DefaultChatTransport } from "ai";
 import { useMemo } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
-import type { ValidThread } from "../types/schema";
+import type { UIMessage } from "../types/schema";
 
 interface UseChatTransportProps {
 	/** Authentication token for Convex requests */
 	authToken: string | null;
-	/** Client-generated ID for the chat */
-	threadContext: ValidThread;
 	/** Default AI model to use */
 	defaultModel: string;
-}
-
-interface ConvexChatRequestBody {
-	threadId?: string | null;
-	clientId: string;
-	modelId: string;
-	messages: unknown[];
-	options: {
-		webSearchEnabled: boolean;
-		attachments?: Id<"files">[];
-		trigger?: string;
-	};
 }
 
 /**
@@ -38,50 +24,44 @@ interface ConvexChatRequestBody {
  */
 export function useChatTransport({
 	authToken,
-	threadContext,
 	defaultModel,
 }: UseChatTransportProps): ChatTransport<UIMessage> | undefined {
 	const transport = useMemo(() => {
 		// Return undefined if not authenticated - this prevents transport creation
 		if (!authToken) return undefined;
 
-		return new DefaultChatTransport({
+		return new DefaultChatTransport<UIMessage>({
 			api: createStreamUrl(),
 			headers: {
 				Authorization: `Bearer ${authToken}`,
 			},
 			prepareSendMessagesRequest: ({
-				messages,
 				body,
 				headers,
+        messages,
 				credentials,
 				api,
-				trigger,
 			}) => {
-				const requestBody = body as Record<string, unknown>;
-
-				// Transform request body to Convex format
-				const convexBody: ConvexChatRequestBody = {
-					clientId: (requestBody?.clientId as string) || threadContext.clientId,
-					modelId: (requestBody?.modelId as string) || defaultModel,
-					messages: messages,
-					options: {
-						webSearchEnabled:
-							(requestBody?.webSearchEnabled as boolean) || false,
-						attachments: requestBody?.attachments as Id<"files">[] | undefined,
-						trigger,
-					},
-				};
-
+				console.log("[useChatTransport] requestBody:", body);
 				return {
-					api: api,
-					headers: headers,
-					body: convexBody,
+					api,
+					headers,
+					body: {
+						id: body?.id,
+            threadClientId: body?.threadClientId,
+            userMessageId: body?.userMessageId,
+            messages,
+						options: {
+							webSearchEnabled: (body?.webSearchEnabled as boolean) || false,
+							attachments: body?.attachments as Id<"files">[] | undefined,
+							modelId: body?.modelId,
+						},
+					},
 					credentials: credentials,
 				};
 			},
 		});
-	}, [authToken, threadContext.clientId, defaultModel]);
+	}, [authToken, defaultModel]);
 
 	return transport;
 }

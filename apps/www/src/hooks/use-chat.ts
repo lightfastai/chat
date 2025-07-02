@@ -52,7 +52,6 @@ export function useChat({
 	// Create transport using the dedicated hook
 	const transport = useChatTransport({
 		authToken,
-		threadContext,
 		defaultModel,
 	});
 
@@ -66,8 +65,7 @@ export function useChat({
 		// Convert Convex messages to Vercel AI UIMessage format
 		const converted = messages.map((msg) => ({
 			id: msg._id,
-			role:
-				msg.role === "user" ? ("user" as const) : ("assistant" as const),
+			role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
 			parts: (msg.parts || []).map((part: MessagePart) => {
 				// Convert Convex "source" type to Vercel AI SDK "source-document" type
 				if (part.type === "source") {
@@ -120,28 +118,40 @@ export function useChat({
 				window.history.replaceState({}, "", `/chat/${threadContext.clientId}`);
 			}
 
-			createThreadOptimistic({
+			const data = await createThreadOptimistic({
 				clientThreadId: threadContext.clientId,
 				message: { type: "text", text: message },
 				modelId: selectedModelId,
 			});
 
+      const { threadId, userMessageId, assistantMessageId } = data;
+
+      console.log("[useChat] sendMessage", {
+        threadId,
+        userMessageId,
+        assistantMessageId,
+      });
+
 			try {
 				// TODO: Temporarily disabled for optimistic message creation
-				// await vercelSendMessage(
-				// 	{
-				// 		role: "user",
-				// 		parts: [{ type: "text", text: message }],
-				// 	},
-				// 	{
-				// 		body: {
-				// 			clientId: threadContext.clientId,
-				// 			modelId: selectedModelId,
-				// 			webSearchEnabled: webSearchEnabledOverride || false,
-				// 			attachments,
-				// 		},
-				// 	},
-				// );
+				await vercelSendMessage(
+					{
+						role: "user",
+						parts: [{ type: "text", text: message }],
+					},
+					{
+						body: {
+							id: assistantMessageId,
+              userMessageId,
+							threadClientId: threadContext.clientId,
+              options: {
+                webSearchEnabled: webSearchEnabledOverride || false,
+                attachments,
+                modelId: selectedModelId,
+              },
+						},
+					},
+				);
 			} catch (error) {
 				throw error;
 			}
