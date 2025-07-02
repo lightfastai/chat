@@ -12,10 +12,10 @@
 
 import {
   type ModelMessage,
-  type UIMessage,
-  convertToModelMessages,
+  ReasoningUIPart, TextUIPart,
+  UIMessage, convertToModelMessages,
   smoothStream,
-  streamText,
+  streamText
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
@@ -34,7 +34,7 @@ import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/message_builder";
 import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
-import type { httpStreamingRequestValidator } from "./validators";
+import type { DbMessage, httpStreamingRequestValidator } from "./validators";
 
 // Types from validators
 type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
@@ -63,12 +63,13 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		const body = (await request.json()) as HTTPStreamingRequest;
 		const {
 			threadClientId,
-			messages: uiMessages,
+			messages: mostRecentUiMessage,
 			options,
 			userMessageId,
 			id,
 		} = body;
 
+		console.log("[streamChatResponse] body", body);
 
 		// Validate required fields
 		if (!threadClientId) {
@@ -92,7 +93,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			});
 		}
 
-		if (!uiMessages || uiMessages.length === 0) {
+		if (!mostRecentUiMessage || mostRecentUiMessage.length === 0) {
 			return new Response("Messages are required", {
 				status: 400,
 				headers: corsHeaders(),
@@ -145,6 +146,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			});
 		}
 
+		// get all thread messages
+		const threadMessages = await ctx.runQuery(api.messages.listByClientId, {
+			clientId: threadClientId,
+		});
 
 		// Get user's API keys for the AI provider
 		// @todo rework.
@@ -157,8 +162,38 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			openrouter?: string;
 		} | null;
 
+		// @todo find somewhere to put this...
+		const convertToUIMessages: (messages: DbMessage[]) => UIMessage[] = (
+			messages: DbMessage[],
+		) => {
+			return messages.map((message) => {
+				return {
+					id: message._id,
+					role: message.role as UIMessage["role"],
+					parts:
+						message.parts?.map((part) => {
+							if (part.type === "text") {
+								return {
+									type: "text",
+									text: part.text,
+								} as TextUIPart;
+							}
+
+							if (part.type === "reasoning") {
+								return {
+									type: "reasoning",
+									text: part.text,
+								} as ReasoningUIPart;
+							}
+						}) as UIMessage["parts"],
+				};
+			});
+		};
+
 		// Convert UIMessages to ModelMessages for the AI SDK
-		const convertedMessages = convertToModelMessages(uiMessages as UIMessage[]);
+		const convertedMessages = convertToModelMessages(
+			convertToUIMessages(threadMessages),
+		);
 		const modelId = assistantMessage.modelId;
 
 		// Build the final messages array with system prompt
@@ -330,7 +365,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					}
 				},
 				onFinish: async (result) => {
-
 					// Clear timer
 					if (updateTimer) {
 						clearInterval(updateTimer);
@@ -361,7 +395,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					await ctx.runMutation(internal.messages.clearGenerationFlag, {
 						threadId: thread._id,
 					});
-
 				},
 			};
 
@@ -395,8 +428,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			// The frontend will handle merging assistant messages with user messages
 			return result.toUIMessageStreamResponse({
 				headers: corsHeaders(),
-        // @todo more docs on this. this how we add assitant message id to the streaming response.
-        // because vercel ai sdk auto-generates the message id in streamText.
+				// @todo more docs on this. this how we add assitant message id to the streaming response.
+				// because vercel ai sdk auto-generates the message id in streamText.
 				messageMetadata: () => {
 					return {
 						id: assistantMessage._id,

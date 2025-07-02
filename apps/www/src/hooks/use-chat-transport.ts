@@ -50,7 +50,7 @@ export function useChatTransport({
 						id: body?.id,
 						threadClientId: body?.threadClientId,
 						userMessageId: body?.userMessageId,
-						messages,
+						messages: messages[messages.length - 1],
 						options: {
 							webSearchEnabled: (body?.webSearchEnabled as boolean) || false,
 							attachments: body?.attachments as Id<"files">[] | undefined,

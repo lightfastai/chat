@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
+import { Doc } from "./_generated/dataModel.js";
 
 /**
  * Comprehensive validators for the chat application
@@ -497,6 +498,7 @@ export const httpStreamingRequestValidator = v.object({
  */
 
 // ===== Core Types =====
+export type DbMessage = Doc<"messages">;
 export type MessagePart = Infer<typeof messagePartValidator>;
 export type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
 

@@ -154,7 +154,9 @@ export function ChatMessages({
 	let streamingVercelMessage: UIMessageWithMetadata | undefined;
 	if (status === "streaming" && vercelMessages.length > 0) {
 		// The last message in vercelMessages should be the streaming one
-		streamingVercelMessage = vercelMessages[vercelMessages.length - 1] as UIMessageWithMetadata;
+		streamingVercelMessage = vercelMessages[
+			vercelMessages.length - 1
+		] as UIMessageWithMetadata;
 	}
 
 	return (
