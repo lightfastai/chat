@@ -106,12 +106,12 @@ export function useOptimisticThreadCreateWithUserAndAssistantMessage() {
 				clientId: clientThreadId,
 			}) || [];
 
-		// Update local store - add both messages to beginning of list
-		// Order: user message first, then assistant message
+		// Update local store - add both messages to end of list (newest last)
+		// This matches the order returned by the server query
 		localStore.setQuery(
 			api.messages.listByClientId,
 			{ clientId: clientThreadId },
-			[optimisticUserMessage, optimisticAssistantMessage, ...existingMessages],
+			[...existingMessages, optimisticUserMessage, optimisticAssistantMessage],
 		);
 
 		// Also update the thread to show it's generating
