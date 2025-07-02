@@ -23,9 +23,17 @@ export function useOptimisticMessageCreate() {
 			}
 
 			// Get the thread to access its clientId
-			const thread = localStore.getQuery(api.threads.get, { threadId });
+			// First try to get thread by ID
+			let thread = localStore.getQuery(api.threads.get, { threadId });
+
+			// If not found, we need to find it from the threads list
+			if (!thread) {
+				const threadsList = localStore.getQuery(api.threads.list, {}) || [];
+				thread = threadsList.find((t) => t._id === threadId);
+			}
+
 			if (!thread?.clientId) {
-				console.error("Thread or clientId not found");
+				console.error("Thread or clientId not found", { threadId });
 				return;
 			}
 
@@ -74,8 +82,9 @@ export function useOptimisticMessageCreate() {
 				],
 			);
 
-			// Get the current thread to update its state
-			const currentThread = localStore.getQuery(api.threads.get, { threadId });
+			// Update the thread in local store to show it's generating
+			// We already have the thread from above, so just use it
+			const currentThread = thread;
 
 			if (currentThread) {
 				// Update the thread to show it's generating
@@ -91,12 +100,23 @@ export function useOptimisticMessageCreate() {
 
 				// Also update in the threads list
 				const threadsList = localStore.getQuery(api.threads.list, {}) || [];
-				const updatedThreadsList = threadsList.map((thread) =>
-					thread._id === threadId
-						? { ...thread, isGenerating: true, lastMessageAt: now }
-						: thread,
+				const updatedThreadsList = threadsList.map((t) =>
+					t._id === threadId
+						? { ...t, isGenerating: true, lastMessageAt: now }
+						: t,
 				);
 				localStore.setQuery(api.threads.list, {}, updatedThreadsList);
+
+				// Also update the getByClientId query if it exists
+				localStore.setQuery(
+					api.threads.getByClientId,
+					{ clientId: thread.clientId },
+					{
+						...currentThread,
+						isGenerating: true,
+						lastMessageAt: now,
+					},
+				);
 			}
 
 			return {
