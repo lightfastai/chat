@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { api } from "../../../convex/_generated/api";
 import { ChatInterface } from "../../components/chat/chat-interface";
 import { getAuthToken } from "../../lib/auth";
-import { nanoid } from "nanoid";
+import { nanoid } from "../../lib/nanoid";
 import type { ThreadContext } from "../../types/schema";
 
 export const metadata: Metadata = {

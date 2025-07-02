@@ -1,10 +1,10 @@
 "use client";
 
+import { createStreamUrl } from "@/lib/create-base-url";
 import type { ChatTransport, UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
 import { useMemo } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
-import { createStreamUrl } from "@/lib/create-base-url";
 import type { ValidThread } from "../types/schema";
 
 interface UseChatTransportProps {

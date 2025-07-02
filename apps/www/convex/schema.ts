@@ -12,10 +12,10 @@ import {
   fileNameValidator,
   ipHashValidator,
   messagePartsValidator,
-  roleValidator,
   mimeTypeValidator,
   modelIdValidator,
   modelProviderValidator,
+  roleValidator,
   shareIdValidator,
   shareSettingsValidator,
   storageIdValidator,
@@ -78,8 +78,8 @@ export default defineSchema({
 
 	messages: defineTable({
 		threadId: v.id("threads"),
-		timestamp: v.number(),
-		messageType: v.optional(roleValidator),
+		timestamp: v.optional(v.number()), // Deprecated - use createdAt instead
+		messageType: v.optional(roleValidator), // Deprecated - use role instead
 		modelId: v.optional(modelIdValidator),
 		model: v.optional(modelProviderValidator),
 		// Attachments - array of file IDs

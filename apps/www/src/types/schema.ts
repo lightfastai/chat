@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { UIMessage as VercelUIMessage } from "ai";
 
 // Zod enum for thread types including error state
 export const ThreadTypeEnum = z.enum(["new", "existing", "error"]);
@@ -27,3 +28,5 @@ export type NewThread = Extract<ThreadContext, { type: "new" }>;
 export type ExistingThread = Extract<ThreadContext, { type: "existing" }>;
 export type ErrorThread = Extract<ThreadContext, { type: "error" }>;
 export type ValidThread = Extract<ThreadContext, { type: "new" | "existing" }>;
+
+export type UIMessage = VercelUIMessage<{ createdAt: Date }>;

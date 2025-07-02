@@ -4,16 +4,15 @@ import type { MessagePart } from "@/lib/message-parts";
 import { nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
-import type { UIMessage } from "ai";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
 import type { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import type { ModelId } from "../lib/ai/schemas";
+import type { UIMessage, ValidThread } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
 import { useOptimisticThreadCreate } from "./use-optimistic-thread-create";
-import type { ValidThread } from "../types/schema";
-import { ModelId } from "../lib/ai/schemas";
 
 interface UseChatProps {
 	/** The chat context - type and clientId */
@@ -68,7 +67,7 @@ export function useChat({
 		const converted = messages.map((msg) => ({
 			id: msg._id,
 			role:
-				msg.messageType === "user" ? ("user" as const) : ("assistant" as const),
+				msg.role === "user" ? ("user" as const) : ("assistant" as const),
 			parts: (msg.parts || []).map((part: MessagePart) => {
 				// Convert Convex "source" type to Vercel AI SDK "source-document" type
 				if (part.type === "source") {
@@ -79,6 +78,9 @@ export function useChat({
 				}
 				return part;
 			}),
+			metadata: {
+				createdAt: new Date(msg._creationTime),
+			},
 		})) as UIMessage[];
 
 		return converted;
@@ -90,7 +92,7 @@ export function useChat({
 		status,
 		sendMessage: vercelSendMessage,
 		setMessages,
-	} = useVercelChat({
+	} = useVercelChat<UIMessage>({
 		id: threadContext.clientId,
 		transport,
 		generateId: () => nanoid(),
@@ -117,14 +119,6 @@ export function useChat({
 				// Update URL using replaceState for seamless navigation
 				window.history.replaceState({}, "", `/chat/${threadContext.clientId}`);
 			}
-
-			setMessages([
-				{
-					id: nanoid(),
-					role: "user",
-					parts: [{ type: "text", text: message }],
-				},
-			]);
 
 			createThreadOptimistic({
 				clientThreadId: threadContext.clientId,

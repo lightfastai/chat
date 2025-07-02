@@ -3,6 +3,7 @@
 import { useChat } from "@/hooks/use-chat";
 import type { ThreadContext, ValidThread } from "@/types/schema";
 import type { Preloaded } from "convex/react";
+import { usePreloadedQuery } from "convex/react";
 import type { api } from "../../../convex/_generated/api";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
@@ -24,6 +25,17 @@ export function ChatInterface({
 	preloadedUser,
 	preloadedUserSettings,
 }: ChatInterfaceProps) {
+	// Extract thread from preloaded query if available
+	const thread = preloadedThreadByClientId
+		? usePreloadedQuery(preloadedThreadByClientId)
+		: null;
+
+	// Extract database messages from preloaded query if available and thread is resolved
+	const databaseMessages =
+		preloadedMessages && thread?._id
+			? usePreloadedQuery(preloadedMessages)
+			: null;
+
 	const { messages, sendMessage, status, canSendMessage } = useChat({
 		threadContext: threadContext as ValidThread, // @note: quick hack,
 		preloadedThreadByClientId,
@@ -45,7 +57,11 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full ">
-			<ChatMessages messages={messages} status={status} />
+			<ChatMessages
+				messages={messages}
+				databaseMessages={databaseMessages}
+				status={status}
+			/>
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}

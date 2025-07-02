@@ -3,7 +3,11 @@ import { type CoreMessage, generateText } from "ai";
 import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import { internalAction, internalMutation } from "./_generated/server.js";
-import { textPartValidator, titleValidator, validateTitle } from "./validators.js";
+import {
+	textPartValidator,
+	titleValidator,
+	validateTitle,
+} from "./validators.js";
 
 // Internal action to generate title using fast AI model
 // full rewrite to use the new ai sdk v5

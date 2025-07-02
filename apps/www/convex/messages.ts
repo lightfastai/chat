@@ -8,42 +8,30 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Infer, v } from "convex/values";
+import { type Infer, v } from "convex/values";
 import {
-	type ModelId,
-	getModelById,
-	getProviderFromModelId,
+  getModelById
 } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc } from "./_generated/dataModel.js";
 import {
-	internalMutation,
-	internalQuery,
-	mutation,
-	query,
+  internalMutation,
+  internalQuery, query
 } from "./_generated/server.js";
-import { getAuthenticatedUserId } from "./lib/auth.js";
-import { enforceModelCapabilities } from "./lib/capability_guards.js";
-import { getWithOwnership } from "./lib/database.js";
-import { throwConflictError } from "./lib/errors.js";
 import {
-	branchInfoValidator,
-	chatStatusValidator,
-	clientIdValidator,
-	messagePartsValidator,
-	roleValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	shareIdValidator,
-	shareSettingsValidator,
-	threadUsageValidator,
-	tokenUsageValidator,
-	textPartValidator,
+  branchInfoValidator,
+  chatStatusValidator,
+  clientIdValidator, modelIdValidator,
+  modelProviderValidator, shareIdValidator,
+  shareSettingsValidator,
+  textPartValidator,
+  threadUsageValidator,
+  tokenUsageValidator
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
 import { updateThreadUsage } from "./messages/helpers.js";
-import { type MessageUsageUpdate } from "./messages/types.js";
+import type { MessageUsageUpdate } from "./messages/types.js";
 
 // Type definitions for multimodal content
 type TextPart = { type: "text"; text: string };
@@ -245,13 +233,6 @@ export const getRecentContext = internalQuery({
 	args: {
 		threadId: v.id("threads"),
 	},
-	returns: v.array(
-		v.object({
-			parts: v.optional(messagePartsValidator),
-			messageType: roleValidator,
-			attachments: v.optional(v.array(v.id("files"))),
-		}),
-	),
 	handler: async (ctx, args) => {
 		const messages = await ctx.db
 			.query("messages")
@@ -405,199 +386,6 @@ export const buildMessageContent = internalMutation({
 		return content;
 	},
 });
-
-export const send = mutation({
-	args: {
-		threadId: v.id("threads"),
-		body: v.string(),
-		modelId: v.optional(modelIdValidator), // Use the validated modelId
-		attachments: v.optional(v.array(v.id("files"))), // Add attachments support
-		webSearchEnabled: v.optional(v.boolean()),
-	},
-	returns: v.object({
-		messageId: v.id("messages"),
-	}),
-	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
-
-		// Verify the user owns this thread and check generation status
-		const thread = await getWithOwnership(
-			ctx.db,
-			"threads",
-			args.threadId,
-			userId,
-		);
-
-		// Prevent new messages while AI is generating
-		if (thread.isGenerating) {
-			throwConflictError(
-				"Please wait for the current AI response to complete before sending another message",
-			);
-		}
-
-		// CRITICAL FIX: Set generation flag IMMEDIATELY to prevent race conditions
-		await ctx.db.patch(args.threadId, {
-			isGenerating: true,
-			lastMessageAt: Date.now(),
-		});
-
-		// Use default model if none provided
-		const modelId = args.modelId || "gpt-4o-mini";
-
-		// Validate model capabilities against attachments before proceeding
-		await enforceModelCapabilities(ctx, modelId as ModelId, args.attachments);
-
-		// Derive provider from modelId (type-safe)
-		const provider = getProviderFromModelId(modelId as ModelId);
-
-		// Insert user message after setting generation flag
-		await ctx.db.insert("messages", {
-			threadId: args.threadId,
-			parts: [{ type: "text", text: args.body }],
-			timestamp: Date.now(),
-			messageType: "user",
-			model: provider,
-			modelId: modelId,
-			attachments: args.attachments,
-			status: "ready",
-		});
-
-		// Create assistant message placeholder for HTTP streaming
-		const assistantMessageId = await ctx.db.insert("messages", {
-			threadId: args.threadId,
-			parts: [],
-			timestamp: Date.now() + 1,
-			messageType: "assistant",
-			model: provider,
-			modelId: modelId,
-			status: "submitted",
-		});
-
-		// HTTP streaming will handle AI response generation
-		// No need to schedule generateAIResponse anymore
-
-		// Check if this is the first user message in the thread (for title generation)
-		const userMessages = await ctx.db
-			.query("messages")
-			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-			.filter((q) => q.eq(q.field("messageType"), "user"))
-			.collect();
-
-		// If this is the first user message, schedule title generation
-		if (userMessages.length === 1) {
-			await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
-				threadId: args.threadId,
-				userMessage: args.body,
-			});
-		}
-
-		return { messageId: assistantMessageId };
-	},
-});
-
-// Combined mutation for creating thread + sending first message (optimistic flow)
-export const createThreadAndSend = mutation({
-	args: {
-		title: v.string(),
-		clientId: v.string(),
-		body: v.string(),
-		modelId: v.optional(modelIdValidator),
-		attachments: v.optional(v.array(v.id("files"))), // Add attachments support
-		webSearchEnabled: v.optional(v.boolean()),
-	},
-	returns: v.object({
-		threadId: v.id("threads"),
-		userMessageId: v.id("messages"),
-		assistantMessageId: v.optional(v.id("messages")),
-		messageId: v.optional(v.id("messages")), // The assistant message ID
-	}),
-	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
-
-		// Check for collision if clientId is provided (extremely rare with nanoid)
-		const existing = await ctx.db
-			.query("threads")
-			.withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
-			.first();
-
-		if (existing) {
-			throwConflictError(
-				`Thread with clientId ${args.clientId} already exists`,
-			);
-		}
-
-		// Use default model if none provided
-		const modelId = args.modelId || "gpt-4o-mini";
-
-		// Validate model capabilities against attachments before proceeding
-		await enforceModelCapabilities(ctx, modelId as ModelId, args.attachments);
-
-		const provider = getProviderFromModelId(modelId as ModelId);
-
-		// Create thread atomically with generation flag set
-		const now = Date.now();
-		const threadId = await ctx.db.insert("threads", {
-			clientId: args.clientId,
-			title: args.title,
-			userId: userId,
-			createdAt: now,
-			lastMessageAt: now,
-			isTitleGenerating: true,
-			isGenerating: true, // Set immediately to prevent race conditions
-			// Initialize usage field so header displays even with 0 tokens
-			usage: {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: {},
-			},
-		});
-
-		// Insert user message
-		const userMessageId = await ctx.db.insert("messages", {
-			threadId,
-			parts: [{ type: "text", text: args.body }],
-			timestamp: now,
-			messageType: "user",
-			model: provider,
-			modelId: modelId,
-			attachments: args.attachments,
-			status: "ready",
-		});
-
-		// Create assistant message placeholder for HTTP streaming
-		const assistantMessageId = await ctx.db.insert("messages", {
-			threadId,
-			parts: [],
-			timestamp: now + 1,
-			messageType: "assistant",
-			model: provider,
-			modelId: modelId,
-			status: "submitted",
-		});
-
-		// HTTP streaming will handle AI response generation
-		// No need to schedule generateAIResponse anymore
-
-		// Schedule title generation (this is the first message)
-		await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
-			threadId,
-			userMessage: args.body,
-		});
-
-		return {
-			threadId,
-			userMessageId,
-			assistantMessageId,
-			messageId: assistantMessageId, // Return assistant message ID for HTTP streaming
-		};
-	},
-});
-
-// Internal mutation to update streaming message content
 
 // Internal mutation to update message API key status
 export const updateMessageApiKeyStatus = internalMutation({
@@ -1160,7 +948,6 @@ export const updateMessageStatus = internalMutation({
 export const createUserMessage = internalMutation({
 	args: {
 		threadId: v.id("threads"),
-		role: roleValidator,
 		part: textPartValidator,
 		modelId: modelIdValidator,
 	},
@@ -1169,16 +956,13 @@ export const createUserMessage = internalMutation({
 		const now = Date.now();
 
 		// Determine status based on message type and streaming state
-		let status: Infer<typeof chatStatusValidator> = "ready";
-		if (args.role === "assistant") {
-			status = "streaming";
-		}
+		const status: Infer<typeof chatStatusValidator> = "ready";
 
 		const messageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			parts: [args.part],
 			timestamp: now,
-			role: args.role,
+			role: "user",
 			modelId: args.modelId,
 			status,
 		});

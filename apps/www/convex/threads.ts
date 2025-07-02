@@ -4,7 +4,6 @@ import { internal } from "./_generated/api.js";
 import { mutation, query } from "./_generated/server.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getWithOwnership } from "./lib/database.js";
-import { requireResource, throwConflictError } from "./lib/errors.js";
 import {
   branchInfoValidator,
   clientIdValidator,
@@ -12,8 +11,9 @@ import {
   modelIdValidator,
   shareIdValidator,
   shareSettingsValidator,
-  textPartValidator, threadUsageValidator,
-  titleValidator
+  textPartValidator,
+  threadUsageValidator,
+  titleValidator,
 } from "./validators.js";
 
 // Thread object validator used in returns
@@ -165,11 +165,13 @@ export const createThreadWithFirstMessage = mutation({
 			},
 		});
 
-    await ctx.scheduler.runAfter(0, internal.titles.generateTitle, { threadId, firstMessage: args.message });
+		await ctx.scheduler.runAfter(0, internal.titles.generateTitle, {
+			threadId,
+			firstMessage: args.message,
+		});
 
 		await ctx.runMutation(internal.messages.createUserMessage, {
 			threadId,
-			role: "user",
 			modelId: args.modelId,
 			part: args.message,
 		});
@@ -293,67 +295,6 @@ export const updateLastMessage = mutation({
 	},
 });
 
-// Update thread title
-export const updateTitle = mutation({
-	args: {
-		threadId: v.id("threads"),
-		title: titleValidator,
-	},
-	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
-		await getWithOwnership(ctx.db, "threads", args.threadId, userId);
-
-		await ctx.db.patch(args.threadId, {
-			title: args.title,
-		});
-		return { title: args.title };
-	},
-});
-
-// Delete a thread and all its messages
-export const deleteThread = mutation({
-	args: {
-		threadId: v.id("threads"),
-	},
-	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
-		const thread = await getWithOwnership(
-			ctx.db,
-			"threads",
-			args.threadId,
-			userId,
-		);
-
-		// First delete all messages in the thread
-		const messages = await ctx.db
-			.query("messages")
-			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-			.collect();
-
-		// Delete all messages
-		for (const message of messages) {
-			await ctx.db.delete(message._id);
-		}
-
-		// Clean up share access logs if thread was shared
-		if (thread.shareId) {
-			const shareAccessEntries = await ctx.db
-				.query("shareAccess")
-				.withIndex("by_share_id", (q) => q.eq("shareId", thread.shareId!))
-				.collect();
-
-			// Delete all share access logs for this thread
-			for (const entry of shareAccessEntries) {
-				await ctx.db.delete(entry._id);
-			}
-		}
-
-		// Finally delete the thread
-		await ctx.db.delete(args.threadId);
-		return null;
-	},
-});
-
 // Toggle thread pinned state
 export const togglePinned = mutation({
 	args: {
@@ -373,188 +314,5 @@ export const togglePinned = mutation({
 			pinned: newPinnedState,
 		});
 		return { pinned: newPinnedState };
-	},
-});
-
-// Create a new thread branched from a specific message
-export const branchFromMessage = mutation({
-	args: {
-		originalThreadId: v.id("threads"),
-		branchFromMessageId: v.id("messages"),
-		modelId: modelIdValidator,
-		clientId: v.optional(clientIdValidator), // Support clientId for instant navigation
-	},
-	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
-
-		// Verify access to original thread
-		const originalThread = await getWithOwnership(
-			ctx.db,
-			"threads",
-			args.originalThreadId,
-			userId,
-		);
-
-		// Get all messages up to and including the branch point
-		const allMessages = await ctx.db
-			.query("messages")
-			.withIndex("by_thread", (q) => q.eq("threadId", args.originalThreadId))
-			.order("asc")
-			.collect();
-
-		// Find the branch point message
-		const branchPointIndex = allMessages.findIndex(
-			(msg) => msg._id === args.branchFromMessageId,
-		);
-
-		requireResource(branchPointIndex !== -1, "Branch point message");
-
-		// Find the last user message before or at the branch point
-		let lastUserMessageIndex = -1;
-		for (let i = branchPointIndex; i >= 0; i--) {
-			if (allMessages[i].messageType === "user") {
-				lastUserMessageIndex = i;
-				break;
-			}
-		}
-
-		// If no user message found before branch point, include all messages up to branch point
-		const copyUpToIndex =
-			lastUserMessageIndex !== -1 ? lastUserMessageIndex : branchPointIndex;
-
-		// Get messages to copy (up to and including the last user message before branch point)
-		const messagesToCopy = allMessages.slice(0, copyUpToIndex + 1);
-
-		// Check for clientId collision if provided (extremely rare with nanoid)
-		if (args.clientId) {
-			const existing = await ctx.db
-				.query("threads")
-				.withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
-				.first();
-
-			if (existing) {
-				throwConflictError(
-					`Thread with clientId ${args.clientId} already exists`,
-				);
-			}
-		}
-
-		// Create new thread with branch info
-		const now = Date.now();
-		const newThreadId = await ctx.db.insert("threads", {
-			clientId: args.clientId, // Support instant navigation
-			title: originalThread.title,
-			userId: userId,
-			createdAt: now,
-			lastMessageAt: now,
-			isGenerating: true, // Set to true since we'll generate AI response
-			branchedFrom: {
-				threadId: args.originalThreadId,
-				messageId: args.branchFromMessageId,
-				timestamp: now,
-			},
-			// Initialize usage field so header displays even with 0 tokens
-			usage: {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: {},
-			},
-		});
-
-		// Copy messages to new thread and accumulate usage
-		let lastUserMessage = "";
-		const accumulatedUsage = {
-			totalInputTokens: 0,
-			totalOutputTokens: 0,
-			totalTokens: 0,
-			totalReasoningTokens: 0,
-			totalCachedInputTokens: 0,
-			messageCount: 0,
-			modelStats: {} as Record<
-				string,
-				{
-					messageCount: number;
-					inputTokens: number;
-					outputTokens: number;
-					totalTokens: number;
-					reasoningTokens: number;
-					cachedInputTokens: number;
-				}
-			>,
-		};
-
-		for (const message of messagesToCopy) {
-			await ctx.db.insert("messages", {
-				threadId: newThreadId,
-				timestamp: message.timestamp,
-				messageType: message.messageType,
-				model: message.model,
-				modelId: message.modelId,
-				attachments: message.attachments,
-				usage: message.usage,
-				parts: message.parts,
-				status: "ready", // All copied messages are complete
-			});
-
-			// Track the last user message for AI response
-			if (message.messageType === "user" && message.parts) {
-				// Extract text from parts array
-				lastUserMessage = message.parts
-					.filter((part) => part.type === "text")
-					.map((part) => part.text)
-					.join("\n");
-			}
-
-			// Accumulate usage from assistant messages
-			if (message.messageType === "assistant" && message.usage) {
-				const usage = message.usage;
-				accumulatedUsage.totalInputTokens += usage.inputTokens || 0;
-				accumulatedUsage.totalOutputTokens += usage.outputTokens || 0;
-				accumulatedUsage.totalTokens += usage.totalTokens || 0;
-				accumulatedUsage.totalReasoningTokens += usage.reasoningTokens || 0;
-				accumulatedUsage.totalCachedInputTokens += usage.cachedInputTokens || 0;
-				accumulatedUsage.messageCount += 1;
-
-				// Update model stats
-				const modelId = message.modelId || message.model || "unknown";
-				if (!accumulatedUsage.modelStats[modelId]) {
-					accumulatedUsage.modelStats[modelId] = {
-						messageCount: 0,
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-						reasoningTokens: 0,
-						cachedInputTokens: 0,
-					};
-				}
-				const stats = accumulatedUsage.modelStats[modelId];
-				stats.messageCount += 1;
-				stats.inputTokens += usage.inputTokens || 0;
-				stats.outputTokens += usage.outputTokens || 0;
-				stats.totalTokens += usage.totalTokens || 0;
-				stats.reasoningTokens += usage.reasoningTokens || 0;
-				stats.cachedInputTokens += usage.cachedInputTokens || 0;
-			}
-		}
-
-		// Update the thread with accumulated usage
-		if (accumulatedUsage.messageCount > 0) {
-			await ctx.db.patch(newThreadId, { usage: accumulatedUsage });
-		}
-
-		// Schedule AI response with the selected model
-		if (lastUserMessage) {
-			  await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
-				threadId: newThreadId,
-				userMessage: lastUserMessage,
-				modelId: args.modelId,
-			});
-		}
-
-		return newThreadId;
 	},
 });

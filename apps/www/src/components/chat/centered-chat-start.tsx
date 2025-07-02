@@ -8,9 +8,9 @@ import { ZapIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import type { ModelId } from "../../lib/ai/schemas";
 import { ChatInput } from "./chat-input";
 import { PromptSuggestions } from "./prompt-suggestions";
-import { ModelId } from "../../lib/ai/schemas";
 
 interface CenteredChatStartProps {
 	onSendMessage: (
