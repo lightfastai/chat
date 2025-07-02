@@ -43,7 +43,6 @@ export function useChat({
 		(state) => state.threadContext,
 	);
 	const setThreadId = useThreadContextStore((state) => state.setThreadId);
-	const threadIdFromStore = useThreadContextStore((state) => state.threadId);
 	const thread = useQuery(api.threads.getByClientId, { clientId: threadContext.clientId });
 
 	// Extract data from preloaded queries if available
