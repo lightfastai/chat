@@ -8,6 +8,14 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 import type { MessagePart } from "../../../convex/validators";
 import { MessageDisplay } from "./message-display";
 
+// Extended UIMessage type with our metadata
+interface UIMessageWithMetadata extends UIMessage {
+	metadata?: {
+		id?: string;
+		[key: string]: unknown;
+	};
+}
+
 interface ChatMessagesProps {
 	dbMessages: Doc<"messages">[] | null | undefined;
 	vercelMessages: UIMessage[];
@@ -142,21 +150,11 @@ export function ChatMessages({
 		);
 	}
 
-	// Debug logging
-	console.log("[ChatMessages] Render - status:", status);
-	console.log("[ChatMessages] dbMessages count:", dbMessages.length);
-	console.log("[ChatMessages] vercelMessages count:", vercelMessages.length);
-	console.log("[ChatMessages] vercelMessages:", vercelMessages);
-
 	// Find the streaming message if we're streaming
-	let streamingVercelMessage: UIMessage | undefined;
+	let streamingVercelMessage: UIMessageWithMetadata | undefined;
 	if (status === "streaming" && vercelMessages.length > 0) {
 		// The last message in vercelMessages should be the streaming one
-		streamingVercelMessage = vercelMessages[vercelMessages.length - 1];
-		console.log(
-			"[ChatMessages] Found streaming message:",
-			streamingVercelMessage,
-		);
+		streamingVercelMessage = vercelMessages[vercelMessages.length - 1] as UIMessageWithMetadata;
 	}
 
 	return (
@@ -174,38 +172,12 @@ export function ChatMessages({
 
 						// For the last assistant message when streaming, use Vercel data directly
 						let displayMessage = message;
-						if (index === 0 || isLastAssistantMessage) {
-							console.log(
-								"[ChatMessages] Message",
-								index,
-								"- role:",
-								message.role,
-								"id:",
-								message._id,
-							);
-							console.log(
-								"[ChatMessages] isLastAssistantMessage:",
-								isLastAssistantMessage,
-							);
-							console.log(
-								"[ChatMessages] streamingVercelMessage id:",
-								streamingVercelMessage?.id,
-							);
-							console.log(
-								"[ChatMessages] IDs match:",
-								streamingVercelMessage?.id === message._id,
-							);
-						}
 						if (
 							isLastAssistantMessage &&
 							status === "streaming" &&
 							streamingVercelMessage &&
-							streamingVercelMessage.id === message._id
+							streamingVercelMessage.metadata?.id === message._id
 						) {
-							console.log(
-								"[ChatMessages] override with streamingVercelMessage",
-								streamingVercelMessage,
-							);
 							// Override with Vercel streaming data
 							displayMessage = {
 								...message,

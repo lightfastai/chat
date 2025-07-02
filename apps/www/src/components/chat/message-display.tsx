@@ -2,16 +2,15 @@
 
 import type { Doc } from "@/convex/_generated/dataModel";
 import { getModelDisplayName } from "@/lib/ai";
-import { useQuery } from "convex/react";
 import { useState } from "react";
-import { api } from "../../../convex/_generated/api";
 import { AttachmentPreview } from "./attachment-preview";
 import { MessageActions } from "./message-actions";
 import { MessageItem } from "./shared";
+import { ChatStatus } from "ai";
 
 interface MessageDisplayProps {
 	message: Doc<"messages">;
-	status?: "ready" | "streaming" | "submitted" | "error";
+	status: ChatStatus;
 	isLastAssistantMessage?: boolean;
 }
 
@@ -21,8 +20,6 @@ export function MessageDisplay({
 	status,
 	isLastAssistantMessage,
 }: MessageDisplayProps) {
-	// Get current user for avatar display
-	const currentUser = useQuery(api.users.current);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 	const isAI = message.role === "assistant";
@@ -46,7 +43,6 @@ export function MessageDisplay({
 		<>
 			<MessageItem
 				message={message}
-				currentUser={currentUser || undefined}
 				showActions={true}
 				isReadOnly={false}
 				actions={actions}

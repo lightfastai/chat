@@ -5,10 +5,11 @@ import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import type React from "react";
 import { MessageLayout } from "./message-layout";
 import { ThinkingIndicator } from "./thinking-indicator";
+import { ChatStatus } from "ai";
 
 export interface MessageItemProps {
 	message: Doc<"messages">;
-	status?: "ready" | "streaming" | "submitted" | "error";
+	status: ChatStatus;
 	showActions?: boolean;
 	isReadOnly?: boolean;
 	actions?: React.ReactNode;
@@ -77,10 +78,10 @@ export function MessageItem({
 										</div>
 									)}
 									{/* Show streaming cursor for last text part @todo fix. the - 1 part.*/}
-									{messageStatus === "streaming" &&
+									{/* {messageStatus === "streaming" &&
 										index === (message.parts?.length || 0) - 1 && (
 											<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-										)}
+										)} */}
 								</div>
 							);
 						}

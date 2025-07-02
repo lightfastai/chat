@@ -111,12 +111,12 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 						{messages.map((message) => {
 							return (
 								<MessageItem
-									key={message._id}
-									message={message}
-									currentUser={owner || undefined}
-									isReadOnly={true}
-									showActions={false}
-								/>
+                  key={message._id}
+                  message={message}
+                  isReadOnly={true}
+                  showActions={false}
+                  status={"ready"}
+                />
 							);
 						})}
 					</div>

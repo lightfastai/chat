@@ -11,20 +11,20 @@
  */
 
 import {
-	type ModelMessage,
-	type UIMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  type UIMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
@@ -69,7 +69,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			id,
 		} = body;
 
-		console.log("[streamChatResponse] body", body);
 
 		// Validate required fields
 		if (!threadClientId) {
@@ -146,9 +145,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			});
 		}
 
-		console.log("[streamChatResponse] userMessage", userMessage);
-		console.log("[streamChatResponse] assistantMessage", assistantMessage);
-		console.log("[streamChatResponse] thread", thread.userId);
 
 		// Get user's API keys for the AI provider
 		// @todo rework.
@@ -246,6 +242,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				model: ai,
 				messages,
 				temperature: 0.7,
+				// _internal: {
+				// 	generateId: () => assistantMessage._id,
+				// },
 				experimental_transform: smoothStream({
 					delayInMs: getModelStreamingDelay(modelId as ModelId),
 					chunking: "word",
@@ -331,6 +330,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					}
 				},
 				onFinish: async (result) => {
+
 					// Clear timer
 					if (updateTimer) {
 						clearInterval(updateTimer);
@@ -362,13 +362,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						threadId: thread._id,
 					});
 
-					console.log(
-						`Streaming completed for message ${assistantMessage._id}`,
-						{
-							fullTextLength: fullText.length,
-							usage,
-						},
-					);
 				},
 			};
 
@@ -396,17 +389,19 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			}
 
 			// Stream the text and return UI message stream response
-			console.log(
-				"[HTTP Streaming] Starting streamText with",
-				messages.length,
-				"messages",
-			);
 			const result = streamText(generationOptions);
 
 			// Return the stream response
 			// The frontend will handle merging assistant messages with user messages
 			return result.toUIMessageStreamResponse({
 				headers: corsHeaders(),
+        // @todo more docs on this. this how we add assitant message id to the streaming response.
+        // because vercel ai sdk auto-generates the message id in streamText.
+				messageMetadata: () => {
+					return {
+						id: assistantMessage._id,
+					};
+				},
 			});
 		} catch (error) {
 			// Clean up timer on error

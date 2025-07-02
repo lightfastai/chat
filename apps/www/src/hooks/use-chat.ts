@@ -123,12 +123,6 @@ export function useChat({
 
 			const { threadId, userMessageId, assistantMessageId } = data;
 
-			console.log("[useChat] sendMessage", {
-				threadId,
-				userMessageId,
-				assistantMessageId,
-			});
-
 			try {
 				// TODO: Temporarily disabled for optimistic message creation
 				await vercelSendMessage(
@@ -141,7 +135,7 @@ export function useChat({
 						body: {
 							id: assistantMessageId,
 							userMessageId,
-							threadClientId: threadContext.clientId,
+							threadClientId: threadId,
 							options: {
 								webSearchEnabled: webSearchEnabledOverride || false,
 								attachments,
