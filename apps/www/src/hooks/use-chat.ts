@@ -5,9 +5,9 @@ import { nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import type { Preloaded } from "convex/react";
-import { usePreloadedQuery } from "convex/react";
+import { usePreloadedQuery, useQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
-import type { api } from "../../convex/_generated/api";
+import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { MessagePart } from "../../convex/validators";
 import type { ModelId } from "../lib/ai/schemas";
@@ -44,6 +44,7 @@ export function useChat({
 	);
 	const setThreadId = useThreadContextStore((state) => state.setThreadId);
 	const threadIdFromStore = useThreadContextStore((state) => state.threadId);
+	const thread = useQuery(api.threads.getByClientId, { clientId: threadContext.clientId });
 
 	// Extract data from preloaded queries if available
 	let userSettings = null;
@@ -141,15 +142,32 @@ export function useChat({
 				setThreadId(data.threadId);
 			}
 
-			if (threadContextFromStore.type === "existing" && threadIdFromStore) {
+			if (threadContextFromStore.type === "existing" ) {
+        if (!thread?._id) {
+          console.error("Thread not found", {
+            threadContext,
+          });
+          return;
+        }
+
 				const data = await createMessageOptimistic({
-					threadId: threadIdFromStore,
+					threadId: thread._id,
 					message: { type: "text", text: message },
 					modelId: selectedModelId,
 				});
 				userMessageId = data.userMessageId;
 				assistantMessageId = data.assistantMessageId;
 			}
+
+			if (!userMessageId || !assistantMessageId) {
+        // @todo need to deep test so this never happens or rewrite our logic.
+				console.error("User or assistant message ID not found", {
+					userMessageId,
+					assistantMessageId,
+				});
+        return;
+			}
+
 			// TODO: Temporarily disabled for optimistic message creation
 			await vercelSendMessage(
 				{
@@ -175,6 +193,7 @@ export function useChat({
 			threadContext.clientId,
 			createThreadOptimistic,
 			createMessageOptimistic,
+			thread?._id,
 			setMessages,
 			transitionToExisting,
 		],

@@ -73,24 +73,18 @@ function SharedChatComponent({
 
 function ChatInterfaceWithPreloadedQueries({
 	threadContext,
-	preloadedThreadByClientId,
 	preloadedMessages,
 	preloadedUser,
 	preloadedUserSettings,
 }: {
 	threadContext: ValidThread;
-	preloadedThreadByClientId?: Preloaded<typeof api.threads.getByClientId>;
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }) {
 	// Extract data from preloaded queries
-	const thread = preloadedThreadByClientId
-		? usePreloadedQuery(preloadedThreadByClientId)
-		: undefined;
-
 	const dbMessages =
-		preloadedMessages && thread?._id
+		preloadedMessages
 			? usePreloadedQuery(preloadedMessages)
 			: undefined;
 
@@ -170,7 +164,6 @@ export function ChatInterface({
 			{threadContext.type === "existing" ? (
 				<ChatInterfaceWithPreloadedQueries
 					threadContext={threadContext}
-					preloadedThreadByClientId={preloadedThreadByClientId}
 					preloadedMessages={preloadedMessages}
 					preloadedUser={preloadedUser}
 					preloadedUserSettings={preloadedUserSettings}
