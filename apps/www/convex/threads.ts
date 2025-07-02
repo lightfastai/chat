@@ -6,15 +6,14 @@ import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getWithOwnership } from "./lib/database.js";
 import { requireResource, throwConflictError } from "./lib/errors.js";
 import {
-	branchInfoValidator,
-	clientIdValidator,
-	clientThreadIdValidator,
-	modelIdValidator,
-	shareIdValidator,
-	shareSettingsValidator,
-	textPartValidator,
-	threadUsageValidator,
-	titleValidator,
+  branchInfoValidator,
+  clientIdValidator,
+  clientThreadIdValidator,
+  modelIdValidator,
+  shareIdValidator,
+  shareSettingsValidator,
+  textPartValidator, threadUsageValidator,
+  titleValidator
 } from "./validators.js";
 
 // Thread object validator used in returns
@@ -40,68 +39,9 @@ const threadObjectValidator = v.object({
 	usage: threadUsageValidator,
 });
 
-// Create a new thread
-export const create = mutation({
-	args: {
-		title: v.optional(titleValidator), // Made optional for HTTP streaming
-		clientId: v.optional(clientIdValidator), // Allow client-generated ID for instant navigation
-		firstUserMessage: v.optional(v.string()), // Optional first user message for title generation
-	},
-	returns: v.id("threads"),
-	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
-
-		// Check for collision if clientId is provided (extremely rare with nanoid)
-		if (args.clientId) {
-			const existing = await ctx.db
-				.query("threads")
-				.withIndex("by_client_id", (q) => q.eq("clientId", args.clientId))
-				.first();
-
-			if (existing) {
-				throwConflictError(
-					`Thread with clientId ${args.clientId} already exists`,
-				);
-			}
-		}
-
-		const now = Date.now();
-		const threadId = await ctx.db.insert("threads", {
-			clientId: args.clientId,
-			title: args.title || "New chat", // Default to "New chat" if not provided
-			userId: userId,
-			createdAt: now,
-			lastMessageAt: now,
-			isTitleGenerating: true, // New threads start with title generation pending
-			// Initialize usage field so header displays even with 0 tokens
-			usage: {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: {},
-			},
-		});
-
-		// If a first user message is provided, schedule title generation
-		if (args.firstUserMessage && args.firstUserMessage.trim()) {
-			await ctx.scheduler.runAfter(100, internal.titles.generateTitle, {
-				threadId,
-				userMessage: args.firstUserMessage,
-			});
-		}
-
-		return threadId;
-	},
-});
-
-// List threads for a user
 // List initial threads for preloading (first 20)
 export const list = query({
 	args: {},
-	returns: v.array(threadObjectValidator),
 	handler: async (ctx, _args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
@@ -118,16 +58,10 @@ export const list = query({
 	},
 });
 
-// List paginated threads for a user (for infinite scroll)
 export const listPaginated = query({
 	args: {
 		paginationOpts: paginationOptsValidator,
 	},
-	returns: v.object({
-		page: v.array(threadObjectValidator),
-		isDone: v.boolean(),
-		continueCursor: v.union(v.string(), v.null()),
-	}),
 	handler: async (ctx, args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
@@ -148,10 +82,8 @@ export const listPaginated = query({
 	},
 });
 
-// List pinned threads for a user (always loaded, not paginated)
 export const listPinned = query({
 	args: {},
-	returns: v.array(threadObjectValidator),
 	handler: async (ctx, _args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
@@ -192,14 +124,12 @@ const threadWithCategoryValidator = v.object({
 });
 
 // Create a new thread with optimistic update
-// @todo call the title generation mutation here
 export const createThreadWithFirstMessage = mutation({
 	args: {
 		clientThreadId: clientThreadIdValidator,
 		message: textPartValidator,
 		modelId: modelIdValidator,
 	},
-	returns: v.id("threads"),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
 
@@ -235,6 +165,8 @@ export const createThreadWithFirstMessage = mutation({
 			},
 		});
 
+    await ctx.scheduler.runAfter(0, internal.titles.generateTitle, { threadId, firstMessage: args.message });
+
 		await ctx.runMutation(internal.messages.createUserMessage, {
 			threadId,
 			role: "user",
@@ -252,11 +184,6 @@ export const listPaginatedWithGrouping = query({
 		paginationOpts: paginationOptsValidator,
 		skipFirst: v.optional(v.number()), // Skip the first N items (for after preload)
 	},
-	returns: v.object({
-		page: v.array(threadWithCategoryValidator),
-		isDone: v.boolean(),
-		continueCursor: v.union(v.string(), v.null()),
-	}),
 	handler: async (ctx, args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
@@ -317,7 +244,6 @@ export const get = query({
 	args: {
 		threadId: v.id("threads"),
 	},
-	returns: v.union(threadObjectValidator, v.null()),
 	handler: async (ctx, args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
@@ -334,7 +260,6 @@ export const getByClientId = query({
 	args: {
 		clientId: clientIdValidator,
 	},
-	returns: v.union(threadObjectValidator, v.null()),
 	handler: async (ctx, args) => {
 		try {
 			const userId = await getAuthenticatedUserId(ctx);
@@ -357,7 +282,6 @@ export const updateLastMessage = mutation({
 	args: {
 		threadId: v.id("threads"),
 	},
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
 		await getWithOwnership(ctx.db, "threads", args.threadId, userId);
@@ -375,9 +299,6 @@ export const updateTitle = mutation({
 		threadId: v.id("threads"),
 		title: titleValidator,
 	},
-	returns: v.object({
-		title: titleValidator,
-	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
 		await getWithOwnership(ctx.db, "threads", args.threadId, userId);
@@ -394,7 +315,6 @@ export const deleteThread = mutation({
 	args: {
 		threadId: v.id("threads"),
 	},
-	returns: v.null(),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
 		const thread = await getWithOwnership(
@@ -439,9 +359,6 @@ export const togglePinned = mutation({
 	args: {
 		threadId: v.id("threads"),
 	},
-	returns: v.object({
-		pinned: v.boolean(),
-	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
 		const thread = await getWithOwnership(
@@ -467,7 +384,6 @@ export const branchFromMessage = mutation({
 		modelId: modelIdValidator,
 		clientId: v.optional(clientIdValidator), // Support clientId for instant navigation
 	},
-	returns: v.id("threads"),
 	handler: async (ctx, args) => {
 		const userId = await getAuthenticatedUserId(ctx);
 
@@ -632,7 +548,7 @@ export const branchFromMessage = mutation({
 
 		// Schedule AI response with the selected model
 		if (lastUserMessage) {
-			await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
+			  await ctx.scheduler.runAfter(0, internal.messages.generateAIResponse, {
 				threadId: newThreadId,
 				userMessage: lastUserMessage,
 				modelId: args.modelId,
