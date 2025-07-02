@@ -21,11 +21,6 @@ export function ChatMessages({
 	messages,
 	status = "ready",
 }: ChatMessagesProps) {
-	// Debug: Log messages received by ChatMessages
-	console.log("[ChatMessages] messages:", messages);
-	console.log("[ChatMessages] messages length:", messages.length);
-	console.log("[ChatMessages] status:", status);
-
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
 	const [isNearBottom, setIsNearBottom] = useState(true);
@@ -142,8 +137,6 @@ export function ChatMessages({
 			<div className="p-2 md:p-4 pb-16">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 					{messages.map((message, index) => {
-						console.log(`[ChatMessages] Rendering message ${index}:`, message);
-
 						// Find the index of the last assistant message
 						const lastAssistantIndex =
 							messages
@@ -163,15 +156,6 @@ export function ChatMessages({
 							/>
 						);
 					})}
-
-					{/* Show thinking indicator when status is "submitted" */}
-					{status === "submitted" && (
-						<MessageLayout
-							avatar={null}
-							content={<ThinkingIndicator />}
-							role="assistant"
-						/>
-					)}
 				</div>
 			</div>
 

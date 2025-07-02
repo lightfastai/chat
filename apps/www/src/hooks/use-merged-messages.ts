@@ -72,14 +72,9 @@ export function useMergedMessages(
 		return convexMessages.map((convexMsg) => {
 			const vercelMsg = vercelMessageMap.get(convexMsg._id);
 
-			// If there's a corresponding Vercel message with parts (streaming or complete)
-			// and it's an assistant message, inject the Vercel parts
-			if (
-				vercelMsg &&
-				vercelMsg.role === "assistant" &&
-				vercelMsg.parts &&
-				vercelMsg.parts.length > 0
-			) {
+			// If there's a corresponding Vercel message, always use its parts
+			// This ensures we show the streaming content and don't show duplicate messages
+			if (vercelMsg && vercelMsg.role === "assistant") {
 				// Check if this is the last assistant message and we're currently streaming
 				const isLastAssistantMessage = convexMessages
 					.slice(convexMessages.indexOf(convexMsg) + 1)
@@ -88,10 +83,11 @@ export function useMergedMessages(
 				const isActivelyStreaming =
 					status === "streaming" && isLastAssistantMessage;
 
-				// Return the Convex message with Vercel parts injected
+				// Always use Vercel parts if available (even if empty during initial streaming)
+				// This prevents showing the optimistic message alongside the streaming message
 				return {
 					...convexMsg,
-					parts: vercelMsg.parts as MessagePart[],
+					parts: (vercelMsg.parts || []) as MessagePart[],
 					status: isActivelyStreaming ? "streaming" : "ready",
 				} as Doc<"messages">;
 			}
