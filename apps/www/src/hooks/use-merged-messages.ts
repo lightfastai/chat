@@ -1,6 +1,7 @@
 import type { Doc } from "@/convex/_generated/dataModel";
 import type { MessagePart } from "@/convex/validators";
 import type { UIMessage } from "@ai-sdk/react";
+import { ChatStatus } from "ai";
 import { useMemo } from "react";
 
 /**
@@ -47,11 +48,13 @@ export function mergeTextParts(parts: MessagePart[]): MessagePart[] {
  *
  * @param convexMessages - Messages from Convex database
  * @param vercelMessages - Messages from Vercel AI SDK (for streaming)
+ * @param status - The streaming status from useChat hook
  * @returns Array of Convex messages with streaming parts injected when applicable
  */
 export function useMergedMessages(
 	convexMessages: Doc<"messages">[] | null | undefined,
 	vercelMessages: UIMessage[],
+	status: ChatStatus,
 ): Doc<"messages">[] {
 	return useMemo(() => {
 		// If no Convex messages, return empty array
@@ -77,24 +80,24 @@ export function useMergedMessages(
 				vercelMsg.parts &&
 				vercelMsg.parts.length > 0
 			) {
-				// Check if the message is actively streaming
-				const isStreaming = vercelMsg.parts.some(
-					(part) =>
-						part.type === "text" &&
-						typeof part.text === "string" &&
-						!part.text.includes("⏹"), // Stream end marker
-				);
+				// Check if this is the last assistant message and we're currently streaming
+				const isLastAssistantMessage = convexMessages
+					.slice(convexMessages.indexOf(convexMsg) + 1)
+					.every((msg) => msg.role !== "assistant");
+
+				const isActivelyStreaming =
+					status === "streaming" && isLastAssistantMessage;
 
 				// Return the Convex message with Vercel parts injected
 				return {
 					...convexMsg,
-					parts: vercelMsg.parts,
-					status: isStreaming ? "streaming" : "ready",
+					parts: vercelMsg.parts as MessagePart[],
+					status: isActivelyStreaming ? "streaming" : "ready",
 				} as Doc<"messages">;
 			}
 
 			// No Vercel message or no streaming, return original Convex message
 			return convexMsg;
 		});
-	}, [convexMessages, vercelMessages]);
+	}, [convexMessages, vercelMessages, status]);
 }

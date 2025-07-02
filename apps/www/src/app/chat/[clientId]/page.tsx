@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { ChatInterface } from "../../../components/chat/chat-interface";
-import { ChatPreloadProvider } from "../../../components/chat/chat-preload-context";
 import { getAuthToken } from "../../../lib/auth";
 import type { ThreadContext } from "../../../types/schema";
 
@@ -47,7 +46,7 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 	}
 
 	return (
-		<Suspense fallback={<ChatInterface threadContext={{ type: "error" }} />}>
+		<Suspense fallback={<ChatInterface threadContext={{ type: "fallback" }} />}>
 			<ChatThreadPageWithPreloadedData clientId={clientId} />
 		</Suspense>
 	);
@@ -95,17 +94,12 @@ async function ChatThreadPageWithPreloadedData({
 		};
 
 		return (
-			<ChatPreloadProvider
+			<ChatInterface
 				preloadedThreadByClientId={preloadedThreadByClientId}
 				preloadedMessages={preloadedMessages}
-			>
-				<ChatInterface
-					preloadedThreadByClientId={preloadedThreadByClientId}
-					preloadedMessages={preloadedMessages}
-					preloadedUserSettings={preloadedUserSettings}
-					threadContext={threadContext}
-				/>
-			</ChatPreloadProvider>
+				preloadedUserSettings={preloadedUserSettings}
+				threadContext={threadContext}
+			/>
 		);
 	} catch (error) {
 		// Log error but still render - don't break the UI

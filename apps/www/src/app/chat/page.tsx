@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 // Server component that enables SSR for the new chat page with prefetched user data
 export default function ChatPage() {
 	return (
-		<Suspense fallback={<ChatInterface threadContext={{ type: "error" }} />}>
+		<Suspense fallback={<ChatInterface threadContext={{ type: "fallback" }} />}>
 			<ChatPageWithPreloadedData />
 		</Suspense>
 	);
@@ -53,19 +53,17 @@ async function ChatPageWithPreloadedData() {
 			return <ChatInterface threadContext={threadContext} />;
 		}
 
+		// Generate a stable ID for new chats on the server side
+		const threadContext: ThreadContext = {
+			clientId: nanoid(),
+			type: "new",
+		};
+
 		// Preload user data and settings for PPR - this will be cached and streamed instantly
 		const [preloadedUser, preloadedUserSettings] = await Promise.all([
 			preloadQuery(api.users.current, {}, { token }),
 			preloadQuery(api.userSettings.getUserSettings, {}, { token }),
 		]);
-
-		// Generate a stable ID for new chats on the server side
-		const threadContext: ThreadContext = {
-			type: "new",
-			clientId: nanoid(),
-		};
-
-		console.log("threadContext", threadContext);
 
 		// Pass preloaded user data and settings to chat interface
 		return (

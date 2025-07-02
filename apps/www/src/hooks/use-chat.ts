@@ -7,7 +7,7 @@ import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
 import type { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { MessagePart } from "../../convex/validators";
 import type { ModelId } from "../lib/ai/schemas";
 import type { UIMessage, ValidThread } from "../types/schema";
@@ -17,7 +17,7 @@ import { useOptimisticThreadCreate } from "./use-optimistic-thread-create";
 interface UseChatProps {
 	/** The chat context - type and clientId */
 	threadContext: ValidThread;
-	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
+	dbMessages: Doc<"messages">[] | undefined;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
 
@@ -27,7 +27,7 @@ interface UseChatProps {
  */
 export function useChat({
 	threadContext,
-	preloadedMessages,
+	dbMessages,
 	preloadedUserSettings,
 }: UseChatProps) {
 	const authToken = useAuthToken();
@@ -35,14 +35,10 @@ export function useChat({
 
 	// Extract data from preloaded queries if available
 	let userSettings = null;
-	let messages = null;
+	const messages = null;
 
 	if (preloadedUserSettings) {
 		userSettings = usePreloadedQuery(preloadedUserSettings);
-	}
-
-	if (preloadedMessages) {
-		messages = usePreloadedQuery(preloadedMessages);
 	}
 
 	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
@@ -56,12 +52,16 @@ export function useChat({
 	// Convert preloaded messages to Vercel AI SDK format - only for existing chats
 	const initialMessages = useMemo(() => {
 		// Only process messages for existing chats to prevent leakage to new chats
-		if (threadContext.type === "new" || !messages || messages.length === 0) {
+		if (
+			threadContext.type === "new" ||
+			!dbMessages ||
+			dbMessages.length === 0
+		) {
 			return undefined;
 		}
 
 		// Convert Convex messages to Vercel AI UIMessage format
-		const converted = messages.map((msg) => ({
+		const converted = dbMessages.map((msg) => ({
 			id: msg._id,
 			role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
 			parts: (msg.parts || []).map((part: MessagePart) => {

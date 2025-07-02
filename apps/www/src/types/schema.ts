@@ -2,7 +2,7 @@ import type { UIMessage as VercelUIMessage } from "ai";
 import { z } from "zod";
 
 // Zod enum for thread types including error state
-export const ThreadTypeEnum = z.enum(["new", "existing", "error"]);
+export const ThreadTypeEnum = z.enum(["new", "existing", "error", "fallback"]);
 export type ThreadType = z.infer<typeof ThreadTypeEnum>;
 
 // Zod discriminated union for thread context with error handling
@@ -20,6 +20,9 @@ export const ThreadContextSchema = z.discriminatedUnion("type", [
 	}),
 	z.object({
 		type: z.literal("error"),
+	}),
+	z.object({
+		type: z.literal("fallback"),
 	}),
 ]);
 

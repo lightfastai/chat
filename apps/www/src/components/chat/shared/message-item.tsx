@@ -9,7 +9,7 @@ import { ThinkingIndicator } from "./thinking-indicator";
 
 export interface MessageItemProps {
 	message: Doc<"messages">;
-  status?: "ready" | "streaming" | "submitted" | "error";
+	status?: "ready" | "streaming" | "submitted" | "error";
 	showActions?: boolean;
 	isReadOnly?: boolean;
 	actions?: React.ReactNode;
@@ -91,7 +91,10 @@ export function MessageItem({
 		(status === "streaming" || status === "submitted");
 
 	const messageActions =
-		!isReadOnly && showActions && message.role === "assistant" && !shouldDisableActions
+		!isReadOnly &&
+		showActions &&
+		message.role === "assistant" &&
+		!shouldDisableActions
 			? actions
 			: undefined;
 

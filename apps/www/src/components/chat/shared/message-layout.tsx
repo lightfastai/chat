@@ -1,6 +1,6 @@
 import { cn } from "@lightfast/ui/lib/utils";
 import type React from "react";
-import { Role } from "../../../../convex/validators";
+import type { Role } from "../../../../convex/validators";
 
 export interface MessageLayoutProps {
 	content: React.ReactNode;
