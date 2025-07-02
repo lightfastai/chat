@@ -36,6 +36,7 @@ import type * as setup from "../setup.js";
 import type * as share from "../share.js";
 import type * as threads from "../threads.js";
 import type * as titles from "../titles.js";
+import type * as types from "../types.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   share: typeof share;
   threads: typeof threads;
   titles: typeof titles;
+  types: typeof types;
   userSettings: typeof userSettings;
   users: typeof users;
   validators: typeof validators;

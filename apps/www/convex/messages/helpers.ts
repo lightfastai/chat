@@ -4,8 +4,8 @@ import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import type { ActionCtx, MutationCtx } from "../_generated/server.js";
 import type {
-	modelIdValidator,
-	modelProviderValidator,
+  modelIdValidator,
+  modelProviderValidator,
 } from "../validators.js";
 import type { MessageUsageUpdate } from "./types.js";
 
@@ -177,17 +177,6 @@ export async function handleAIResponseError(
 		}
 	} catch (errorHandlingError) {
 		console.error("Error during error handling:", errorHandlingError);
-	} finally {
-		// CRITICAL: Always clear generation flag, even if error handling fails
-		try {
-			await clearGenerationFlagUtil(ctx, threadId);
-		} catch (flagClearError) {
-			console.error(
-				"CRITICAL: Failed to clear generation flag:",
-				flagClearError,
-			);
-			// This is a critical error that could leave the thread in a locked state
-		}
 	}
 }
 
@@ -237,17 +226,5 @@ export async function updateThreadUsageUtil(
 				usage.promptTokensDetails?.cachedTokens || usage.cachedInputTokens || 0,
 			modelId,
 		},
-	});
-}
-
-/**
- * Clear generation flag (moved from lib/message_service.ts)
- */
-export async function clearGenerationFlagUtil(
-	ctx: ActionCtx,
-	threadId: Id<"threads">,
-) {
-	await ctx.runMutation(internal.messages.clearGenerationFlag, {
-		threadId,
 	});
 }

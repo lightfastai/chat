@@ -2,10 +2,10 @@
 
 import { ChevronDown, ChevronRight, Loader2, Wrench } from "lucide-react";
 import { useState } from "react";
-import type { ToolCallPart } from "../../../../convex/validators";
+import { DbToolCallPart } from "../../../../convex/types";
 
 export interface GenericToolDisplayProps {
-	toolCall: ToolCallPart;
+	toolCall: DbToolCallPart;
 }
 
 export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {

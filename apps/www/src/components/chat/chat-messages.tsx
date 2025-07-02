@@ -5,8 +5,8 @@ import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import type { ChatStatus } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
-import type { MessagePart } from "../../../convex/validators";
 import { MessageDisplay } from "./message-display";
+import { DbMessagePart } from "../../../convex/types";
 
 // Extended UIMessage type with our metadata
 interface UIMessageWithMetadata extends UIMessage {
@@ -185,6 +185,7 @@ export function ChatMessages({
 								...message,
 								parts: (streamingVercelMessage.parts || []).map((part) => {
 									// Convert Vercel AI SDK "source-document" to Convex "source" type
+                  // @todo iteratively introduce these on client-side.
 									if (part.type === "source-document") {
 										return {
 											...part,
@@ -192,7 +193,7 @@ export function ChatMessages({
 										};
 									}
 									return part;
-								}) as MessagePart[],
+								}) as DbMessagePart[],
 								status: "streaming" as const,
 							};
 						}

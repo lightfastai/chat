@@ -1,7 +1,5 @@
 import { v } from "convex/values";
-import type { Infer } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
-import type { Doc } from "./_generated/dataModel.js";
 
 /**
  * Comprehensive validators for the chat application
@@ -34,7 +32,7 @@ export const modelProviderValidator = v.union(
 // 'streaming' - Response actively streaming from API
 // 'ready' - Full response received and processed, ready for new user message
 // 'error' - Error occurred during API request
-export const chatStatusValidator = v.union(
+export const messageStatusValidator = v.union(
 	v.literal("submitted"),
 	v.literal("streaming"),
 	v.literal("ready"),
@@ -228,28 +226,11 @@ export const textPartValidator = v.object({
 export const reasoningPartValidator = v.object({
 	type: v.literal("reasoning"),
 	text: v.string(),
-	providerMetadata: v.optional(v.any()),
 });
 
-// File part validator - for generated files
-export const filePartValidator = v.object({
-	type: v.literal("file"),
-	url: v.string(), // Required for Vercel AI SDK compatibility
-	mediaType: v.string(),
-	data: v.optional(v.any()), // Base64 or binary data
-	filename: v.optional(v.string()),
-});
-
-// Source part validator - for citations and references
-export const sourcePartValidator = v.object({
-	type: v.literal("source"),
-	sourceType: v.union(v.literal("url"), v.literal("document")),
-	sourceId: v.string(),
-	url: v.optional(v.string()),
-	title: v.optional(v.string()),
-	mediaType: v.optional(v.string()),
-	filename: v.optional(v.string()),
-	metadata: v.optional(v.any()),
+export const rawPartValidator = v.object({
+	type: v.literal("raw"),
+	rawValue: v.any(),
 });
 
 // Error part validator - for stream errors
@@ -258,20 +239,6 @@ export const errorPartValidator = v.object({
 	errorMessage: v.string(),
 	errorDetails: v.optional(v.any()),
 });
-
-// Raw part validator - for debugging raw provider responses
-export const rawPartValidator = v.object({
-	type: v.literal("raw"),
-	rawValue: v.any(),
-});
-
-// Step part validator - for multi-step generation boundaries
-export const stepPartValidator = v.object({
-	type: v.literal("step"),
-	stepType: v.union(v.literal("start-step"), v.literal("finish-step")),
-});
-
-// Stream control part validator - for start/finish/metadata events
 
 // Tool call part validator - Official Vercel AI SDK v5 compliant
 export const toolCallPartValidator = v.object({
@@ -288,287 +255,21 @@ export const toolCallPartValidator = v.object({
 	step: v.optional(v.number()), // Official SDK step tracking for multi-step calls
 });
 
-// Control part validator - for streaming control messages
-export const controlPartValidator = v.object({
-	type: v.literal("control"),
-	controlType: v.string(), // e.g. "finish"
-	finishReason: v.optional(v.string()), // e.g. "stop"
-	totalUsage: v.optional(
-		v.object({
-			inputTokens: v.number(),
-			outputTokens: v.number(),
-			totalTokens: v.number(),
-			reasoningTokens: v.number(),
-			cachedInputTokens: v.number(),
-		}),
-	),
-});
-
 // Message part union validator - represents any type of message part
 export const messagePartValidator = v.union(
 	textPartValidator,
 	reasoningPartValidator,
-	filePartValidator,
-	sourcePartValidator,
-	errorPartValidator,
-	rawPartValidator,
-	stepPartValidator,
-	toolCallPartValidator,
-	controlPartValidator,
+  errorPartValidator,
+  toolCallPartValidator,
+  rawPartValidator,
 );
 
 // Array of message parts validator
 export const messagePartsValidator = v.array(messagePartValidator);
 
-// SECTION 4: DATABASE STORAGE VALIDATORS
-// =========================================================================
-/**
- * These validators define how streaming data is persisted in the database.
- * We store:
- * 1. Stream records - track overall stream state
- * 2. Chunks - individual pieces of content as they arrive
- * 3. Final messages - complete messages with parts array
- */
-
-// ===== Vercel AI SDK UIMessage Validators =====
-/**
- * Validators for Vercel AI SDK v5 UIMessage types
- * These are used when accepting UIMessages from the client
- */
-
-// UIMessage text part validator
-export const uiTextPartValidator = v.object({
-	type: v.literal("text"),
-	text: v.string(),
-});
-
-// UIMessage reasoning part validator
-export const uiReasoningPartValidator = v.object({
-	type: v.literal("reasoning"),
-	text: v.string(),
-	providerMetadata: v.optional(v.any()),
-});
-
-// UIMessage source URL part validator
-export const uiSourceUrlPartValidator = v.object({
-	type: v.literal("source-url"),
-	sourceId: v.string(),
-	url: v.string(),
-	title: v.optional(v.string()),
-	providerMetadata: v.optional(v.any()),
-});
-
-// UIMessage source document part validator
-export const uiSourceDocumentPartValidator = v.object({
-	type: v.literal("source-document"),
-	sourceId: v.string(),
-	mediaType: v.string(),
-	title: v.string(),
-	filename: v.optional(v.string()),
-	providerMetadata: v.optional(v.any()),
-});
-
-// UIMessage file part validator
-export const uiFilePartValidator = v.object({
-	type: v.literal("file"),
-	mediaType: v.string(),
-	filename: v.optional(v.string()),
-	url: v.string(),
-});
-
-// UIMessage step start part validator
-export const uiStepStartPartValidator = v.object({
-	type: v.literal("step-start"),
-});
-
-// UIMessage tool part validator - generic for any tool
-export const uiToolPartValidator = v.object({
-	type: v.string(), // Will be "tool-{toolName}"
-	toolCallId: v.string(),
-	state: v.union(
-		v.literal("input-streaming"),
-		v.literal("input-available"),
-		v.literal("output-available"),
-		v.literal("output-error"),
-	),
-	input: v.any(),
-	output: v.optional(v.any()),
-	errorText: v.optional(v.string()),
-	providerExecuted: v.optional(v.boolean()),
-});
-
-// UIMessage data part validator - generic for any data type
-export const uiDataPartValidator = v.object({
-	type: v.string(), // Will be "data-{dataType}"
-	id: v.optional(v.string()),
-	data: v.any(),
-});
-
-// Union validator for all UI message parts
-export const uiMessagePartValidator = v.union(
-	uiTextPartValidator,
-	uiReasoningPartValidator,
-	uiSourceUrlPartValidator,
-	uiSourceDocumentPartValidator,
-	uiFilePartValidator,
-	uiStepStartPartValidator,
-	// For tool and data parts, we need a more flexible approach
-	v.object({
-		type: v.string(),
-		// Allow any additional properties
-		...Object.fromEntries(
-			Array(20)
-				.fill(null)
-				.map((_, i) => [`field${i}`, v.optional(v.any())]),
-		),
-	}),
-);
-
-// UIMessage validator
-export const uiMessageValidator = v.object({
-	id: v.string(),
-	role: roleValidator,
-	parts: v.array(uiMessagePartValidator),
-	metadata: v.optional(v.any()),
-});
-
-// Array of UIMessages validator
-export const uiMessagesValidator = v.array(uiMessageValidator);
-
-// SECTION 5: HTTP PROTOCOL VALIDATORS
-// =========================================================================
-/**
- * These validators define the HTTP API for streaming.
- * The protocol supports:
- * 1. Initiating streams with full context
- * 2. Resuming interrupted streams
- * 3. Real-time delivery of message parts
- * 4. Proper error handling and recovery
- */
-
-// ===== Request Validators =====
-
-/**
- * HTTP request to start a new stream
- */
-export const httpStreamingRequestValidator = v.object({
-	id: v.id("messages"),
-	threadClientId: clientThreadIdValidator, // Can be null for new threads
-	userMessageId: v.id("messages"),
-	modelId: modelIdValidator,
-	messages: v.optional(uiMessagesValidator), // Optional UIMessages array for v2
-	options: v.object({
-		webSearchEnabled: v.optional(v.boolean()),
-		attachments: v.optional(v.array(v.id("files"))),
-		modelId: v.optional(modelIdValidator),
-	}),
-});
-
-// ===== Response Validators =====
-
-// Note: streamingMessageValidator has been removed in favor of the status-based system
-// Client components now use the standard messageReturnValidator with status field
-
-// =========================================================================
-// SECTION 6: TYPE EXPORTS AND HELPERS
-// =========================================================================
-/**
- * The streaming architecture follows a clean separation of concerns:
- *
- * CONTENT LAYER (What):
- * - Message parts from Vercel AI SDK define the content
- * - Standard types: text, tool-call, reasoning, error, etc.
- * - Matches exactly what Vercel AI SDK produces
- *
- * INFRASTRUCTURE LAYER (How):
- * - Stream envelopes wrap content with metadata
- * - Provides ordering, deduplication, and resumption
- * - Handles lifecycle events (start, end, error)
- *
- * This design allows us to:
- * - Stream any Vercel AI SDK content without modification
- * - Add streaming-specific features transparently
- * - Support resumption and replay of partial streams
- */
-
-// =========================================================================
-// =========================================================================
-/**
- * TypeScript types and helper functions for working with validators
- */
-
-// ===== Core Types =====
-export type DbMessage = Doc<"messages">;
-export type MessagePart = Infer<typeof messagePartValidator>;
-export type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
-
-// ===== Message Part Types =====
-export type TextPart = Infer<typeof textPartValidator>;
-export type ToolCallPart = Infer<typeof toolCallPartValidator>;
-export type ReasoningPart = Infer<typeof reasoningPartValidator>;
-export type ErrorPart = Infer<typeof errorPartValidator>;
-
-// ===== Role Types =====
-export type Role = Infer<typeof roleValidator>;
-
-// ===== Type Guards =====
-
-// Message part type guards
-export function isTextPart(part: MessagePart): part is TextPart {
-	return part.type === "text";
-}
-
-export function isToolCallPart(part: MessagePart): part is ToolCallPart {
-	return part.type === "tool-call";
-}
-
-export function isReasoningPart(part: MessagePart): part is ReasoningPart {
-	return part.type === "reasoning";
-}
-
-export function isErrorPart(part: MessagePart): part is ErrorPart {
-	return part.type === "error";
-}
-
-// Tool call state guards
-export function isToolCallInProgress(part: MessagePart): boolean {
-	return isToolCallPart(part) && part.state === "partial-call";
-}
-
-export function isToolCallComplete(part: MessagePart): boolean {
-	return isToolCallPart(part) && part.state === "call";
-}
-
-export function isToolCallWithResult(part: MessagePart): boolean {
-	return isToolCallPart(part) && part.state === "result";
-}
-
 // ===== Validation Functions =====
-
 // Title validation
+
 export function validateTitle(title: string): boolean {
-	return title.length >= 1 && title.length <= 80;
+  return title.length >= 1 && title.length <= 80;
 }
-
-// ===== Utility Functions =====
-
-/**
- * Extract text content from a message part
- */
-export function getPartText(part: MessagePart): string | null {
-	if (isTextPart(part)) return part.text;
-	if (isReasoningPart(part)) return part.text;
-	if (isErrorPart(part)) return part.errorMessage;
-	return null;
-}
-
-/**
- * Check if a part contains streamable content
- */
-export function isStreamablePart(part: MessagePart): boolean {
-	return isTextPart(part) || isReasoningPart(part) || isToolCallPart(part);
-}
-
-/**
- * Convert stored chunk type to message part type
- */

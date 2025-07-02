@@ -1,11 +1,11 @@
 "use client";
 
-import type { ToolCallPart } from "../../../../convex/validators";
+import type { DbToolCallPart } from "../../../../convex/types";
 import { GenericToolDisplay } from "./generic-tool-display";
 import { WebSearchTool } from "./web-search-tool";
 
 export interface ToolCallRendererProps {
-	toolCall: ToolCallPart;
+	toolCall: DbToolCallPart;
 }
 
 export function ToolCallRenderer({ toolCall }: ToolCallRendererProps) {

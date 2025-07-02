@@ -8,27 +8,27 @@
  */
 
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { type Infer, v } from "convex/values";
+import { v } from "convex/values";
 import { getModelById } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import {
-	internalMutation,
-	internalQuery,
-	mutation,
-	query,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
 } from "./_generated/server.js";
 import {
-	branchInfoValidator,
-	chatStatusValidator,
-	clientIdValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	shareIdValidator,
-	shareSettingsValidator,
-	textPartValidator,
-	threadUsageValidator,
-	tokenUsageValidator,
+  branchInfoValidator,
+  messageStatusValidator,
+  clientIdValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  shareIdValidator,
+  shareSettingsValidator,
+  textPartValidator,
+  threadUsageValidator,
+  tokenUsageValidator,
 } from "./validators.js";
 
 // Import utility functions from messages/ directory
@@ -480,25 +480,6 @@ export const createErrorMessage = internalMutation({
 	},
 });
 
-// Note: updateThinkingState function removed - thinking state is now tracked in parts array
-
-// Note: updateThinkingContent function removed - thinking content is now stored in parts array as reasoning parts
-
-// Internal mutation to clear the generation flag
-export const clearGenerationFlag = internalMutation({
-	args: {
-		threadId: v.id("threads"),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		await ctx.db.patch(args.threadId, {
-			isGenerating: false,
-		});
-	},
-});
-
-// ===== Message Parts Mutations (Vercel AI SDK v5) =====
-
 // Internal mutation to add a text part to a message
 export const addTextPart = internalMutation({
 	args: {
@@ -555,7 +536,6 @@ export const addReasoningPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		text: v.string(),
-		providerMetadata: v.optional(v.any()),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -574,8 +554,6 @@ export const addReasoningPart = internalMutation({
 					{
 						type: "reasoning" as const,
 						text: lastPart.text + args.text, // Concatenate text
-						providerMetadata:
-							args.providerMetadata || lastPart.providerMetadata,
 					},
 				];
 
@@ -593,81 +571,6 @@ export const addReasoningPart = internalMutation({
 			{
 				type: "reasoning" as const,
 				text: args.text,
-				providerMetadata: args.providerMetadata,
-			},
-		];
-
-		await ctx.db.patch(args.messageId, {
-			parts: updatedParts,
-		});
-
-		return null;
-	},
-});
-
-// Internal mutation to add a file part to a message
-export const addFilePart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		url: v.string(), // Required for type compatibility
-		mediaType: v.string(),
-		data: v.optional(v.any()),
-		filename: v.optional(v.string()),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		const currentParts = message.parts || [];
-		const updatedParts = [
-			...currentParts,
-			{
-				type: "file" as const,
-				url: args.url || "#", // Ensure URL is never undefined
-				mediaType: args.mediaType,
-				data: args.data,
-				filename: args.filename,
-			},
-		];
-
-		await ctx.db.patch(args.messageId, {
-			parts: updatedParts,
-		});
-
-		return null;
-	},
-});
-
-// Internal mutation to add a source part to a message
-export const addSourcePart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		sourceType: v.union(v.literal("url"), v.literal("document")),
-		sourceId: v.string(),
-		url: v.optional(v.string()),
-		title: v.optional(v.string()),
-		mediaType: v.optional(v.string()),
-		filename: v.optional(v.string()),
-		providerMetadata: v.optional(v.any()),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		const currentParts = message.parts || [];
-		const updatedParts = [
-			...currentParts,
-			{
-				type: "source" as const,
-				sourceType: args.sourceType,
-				sourceId: args.sourceId,
-				url: args.url,
-				title: args.title,
-				mediaType: args.mediaType,
-				filename: args.filename,
-				providerMetadata: args.providerMetadata,
 			},
 		];
 
@@ -698,34 +601,6 @@ export const addErrorPart = internalMutation({
 				type: "error" as const,
 				errorMessage: args.errorMessage,
 				errorDetails: args.errorDetails,
-			},
-		];
-
-		await ctx.db.patch(args.messageId, {
-			parts: updatedParts,
-		});
-
-		return null;
-	},
-});
-
-// Internal mutation to add a raw part to a message
-export const addRawPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		rawValue: v.any(),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		const currentParts = message.parts || [];
-		const updatedParts = [
-			...currentParts,
-			{
-				type: "raw" as const,
-				rawValue: args.rawValue,
 			},
 		];
 
@@ -894,30 +769,37 @@ export const updateToolCallPart = internalMutation({
 	},
 });
 
-export const markComplete = internalMutation({
+export const addUsage = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		usage: v.optional(tokenUsageValidator),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		const updateData: {
-			status: "ready";
-			usage?: Infer<typeof tokenUsageValidator>;
-		} = {
-			status: "ready",
-		};
-
-		if (args.usage) {
-			updateData.usage = args.usage;
-		}
-
-		await ctx.db.patch(args.messageId, updateData);
+		await ctx.db.patch(args.messageId, {
+			usage: args.usage,
+		});
 
 		return null;
 	},
 });
 
+export const addRawPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		rawValue: v.any(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.messageId, {
+			parts: [{ type: "raw", rawValue: args.rawValue }],
+		});
+
+		return null;
+	},
+});
+
+// @todo rework error handling.
 export const markError = internalMutation({
 	args: {
 		messageId: v.id("messages"),
@@ -938,7 +820,7 @@ export const markError = internalMutation({
 export const updateMessageStatus = internalMutation({
 	args: {
 		messageId: v.id("messages"),
-		status: chatStatusValidator,
+		status: messageStatusValidator,
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -960,16 +842,13 @@ export const createUserMessage = internalMutation({
 	handler: async (ctx, args) => {
 		const now = Date.now();
 
-		// Determine status based on message type and streaming state
-		const status: Infer<typeof chatStatusValidator> = "ready";
-
 		const messageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			parts: [args.part],
 			timestamp: now,
 			role: "user",
 			modelId: args.modelId,
-			status,
+			status: "ready",
 		});
 
 		return messageId;
@@ -991,7 +870,7 @@ export const createAssistantMessage = internalMutation({
 			timestamp: now,
 			role: "assistant",
 			modelId: args.modelId,
-			status: "ready",
+			status: "submitted",
 		});
 
 		return messageId;

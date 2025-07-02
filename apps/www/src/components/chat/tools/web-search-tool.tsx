@@ -1,16 +1,16 @@
 "use client";
 
 import {
-	Accordion,
-	AccordionContent,
-	AccordionItem,
-	AccordionTrigger,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@lightfast/ui/components/ui/accordion";
 import { ExternalLink, Loader2, Search } from "lucide-react";
-import type { ToolCallPart } from "../../../../convex/validators";
+import type { DbToolCallPart } from "../../../../convex/types";
 
 export interface WebSearchToolProps {
-	toolCall: ToolCallPart;
+	toolCall: DbToolCallPart;
 }
 
 interface SearchResult {

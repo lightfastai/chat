@@ -2,29 +2,29 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
-	branchInfoValidator,
-	chatStatusValidator,
-	clientIdValidator,
-	commentValidator,
-	feedbackRatingValidator,
-	feedbackReasonsValidator,
-	fileMetadataValidator,
-	fileNameValidator,
-	ipHashValidator,
-	messagePartsValidator,
-	mimeTypeValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	roleValidator,
-	shareIdValidator,
-	shareSettingsValidator,
-	storageIdValidator,
-	threadUsageValidator,
-	titleValidator,
-	tokenUsageValidator,
-	userAgentValidator,
-	userApiKeysValidator,
-	userPreferencesValidator,
+  branchInfoValidator,
+  messageStatusValidator,
+  clientIdValidator,
+  commentValidator,
+  feedbackRatingValidator,
+  feedbackReasonsValidator,
+  fileMetadataValidator,
+  fileNameValidator,
+  ipHashValidator,
+  messagePartsValidator,
+  mimeTypeValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  roleValidator,
+  shareIdValidator,
+  shareSettingsValidator,
+  storageIdValidator,
+  threadUsageValidator,
+  titleValidator,
+  tokenUsageValidator,
+  userAgentValidator,
+  userApiKeysValidator,
+  userPreferencesValidator,
 } from "./validators.js";
 
 export default defineSchema({
@@ -77,24 +77,21 @@ export default defineSchema({
 		.index("by_share_id", ["shareId"]),
 
 	messages: defineTable({
+    // @V2 Schema.
 		threadId: v.id("threads"),
-		timestamp: v.optional(v.number()), // Deprecated - use createdAt instead
-		messageType: v.optional(roleValidator), // Deprecated - use role instead
-		modelId: v.optional(modelIdValidator),
-		model: v.optional(modelProviderValidator),
-		// Attachments - array of file IDs
+		parts: v.optional(messagePartsValidator),
+		status: v.optional(messageStatusValidator),
+		role: v.optional(roleValidator),
 		attachments: v.optional(v.array(v.id("files"))),
+    // @depcreated fields
+		messageType: v.optional(roleValidator), // Deprecated - use role instead
+    modelId: v.optional(modelIdValidator),
+		usage: v.optional(tokenUsageValidator),
+		usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
 		thinkingStartedAt: v.optional(v.number()),
 		thinkingCompletedAt: v.optional(v.number()),
-		usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
-		// Token usage tracking per message
-		usage: v.optional(tokenUsageValidator),
-		// Message parts array following Vercel AI SDK v5 structure
-		// Stores text, tool calls, and tool results in chronological order
-		// V2 Schema.
-		parts: v.optional(messagePartsValidator),
-		role: v.optional(roleValidator),
-		status: v.optional(chatStatusValidator),
+		model: v.optional(modelProviderValidator),
+    timestamp: v.optional(v.number()),
 	}).index("by_thread", ["threadId"]),
 
 	feedback: defineTable({

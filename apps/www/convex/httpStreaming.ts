@@ -11,22 +11,22 @@
  */
 
 import {
-	type ModelMessage,
-	type ReasoningUIPart,
-	type TextUIPart,
-	type UIMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type UIMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
@@ -36,10 +36,21 @@ import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/message_builder";
 import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
-import type { DbMessage, httpStreamingRequestValidator } from "./validators";
+import type { modelIdValidator, } from "./validators";
+import type { DbMessage, DbMessagePart } from "./types";
+import { Id } from "./_generated/dataModel";
 
-// Types from validators
-type HTTPStreamingRequest = Infer<typeof httpStreamingRequestValidator>;
+interface HTTPStreamingRequest {
+  id: Id<"messages">;
+  threadClientId: string,
+  userMessageId: Id<"messages">;
+  messages: DbMessagePart[];
+  options: {
+    attachments: Id<"files">[]
+    webSearchEnabled: boolean;
+    modelId: Infer<typeof modelIdValidator>
+  }
+}
 
 // Helper function for CORS headers
 function corsHeaders(): HeadersInit {
@@ -245,7 +256,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			await ctx.runMutation(internal.messages.addReasoningPart, {
 				messageId: assistantMessage._id,
 				text: pendingReasoning,
-				providerMetadata: undefined,
 			});
 
 			pendingReasoning = "";
@@ -287,6 +297,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				}),
 				onChunk: async ({ chunk }) => {
 					// Handle Vercel AI SDK v5 chunk types
+          // @todo check source, tool-call, tool-result and any other chunk we missed.
 					switch (chunk.type) {
 						case "text":
 							if (chunk.text) {
@@ -303,39 +314,11 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							}
 							break;
 
-						case "source":
-							// Add source part to database
-							if (chunk.sourceType === "url") {
-								await ctx.runMutation(internal.messages.addSourcePart, {
-									messageId: assistantMessage._id,
-									sourceId: chunk.id || "",
-									sourceType: "url",
-									title: chunk.title || "",
-									url: chunk.url,
-									filename: undefined,
-									mediaType: undefined,
-									providerMetadata: chunk.providerMetadata,
-								});
-							} else {
-								// Document type source
-								await ctx.runMutation(internal.messages.addSourcePart, {
-									messageId: assistantMessage._id,
-									sourceId: chunk.id || "",
-									sourceType: "document",
-									title: chunk.title || "",
-									url: undefined,
-									filename: "filename" in chunk ? chunk.filename : undefined,
-									mediaType: chunk.mediaType,
-									providerMetadata: chunk.providerMetadata,
-								});
-							}
-							break;
-
 						case "raw":
 							// Add raw part for unstructured data
 							await ctx.runMutation(internal.messages.addRawPart, {
 								messageId: assistantMessage._id,
-								rawValue: chunk,
+								rawValue: chunk.rawValue,
 							});
 							break;
 
@@ -374,27 +357,21 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					// Final database update
 					await updateDatabase();
 
-					// Extract usage data if available
-					let usage = undefined;
-					if (result.usage) {
-						usage = {
+					await ctx.runMutation(internal.messages.addUsage, {
+						messageId: assistantMessage._id,
+						usage: {
 							inputTokens: result.usage.inputTokens || 0,
 							outputTokens: result.usage.outputTokens || 0,
 							totalTokens: result.usage.totalTokens || 0,
 							reasoningTokens: result.usage.reasoningTokens || 0,
 							cachedInputTokens: result.usage.cachedInputTokens || 0,
-						};
-					}
-
-					// Mark message as complete with usage data
-					await ctx.runMutation(internal.messages.markComplete, {
-						messageId: assistantMessage._id,
-						usage,
+						},
 					});
 
-					// Clear generation flag
-					await ctx.runMutation(internal.messages.clearGenerationFlag, {
-						threadId: thread._id,
+					// Mark message as complete
+					await ctx.runMutation(internal.messages.updateMessageStatus, {
+						messageId: assistantMessage._id,
+						status: "submitted",
 					});
 				},
 			};

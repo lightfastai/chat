@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(SKIP_ENV_VALIDATION=true pnpm run build)"
+    ],
+    "deny": []
+  }
+}

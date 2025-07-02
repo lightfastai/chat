@@ -1,8 +1,8 @@
 "use client";
 
 import type { UIMessage } from "ai";
-import type { ReasoningPart, TextPart } from "../../../../convex/validators";
 import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
+import { DbReasoningPart, DbTextPart } from "../../../../convex/types";
 
 interface MessageMetadata {
 	hasThinkingContent?: boolean;
@@ -45,7 +45,7 @@ export function AssistantMessageHeader({
 	const reasoningContent = (() => {
 		// First try new parts-based system
 		const partsContent = message?.parts
-			?.filter((part): part is ReasoningPart => part.type === "reasoning")
+			?.filter((part): part is DbReasoningPart => part.type === "reasoning")
 			.map((part) => part.text)
 			.join("\n");
 
@@ -71,8 +71,8 @@ export function AssistantMessageHeader({
 			return message.parts.some(
 				(part) =>
 					(part.type === "text" &&
-						(part as TextPart).text &&
-						(part as TextPart).text.trim().length > 0) ||
+						(part as DbTextPart).text &&
+						(part as DbTextPart).text.trim().length > 0) ||
 					part.type.startsWith("tool-"),
 			);
 		}

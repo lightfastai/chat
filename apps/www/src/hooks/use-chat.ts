@@ -9,7 +9,7 @@ import { usePreloadedQuery, useQuery } from "convex/react";
 import { useCallback, useMemo } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import type { MessagePart } from "../../convex/validators";
+import type { DbMessagePart } from "../../convex/types";
 import type { ModelId } from "../lib/ai/schemas";
 import type { UIMessage, ValidThread } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
@@ -77,16 +77,7 @@ export function useChat({
 		const converted = dbMessages.map((msg) => ({
 			id: msg._id,
 			role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
-			parts: (msg.parts || []).map((part: MessagePart) => {
-				// Convert Convex "source" type to Vercel AI SDK "source-document" type
-				if (part.type === "source") {
-					return {
-						...part,
-						type: "source-document" as const,
-					};
-				}
-				return part;
-			}),
+			parts: (msg.parts || []).map((part: DbMessagePart) => part),
 			metadata: {
 				createdAt: new Date(msg._creationTime),
 			},
