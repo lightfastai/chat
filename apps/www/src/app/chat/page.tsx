@@ -1,8 +1,9 @@
 import { siteConfig } from "@/lib/site-config";
-import { getTimeGreeting } from "@/lib/get-time-greeting";
+import { getServerTimezone } from "@/lib/server-timezone";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import { api } from "../../../convex/_generated/api";
 import { ChatInterface } from "../../components/chat/chat-interface";
 import { getAuthToken } from "../../lib/auth";
@@ -43,12 +44,21 @@ async function ChatPageWithPreloadedData() {
 		// Get authentication token for server-side requests
 		const token = await getAuthToken();
 		
-		// Calculate greeting server-side for consistent SSR/hydration
-		const greeting = getTimeGreeting();
+		// Get timezone from cookies (server-side)
+		const serverTimezone = await getServerTimezone();
+		
+		// Get IP estimate from middleware
+		const headersList = await headers();
+		const ipEstimate = headersList.get("x-user-timezone") || undefined;
 
-		// If no authentication token, render regular chat interface with greeting
+		// If no authentication token, render regular chat interface with timezone data
 		if (!token) {
-			return <ChatInterface greeting={greeting} />;
+			return (
+				<ChatInterface 
+					serverTimezone={serverTimezone}
+					ipEstimate={ipEstimate}
+				/>
+			);
 		}
 
 		// Preload user data and settings for PPR - this will be cached and streamed instantly
@@ -57,22 +67,30 @@ async function ChatPageWithPreloadedData() {
 			preloadQuery(api.userSettings.getUserSettings, {}, { token }),
 		]);
 
-		// Pass preloaded user data, settings, and greeting to chat interface
+		// Pass preloaded user data, settings, and timezone data to chat interface
 		return (
 			<ChatInterface
 				preloadedUser={preloadedUser}
 				preloadedUserSettings={preloadedUserSettings}
-				greeting={greeting}
+				serverTimezone={serverTimezone}
+				ipEstimate={ipEstimate}
 			/>
 		);
 	} catch (error) {
 		// Log error but still render - don't break the UI
 		console.warn("Server-side user preload failed:", error);
 		
-		// Calculate greeting for fallback case
-		const greeting = getTimeGreeting();
+		// Get timezone data for fallback case
+		const serverTimezone = await getServerTimezone();
+		const headersList = await headers();
+		const ipEstimate = headersList.get("x-user-timezone") || undefined;
 
-		// Fallback to regular chat interface with greeting
-		return <ChatInterface greeting={greeting} />;
+		// Fallback to regular chat interface with timezone data
+		return (
+			<ChatInterface 
+				serverTimezone={serverTimezone}
+				ipEstimate={ipEstimate}
+			/>
+		);
 	}
 }

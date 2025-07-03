@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useTimeGreeting } from "@/hooks/use-time-greeting";
+import type { TimezoneData } from "@/lib/timezone-cookies";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { ZapIcon } from "lucide-react";
@@ -20,7 +22,8 @@ interface CenteredChatStartProps {
 	disabled?: boolean;
 	isLoading?: boolean;
 	preloadedUser?: Preloaded<typeof api.users.current>;
-	greeting?: string;
+	serverTimezone?: TimezoneData | null;
+	ipEstimate?: string;
 }
 
 export function CenteredChatStart({
@@ -28,9 +31,11 @@ export function CenteredChatStart({
 	disabled = false,
 	isLoading = false,
 	preloadedUser,
-	greeting = "Hello",
+	serverTimezone,
+	ipEstimate,
 }: CenteredChatStartProps) {
 	const { displayName, email } = useAuth();
+	const { greeting, confidence, source } = useTimeGreeting(serverTimezone, ipEstimate);
 	const [message, setMessage] = useState("");
 	const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -65,6 +70,12 @@ export function CenteredChatStart({
 							<ZapIcon className="w-6 h-6 sm:w-8 sm:h-8 inline-block" />
 							{greeting}, {userName}
 						</h1>
+						{/* Debug info in development */}
+						{process.env.NODE_ENV === "development" && (
+							<p className="text-xs text-muted-foreground mt-1">
+								Timezone: {source} ({confidence})
+							</p>
+						)}
 					</div>
 
 					<div className="relative">
