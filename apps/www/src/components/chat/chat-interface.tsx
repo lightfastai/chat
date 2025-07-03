@@ -48,7 +48,7 @@ function SharedChatComponent({
 			<CenteredChatStart
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}
-				status={status}
+				dbMessages={dbMessages}
 				preloadedUser={preloadedUser}
 			/>
 		);
@@ -64,7 +64,7 @@ function SharedChatComponent({
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}
-				status={status}
+				dbMessages={dbMessages}
 			/>
 		</div>
 	);

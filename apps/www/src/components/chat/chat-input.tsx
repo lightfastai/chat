@@ -56,7 +56,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useKeyboardShortcutsContext } from "../providers/keyboard-shortcuts-provider";
 
 interface ChatInputProps {
@@ -66,7 +66,7 @@ interface ChatInputProps {
 		attachments?: Id<"files">[],
 		webSearchEnabled?: boolean,
 	) => Promise<void> | void;
-	status?: "ready" | "streaming" | "submitted" | "error";
+	dbMessages?: Doc<"messages">[] | undefined;
 	placeholder?: string;
 	disabled?: boolean;
 	maxLength?: number;
@@ -104,7 +104,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 	(
 		{
 			onSendMessage,
-			status = "ready",
+			dbMessages,
 			placeholder = "How can I help you today?",
 			disabled = false,
 			maxLength = 4000,
@@ -145,14 +145,27 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 		const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 		const createFile = useMutation(api.files.createFile);
 
+		// Get the most recent assistant message status from database
+		const lastAssistantMessageStatus = useMemo(() => {
+			if (!dbMessages || dbMessages.length === 0) return null;
+
+			// Find the most recent assistant message
+			// dbMessages is sorted oldest first, so reverse to get newest first
+			const recentAssistantMessage = [...dbMessages]
+				.reverse()
+				.find((msg) => msg.role === "assistant");
+
+			return recentAssistantMessage?.status || null;
+		}, [dbMessages]);
+
 		// Determine if submission should be disabled (but allow typing)
 		const isSubmitDisabled = useMemo(
 			() =>
 				disabled ||
-				status === "streaming" ||
-				status === "submitted" ||
+				lastAssistantMessageStatus === "streaming" ||
+				lastAssistantMessageStatus === "submitted" ||
 				isSending,
-			[disabled, status, isSending],
+			[disabled, lastAssistantMessageStatus, isSending],
 		);
 
 		// Memoize expensive computations
@@ -318,7 +331,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 		// Use the file drop hook
 		const { isDragging, dragHandlers } = useFileDrop({
 			onDrop: handleFileUpload,
-			disabled: isSubmitDisabled || isUploading,
+			disabled: disabled || isUploading,
 		});
 
 		const handleFileInputChange = useCallback(
@@ -530,7 +543,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 							<div
 								className={`w-full border border-muted/30 rounded-xl overflow-hidden flex flex-col transition-all bg-transparent dark:bg-input/10 ${
 									attachments.length > 0 ? "rounded-b-none" : ""
-								} ${status === "streaming" || status === "submitted" ? "opacity-75" : ""}`}
+								}`}
 							>
 								{/* Textarea area - grows with content up to max height */}
 								<div className="flex-1 max-h-[180px] overflow-y-auto chat-input-scroll">
@@ -542,7 +555,6 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 										placeholder={placeholder}
 										className="w-full resize-none border-0 focus-visible:ring-0 whitespace-pre-wrap break-words p-3 bg-transparent dark:bg-input/10 focus:bg-transparent dark:focus:bg-input/10 hover:bg-transparent dark:hover:bg-input/10 disabled:bg-transparent dark:disabled:bg-input/10"
 										maxLength={maxLength}
-										disabled={disabled}
 										autoComplete="off"
 										autoCorrect="off"
 										autoCapitalize="off"
@@ -597,7 +609,6 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 													variant={webSearchEnabled ? "default" : "ghost"}
 													size="icon"
 													className="h-8 w-8"
-													disabled={disabled}
 												>
 													<Globe className="w-4 h-4" />
 												</Button>
@@ -624,7 +635,6 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 													variant="outline"
 													size="sm"
 													className="text-xs justify-between font-normal"
-													disabled={disabled}
 												>
 													<span className="truncate">
 														{selectedModel?.displayName}

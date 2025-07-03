@@ -7,7 +7,7 @@ import { usePreloadedQuery } from "convex/react";
 import { ZapIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import type { ModelId } from "../../lib/ai/schemas";
 import { ChatInput } from "./chat-input";
 import { PromptSuggestions } from "./prompt-suggestions";
@@ -20,14 +20,14 @@ interface CenteredChatStartProps {
 		webSearchEnabled?: boolean,
 	) => Promise<void> | void;
 	disabled?: boolean;
-	status?: "ready" | "streaming" | "submitted" | "error";
+	dbMessages?: Doc<"messages">[] | undefined;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 }
 
 export function CenteredChatStart({
 	onSendMessage,
 	disabled = false,
-	status = "ready",
+	dbMessages,
 	preloadedUser,
 }: CenteredChatStartProps) {
 	const { displayName, email } = useAuth();
@@ -68,7 +68,7 @@ export function CenteredChatStart({
 							onSendMessage={onSendMessage}
 							placeholder="How can I help you today?"
 							disabled={disabled}
-							status={status}
+							dbMessages={dbMessages}
 							showDisclaimer={false}
 							value={message}
 							onChange={setMessage}
