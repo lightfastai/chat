@@ -10,20 +10,19 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
-import type { Doc, Id } from "./_generated/dataModel.js";
+import type { Id } from "./_generated/dataModel.js";
 import {
-	internalMutation,
-	internalQuery,
-	mutation,
-	query,
+  internalMutation,
+  mutation,
+  query,
 } from "./_generated/server.js";
 import {
-	clientIdValidator,
-	messageStatusValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	textPartValidator,
-	tokenUsageValidator,
+  clientIdValidator,
+  messageStatusValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  textPartValidator,
+  tokenUsageValidator,
 } from "./validators.js";
 
 // Export types
@@ -85,33 +84,6 @@ export const listByClientId = query({
 		const messages = await ctx.db
 			.query("messages")
 			.withIndex("by_thread", (q) => q.eq("threadId", thread._id))
-			.order("desc")
-			.take(50);
-
-		// Reverse to show oldest first
-		return messages.reverse();
-	},
-});
-
-export const list = query({
-	args: {
-		threadId: v.id("threads"),
-	},
-	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			return [];
-		}
-
-		// Verify the user owns this thread
-		const thread = await ctx.db.get(args.threadId);
-		if (!thread || thread.userId !== userId) {
-			return [];
-		}
-
-		const messages = await ctx.db
-			.query("messages")
-			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
 			.order("desc")
 			.take(50);
 
@@ -210,55 +182,7 @@ export const getThreadUsage = query({
 	},
 });
 
-// Internal function to get recent conversation context
-export const getRecentContext = internalQuery({
-	args: {
-		threadId: v.id("threads"),
-	},
-	handler: async (ctx, args) => {
-		const messages = await ctx.db
-			.query("messages")
-			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-			.order("desc")
-			.take(10);
-
-		return messages
-			.reverse() // Get chronological order
-			.filter((msg: Doc<"messages">) => msg.status === "ready") // Only include ready messages
-			.map((msg: Doc<"messages">) => ({
-				parts: msg.parts,
-				messageType: msg.messageType,
-				attachments: msg.attachments,
-			}));
-	},
-});
-
-// Internal query to get thread by ID
-export const getThreadById = internalQuery({
-	args: {
-		threadId: v.id("threads"),
-	},
-	handler: async (ctx, args) => {
-		return await ctx.db.get(args.threadId);
-	},
-});
-
 // ===== MUTATIONS =====
-
-// Internal mutation to update message API key status
-export const updateMessageApiKeyStatus = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		usedUserApiKey: v.boolean(),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		await ctx.db.patch(args.messageId, {
-			usedUserApiKey: args.usedUserApiKey,
-		});
-		return null;
-	},
-});
 
 // Internal mutation to update message with error
 export const updateMessageError = internalMutation({
@@ -398,110 +322,6 @@ export const addReasoningPart = internalMutation({
 			{
 				type: "reasoning" as const,
 				text: args.text,
-			},
-		];
-
-		await ctx.db.patch(args.messageId, {
-			parts: updatedParts,
-		});
-
-		return null;
-	},
-});
-
-// Internal mutation to add an error part to a message
-export const addErrorPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		errorMessage: v.string(),
-		errorDetails: v.optional(v.any()),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		const currentParts = message.parts || [];
-		const updatedParts = [
-			...currentParts,
-			{
-				type: "error" as const,
-				errorMessage: args.errorMessage,
-				errorDetails: args.errorDetails,
-			},
-		];
-
-		await ctx.db.patch(args.messageId, {
-			parts: updatedParts,
-		});
-
-		return null;
-	},
-});
-
-// Internal mutation to add step metadata part
-export const addStepPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		stepType: v.union(v.literal("start-step"), v.literal("finish-step")),
-		metadata: v.optional(v.any()),
-		usage: v.optional(v.any()),
-		finishReason: v.optional(v.string()),
-		warnings: v.optional(v.array(v.any())),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		const currentParts = message.parts || [];
-		const updatedParts = [
-			...currentParts,
-			{
-				type: "step" as const,
-				stepType: args.stepType,
-				...(args.metadata && { metadata: args.metadata }),
-				...(args.usage && { usage: args.usage }),
-				...(args.finishReason && { finishReason: args.finishReason }),
-				...(args.warnings && { warnings: args.warnings }),
-			},
-		];
-
-		await ctx.db.patch(args.messageId, {
-			parts: updatedParts,
-		});
-
-		return null;
-	},
-});
-
-// Internal mutation to add stream control parts (start, finish, etc.)
-export const addStreamControlPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		controlType: v.union(
-			v.literal("start"),
-			v.literal("finish"),
-			v.literal("reasoning-part-finish"),
-		),
-		finishReason: v.optional(v.string()),
-		totalUsage: v.optional(v.any()),
-		metadata: v.optional(v.any()),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		const currentParts = message.parts || [];
-		const updatedParts = [
-			...currentParts,
-			{
-				type: "control" as const,
-				controlType: args.controlType,
-				...(args.finishReason && { finishReason: args.finishReason }),
-				...(args.totalUsage && { totalUsage: args.totalUsage }),
-				...(args.metadata && { metadata: args.metadata }),
 			},
 		];
 

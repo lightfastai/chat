@@ -1,5 +1,5 @@
-import type { DebouncedWriterConfig } from "@repo/utils/debounced-writer/types";
 import { StringDebouncedWriter } from "@repo/utils/debounced-writer/string-writer";
+import type { DebouncedWriterConfig } from "@repo/utils/debounced-writer/types";
 import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import type { ActionCtx } from "../_generated/server.js";

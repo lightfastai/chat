@@ -1,4 +1,4 @@
-import type { ModelId } from "../../src/lib/ai/schemas.js";
+import type { ModelId } from "./schemas.js";
 
 /**
  * Model-specific streaming delay configuration
