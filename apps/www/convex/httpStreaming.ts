@@ -25,6 +25,7 @@ import type { ModelId } from "../src/lib/ai/schemas";
 import {
   getModelById,
   getModelConfig,
+  getModelStreamingDelay,
   getProviderFromModelId,
   isThinkingMode,
 } from "../src/lib/ai/schemas";
@@ -35,7 +36,6 @@ import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
-import { getModelStreamingDelay } from "../src/lib/ai/streaming_config";
 import {
   StreamingReasoningWriter,
   StreamingTextWriter,

@@ -42,6 +42,7 @@ export const ModelConfigSchema = z.object({
 	deprecated: z.boolean().optional(),
 	replacedBy: z.string().optional(),
 	hidden: z.boolean().optional(),
+	streamingDelay: z.number().optional().describe("Streaming delay in milliseconds for optimal readability"),
 });
 export type ModelConfig = z.infer<typeof ModelConfigSchema>;
 
@@ -61,6 +62,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: true,
 		},
+		streamingDelay: 20,
 	}),
 	"gpt-4o": ModelConfigSchema.parse({
 		id: "gpt-4o",
@@ -75,6 +77,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: true,
 		},
+		streamingDelay: 15,
 	}),
 	"gpt-4.1": ModelConfigSchema.parse({
 		id: "gpt-4.1",
@@ -89,6 +92,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: true,
 		},
+		streamingDelay: 12,
 	}),
 	o3: ModelConfigSchema.parse({
 		id: "o3",
@@ -103,6 +107,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: true,
 		},
+		streamingDelay: 10,
 	}),
 	"gpt-4.1-mini": ModelConfigSchema.parse({
 		id: "gpt-4.1-mini",
@@ -117,6 +122,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: true,
 		},
+		streamingDelay: 18,
 	}),
 	"gpt-4.1-nano": ModelConfigSchema.parse({
 		id: "gpt-4.1-nano",
@@ -131,6 +137,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: false,
 		},
+		streamingDelay: 25,
 	}),
 	"o3-mini": ModelConfigSchema.parse({
 		id: "o3-mini",
@@ -146,6 +153,7 @@ export const MODELS = {
 			vision: true,
 			thinking: true,
 		},
+		streamingDelay: 22,
 	}),
 	"o4-mini": ModelConfigSchema.parse({
 		id: "o4-mini",
@@ -161,6 +169,7 @@ export const MODELS = {
 			vision: true,
 			thinking: true,
 		},
+		streamingDelay: 20,
 	}),
 	"gpt-3.5-turbo": ModelConfigSchema.parse({
 		id: "gpt-3.5-turbo",
@@ -175,6 +184,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: false,
 		},
+		streamingDelay: 18,
 	}),
 
 	// Anthropic models
@@ -193,6 +203,7 @@ export const MODELS = {
 			thinking: false, // Base model - use -thinking variant for visible reasoning
 			pdfSupport: true,
 		},
+		streamingDelay: 10,
 		hidden: true,
 	}),
 	"claude-4-sonnet-20250514": ModelConfigSchema.parse({
@@ -210,6 +221,7 @@ export const MODELS = {
 			thinking: false, // Base model - use -thinking variant for visible reasoning
 			pdfSupport: true,
 		},
+		streamingDelay: 12,
 	}),
 	"claude-3-7-sonnet-20250219": ModelConfigSchema.parse({
 		id: "claude-3-7-sonnet-20250219",
@@ -226,6 +238,7 @@ export const MODELS = {
 			thinking: false, // Base model - use -thinking variant for visible reasoning
 			pdfSupport: true,
 		},
+		streamingDelay: 15,
 	}),
 	"claude-3-5-sonnet-20241022": ModelConfigSchema.parse({
 		id: "claude-3-5-sonnet-20241022",
@@ -241,6 +254,7 @@ export const MODELS = {
 			vision: true,
 			pdfSupport: true,
 		},
+		streamingDelay: 15,
 	}),
 	"claude-3-5-sonnet-20240620": ModelConfigSchema.parse({
 		id: "claude-3-5-sonnet-20240620",
@@ -256,6 +270,7 @@ export const MODELS = {
 			vision: true,
 			pdfSupport: true,
 		},
+		streamingDelay: 15,
 		hidden: true,
 	}),
 	"claude-3-5-haiku-20241022": ModelConfigSchema.parse({
@@ -272,6 +287,7 @@ export const MODELS = {
 			vision: false,
 			pdfSupport: false,
 		},
+		streamingDelay: 22,
 		hidden: true,
 	}),
 
@@ -295,6 +311,7 @@ export const MODELS = {
 			enabled: true,
 			defaultBudgetTokens: 20000,
 		},
+		streamingDelay: 18,
 		hidden: true,
 	}),
 	"claude-4-sonnet-20250514-thinking": ModelConfigSchema.parse({
@@ -316,6 +333,7 @@ export const MODELS = {
 			enabled: true,
 			defaultBudgetTokens: 15000,
 		},
+		streamingDelay: 18,
 	}),
 	"claude-3-7-sonnet-20250219-thinking": ModelConfigSchema.parse({
 		id: "claude-3-7-sonnet-20250219-thinking",
@@ -336,6 +354,7 @@ export const MODELS = {
 			enabled: true,
 			defaultBudgetTokens: 12000,
 		},
+		streamingDelay: 20,
 	}),
 	"claude-3-5-sonnet-20241022-thinking": ModelConfigSchema.parse({
 		id: "claude-3-5-sonnet-20241022-thinking",
@@ -352,6 +371,7 @@ export const MODELS = {
 			thinking: true,
 			pdfSupport: true,
 		},
+		streamingDelay: 20,
 		hidden: true,
 	}),
 	"claude-3-5-sonnet-20240620-thinking": ModelConfigSchema.parse({
@@ -369,6 +389,7 @@ export const MODELS = {
 			thinking: true,
 			pdfSupport: true,
 		},
+		streamingDelay: 20,
 		hidden: true,
 	}),
 	"claude-3-5-haiku-20241022-thinking": ModelConfigSchema.parse({
@@ -386,6 +407,7 @@ export const MODELS = {
 			thinking: true,
 			pdfSupport: false,
 		},
+		streamingDelay: 25,
 		hidden: true,
 	}),
 
@@ -409,6 +431,7 @@ export const MODELS = {
 			enabled: true,
 			defaultBudgetTokens: 15000,
 		},
+		streamingDelay: 12,
 		deprecated: true,
 		replacedBy: "claude-4-sonnet-20250514",
 		hidden: true,
@@ -433,6 +456,7 @@ export const MODELS = {
 			enabled: true,
 			defaultBudgetTokens: 15000,
 		},
+		streamingDelay: 18,
 		deprecated: true,
 		replacedBy: "claude-4-sonnet-20250514-thinking",
 		hidden: true,
@@ -452,6 +476,7 @@ export const MODELS = {
 			vision: false,
 			pdfSupport: true,
 		},
+		streamingDelay: 22,
 		deprecated: true,
 		replacedBy: "claude-3-5-haiku-20241022",
 		hidden: true,
@@ -471,6 +496,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: false,
 		},
+		streamingDelay: 12,
 		hidden: true,
 		deprecated: true,
 	}),
@@ -487,6 +513,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: true,
 		},
+		streamingDelay: 15,
 		hidden: true,
 		deprecated: true,
 	}),
@@ -503,6 +530,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: true,
 		},
+		streamingDelay: 15,
 		hidden: true,
 		deprecated: true,
 	}),
@@ -519,6 +547,7 @@ export const MODELS = {
 			functionCalling: true,
 			vision: true,
 		},
+		streamingDelay: 12,
 		hidden: true,
 		deprecated: true,
 	}),
@@ -537,6 +566,7 @@ export const MODELS = {
 			vision: false,
 			pdfSupport: true, // Through Document AI API
 		},
+		streamingDelay: 12,
 		hidden: true,
 		deprecated: true,
 	}),
@@ -555,6 +585,7 @@ export const MODELS = {
 			thinking: true,
 			pdfSupport: true,
 		},
+		streamingDelay: 10,
 		hidden: true,
 	}),
 	"x-ai/grok-3-mini-beta": ModelConfigSchema.parse({
@@ -573,6 +604,7 @@ export const MODELS = {
 			thinking: true,
 			pdfSupport: true,
 		},
+		streamingDelay: 20,
 	}),
 	"google/gemini-2.5-pro-preview": ModelConfigSchema.parse({
 		id: "google/gemini-2.5-pro-preview",
@@ -589,6 +621,7 @@ export const MODELS = {
 			vision: true,
 			thinking: true,
 		},
+		streamingDelay: 10,
 		hidden: true,
 	}),
 	"google/gemini-2.5-flash-preview": ModelConfigSchema.parse({
@@ -606,6 +639,7 @@ export const MODELS = {
 			vision: true,
 			thinking: true,
 		},
+		streamingDelay: 15,
 	}),
 } as const;
 
@@ -763,6 +797,12 @@ export function isThinkingMode(modelId: ModelId): boolean {
 	return (
 		model.features.thinking === true && model.thinkingConfig?.enabled === true
 	);
+}
+
+// Get the optimal streaming delay for a given model
+export function getModelStreamingDelay(modelId: ModelId): number {
+	const model = getModelConfig(modelId);
+	return model.streamingDelay ?? 15; // Default to 15ms if not specified
 }
 
 // Legacy model collections for backward compatibility
