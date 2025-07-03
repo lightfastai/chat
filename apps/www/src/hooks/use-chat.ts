@@ -73,17 +73,28 @@ export function useChat({
 		}
 
 		// Convert Convex messages to Vercel AI UIMessage format
-		const converted = dbMessages.map((msg) => ({
+		const converted: UIMessage[] = dbMessages.map((msg) => ({
 			id: msg._id,
 			role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
-			parts: (msg.parts || []).map((part: DbMessagePart) => part),
-			metadata: {
-				createdAt: new Date(msg._creationTime),
-			},
-		})) as UIMessage[];
+			parts: (msg.parts || []).map((part: DbMessagePart) => {
+				if (part.type === "text") {
+					return {
+						type: "text",
+						text: part.text,
+					};
+				}
+
+				if (part.type === "reasoning") {
+					return {
+						type: "reasoning",
+						text: part.text,
+					};
+				}
+			}) as UIMessage["parts"],
+		}));
 
 		return converted;
-	}, [threadContext.type, threadContext.clientId]);
+	}, []);
 
 	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
@@ -101,8 +112,8 @@ export function useChat({
 		},
 	});
 
-	// Explicitly clear messages when transitioning to a new chat to prevent message leakage
-	// This addresses a limitation in Vercel AI SDK where messages persist when the ID changes
+	// // Explicitly clear messages when transitioning to a new chat to prevent message leakage
+	// // This addresses a limitation in Vercel AI SDK where messages persist when the ID changes
 	useEffect(() => {
 		if (threadContext.type === "new" && uiMessages.length > 0) {
 			setMessages([]);
@@ -167,7 +178,6 @@ export function useChat({
 				return;
 			}
 
-			// TODO: Temporarily disabled for optimistic message creation
 			await vercelSendMessage(
 				{
 					role: "user",
