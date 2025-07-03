@@ -99,72 +99,27 @@ export const getThreadUsage = query({
 		totalReasoningTokens: v.number(),
 		totalCachedInputTokens: v.number(),
 		messageCount: v.number(),
-		modelStats: v.array(
-			v.object({
-				model: v.string(),
-				inputTokens: v.number(),
-				outputTokens: v.number(),
-				totalTokens: v.number(),
-				reasoningTokens: v.optional(v.number()),
-				cachedInputTokens: v.optional(v.number()),
-				messageCount: v.number(),
-			}),
-		),
 	}),
 	handler: async (ctx, args) => {
 		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			return {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: [],
-			};
-		}
+		const defaultUsage = {
+			totalInputTokens: 0,
+			totalOutputTokens: 0,
+			totalTokens: 0,
+			totalReasoningTokens: 0,
+			totalCachedInputTokens: 0,
+			messageCount: 0,
+		};
+
+		if (!userId) return defaultUsage;
 
 		// Verify the user owns this thread
 		const thread = await ctx.db.get(args.threadId);
-		if (!thread || thread.userId !== userId) {
-			return {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: [],
-			};
-		}
+		if (!thread || thread.userId !== userId) return defaultUsage;
 
-		// Return usage from thread table (fast O(1) lookup!)
-		const usage = thread.usage;
-		if (!usage) {
-			return {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: [],
-			};
-		}
-
-		// Convert modelStats record to array format
-		const modelStats = Object.entries(usage.modelStats || {}).map(
-			([model, stats]) => ({
-				model,
-				inputTokens: stats.inputTokens,
-				outputTokens: stats.outputTokens,
-				totalTokens: stats.totalTokens,
-				reasoningTokens: stats.reasoningTokens || 0,
-				cachedInputTokens: stats.cachedInputTokens || 0,
-				messageCount: stats.messageCount,
-			}),
-		);
+		// Return usage from thread metadata (fast O(1) lookup!)
+		const usage = thread.metadata?.usage;
+		if (!usage) return defaultUsage;
 
 		return {
 			totalInputTokens: usage.totalInputTokens,
@@ -173,7 +128,6 @@ export const getThreadUsage = query({
 			totalReasoningTokens: usage.totalReasoningTokens,
 			totalCachedInputTokens: usage.totalCachedInputTokens,
 			messageCount: usage.messageCount,
-			modelStats,
 		};
 	},
 });
@@ -220,7 +174,9 @@ export const createErrorMessage = internalMutation({
 			status: "error",
 			thinkingStartedAt: now,
 			thinkingCompletedAt: now,
-			usage: undefined, // Initialize usage tracking
+			metadata: {
+				usage: undefined, // Error messages don't have usage data
+			},
 		});
 
 		return null;
@@ -442,6 +398,82 @@ export const updateToolCallPart = internalMutation({
 	},
 });
 
+// Internal mutation to update message usage in metadata
+export const updateMessageUsage = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		usage: v.optional(tokenUsageValidator),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		// Update metadata.usage field
+		await ctx.db.patch(args.messageId, {
+			metadata: {
+				...message.metadata,
+				usage: args.usage,
+			},
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to update thread usage in metadata with real-time aggregation
+export const updateThreadUsage = internalMutation({
+	args: {
+		threadId: v.id("threads"),
+		messageUsage: v.optional(tokenUsageValidator),
+		modelId: v.optional(v.string()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const thread = await ctx.db.get(args.threadId);
+		if (!thread || !args.messageUsage) return null;
+
+		const currentUsage = thread.metadata?.usage || {
+			totalInputTokens: 0,
+			totalOutputTokens: 0,
+			totalTokens: 0,
+			totalReasoningTokens: 0,
+			totalCachedInputTokens: 0,
+			messageCount: 0,
+		};
+
+		// Aggregate usage from message
+		const inputTokens = args.messageUsage.inputTokens || 0;
+		const outputTokens = args.messageUsage.outputTokens || 0;
+		const totalTokens =
+			args.messageUsage.totalTokens || inputTokens + outputTokens;
+		const reasoningTokens = args.messageUsage.reasoningTokens || 0;
+		const cachedInputTokens = args.messageUsage.cachedInputTokens || 0;
+
+		// Update totals
+		const updatedUsage = {
+			totalInputTokens: currentUsage.totalInputTokens + inputTokens,
+			totalOutputTokens: currentUsage.totalOutputTokens + outputTokens,
+			totalTokens: currentUsage.totalTokens + totalTokens,
+			totalReasoningTokens: currentUsage.totalReasoningTokens + reasoningTokens,
+			totalCachedInputTokens:
+				currentUsage.totalCachedInputTokens + cachedInputTokens,
+			messageCount: currentUsage.messageCount + 1,
+		};
+
+		// Update thread metadata
+		await ctx.db.patch(args.threadId, {
+			metadata: {
+				...thread.metadata,
+				usage: updatedUsage,
+			},
+		});
+
+		return null;
+	},
+});
+
+// Legacy addUsage for backward compatibility
 export const addUsage = internalMutation({
 	args: {
 		messageId: v.id("messages"),
@@ -449,8 +481,21 @@ export const addUsage = internalMutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.messageId, {
+		// Get message to find threadId
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		// Update message usage
+		await ctx.runMutation(internal.messages.updateMessageUsage, {
+			messageId: args.messageId,
 			usage: args.usage,
+		});
+
+		// Update thread usage aggregation
+		await ctx.runMutation(internal.messages.updateThreadUsage, {
+			threadId: message.threadId,
+			messageUsage: args.usage,
+			modelId: message.modelId,
 		});
 
 		return null;
@@ -545,6 +590,9 @@ export const createUserMessage = internalMutation({
 			role: "user",
 			modelId: args.modelId,
 			status: "ready",
+			metadata: {
+				usage: undefined, // User messages don't typically have usage data
+			},
 		});
 
 		return messageId;
@@ -567,6 +615,9 @@ export const createAssistantMessage = internalMutation({
 			role: "assistant",
 			modelId: args.modelId,
 			status: "submitted",
+			metadata: {
+				usage: undefined, // Will be set when usage information is available
+			},
 		});
 
 		return messageId;

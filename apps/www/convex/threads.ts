@@ -146,15 +146,16 @@ export const createThreadWithFirstMessages = mutation({
 			createdAt: now,
 			// @todo depcreate these...
 			isTitleGenerating: true, // Will be updated when first message is sent
-			// Initialize usage field
-			usage: {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: {},
+			// Initialize metadata with usage tracking
+			metadata: {
+				usage: {
+					totalInputTokens: 0,
+					totalOutputTokens: 0,
+					totalTokens: 0,
+					totalReasoningTokens: 0,
+					totalCachedInputTokens: 0,
+					messageCount: 0,
+				},
 			},
 		});
 

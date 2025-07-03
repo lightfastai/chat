@@ -10,6 +10,7 @@ import {
 	fileMetadataValidator,
 	fileNameValidator,
 	ipHashValidator,
+	messageMetadataValidator,
 	messagePartsValidator,
 	messageStatusValidator,
 	mimeTypeValidator,
@@ -19,9 +20,8 @@ import {
 	shareIdValidator,
 	shareSettingsValidator,
 	storageIdValidator,
-	threadUsageValidator,
+	threadMetadataValidator,
 	titleValidator,
-	tokenUsageValidator,
 	userAgentValidator,
 	userApiKeysValidator,
 	userPreferencesValidator,
@@ -62,7 +62,8 @@ export default defineSchema({
 		shareId: v.optional(shareIdValidator), // Unique ID for share links
 		sharedAt: v.optional(v.number()), // Timestamp when first shared
 		shareSettings: shareSettingsValidator,
-		usage: threadUsageValidator,
+		// New metadata structure
+		metadata: v.optional(threadMetadataValidator),
 		// @deprecated fields
 		createdAt: v.optional(v.number()),
 		isTitleGenerating: v.optional(v.boolean()),
@@ -81,10 +82,11 @@ export default defineSchema({
 		status: v.optional(messageStatusValidator),
 		role: v.optional(roleValidator),
 		attachments: v.optional(v.array(v.id("files"))),
-		// @depcreated fields
+		// New metadata structure
+		metadata: v.optional(messageMetadataValidator),
+		// @deprecated fields
 		messageType: v.optional(roleValidator), // Deprecated - use role instead
 		modelId: v.optional(modelIdValidator),
-		usage: v.optional(tokenUsageValidator),
 		usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
 		thinkingStartedAt: v.optional(v.number()),
 		thinkingCompletedAt: v.optional(v.number()),

@@ -36,6 +36,16 @@ export const setupInitialData = mutation({
 			userId: testUserId,
 			createdAt: now,
 			isTitleGenerating: false,
+			metadata: {
+				usage: {
+					totalInputTokens: 0,
+					totalOutputTokens: 0,
+					totalTokens: 0,
+					totalReasoningTokens: 0,
+					totalCachedInputTokens: 0,
+					messageCount: 0,
+				},
+			},
 		});
 
 		// Add welcome message
@@ -50,12 +60,14 @@ export const setupInitialData = mutation({
 				},
 			],
 			status: "ready",
-			usage: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				reasoningTokens: 0,
-				cachedInputTokens: 0,
+			metadata: {
+				usage: {
+					inputTokens: 0,
+					outputTokens: 0,
+					totalTokens: 0,
+					reasoningTokens: 0,
+					cachedInputTokens: 0,
+				},
 			},
 		});
 
@@ -95,12 +107,14 @@ export const setupInitialData = mutation({
 					},
 				],
 				status: "ready",
-				usage: {
-					inputTokens: 0,
-					outputTokens: 0,
-					totalTokens: 0,
-					reasoningTokens: 0,
-					cachedInputTokens: 0,
+				metadata: {
+					usage: {
+						inputTokens: 0,
+						outputTokens: 0,
+						totalTokens: 0,
+						reasoningTokens: 0,
+						cachedInputTokens: 0,
+					},
 				},
 			});
 		}

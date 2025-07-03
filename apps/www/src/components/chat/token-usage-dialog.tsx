@@ -1,6 +1,5 @@
 "use client";
 
-import { getModelConfig, getModelDisplayName, isValidModelId } from "@/lib/ai";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
 	Dialog,
@@ -15,7 +14,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { Activity, MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
@@ -37,22 +35,6 @@ function formatTokenCount(count: number): string {
 	}
 	const m = count / 1000000;
 	return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
-}
-
-// Helper function to get model display name with fallback
-function getDisplayNameForModel(model: string): string {
-	// Use the AI library function for all known models
-	if (isValidModelId(model)) {
-		return getModelDisplayName(model);
-	}
-
-	// Fallback for legacy model IDs that might not be in the current schema
-	const legacyMappings: Record<string, string> = {
-		anthropic: "Claude Sonnet 4",
-		openai: "GPT-4o Mini",
-	};
-
-	return legacyMappings[model] || model;
 }
 
 export function TokenUsageDialog({
@@ -89,19 +71,8 @@ export function TokenUsageDialog({
 		return null;
 	}
 
-	// Calculate total estimated cost
-	const totalCost = usage.modelStats.reduce((sum, modelStat) => {
-		const modelConfig = isValidModelId(modelStat.model)
-			? getModelConfig(modelStat.model)
-			: null;
-		if (!modelConfig) return sum;
-
-		const inputCost =
-			(modelStat.inputTokens * modelConfig.costPer1KTokens.input) / 1000;
-		const outputCost =
-			(modelStat.outputTokens * modelConfig.costPer1KTokens.output) / 1000;
-		return sum + inputCost + outputCost;
-	}, 0);
+	// Note: Cost calculation would require per-model breakdown
+	// Since we simplified to aggregate usage only, cost estimation is not available
 
 	return (
 		<>
@@ -160,10 +131,10 @@ export function TokenUsageDialog({
 							</div>
 							<div className="p-3 border rounded-lg">
 								<div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-									Est. Cost
+									Messages
 								</div>
 								<div className="font-mono text-lg font-semibold">
-									${totalCost.toFixed(4)}
+									{usage.messageCount}
 								</div>
 							</div>
 						</div>
@@ -190,24 +161,6 @@ export function TokenUsageDialog({
 								)}
 							</div>
 						</div>
-
-						{/* Model Breakdown */}
-						<div className="space-y-3">
-							<h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-								By Model
-							</h3>
-							<ScrollArea className="h-[300px]">
-								<div className="space-y-2 pr-3">
-									{usage.modelStats.map((modelStat) => (
-										<ModelRow
-											key={modelStat.model}
-											model={modelStat.model}
-											stats={modelStat}
-										/>
-									))}
-								</div>
-							</ScrollArea>
-						</div>
 					</div>
 				</DialogContent>
 			</Dialog>
@@ -228,102 +181,6 @@ function TokenRow({ label, value }: TokenRowProps) {
 			<span className="font-mono text-sm font-medium">
 				{formatTokenCount(value)}
 			</span>
-		</div>
-	);
-}
-
-// Model Row Component
-interface ModelRowProps {
-	model: string;
-	stats: {
-		inputTokens: number;
-		outputTokens: number;
-		totalTokens: number;
-		reasoningTokens: number;
-		cachedInputTokens: number;
-		messageCount: number;
-	};
-}
-
-function ModelRow({ model, stats }: ModelRowProps) {
-	const displayName = getDisplayNameForModel(model);
-
-	// Get model configuration for additional details
-	const modelConfig = isValidModelId(model) ? getModelConfig(model) : null;
-	const isThinking =
-		modelConfig?.features.thinking === true || model.includes("thinking");
-	const providerName = modelConfig?.provider || "unknown";
-
-	return (
-		<div className="p-3 border rounded-lg hover:bg-muted/30 transition-colors">
-			<div className="flex items-center justify-between mb-2">
-				<div>
-					<div className="font-medium text-sm">{displayName}</div>
-					<div className="text-xs text-muted-foreground">
-						{stats.messageCount} message{stats.messageCount !== 1 ? "s" : ""}
-						{isThinking && " • thinking mode"}
-						{modelConfig && ` • ${providerName}`}
-					</div>
-				</div>
-				<div className="text-right">
-					<div className="font-mono text-sm font-semibold">
-						{formatTokenCount(stats.totalTokens)}
-					</div>
-					<div className="text-xs text-muted-foreground">total</div>
-				</div>
-			</div>
-
-			<div className="space-y-2">
-				{/* Token breakdown */}
-				<div className="grid grid-cols-2 gap-2 text-xs">
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">Input</span>
-						<span className="font-mono">
-							{formatTokenCount(stats.inputTokens)}
-						</span>
-					</div>
-					<div className="flex justify-between">
-						<span className="text-muted-foreground">Output</span>
-						<span className="font-mono">
-							{formatTokenCount(stats.outputTokens)}
-						</span>
-					</div>
-					{stats.reasoningTokens > 0 && (
-						<div className="flex justify-between">
-							<span className="text-muted-foreground">Reasoning</span>
-							<span className="font-mono">
-								{formatTokenCount(stats.reasoningTokens)}
-							</span>
-						</div>
-					)}
-					{stats.cachedInputTokens > 0 && (
-						<div className="flex justify-between">
-							<span className="text-muted-foreground">Cached</span>
-							<span className="font-mono">
-								{formatTokenCount(stats.cachedInputTokens)}
-							</span>
-						</div>
-					)}
-				</div>
-
-				{/* Cost estimate (if model config available) */}
-				{modelConfig && (
-					<div className="pt-2 border-t border-border/30">
-						<div className="flex justify-between text-xs">
-							<span className="text-muted-foreground">Est. Cost</span>
-							<span className="font-mono">
-								$
-								{(
-									(stats.inputTokens * modelConfig.costPer1KTokens.input) /
-										1000 +
-									(stats.outputTokens * modelConfig.costPer1KTokens.output) /
-										1000
-								).toFixed(4)}
-							</span>
-						</div>
-					</div>
-				)}
-			</div>
 		</div>
 	);
 }

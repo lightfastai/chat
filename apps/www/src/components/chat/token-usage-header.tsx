@@ -1,6 +1,5 @@
 "use client";
 
-import { getModelDisplayName as getModelName } from "@/lib/ai";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import {
 	Tooltip,
@@ -9,7 +8,7 @@ import {
 	TooltipTrigger,
 } from "@lightfast/ui/components/ui/tooltip";
 import { useQuery } from "convex/react";
-import { Activity, Brain } from "lucide-react";
+import { Activity } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -27,16 +26,6 @@ function formatTokenCount(count: number): string {
 	}
 	const m = count / 1000000;
 	return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`;
-}
-
-// Helper function to get model display name
-function getModelDisplayName(model: string): string {
-	// Handle legacy provider names
-	if (model === "anthropic") return "Claude 3.5 Sonnet";
-	if (model === "openai") return "GPT-4o Mini";
-
-	// Use the centralized model name lookup
-	return getModelName(model);
 }
 
 export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
@@ -97,45 +86,6 @@ export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
 						</div>
 					</TooltipContent>
 				</Tooltip>
-
-				{/* Models Used */}
-				{usage.modelStats.map((modelStat) => (
-					<Tooltip key={modelStat.model}>
-						<TooltipTrigger asChild>
-							<Badge variant="outline">
-								<Brain className="w-3 h-3 mr-1" />
-								{getModelDisplayName(modelStat.model)}
-							</Badge>
-						</TooltipTrigger>
-						<TooltipContent>
-							<div className="text-xs space-y-1">
-								<div>Model: {getModelDisplayName(modelStat.model)}</div>
-								<div>Messages: {modelStat.messageCount}</div>
-								<div>
-									Input: {formatTokenCount(modelStat.inputTokens)} tokens
-								</div>
-								<div>
-									Output: {formatTokenCount(modelStat.outputTokens)} tokens
-								</div>
-								<div>
-									Total: {formatTokenCount(modelStat.totalTokens)} tokens
-								</div>
-								{modelStat.reasoningTokens > 0 && (
-									<div>
-										Reasoning: {formatTokenCount(modelStat.reasoningTokens)}{" "}
-										tokens
-									</div>
-								)}
-								{modelStat.cachedInputTokens > 0 && (
-									<div>
-										Cached: {formatTokenCount(modelStat.cachedInputTokens)}{" "}
-										tokens
-									</div>
-								)}
-							</div>
-						</TooltipContent>
-					</Tooltip>
-				))}
 			</div>
 		</TooltipProvider>
 	);

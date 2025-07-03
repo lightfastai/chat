@@ -326,10 +326,10 @@ export function MessageActions({
 					)}
 
 					{/* Usage chip */}
-					{message.usage && (
+					{message.metadata?.usage && (
 						<>
 							{(modelName || message.usedUserApiKey) && <span>•</span>}
-							<MessageUsageChip usage={message.usage} />
+							<MessageUsageChip usage={message.metadata.usage} />
 						</>
 					)}
 				</div>

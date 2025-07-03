@@ -107,11 +107,6 @@ export const tokenUsageValidator = v.optional(
 		totalTokens: v.optional(v.number()),
 		reasoningTokens: v.optional(v.number()),
 		cachedInputTokens: v.optional(v.number()),
-		// Legacy fields for compatibility
-		promptTokens: v.optional(v.number()),
-		completionTokens: v.optional(v.number()),
-		cacheHitTokens: v.optional(v.number()),
-		cacheWriteTokens: v.optional(v.number()),
 	}),
 );
 
@@ -172,7 +167,7 @@ export const branchInfoValidator = v.optional(
 	}),
 );
 
-// Thread usage validator
+// Thread usage validator - aggregated usage for entire thread
 export const threadUsageValidator = v.optional(
 	v.object({
 		totalInputTokens: v.number(),
@@ -181,19 +176,6 @@ export const threadUsageValidator = v.optional(
 		totalReasoningTokens: v.number(),
 		totalCachedInputTokens: v.number(),
 		messageCount: v.number(),
-		modelStats: v.optional(
-			v.record(
-				v.string(),
-				v.object({
-					inputTokens: v.number(),
-					outputTokens: v.number(),
-					totalTokens: v.number(),
-					reasoningTokens: v.optional(v.number()),
-					cachedInputTokens: v.optional(v.number()),
-					messageCount: v.number(),
-				}),
-			),
-		),
 	}),
 );
 
@@ -212,6 +194,21 @@ export const userPreferencesValidator = v.optional(
 	v.object({
 		defaultModel: v.optional(modelIdValidator),
 		preferredProvider: v.optional(modelProviderValidator),
+	}),
+);
+
+// ===== Shared Metadata Validators =====
+// Message metadata validator - contains usage only
+export const messageMetadataValidator = v.optional(
+	v.object({
+		usage: tokenUsageValidator,
+	}),
+);
+
+// Thread metadata validator - contains aggregated usage only
+export const threadMetadataValidator = v.optional(
+	v.object({
+		usage: threadUsageValidator,
 	}),
 );
 

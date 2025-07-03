@@ -47,14 +47,15 @@ export function useCreateThreadWithFirstMessages() {
 			shareSettings: {
 				showThinking: false,
 			},
-			usage: {
-				totalInputTokens: 0,
-				totalOutputTokens: 0,
-				totalTokens: 0,
-				totalReasoningTokens: 0,
-				totalCachedInputTokens: 0,
-				messageCount: 0,
-				modelStats: {},
+			metadata: {
+				usage: {
+					totalInputTokens: 0,
+					totalOutputTokens: 0,
+					totalTokens: 0,
+					totalReasoningTokens: 0,
+					totalCachedInputTokens: 0,
+					messageCount: 0,
+				},
 			},
 		};
 
