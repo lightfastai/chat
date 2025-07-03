@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { useTimeGreeting } from "@/hooks/use-time-greeting";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { ZapIcon } from "lucide-react";
@@ -21,6 +20,7 @@ interface CenteredChatStartProps {
 	disabled?: boolean;
 	isLoading?: boolean;
 	preloadedUser?: Preloaded<typeof api.users.current>;
+	greeting?: string;
 }
 
 export function CenteredChatStart({
@@ -28,9 +28,9 @@ export function CenteredChatStart({
 	disabled = false,
 	isLoading = false,
 	preloadedUser,
+	greeting = "Hello",
 }: CenteredChatStartProps) {
 	const { displayName, email } = useAuth();
-	const greeting = useTimeGreeting();
 	const [message, setMessage] = useState("");
 	const chatInputRef = useRef<HTMLTextAreaElement>(null);
 

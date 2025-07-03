@@ -14,6 +14,7 @@ interface ChatInterfaceProps {
 	preloadedMessages?: Preloaded<typeof api.messages.list>;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
+	greeting?: string;
 }
 
 export function ChatInterface({
@@ -22,6 +23,7 @@ export function ChatInterface({
 	preloadedMessages,
 	preloadedUser,
 	preloadedUserSettings,
+	greeting,
 }: ChatInterfaceProps = {}) {
 	// Use custom chat hook with optimistic updates and preloaded data
 	const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
@@ -67,6 +69,7 @@ export function ChatInterface({
 				disabled={isDisabled}
 				isLoading={isAIGenerating}
 				preloadedUser={preloadedUser}
+				greeting={greeting}
 			/>
 		);
 	}
