@@ -18,6 +18,9 @@ catalogs:
     ai:
       specifier: 5.0.0-beta.5
       version: 5.0.0-beta.5
+    typescript:
+      specifier: ^5.8.3
+      version: 5.8.3
   tailwind4:
     '@tailwindcss/postcss':
       specifier: ^4.1.10
@@ -145,6 +148,9 @@ importers:
       '@mdx-js/react':
         specifier: ^3.1.0
         version: 3.1.0(@types/react@19.1.8)(react@19.1.0)
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@t3-oss/env-core':
         specifier: ^0.13.8
         version: 0.13.8(typescript@5.8.3)(zod@3.25.67)
@@ -425,6 +431,15 @@ importers:
         version: 4.1.10
       typescript:
         specifier: ^5.8.3
+        version: 5.8.3
+
+  packages/utils:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.6
+        version: 22.16.0
+      typescript:
+        specifier: catalog:default
         version: 5.8.3
 
   tooling/biome:
@@ -2343,6 +2358,9 @@ packages:
 
   '@types/node@20.19.1':
     resolution: {integrity: sha512-jJD50LtlD2dodAEO653i3YF04NWak6jN3ky+Ri3Em3mGR39/glWiboM/IePaRbgwSfqM1TpGXfAg8ohn/4dTgA==}
+
+  '@types/node@22.16.0':
+    resolution: {integrity: sha512-B2egV9wALML1JCpv3VQoQ+yesQKAmNMBIAY7OteVrikcOcAkWm+dGL6qpeCktPjAv6N1JLnhbNiqS35UpFyBsQ==}
 
   '@types/node@24.0.3':
     resolution: {integrity: sha512-R4I/kzCYAdRLzfiCabn9hxWfbuHS573x+r0dJMkkzThEa7pbrcDWK+9zu3e7aBOouf+rQAciqPFMnxwr0aWgKg==}
@@ -6400,6 +6418,10 @@ snapshots:
   '@types/ms@2.1.0': {}
 
   '@types/node@20.19.1':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@22.16.0':
     dependencies:
       undici-types: 6.21.0
 

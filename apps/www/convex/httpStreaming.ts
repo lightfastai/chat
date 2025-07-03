@@ -11,22 +11,22 @@
  */
 
 import {
-	type ModelMessage,
-	type ReasoningUIPart,
-	type TextUIPart,
-	type UIMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type UIMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -36,6 +36,10 @@ import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import { getModelStreamingDelay } from "./lib/streaming_config";
+import {
+  StreamingReasoningWriter,
+  StreamingTextWriter,
+} from "./lib/streaming_writers";
 import { handleAIResponseError } from "./messages/helpers";
 import type { DbMessage, DbMessagePart } from "./types";
 import type { modelIdValidator } from "./validators";
@@ -228,38 +232,16 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		// Create AI client
 		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
 
-		// Track state for database updates
-		let pendingText = "";
-		let pendingReasoning = "";
+		// Create debounced writers for streaming content
+		const textWriter = new StreamingTextWriter(assistantMessage._id, ctx);
+		const reasoningWriter = new StreamingReasoningWriter(
+			assistantMessage._id,
+			ctx,
+		);
+
+		// Track state
 		let fullText = "";
-		let updateTimer: NodeJS.Timeout | null = null;
 		let hasTransitionedToStreaming = false;
-
-		// Helper to update text content
-		const updateTextContent = async () => {
-			if (!pendingText) return;
-
-			// Add text part to parts array
-			await ctx.runMutation(internal.messages.addTextPart, {
-				messageId: assistantMessage._id,
-				text: pendingText,
-			});
-
-			pendingText = "";
-		};
-
-		// Helper to update reasoning content
-		const updateReasoningContent = async () => {
-			if (!pendingReasoning) return;
-
-			// Add reasoning part to parts array
-			await ctx.runMutation(internal.messages.addReasoningPart, {
-				messageId: assistantMessage._id,
-				text: pendingReasoning,
-			});
-
-			pendingReasoning = "";
-		};
 
 		// Helper to transition to streaming status on first chunk
 		const transitionToStreaming = async () => {
@@ -271,16 +253,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				hasTransitionedToStreaming = true;
 			}
 		};
-
-		// Combined update helper
-		const updateDatabase = async () => {
-			await Promise.all([updateTextContent(), updateReasoningContent()]);
-		};
-
-		// Set up periodic database updates (250ms)
-		updateTimer = setInterval(() => {
-			updateDatabase().catch(console.error);
-		}, 250);
 
 		try {
 			// Prepare generation options
@@ -302,7 +274,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						case "text":
 							if (chunk.text) {
 								await transitionToStreaming();
-								pendingText += chunk.text;
+								textWriter.append(chunk.text);
 								fullText += chunk.text;
 							}
 							break;
@@ -310,7 +282,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						case "reasoning":
 							if (chunk.text) {
 								await transitionToStreaming();
-								pendingReasoning += chunk.text;
+								reasoningWriter.append(chunk.text);
 							}
 							break;
 
@@ -349,13 +321,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					}
 				},
 				onFinish: async (result) => {
-					// Clear timer
-					if (updateTimer) {
-						clearInterval(updateTimer);
-					}
+					// Flush any remaining content
+					await Promise.all([textWriter.flush(), reasoningWriter.flush()]);
 
-					// Final database update
-					await updateDatabase();
+					// Clean up writers
+					textWriter.dispose();
+					reasoningWriter.dispose();
 
 					await ctx.runMutation(internal.messages.addUsage, {
 						messageId: assistantMessage._id,
@@ -415,10 +386,14 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				},
 			});
 		} catch (error) {
-			// Clean up timer on error
-			if (updateTimer) {
-				clearInterval(updateTimer);
-			}
+			// Clean up writers on error
+			await Promise.all([
+				textWriter.flush().catch(console.error),
+				reasoningWriter.flush().catch(console.error),
+			]);
+
+			textWriter.dispose();
+			reasoningWriter.dispose();
 
 			console.error("Streaming error:", error);
 

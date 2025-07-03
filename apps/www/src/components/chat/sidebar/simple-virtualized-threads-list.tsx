@@ -3,17 +3,17 @@
 import { Button } from "@lightfast/ui/components/ui/button";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
+	SidebarGroup,
+	SidebarGroupContent,
+	SidebarGroupLabel,
+	SidebarMenu,
 } from "@lightfast/ui/components/ui/sidebar";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
-  type Preloaded,
-  useMutation,
-  usePreloadedQuery,
-  useQuery,
+	type Preloaded,
+	useMutation,
+	usePreloadedQuery,
+	useQuery,
 } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";

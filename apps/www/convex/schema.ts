@@ -66,6 +66,7 @@ export default defineSchema({
 		// @deprecated fields
 		createdAt: v.optional(v.number()),
 		isTitleGenerating: v.optional(v.boolean()),
+		lastMessageAt: v.optional(v.number()),
 		isGenerating: v.optional(v.boolean()),
 	})
 		.index("by_user", ["userId"])

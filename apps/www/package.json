@@ -23,6 +23,7 @@
 		"@convex-dev/auth": "^0.0.87",
 		"@hookform/resolvers": "^5.1.1",
 		"@lightfast/ui": "workspace:*",
+		"@repo/utils": "workspace:*",
 		"@mdx-js/react": "^3.1.0",
 		"@t3-oss/env-core": "^0.13.8",
 		"@t3-oss/env-nextjs": "^0.12.0",

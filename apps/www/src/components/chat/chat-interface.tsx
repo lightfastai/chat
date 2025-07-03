@@ -144,15 +144,7 @@ export function ChatInterface({
 
 	// Handle fallback/loading state
 	if (threadContext.type === "fallback") {
-		return (
-			<div className="flex flex-col h-full items-center justify-center">
-				<div className="text-center">
-					<h2 className="text-lg font-semibold text-foreground mb-2">
-						Loading chat...
-					</h2>
-				</div>
-			</div>
-		);
+		return null;
 	}
 
 	// Wrap valid thread contexts with the store provider
