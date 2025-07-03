@@ -11,23 +11,23 @@
  */
 
 import {
-	type ModelMessage,
-	type ReasoningUIPart,
-	type TextUIPart,
-	type UIMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type UIMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getModelStreamingDelay,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getModelStreamingDelay,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -37,8 +37,8 @@ import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-	StreamingReasoningWriter,
-	StreamingTextWriter,
+  StreamingReasoningWriter,
+  StreamingTextWriter,
 } from "./lib/streaming_writers";
 import { handleAIResponseError } from "./messages/helpers";
 import type { DbMessage, DbMessagePart } from "./types";
@@ -239,8 +239,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			ctx,
 		);
 
-		// Track state
-		let fullText = "";
 
 		try {
 			// Prepare generation options
@@ -261,7 +259,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						case "text":
 							if (chunk.text) {
 								textWriter.append(chunk.text);
-								fullText += chunk.text;
 							}
 							break;
 
