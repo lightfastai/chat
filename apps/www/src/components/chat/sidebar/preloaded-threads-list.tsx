@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
-import { SimpleVirtualizedThreadsList } from "./simple-virtualized-threads-list";
+import { InfiniteScrollThreadsList } from "./infinite-scroll-threads-list";
 import { ThreadItem } from "./thread-item";
 import { ThreadsErrorBoundary } from "./threads-error-boundary";
 
@@ -87,7 +87,7 @@ export function PreloadedThreadsList({
 	if (USE_VIRTUALIZED_THREADS) {
 		return (
 			<ThreadsErrorBoundary>
-				<SimpleVirtualizedThreadsList
+				<InfiniteScrollThreadsList
 					preloadedThreads={preloadedThreads}
 					className="h-[calc(100vh-280px)] w-full"
 				/>

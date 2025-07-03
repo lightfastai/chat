@@ -24,7 +24,7 @@ import { ThreadItem } from "./thread-item";
 
 type Thread = Doc<"threads">;
 
-interface SimpleVirtualizedThreadsListProps {
+interface InfiniteScrollThreadsListProps {
 	preloadedThreads: Preloaded<typeof api.threads.list>;
 	className?: string;
 }
@@ -121,10 +121,10 @@ function LoadingGroup() {
 	);
 }
 
-export function SimpleVirtualizedThreadsList({
+export function InfiniteScrollThreadsList({
 	preloadedThreads,
 	className,
-}: SimpleVirtualizedThreadsListProps) {
+}: InfiniteScrollThreadsListProps) {
 	const togglePinned = useMutation(api.threads.togglePinned);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const loadMoreRef = useRef<HTMLDivElement>(null);
