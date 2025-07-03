@@ -1,0 +1,17 @@
+{
+  "name": "@repo/typescript",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared TypeScript configurations for the monorepo",
+  "exports": {
+    "./base": "./base.json",
+    "./nextjs": "./nextjs.json",
+    "./node": "./node.json",
+    "./react-library": "./react-library.json"
+  },
+  "files": ["base.json", "nextjs.json", "node.json", "react-library.json"],
+  "dependencies": {
+    "typescript": "5.6.3"
+  }
+}
