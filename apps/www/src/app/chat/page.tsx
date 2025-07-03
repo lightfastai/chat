@@ -7,6 +7,11 @@ import { getAuthToken } from "../../lib/auth";
 import { nanoid } from "../../lib/nanoid";
 import type { ThreadContext } from "../../types/schema";
 
+// Force dynamic rendering to ensure new clientId generation on each navigation
+// This prevents the production caching issue where old thread context persists
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
 	title: "New Chat",
 	description:
