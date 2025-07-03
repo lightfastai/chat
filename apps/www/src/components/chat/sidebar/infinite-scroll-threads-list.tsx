@@ -13,7 +13,7 @@ import {
 	type Preloaded,
 	useMutation,
 	usePaginatedQuery,
-	usePreloadedQuery,
+	useQuery,
 } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ import { ThreadItem } from "./thread-item";
 type Thread = Doc<"threads">;
 
 interface InfiniteScrollThreadsListProps {
-	preloadedThreads: Preloaded<typeof api.threads.list>;
+	preloadedThreads: Preloaded<typeof api.threads.list>; // Kept for backward compatibility
 	className?: string;
 }
 
@@ -121,19 +121,19 @@ function LoadingGroup() {
 }
 
 export function InfiniteScrollThreadsList({
-	preloadedThreads,
+	preloadedThreads: _preloadedThreads, // Kept for backward compatibility but not used
 	className,
 }: InfiniteScrollThreadsListProps) {
 	const togglePinned = useMutation(api.threads.togglePinned);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const loadMoreRef = useRef<HTMLDivElement>(null);
 
-	// Use preloaded data for immediate threads (includes both pinned and unpinned)
-	const initialThreads = usePreloadedQuery(preloadedThreads);
+	// Use separate query for pinned threads (non-paginated, always loaded)
+	const pinnedThreads = useQuery(api.threads.listPinned, {}) ?? [];
 
-	// Use paginated query ONLY for additional unpinned threads beyond the first 20
+	// Use paginated query ONLY for unpinned threads
 	const {
-		results: additionalThreads,
+		results: unpinnedThreads,
 		status,
 		loadMore,
 		isLoading,
@@ -143,92 +143,17 @@ export function InfiniteScrollThreadsList({
 		{ initialNumItems: 5 }, // Load 5 at a time
 	);
 
-	// Track previous threads to detect new threads at the top
-	const prevThreadsRef = useRef<Thread[]>(initialThreads);
-
-	// Scroll to top when a new thread is added at the beginning
-	useEffect(() => {
-		if (scrollAreaRef.current) {
-			const viewport = scrollAreaRef.current.querySelector(
-				'[data-slot="scroll-area-viewport"]',
-			);
-			if (
-				viewport &&
-				initialThreads.length > 0 &&
-				prevThreadsRef.current.length > 0
-			) {
-				const firstThread = initialThreads[0];
-				const wasFirstThreadNew = !prevThreadsRef.current.some(
-					(thread) => thread._id === firstThread._id,
-				);
-
-				if (wasFirstThreadNew) {
-					viewport.scrollTo({ top: 0, behavior: "smooth" });
-				}
-			}
-		}
-		prevThreadsRef.current = initialThreads;
-	}, [initialThreads]);
-
-	// Combine initial threads with additional paginated threads
-	// Only add threads that aren't already in the initial set
-	const allThreads = useMemo(() => {
-		const initialIds = new Set(initialThreads.map((t) => t._id));
-		const uniqueAdditional = additionalThreads.filter(
-			(t) => !initialIds.has(t._id),
-		);
-		return [...initialThreads, ...uniqueAdditional];
-	}, [initialThreads, additionalThreads]);
-
-	// Separate pinned and unpinned threads from the combined list
-	const { pinned, unpinned } = useMemo(() => {
-		const pinnedThreads: Thread[] = [];
-		const unpinnedThreads: Thread[] = [];
-
-		for (const thread of allThreads) {
-			if (thread.pinned) {
-				pinnedThreads.push(thread);
-			} else {
-				unpinnedThreads.push(thread);
-			}
-		}
-
-		// Sort pinned threads by lastMessageAt (newest first)
-		pinnedThreads.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
-
-		return { pinned: pinnedThreads, unpinned: unpinnedThreads };
-	}, [allThreads]);
-
-	// Group unpinned threads by date
+	// Group unpinned threads by date (simple, no data mixing)
 	const groupedThreads = useMemo(
-		() => groupThreadsByDate(unpinned),
-		[unpinned],
+		() => groupThreadsByDate(unpinnedThreads),
+		[unpinnedThreads],
 	);
 
 	// Handle pin toggle with optimistic update
 	const handlePinToggle = useCallback(
 		async (threadId: Id<"threads">) => {
 			try {
-				await togglePinned.withOptimisticUpdate((localStore, args) => {
-					// Get the current threads list
-					const currentThreads = localStore.getQuery(api.threads.list, {});
-					if (!currentThreads) return;
-
-					// Find the thread being toggled
-					const threadIndex = currentThreads.findIndex(
-						(t) => t._id === args.threadId,
-					);
-					if (threadIndex === -1) return;
-
-					// Create a new array with the updated thread
-					const updatedThreads = [...currentThreads];
-					const thread = { ...updatedThreads[threadIndex] };
-					thread.pinned = !thread.pinned;
-					updatedThreads[threadIndex] = thread;
-
-					// Update the query result
-					localStore.setQuery(api.threads.list, {}, updatedThreads);
-				})({ threadId });
+				await togglePinned({ threadId });
 			} catch (error) {
 				console.error("Failed to toggle pin:", error);
 				toast.error("Failed to update pin status. Please try again.");
@@ -263,8 +188,8 @@ export function InfiniteScrollThreadsList({
 		return () => observer.disconnect();
 	}, [status, isLoading, loadMore]);
 
-	// Show empty state if no threads
-	if (initialThreads.length === 0) {
+	// Show empty state if no threads (check both pinned and unpinned)
+	if (pinnedThreads.length === 0 && unpinnedThreads.length === 0) {
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
@@ -279,10 +204,10 @@ export function InfiniteScrollThreadsList({
 		<ScrollArea ref={scrollAreaRef} className={className}>
 			<div className="w-full max-w-full min-w-0 overflow-hidden">
 				{/* Pinned threads section */}
-				{pinned.length > 0 && (
+				{pinnedThreads.length > 0 && (
 					<ThreadGroup
 						categoryName="Pinned"
-						threads={pinned}
+						threads={pinnedThreads}
 						onPinToggle={handlePinToggle}
 					/>
 				)}
