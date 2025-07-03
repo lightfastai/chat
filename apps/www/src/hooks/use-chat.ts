@@ -6,7 +6,7 @@ import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { DbMessagePart } from "../../convex/types";
@@ -69,7 +69,7 @@ export function useChat({
 			!dbMessages ||
 			dbMessages.length === 0
 		) {
-			return undefined;
+			return [];
 		}
 
 		// Convert Convex messages to Vercel AI UIMessage format
@@ -100,6 +100,14 @@ export function useChat({
 			console.error("Chat error:", error);
 		},
 	});
+
+	// Explicitly clear messages when transitioning to a new chat to prevent message leakage
+	// This addresses a limitation in Vercel AI SDK where messages persist when the ID changes
+	useEffect(() => {
+		if (threadContext.type === "new" && uiMessages.length > 0) {
+			setMessages([]);
+		}
+	}, [threadContext.clientId, threadContext.type, setMessages, uiMessages.length]);
 
 	// Computed values
 	const isEmpty = uiMessages.length === 0;
