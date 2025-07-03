@@ -1,7 +1,6 @@
 "use client";
 
 import type { ThreadContext } from "@/types/schema";
-import { usePathname } from "next/navigation";
 import {
 	type ReactNode,
 	createContext,
@@ -35,7 +34,6 @@ export const ThreadContextStoreProvider = ({
 	children,
 	initialContext,
 }: ThreadContextStoreProviderProps) => {
-	const pathname = usePathname();
 	const storeRef = useRef<ThreadContextStoreApi>(
 		createThreadContextStore(initThreadContextState(initialContext)),
 	);
@@ -45,23 +43,13 @@ export const ThreadContextStoreProvider = ({
 		storeRef.current = createThreadContextStore(initialState);
 	}
 
-	// Sync store with prop changes AND reset on navigation to /chat
+	// Sync store with prop changes
+	// This ensures the store updates when navigating between chats
 	useEffect(() => {
 		if (storeRef.current) {
-			// If we're on /chat (new chat) and the initialContext is "new",
-			// force reset the store to ensure clean state
-			if (pathname === "/chat" && initialContext.type === "new") {
-				// Reset threadId when going to new chat
-				storeRef.current.setState({
-					threadContext: initialContext,
-					threadId: undefined,
-				});
-			} else {
-				// Normal sync for other cases
-				storeRef.current.getState().setThreadContext(initialContext);
-			}
+			storeRef.current.getState().setThreadContext(initialContext);
 		}
-	}, [initialContext, pathname]);
+	}, [initialContext]);
 
 	return (
 		<ThreadContextStoreContext.Provider value={storeRef.current}>
