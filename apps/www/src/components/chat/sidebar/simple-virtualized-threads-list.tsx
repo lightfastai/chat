@@ -325,8 +325,8 @@ export function SimpleVirtualizedThreadsList({
 					</div>
 				)}
 
-				{/* Manual load more button (fallback) - only when not auto-loading */}
-				{status === "CanLoadMore" && !showLoadingSkeletons && (
+				{/* Manual load more button (fallback) - only when not loading and auto-loading failed */}
+				{status === "CanLoadMore" && !showLoadingSkeletons && !isLoading && (
 					<div className="flex justify-center py-4">
 						<Button
 							onClick={async () => {
@@ -337,9 +337,8 @@ export function SimpleVirtualizedThreadsList({
 							variant="ghost"
 							size="sm"
 							className="text-xs"
-							disabled={isLoading}
 						>
-							{isLoading ? "Loading..." : "Load More"}
+							Load More
 						</Button>
 					</div>
 				)}
