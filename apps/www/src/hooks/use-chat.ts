@@ -5,7 +5,7 @@ import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { ModelId } from "../lib/ai/schemas";
@@ -32,18 +32,6 @@ export function useChat({
 	const authToken = useAuthToken();
 	const createThreadOptimistic = useCreateThreadWithFirstMessages();
 	const createMessageOptimistic = useCreateSubsequentMessages();
-
-	// Track if user has ever sent a message
-	const hasEverSentMessage = useRef(false);
-
-	// Reset when we're in a truly new chat
-	useEffect(() => {
-		if (clientId === "new" && initialMessages.length === 0) {
-			hasEverSentMessage.current = false;
-		} else if (initialMessages.length > 0) {
-			hasEverSentMessage.current = true;
-		}
-	}, [clientId, initialMessages.length]);
 
 	// Query thread if we have a clientId
 	const thread = useQuery(
@@ -111,9 +99,6 @@ export function useChat({
 				});
 				userMessageId = data.userMessageId;
 				assistantMessageId = data.assistantMessageId;
-
-				// Mark that we've sent a message
-				hasEverSentMessage.current = true;
 			} else {
 				// Existing thread
 				const data = await createMessageOptimistic({
@@ -171,7 +156,6 @@ export function useChat({
 		// Status - direct from Vercel AI SDK
 		status,
 		canSendMessage,
-		isNewChat: clientId === "new",
 
 		// Actions
 		sendMessage,

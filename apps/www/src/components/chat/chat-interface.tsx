@@ -69,7 +69,7 @@ export function ChatInterface({
 	});
 
 	// Show centered layout only for new chats with no messages
-	if (pathInfo.type === "new") {
+	if (pathInfo.type === "new" && dbMessages.length === 0) {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
