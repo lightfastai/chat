@@ -145,6 +145,30 @@ export function SimpleVirtualizedThreadsList({
 
 	const paginatedResult = useQuery(api.threads.listPaginated, paginationArgs);
 
+	// Track previous threads to detect new threads at the top
+	const prevThreadsRef = useRef<Thread[]>(threads);
+
+	// Scroll to top when a new thread is added at the beginning
+	useEffect(() => {
+		if (
+			threads.length > 0 &&
+			prevThreadsRef.current.length > 0 &&
+			scrollElement
+		) {
+			// Check if a new thread was added at the beginning (most recent position)
+			const firstThread = threads[0];
+			const wasFirstThreadNew = !prevThreadsRef.current.some(
+				(thread) => thread._id === firstThread._id,
+			);
+
+			if (wasFirstThreadNew) {
+				// A new thread was added at the top, scroll to show it
+				scrollElement.scrollTo({ top: 0, behavior: "smooth" });
+			}
+		}
+		prevThreadsRef.current = threads;
+	}, [threads, scrollElement]);
+
 	// Handle pagination results
 	useEffect(() => {
 		if (paginatedResult && isLoadingMore) {
@@ -366,29 +390,35 @@ export function SimpleVirtualizedThreadsList({
 					// Show threads without virtualization while scroll element is being detected
 					// This prevents the "loading" state when threads are actually available
 					<div className="w-full">
-						{virtualItems.map((item, index) => (
-							<div key={index}>
-								{item.type === "group" ? (
-									<ThreadGroup
-										categoryName={item.categoryName}
-										threads={item.threads}
-										onPinToggle={handlePinToggle}
-									/>
-								) : item.type === "load-more" ? (
-									<div className="flex justify-center py-4">
-										<Button
-											onClick={handleLoadMore}
-											disabled={isLoadingMore}
-											variant="ghost"
-											size="sm"
-											className="text-xs"
-										>
-											{isLoadingMore ? "Loading..." : "Load More"}
-										</Button>
-									</div>
-								) : null}
-							</div>
-						))}
+						{virtualItems.map((item) => {
+							const key =
+								item.type === "group"
+									? `group-${item.categoryName}`
+									: "load-more";
+							return (
+								<div key={key}>
+									{item.type === "group" ? (
+										<ThreadGroup
+											categoryName={item.categoryName}
+											threads={item.threads}
+											onPinToggle={handlePinToggle}
+										/>
+									) : item.type === "load-more" ? (
+										<div className="flex justify-center py-4">
+											<Button
+												onClick={handleLoadMore}
+												disabled={isLoadingMore}
+												variant="ghost"
+												size="sm"
+												className="text-xs"
+											>
+												{isLoadingMore ? "Loading..." : "Load More"}
+											</Button>
+										</div>
+									) : null}
+								</div>
+							);
+						})}
 					</div>
 				)}
 			</div>
