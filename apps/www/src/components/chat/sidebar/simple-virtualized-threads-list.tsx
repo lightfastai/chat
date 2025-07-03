@@ -98,7 +98,7 @@ function ThreadGroup({
 function ThreadSkeleton() {
 	return (
 		<SidebarMenuItem className="w-full max-w-full min-w-0 overflow-hidden">
-			<div className="flex items-center gap-2 p-2">
+			<div className="flex items-center gap-2 p-2 opacity-50">
 				<Skeleton className="h-4 w-4 rounded" />
 				<Skeleton className="h-4 flex-1" />
 			</div>
@@ -107,12 +107,9 @@ function ThreadSkeleton() {
 }
 
 // Loading group with skeleton threads
-function LoadingGroup({ categoryName }: { categoryName: string }) {
+function LoadingGroup() {
 	return (
 		<SidebarGroup className="w-58">
-			<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
-				{categoryName}
-			</SidebarGroupLabel>
 			<SidebarGroupContent className="w-full max-w-full overflow-hidden">
 				<SidebarMenu className="space-y-0.5">
 					<ThreadSkeleton />
@@ -131,25 +128,25 @@ export function SimpleVirtualizedThreadsList({
 	const togglePinned = useMutation(api.threads.togglePinned);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const loadMoreRef = useRef<HTMLDivElement>(null);
-	const [isAutoLoading, setIsAutoLoading] = useState(false);
+	const [showLoadingSkeletons, setShowLoadingSkeletons] = useState(false);
 
-	// Use preloaded data for immediate threads (first 20)
-	const threads = usePreloadedQuery(preloadedThreads);
+	// Use preloaded data for immediate threads (includes both pinned and unpinned)
+	const initialThreads = usePreloadedQuery(preloadedThreads);
 
-	// Use paginated query for infinite scroll (unpinned threads only)
+	// Use paginated query ONLY for additional unpinned threads beyond the first 20
 	const {
-		results: paginatedThreads,
+		results: additionalThreads,
 		status,
 		loadMore,
 		isLoading,
 	} = usePaginatedQuery(
 		api.threads.listForInfiniteScroll,
 		{},
-		{ initialNumItems: 3 }, // Load 3 at a time after initial 20
+		{ initialNumItems: 5 }, // Load 5 at a time
 	);
 
 	// Track previous threads to detect new threads at the top
-	const prevThreadsRef = useRef<Thread[]>(threads);
+	const prevThreadsRef = useRef<Thread[]>(initialThreads);
 
 	// Scroll to top when a new thread is added at the beginning
 	useEffect(() => {
@@ -157,8 +154,12 @@ export function SimpleVirtualizedThreadsList({
 			const viewport = scrollAreaRef.current.querySelector(
 				'[data-slot="scroll-area-viewport"]',
 			);
-			if (viewport && threads.length > 0 && prevThreadsRef.current.length > 0) {
-				const firstThread = threads[0];
+			if (
+				viewport &&
+				initialThreads.length > 0 &&
+				prevThreadsRef.current.length > 0
+			) {
+				const firstThread = initialThreads[0];
 				const wasFirstThreadNew = !prevThreadsRef.current.some(
 					(thread) => thread._id === firstThread._id,
 				);
@@ -168,20 +169,20 @@ export function SimpleVirtualizedThreadsList({
 				}
 			}
 		}
-		prevThreadsRef.current = threads;
-	}, [threads]);
+		prevThreadsRef.current = initialThreads;
+	}, [initialThreads]);
 
-	// Combine reactive threads (first 20) with paginated results
+	// Combine initial threads with additional paginated threads
+	// Only add threads that aren't already in the initial set
 	const allThreads = useMemo(() => {
-		// Remove duplicates - paginated results might include threads already in initial 20
-		const threadIds = new Set(threads.map((t) => t._id));
-		const additionalThreads = paginatedThreads.filter(
-			(t) => !threadIds.has(t._id),
+		const initialIds = new Set(initialThreads.map((t) => t._id));
+		const uniqueAdditional = additionalThreads.filter(
+			(t) => !initialIds.has(t._id),
 		);
-		return [...threads, ...additionalThreads];
-	}, [threads, paginatedThreads]);
+		return [...initialThreads, ...uniqueAdditional];
+	}, [initialThreads, additionalThreads]);
 
-	// Separate pinned and unpinned threads
+	// Separate pinned and unpinned threads from the combined list
 	const { pinned, unpinned } = useMemo(() => {
 		const pinnedThreads: Thread[] = [];
 		const unpinnedThreads: Thread[] = [];
@@ -247,16 +248,17 @@ export function SimpleVirtualizedThreadsList({
 					entry.isIntersecting &&
 					status === "CanLoadMore" &&
 					!isLoading &&
-					!isAutoLoading
+					!showLoadingSkeletons
 				) {
-					setIsAutoLoading(true);
-					await loadMore(3); // Load 3 more items
-					setIsAutoLoading(false);
+					setShowLoadingSkeletons(true);
+					await loadMore(5); // Load 5 more items
+					// Add a small delay to show the loading state
+					setTimeout(() => setShowLoadingSkeletons(false), 300);
 				}
 			},
 			{
 				threshold: 1.0,
-				rootMargin: "20px",
+				rootMargin: "50px", // Start loading a bit earlier
 			},
 		);
 
@@ -265,10 +267,10 @@ export function SimpleVirtualizedThreadsList({
 		}
 
 		return () => observer.disconnect();
-	}, [status, isLoading, isAutoLoading, loadMore]);
+	}, [status, isLoading, showLoadingSkeletons, loadMore]);
 
 	// Show empty state if no threads
-	if (threads.length === 0) {
+	if (initialThreads.length === 0) {
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
@@ -309,31 +311,35 @@ export function SimpleVirtualizedThreadsList({
 					},
 				)}
 
-				{/* Loading indicator during auto-load */}
-				{(isLoading || isAutoLoading) && (
-					<LoadingGroup categoryName="Loading..." />
-				)}
+				{/* Loading skeletons only when actively loading */}
+				{showLoadingSkeletons && <LoadingGroup />}
 
 				{/* Intersection observer target for auto-loading */}
 				{status === "CanLoadMore" && (
 					<div
 						ref={loadMoreRef}
 						className="h-4 w-full flex items-center justify-center"
+						style={{ minHeight: "16px" }} // Prevent layout shift
 					>
 						{/* Invisible trigger for intersection observer */}
 					</div>
 				)}
 
-				{/* Manual load more button (fallback) */}
-				{status === "CanLoadMore" && !isLoading && !isAutoLoading && (
+				{/* Manual load more button (fallback) - only when not auto-loading */}
+				{status === "CanLoadMore" && !showLoadingSkeletons && (
 					<div className="flex justify-center py-4">
 						<Button
-							onClick={() => loadMore(3)}
+							onClick={async () => {
+								setShowLoadingSkeletons(true);
+								await loadMore(5);
+								setTimeout(() => setShowLoadingSkeletons(false), 300);
+							}}
 							variant="ghost"
 							size="sm"
 							className="text-xs"
+							disabled={isLoading}
 						>
-							Load More
+							{isLoading ? "Loading..." : "Load More"}
 						</Button>
 					</div>
 				)}
