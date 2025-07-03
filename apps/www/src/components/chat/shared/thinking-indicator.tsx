@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface ThinkingIndicatorProps {
 	label?: string;
@@ -14,18 +13,6 @@ export function ThinkingIndicator({
 	showChevron = false,
 	onChevronClick,
 }: ThinkingIndicatorProps) {
-	const [mounted, setMounted] = useState(false);
-
-	useEffect(() => {
-		setMounted(true);
-		return () => setMounted(false);
-	}, []);
-
-	if (!mounted) {
-		// Simple fallback for SSR
-		return <span className="text-xs text-muted-foreground">{label}...</span>;
-	}
-
 	return (
 		<div className="inline-flex items-center gap-2">
 			{/* Static square with displacement filter */}
