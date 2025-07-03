@@ -38,8 +38,8 @@ function separatePinnedThreads(threads: Thread[]) {
 		}
 	}
 
-	// Sort pinned threads by lastMessageAt (newest first)
-	pinned.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+	// Sort pinned threads by _creationTime (newest first)
+	pinned.sort((a, b) => b._creationTime - a._creationTime);
 
 	return { pinned, unpinned };
 }
@@ -61,7 +61,7 @@ function groupThreadsByDate(threads: Thread[]) {
 	};
 
 	for (const thread of threads) {
-		const threadDate = new Date(thread.lastMessageAt);
+		const threadDate = new Date(thread._creationTime);
 
 		if (threadDate >= today) {
 			groups.Today.push(thread);

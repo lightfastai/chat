@@ -72,8 +72,6 @@ export function MessageActions({
 	// 		title: originalThread?.title || "",
 	// 		userId: "temp" as Id<"users">, // Temporary user ID
 	// 		createdAt: now,
-	// 		lastMessageAt: now,
-	// 		isGenerating: true, // Will show loading state
 	// 		branchedFrom: {
 	// 			threadId: originalThreadId,
 	// 			messageId: args.branchFromMessageId,

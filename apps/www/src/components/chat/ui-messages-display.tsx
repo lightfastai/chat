@@ -135,14 +135,16 @@ export function UIMessagesDisplay({
 						<Markdown>{(part as { text: string }).text}</Markdown>
 					</div>
 				);
-			} else if (part.type.startsWith("tool-")) {
+			}
+			if (part.type.startsWith("tool-")) {
 				const toolName = part.type.substring(5); // Extract tool name from "tool-{name}"
 				return (
 					<div key={partIdx} className="text-xs text-muted-foreground">
 						Tool: {toolName}
 					</div>
 				);
-			} else if (part.type === "reasoning") {
+			}
+			if (part.type === "reasoning") {
 				return (
 					<div key={partIdx} className="text-sm text-muted-foreground italic">
 						Thinking: {(part as { text: string }).text}

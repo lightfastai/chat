@@ -1,6 +1,6 @@
 import { cn } from "@lightfast/ui/lib/utils";
 import type React from "react";
-import { DbMessageRole } from "../../../../convex/types";
+import type { DbMessageRole } from "../../../../convex/types";
 
 export interface MessageLayoutProps {
 	content: React.ReactNode;

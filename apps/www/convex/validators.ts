@@ -259,9 +259,9 @@ export const toolCallPartValidator = v.object({
 export const messagePartValidator = v.union(
 	textPartValidator,
 	reasoningPartValidator,
-  errorPartValidator,
-  toolCallPartValidator,
-  rawPartValidator,
+	errorPartValidator,
+	toolCallPartValidator,
+	rawPartValidator,
 );
 
 // Array of message parts validator
@@ -271,5 +271,5 @@ export const messagePartsValidator = v.array(messagePartValidator);
 // Title validation
 
 export function validateTitle(title: string): boolean {
-  return title.length >= 1 && title.length <= 80;
+	return title.length >= 1 && title.length <= 80;
 }

@@ -11,24 +11,25 @@
  */
 
 import {
-  type ModelMessage,
-  type ReasoningUIPart,
-  type TextUIPart,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type ReasoningUIPart,
+	type TextUIPart,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
@@ -36,20 +37,19 @@ import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
-import type { modelIdValidator, } from "./validators";
 import type { DbMessage, DbMessagePart } from "./types";
-import { Id } from "./_generated/dataModel";
+import type { modelIdValidator } from "./validators";
 
 interface HTTPStreamingRequest {
-  id: Id<"messages">;
-  threadClientId: string,
-  userMessageId: Id<"messages">;
-  messages: DbMessagePart[];
-  options: {
-    attachments: Id<"files">[]
-    webSearchEnabled: boolean;
-    modelId: Infer<typeof modelIdValidator>
-  }
+	id: Id<"messages">;
+	threadClientId: string;
+	userMessageId: Id<"messages">;
+	messages: DbMessagePart[];
+	options: {
+		attachments: Id<"files">[];
+		webSearchEnabled: boolean;
+		modelId: Infer<typeof modelIdValidator>;
+	};
 }
 
 // Helper function for CORS headers
@@ -297,7 +297,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				}),
 				onChunk: async ({ chunk }) => {
 					// Handle Vercel AI SDK v5 chunk types
-          // @todo check source, tool-call, tool-result and any other chunk we missed.
+					// @todo check source, tool-call, tool-result and any other chunk we missed.
 					switch (chunk.type) {
 						case "text":
 							if (chunk.text) {

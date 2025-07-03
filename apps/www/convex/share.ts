@@ -237,7 +237,7 @@ export const getSharedThread = query({
 				_id: thread._id,
 				title: thread.title,
 				createdAt: thread.createdAt,
-				lastMessageAt: thread.lastMessageAt,
+				_creationTime: thread._creationTime,
 				shareSettings: thread.shareSettings,
 			},
 			messages: filteredMessages,

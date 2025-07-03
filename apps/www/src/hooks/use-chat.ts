@@ -13,8 +13,8 @@ import type { DbMessagePart } from "../../convex/types";
 import type { ModelId } from "../lib/ai/schemas";
 import type { UIMessage, ValidThread } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
-import { useOptimisticMessageCreate } from "./use-optimistic-message-create";
-import { useOptimisticThreadCreateWithUserAndAssistantMessage } from "./use-optimistic-thread-create";
+import { useCreateSubsequentMessages } from "./use-create-subsequent-messages";
+import { useCreateThreadWithFirstMessages } from "./use-create-thread-with-first-messages";
 
 interface UseChatProps {
 	/** The chat context - type and clientId */
@@ -33,9 +33,8 @@ export function useChat({
 	preloadedUserSettings,
 }: UseChatProps) {
 	const authToken = useAuthToken();
-	const createThreadOptimistic =
-		useOptimisticThreadCreateWithUserAndAssistantMessage();
-	const createMessageOptimistic = useOptimisticMessageCreate();
+	const createThreadOptimistic = useCreateThreadWithFirstMessages();
+	const createMessageOptimistic = useCreateSubsequentMessages();
 	const transitionToExisting = useThreadContextStore(
 		(state) => state.transitionToExisting,
 	);

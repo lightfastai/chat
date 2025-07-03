@@ -2,29 +2,29 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
-  branchInfoValidator,
-  messageStatusValidator,
-  clientIdValidator,
-  commentValidator,
-  feedbackRatingValidator,
-  feedbackReasonsValidator,
-  fileMetadataValidator,
-  fileNameValidator,
-  ipHashValidator,
-  messagePartsValidator,
-  mimeTypeValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  roleValidator,
-  shareIdValidator,
-  shareSettingsValidator,
-  storageIdValidator,
-  threadUsageValidator,
-  titleValidator,
-  tokenUsageValidator,
-  userAgentValidator,
-  userApiKeysValidator,
-  userPreferencesValidator,
+	branchInfoValidator,
+	clientIdValidator,
+	commentValidator,
+	feedbackRatingValidator,
+	feedbackReasonsValidator,
+	fileMetadataValidator,
+	fileNameValidator,
+	ipHashValidator,
+	messagePartsValidator,
+	messageStatusValidator,
+	mimeTypeValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	roleValidator,
+	shareIdValidator,
+	shareSettingsValidator,
+	storageIdValidator,
+	threadUsageValidator,
+	titleValidator,
+	tokenUsageValidator,
+	userAgentValidator,
+	userApiKeysValidator,
+	userPreferencesValidator,
 } from "./validators.js";
 
 export default defineSchema({
@@ -67,7 +67,6 @@ export default defineSchema({
 		createdAt: v.optional(v.number()),
 		isTitleGenerating: v.optional(v.boolean()),
 		isGenerating: v.optional(v.boolean()),
-		lastMessageAt: v.number(),
 	})
 		.index("by_user", ["userId"])
 		.index("by_client_id", ["clientId"])
@@ -75,21 +74,21 @@ export default defineSchema({
 		.index("by_share_id", ["shareId"]),
 
 	messages: defineTable({
-    // @V2 Schema.
+		// @V2 Schema.
 		threadId: v.id("threads"),
 		parts: v.optional(messagePartsValidator),
 		status: v.optional(messageStatusValidator),
 		role: v.optional(roleValidator),
 		attachments: v.optional(v.array(v.id("files"))),
-    // @depcreated fields
+		// @depcreated fields
 		messageType: v.optional(roleValidator), // Deprecated - use role instead
-    modelId: v.optional(modelIdValidator),
+		modelId: v.optional(modelIdValidator),
 		usage: v.optional(tokenUsageValidator),
 		usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
 		thinkingStartedAt: v.optional(v.number()),
 		thinkingCompletedAt: v.optional(v.number()),
 		model: v.optional(modelProviderValidator),
-    timestamp: v.optional(v.number()),
+		timestamp: v.optional(v.number()),
 	}).index("by_thread", ["threadId"]),
 
 	feedback: defineTable({

@@ -1,8 +1,8 @@
 "use client";
 
 import type { UIMessage } from "ai";
+import type { DbReasoningPart, DbTextPart } from "../../../../convex/types";
 import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
-import { DbReasoningPart, DbTextPart } from "../../../../convex/types";
 
 interface MessageMetadata {
 	hasThinkingContent?: boolean;

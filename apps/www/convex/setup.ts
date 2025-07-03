@@ -35,7 +35,6 @@ export const setupInitialData = mutation({
 			title: "Welcome to Lightfast Chat",
 			userId: testUserId,
 			createdAt: now,
-			lastMessageAt: now,
 			isTitleGenerating: false,
 		});
 

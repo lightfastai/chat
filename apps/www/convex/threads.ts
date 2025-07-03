@@ -6,10 +6,10 @@ import { mutation, query } from "./_generated/server.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getWithOwnership } from "./lib/database.js";
 import {
-  clientIdValidator,
-  clientThreadIdValidator,
-  modelIdValidator,
-  textPartValidator,
+	clientIdValidator,
+	clientThreadIdValidator,
+	modelIdValidator,
+	textPartValidator,
 } from "./validators.js";
 
 // List initial threads for preloading (first 20)
@@ -74,14 +74,14 @@ export const listPinned = query({
 });
 
 // Helper function to determine date category for a thread
-function getDateCategory(lastMessageAt: number): string {
+function getDateCategory(creationTime: number): string {
 	const now = new Date();
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
 	const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 	const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-	const threadDate = new Date(lastMessageAt);
+	const threadDate = new Date(creationTime);
 
 	if (threadDate >= today) return "Today";
 	if (threadDate >= yesterday) return "Yesterday";
@@ -144,7 +144,6 @@ export const createThreadWithFirstMessages = mutation({
 			title: "",
 			userId: userId,
 			createdAt: now,
-			lastMessageAt: now,
 			// @todo depcreate these...
 			isTitleGenerating: true, // Will be updated when first message is sent
 			// Initialize usage field
@@ -215,7 +214,7 @@ export const listPaginatedWithGrouping = query({
 						.filter((q) =>
 							q.and(
 								q.eq(q.field("pinned"), undefined),
-								q.lt(q.field("lastMessageAt"), lastSkipped.lastMessageAt),
+								q.lt(q.field("_creationTime"), lastSkipped._creationTime),
 							),
 						)
 						.order("desc");
@@ -227,7 +226,7 @@ export const listPaginatedWithGrouping = query({
 			// Add date categories to each thread
 			const threadsWithCategories = result.page.map((thread) => ({
 				...thread,
-				dateCategory: getDateCategory(thread.lastMessageAt),
+				dateCategory: getDateCategory(thread._creationTime),
 			}));
 
 			return {
@@ -281,22 +280,6 @@ export const getByClientId = query({
 			// Return null for unauthenticated users
 			return null;
 		}
-	},
-});
-
-// Update thread's last message timestamp
-export const updateLastMessage = mutation({
-	args: {
-		threadId: v.id("threads"),
-	},
-	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
-		await getWithOwnership(ctx.db, "threads", args.threadId, userId);
-
-		await ctx.db.patch(args.threadId, {
-			lastMessageAt: Date.now(),
-		});
-		return null;
 	},
 });
 

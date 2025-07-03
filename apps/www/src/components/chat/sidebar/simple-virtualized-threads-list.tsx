@@ -3,17 +3,17 @@
 import { Button } from "@lightfast/ui/components/ui/button";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
-	SidebarGroup,
-	SidebarGroupContent,
-	SidebarGroupLabel,
-	SidebarMenu,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
 } from "@lightfast/ui/components/ui/sidebar";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
-	type Preloaded,
-	useMutation,
-	usePreloadedQuery,
-	useQuery,
+  type Preloaded,
+  useMutation,
+  usePreloadedQuery,
+  useQuery,
 } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -41,8 +41,8 @@ function separatePinnedThreads(threads: Thread[]) {
 		}
 	}
 
-	// Sort pinned threads by lastMessageAt (newest first)
-	pinned.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+	// Sort pinned threads by _creationTime (newest first)
+	pinned.sort((a, b) => b._creationTime - a._creationTime);
 
 	return { pinned, unpinned };
 }
@@ -64,7 +64,7 @@ function groupThreadsByDate(threads: Thread[]) {
 	};
 
 	for (const thread of threads) {
-		const threadDate = new Date(thread.lastMessageAt);
+		const threadDate = new Date(thread._creationTime);
 
 		if (threadDate >= today) {
 			groups.Today.push(thread);
