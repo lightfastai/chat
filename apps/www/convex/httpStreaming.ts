@@ -11,23 +11,23 @@
  */
 
 import {
-  type ModelMessage,
-  type ReasoningUIPart,
-  type TextUIPart,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type ReasoningUIPart,
+	type TextUIPart,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -37,8 +37,8 @@ import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  StreamingReasoningWriter,
-  StreamingTextWriter,
+	StreamingReasoningWriter,
+	StreamingTextWriter,
 } from "./lib/streaming_writers";
 import { handleAIResponseError } from "./messages/helpers";
 import type { DbMessage, DbMessagePart } from "./types";
@@ -241,18 +241,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 		// Track state
 		let fullText = "";
-		let hasTransitionedToStreaming = false;
-
-		// Helper to transition to streaming status on first chunk
-		const transitionToStreaming = async () => {
-			if (!hasTransitionedToStreaming) {
-				await ctx.runMutation(internal.messages.updateMessageStatus, {
-					messageId: assistantMessage._id,
-					status: "streaming",
-				});
-				hasTransitionedToStreaming = true;
-			}
-		};
 
 		try {
 			// Prepare generation options
@@ -312,7 +300,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							});
 							break;
 
-
 						default:
 							// Log unexpected chunk types for debugging
 							console.warn("Unexpected chunk type:", chunk.type, chunk);
@@ -355,8 +342,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					reasoningWriter.dispose();
 
 					// Extract error information
-					const errorMessage = error instanceof Error ? error.message : String(error);
-					const errorName = error instanceof Error ? error.name : "Unknown Error";
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					const errorName =
+						error instanceof Error ? error.name : "Unknown Error";
 					const errorStack = error instanceof Error ? error.stack : undefined;
 
 					// Log specific error types for monitoring
@@ -414,7 +403,13 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			const result = streamText(generationOptions);
 
 			// Immediately transition to streaming status
-			await transitionToStreaming();
+			await ctx.runMutation(
+				internal.messages.updateMessageStatus,
+				{
+					messageId: assistantMessage._id,
+					status: "streaming",
+				},
+			);
 
 			// Return the stream response
 			// The frontend will handle merging assistant messages with user messages
@@ -429,33 +424,29 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				},
 			});
 		} catch (error) {
-			// Only clean up if onError wasn't called
-			// (onError handles its own cleanup)
-			if (!hasTransitionedToStreaming) {
-				// Clean up writers on error
-				await Promise.all([
-					textWriter.flush().catch(console.error),
-					reasoningWriter.flush().catch(console.error),
-				]);
+			// Clean up writers on error
+			await Promise.all([
+				textWriter.flush().catch(console.error),
+				reasoningWriter.flush().catch(console.error),
+			]);
 
-				textWriter.dispose();
-				reasoningWriter.dispose();
+			textWriter.dispose();
+			reasoningWriter.dispose();
 
-				console.error("Pre-streaming error:", error);
+			console.error("Streaming setup error:", error);
 
-				// Handle error that occurred before streaming started
-				await handleAIResponseError(
-					ctx,
-					error,
-					thread._id,
-					assistantMessage._id,
-					{
-						modelId: modelId as ModelId,
-						provider: getProviderFromModelId(modelId as ModelId),
-						useStreamingUpdate: true,
-					},
-				);
-			}
+			// Handle error that occurred during streaming setup
+			await handleAIResponseError(
+				ctx,
+				error,
+				thread._id,
+				assistantMessage._id,
+				{
+					modelId: modelId as ModelId,
+					provider: getProviderFromModelId(modelId as ModelId),
+					useStreamingUpdate: true,
+				},
+			);
 
 			throw error;
 		}

@@ -495,13 +495,36 @@ export const updateMessageStatus = internalMutation({
 		messageId: v.id("messages"),
 		status: messageStatusValidator,
 	},
-	returns: v.null(),
+	returns: v.union(
+		v.object({
+			previousStatus: v.optional(messageStatusValidator),
+			updated: v.boolean(),
+		}),
+		v.null(),
+	),
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.messageId, {
-			status: args.status,
-		});
+		const message = await ctx.db.get(args.messageId);
+		if (!message) {
+			return null;
+		}
 
-		return null;
+		const previousStatus = message.status;
+
+		// Only update if status is actually changing
+		if (previousStatus !== args.status) {
+			await ctx.db.patch(args.messageId, {
+				status: args.status,
+			});
+			return {
+				previousStatus,
+				updated: true,
+			};
+		}
+
+		return {
+			previousStatus,
+			updated: false,
+		};
 	},
 });
 
