@@ -8,6 +8,9 @@ import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUI
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
+import { useMemo } from "react";
+import { usePathname } from "next/navigation";
+import { Doc } from "../../../convex/_generated/dataModel";
 
 interface ChatInterfaceProps {
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
@@ -15,24 +18,58 @@ interface ChatInterfaceProps {
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
 
-
 export function ChatInterface({
 	preloadedMessages,
 	preloadedUser,
 	preloadedUserSettings,
 }: ChatInterfaceProps) {
-  const dbMessages = preloadedMessages ? usePreloadedQuery(preloadedMessages) : useQuery(api.messages.listByClientId, {
-    clientId: "123",
-  }) || []
+	const pathname = usePathname();
 
-  // Let useChat determine everything from the current pathname
-	const { messages, sendMessage, status, canSendMessage, isNewChat } = useChat({
+	const pathInfo = useMemo(() => {
+		if (pathname === "/chat") {
+			return { type: "new", id: "new" };
+		}
+
+		const match = pathname.match(/^\/chat\/(.+)$/);
+		if (!match) {
+			return { type: "new", id: "new" };
+		}
+
+		const id = match[1];
+
+		// Handle special routes
+		if (id === "settings" || id.startsWith("settings/")) {
+			return { type: "settings", id: "settings" };
+		}
+
+		// Assume it's a client-generated ID for now
+		return { type: "clientId", id };
+	}, [pathname]);
+
+	const currentClientId = pathInfo.type === "clientId" ? pathInfo.id : null;
+
+	let dbMessages: Doc<"messages">[] = [];
+	if (preloadedMessages) {
+		dbMessages = usePreloadedQuery(preloadedMessages);
+	}
+
+	if (!preloadedMessages) {
+		dbMessages =
+			useQuery(
+				api.messages.listByClientId,
+				currentClientId ? { clientId: currentClientId } : "skip",
+			) || [];
+	}
+
+	// Let useChat determine everything from the current pathname
+	const { messages, sendMessage, status, canSendMessage } = useChat({
 		initialMessages: convertDbMessagesToUIMessages(dbMessages),
 		preloadedUserSettings,
+		clientId: currentClientId,
 	});
 
 	// Show centered layout only for new chats with no messages
-	if (isNewChat && messages.length === 0) {
+	if (pathInfo.type === "new") {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
