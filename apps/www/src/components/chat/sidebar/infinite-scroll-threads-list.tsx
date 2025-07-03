@@ -199,8 +199,8 @@ export function InfiniteScrollThreadsList({
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
-					<p className="text-xs">No conversations yet</p>
-					<p className="text-xs mt-1 opacity-75">Start a new chat to begin</p>
+					<p className="group-data-[collapsible=icon]:hidden text-xs">No conversations yet</p>
+					<p className="group-data-[collapsible=icon]:hidden text-xs mt-1 opacity-75">Start a new chat to begin</p>
 				</div>
 			</div>
 		);

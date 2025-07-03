@@ -176,8 +176,8 @@ export function PreloadedThreadsList({
 				<div className="w-full max-w-full min-w-0 overflow-hidden">
 					{threads.length === 0 ? (
 						<div className="px-3 py-8 text-center text-muted-foreground">
-							<p className="text-xs">No conversations yet</p>
-							<p className="text-xs mt-1 opacity-75">
+							<p className="group-data-[collapsible=icon]:hidden text-xs">No conversations yet</p>
+							<p className="group-data-[collapsible=icon]:hidden text-xs mt-1 opacity-75">
 								Start a new chat to begin
 							</p>
 						</div>
@@ -240,8 +240,8 @@ export function PreloadedThreadsList({
 		return (
 			<ScrollArea className="h-[calc(100vh-280px)] w-full max-w-full">
 				<div className="px-3 py-8 text-center text-muted-foreground">
-					<p className="text-sm">Unable to load conversations</p>
-					<p className="text-xs mt-1">Please refresh the page</p>
+					<p className="group-data-[collapsible=icon]:hidden text-sm">Unable to load conversations</p>
+					<p className="group-data-[collapsible=icon]:hidden text-xs mt-1">Please refresh the page</p>
 				</div>
 			</ScrollArea>
 		);
