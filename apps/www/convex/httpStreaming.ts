@@ -329,7 +329,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					// Mark message as complete
 					await ctx.runMutation(internal.messages.updateMessageStatus, {
 						messageId: assistantMessage._id,
-						status: "submitted",
+						status: "ready",
 					});
 				},
 				onError: async ({ error }) => {
