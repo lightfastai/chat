@@ -110,21 +110,31 @@ export function SimpleVirtualizedThreadsList({
 	const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
 	// Pagination state
-	const [cursor, setCursor] = useState<string | null>(null);
+	const [paginationCursor, setPaginationCursor] = useState<string | null>(null);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [hasMore, setHasMore] = useState(true);
 	const [additionalThreads, setAdditionalThreads] = useState<Thread[]>([]);
+	const [hasStartedPagination, setHasStartedPagination] = useState(false);
 
 	// Use preloaded data with reactivity
 	const threads = usePreloadedQuery(preloadedThreads);
 
-	// Query for paginated results
+	// Use the new paginated query with grouping and skip support
 	const paginationArgs =
-		isLoadingMore && hasMore && cursor !== null
-			? { paginationOpts: { numItems: 10, cursor } }
+		isLoadingMore && hasMore && hasStartedPagination
+			? {
+					paginationOpts: {
+						numItems: 10,
+						cursor: paginationCursor,
+					},
+					skipFirst: paginationCursor === null ? 20 : undefined, // Skip first 20 on initial pagination
+				}
 			: "skip";
 
-	const paginatedResult = useQuery(api.threads.listPaginated, paginationArgs);
+	const paginatedResult = useQuery(
+		api.threads.listPaginatedWithGrouping,
+		paginationArgs,
+	);
 
 	// Track previous threads to detect new threads at the top
 	const prevThreadsRef = useRef<Thread[]>(threads);
@@ -152,7 +162,7 @@ export function SimpleVirtualizedThreadsList({
 	useEffect(() => {
 		if (paginatedResult && isLoadingMore) {
 			setAdditionalThreads((prev) => [...prev, ...paginatedResult.page]);
-			setCursor(paginatedResult.continueCursor);
+			setPaginationCursor(paginatedResult.continueCursor);
 			setHasMore(!paginatedResult.isDone);
 			setIsLoadingMore(false);
 		}
@@ -224,7 +234,8 @@ export function SimpleVirtualizedThreadsList({
 		}
 
 		// Add load more button if there might be more threads
-		if (hasMore && threads.length >= 20) {
+		// Only show if we have unpinned threads (not just pinned)
+		if (hasMore && unpinned.length >= 20) {
 			items.push({
 				key: "load-more",
 				type: "load-more",
@@ -232,17 +243,15 @@ export function SimpleVirtualizedThreadsList({
 		}
 
 		return items;
-	}, [pinned, groupedThreads, hasMore, threads.length]);
+	}, [pinned, unpinned, groupedThreads, hasMore]);
 
 	// Handle load more
 	const handleLoadMore = useCallback(() => {
 		if (!isLoadingMore && hasMore) {
 			setIsLoadingMore(true);
-			if (cursor === null) {
-				setCursor("");
-			}
+			setHasStartedPagination(true);
 		}
-	}, [isLoadingMore, hasMore, cursor]);
+	}, [isLoadingMore, hasMore]);
 
 	// Handle pin toggle with optimistic update
 	const handlePinToggle = useCallback(
