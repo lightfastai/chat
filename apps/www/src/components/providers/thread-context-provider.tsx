@@ -1,13 +1,7 @@
 "use client";
 
 import type { ThreadContext } from "@/types/schema";
-import {
-	type ReactNode,
-	createContext,
-	useContext,
-	useEffect,
-	useRef,
-} from "react";
+import { type ReactNode, createContext, useContext, useRef } from "react";
 import { useStore } from "zustand";
 import {
 	type ThreadContextStore,
@@ -43,13 +37,6 @@ export const ThreadContextStoreProvider = ({
 		storeRef.current = createThreadContextStore(initialState);
 	}
 
-	// Sync store with prop changes
-	// This ensures the store updates when navigating between chats
-	useEffect(() => {
-		if (storeRef.current) {
-			storeRef.current.getState().setThreadContext(initialContext);
-		}
-	}, [initialContext]);
 
 	return (
 		<ThreadContextStoreContext.Provider value={storeRef.current}>
