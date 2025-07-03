@@ -13,7 +13,7 @@ export function useOptimisticThreadCreateWithUserAndAssistantMessage() {
 	const currentUser = useQuery(api.users.current);
 
 	return useMutation(
-		api.threads.createThreadWithFirstMessage,
+		api.threads.createThreadWithFirstMessages,
 	).withOptimisticUpdate((localStore, args) => {
 		const { clientThreadId, message, modelId } = args;
 
@@ -112,16 +112,6 @@ export function useOptimisticThreadCreateWithUserAndAssistantMessage() {
 			api.messages.listByClientId,
 			{ clientId: clientThreadId },
 			[...existingMessages, optimisticUserMessage, optimisticAssistantMessage],
-		);
-
-		// Also update the thread to show it's generating
-		localStore.setQuery(
-			api.threads.get,
-			{ threadId: optimisticThreadId },
-			{
-				...optimisticThread,
-				isGenerating: true,
-			},
 		);
 
 		return {

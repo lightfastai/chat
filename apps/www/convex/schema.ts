@@ -56,20 +56,18 @@ export default defineSchema({
 		clientId: v.optional(clientIdValidator), // Client-generated ID for instant navigation
 		title: titleValidator,
 		userId: v.id("users"),
-		createdAt: v.number(),
-		lastMessageAt: v.number(),
-		isTitleGenerating: v.optional(v.boolean()),
-		isGenerating: v.optional(v.boolean()),
 		pinned: v.optional(v.boolean()),
-		// Branch information
 		branchedFrom: branchInfoValidator,
-		// Share functionality
 		isPublic: v.optional(v.boolean()), // Whether the thread is publicly accessible
 		shareId: v.optional(shareIdValidator), // Unique ID for share links
 		sharedAt: v.optional(v.number()), // Timestamp when first shared
 		shareSettings: shareSettingsValidator,
-		// Thread-level usage tracking (denormalized for performance)
 		usage: threadUsageValidator,
+		// @deprecated fields
+		createdAt: v.optional(v.number()),
+		isTitleGenerating: v.optional(v.boolean()),
+		isGenerating: v.optional(v.boolean()),
+		lastMessageAt: v.number(),
 	})
 		.index("by_user", ["userId"])
 		.index("by_client_id", ["clientId"])

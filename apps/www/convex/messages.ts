@@ -9,7 +9,6 @@
 
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { getModelById } from "../src/lib/ai/schemas.js";
 import { internal } from "./_generated/api.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import {
@@ -19,30 +18,12 @@ import {
   query,
 } from "./_generated/server.js";
 import {
-  branchInfoValidator,
   messageStatusValidator,
   clientIdValidator,
   modelIdValidator,
-  modelProviderValidator,
-  shareIdValidator,
-  shareSettingsValidator,
-  textPartValidator,
-  threadUsageValidator,
-  tokenUsageValidator,
+  modelProviderValidator, textPartValidator, tokenUsageValidator
 } from "./validators.js";
 
-// Import utility functions from messages/ directory
-
-// Type definitions for multimodal content
-type TextPart = { type: "text"; text: string };
-type ImagePart = { type: "image"; image: string | URL };
-type FilePart = {
-	type: "file";
-	data: string | URL;
-	mediaType: string;
-};
-
-export type MultimodalContent = string | Array<TextPart | ImagePart | FilePart>;
 
 // Export types
 export type {
@@ -256,136 +237,12 @@ export const getThreadById = internalQuery({
 	args: {
 		threadId: v.id("threads"),
 	},
-	returns: v.union(
-		v.object({
-			_id: v.id("threads"),
-			_creationTime: v.number(),
-			userId: v.id("users"),
-			clientId: v.optional(clientIdValidator),
-			title: v.string(),
-			createdAt: v.number(),
-			lastMessageAt: v.number(),
-			isGenerating: v.optional(v.boolean()),
-			isTitleGenerating: v.optional(v.boolean()),
-			pinned: v.optional(v.boolean()),
-			// Branch information
-			branchedFrom: branchInfoValidator,
-			// Share functionality
-			isPublic: v.optional(v.boolean()),
-			shareId: v.optional(shareIdValidator),
-			sharedAt: v.optional(v.number()),
-			shareSettings: shareSettingsValidator,
-			usage: threadUsageValidator,
-		}),
-		v.null(),
-	),
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.threadId);
 	},
 });
 
 // ===== MUTATIONS =====
-
-// Internal mutation to build message content with attachments
-export const buildMessageContent = internalMutation({
-	args: {
-		text: v.string(),
-		attachmentIds: v.optional(v.array(v.id("files"))),
-		provider: v.optional(
-			v.union(
-				v.literal("openai"),
-				v.literal("anthropic"),
-				v.literal("openrouter"),
-			),
-		),
-		modelId: v.optional(modelIdValidator),
-	},
-	returns: v.union(
-		v.string(),
-		v.array(
-			v.union(
-				v.object({ type: v.literal("text"), text: v.string() }),
-				v.object({
-					type: v.literal("image"),
-					image: v.union(v.string(), v.any()),
-				}),
-				v.object({
-					type: v.literal("file"),
-					data: v.union(v.string(), v.any()),
-					mediaType: v.string(),
-				}),
-			),
-		),
-	),
-	handler: async (ctx, args) => {
-		// If no attachments, return simple text content
-		if (!args.attachmentIds || args.attachmentIds.length === 0) {
-			return args.text;
-		}
-
-		// Get model configuration to check capabilities
-		const modelConfig = args.modelId ? getModelById(args.modelId) : null;
-		const hasVisionSupport = modelConfig?.features.vision ?? false;
-		const hasPdfSupport = modelConfig?.features.pdfSupport ?? false;
-
-		// Build content array with text and files
-		const content = [{ type: "text" as const, text: args.text }] as Array<
-			TextPart | ImagePart | FilePart
-		>;
-
-		// Fetch each file with its URL
-		for (const fileId of args.attachmentIds) {
-			const file = await ctx.runQuery(internal.files.getFileWithUrl, {
-				fileId,
-			});
-			if (!file || !file.url) continue;
-
-			// Handle images
-			if (file.fileType.startsWith("image/")) {
-				if (!hasVisionSupport) {
-					// Model doesn't support vision
-					if (content[0] && "text" in content[0]) {
-						content[0].text += `\n\n[Attached image: ${file.fileName}]\n⚠️ Note: ${modelConfig?.displayName || "This model"} cannot view images. Please switch to GPT-4o, GPT-4o Mini, or any Claude model to analyze this image.`;
-					}
-				} else {
-					// Model supports vision - all models use URLs (no base64 needed)
-					content.push({
-						type: "image" as const,
-						image: file.url,
-					});
-				}
-			}
-			// Handle PDFs
-			else if (file.fileType === "application/pdf") {
-				if (hasPdfSupport && args.provider === "anthropic") {
-					// Claude supports PDFs as file type
-					content.push({
-						type: "file" as const,
-						data: file.url,
-						mediaType: "application/pdf",
-					});
-				} else {
-					// PDF not supported - add as text description
-					const description = `\n[Attached PDF: ${file.fileName} (${(file.fileSize / 1024).toFixed(1)}KB)] - Note: PDF content analysis requires Claude models.`;
-					content.push({
-						type: "text" as const,
-						text: description,
-					});
-				}
-			}
-			// For other file types, add as text description
-			else {
-				const description = `\n[Attached file: ${file.fileName} (${file.fileType}, ${(file.fileSize / 1024).toFixed(1)}KB)]`;
-
-				if (content[0] && "text" in content[0]) {
-					content[0].text += description;
-				}
-			}
-		}
-
-		return content;
-	},
-});
 
 // Internal mutation to update message API key status
 export const updateMessageApiKeyStatus = internalMutation({
@@ -846,10 +703,8 @@ export const createAssistantMessage = internalMutation({
 	},
 });
 
-// ===== PUBLIC MUTATIONS =====
-
 // Mutation to create messages in existing threads (for optimistic updates)
-export const create = mutation({
+export const createSubsequentMessages = mutation({
 	args: {
 		threadId: v.id("threads"),
 		message: textPartValidator,
@@ -889,12 +744,6 @@ export const create = mutation({
 				modelId: args.modelId,
 			},
 		);
-
-		// Update thread state
-		await ctx.db.patch(args.threadId, {
-			isGenerating: true,
-			lastMessageAt: Date.now(),
-		});
 
 		return {
 			userMessageId,

@@ -12,7 +12,7 @@ export function useOptimisticMessageCreate() {
 	// Get the current user to use in optimistic updates
 	const currentUser = useQuery(api.users.current);
 
-	return useMutation(api.messages.create).withOptimisticUpdate(
+	return useMutation(api.messages.createSubsequentMessages).withOptimisticUpdate(
 		(localStore, args) => {
 			const { threadId, message, modelId } = args;
 
@@ -106,17 +106,6 @@ export function useOptimisticMessageCreate() {
 						: t,
 				);
 				localStore.setQuery(api.threads.list, {}, updatedThreadsList);
-
-				// Also update the getByClientId query if it exists
-				localStore.setQuery(
-					api.threads.getByClientId,
-					{ clientId: thread.clientId },
-					{
-						...currentThread,
-						isGenerating: true,
-						lastMessageAt: now,
-					},
-				);
 			}
 
 			return {

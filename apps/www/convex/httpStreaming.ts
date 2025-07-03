@@ -33,7 +33,7 @@ import { httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
 import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
-import { createSystemPrompt } from "./lib/message_builder";
+import { createSystemPrompt } from "./lib/create_system_prompt";
 import { getModelStreamingDelay } from "./lib/streaming_config";
 import { handleAIResponseError } from "./messages/helpers";
 import type { modelIdValidator, } from "./validators";

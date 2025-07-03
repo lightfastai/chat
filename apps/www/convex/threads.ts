@@ -6,10 +6,10 @@ import { mutation, query } from "./_generated/server.js";
 import { getAuthenticatedUserId } from "./lib/auth.js";
 import { getWithOwnership } from "./lib/database.js";
 import {
-	clientIdValidator,
-	clientThreadIdValidator,
-	modelIdValidator,
-	textPartValidator,
+  clientIdValidator,
+  clientThreadIdValidator,
+  modelIdValidator,
+  textPartValidator,
 } from "./validators.js";
 
 // List initial threads for preloading (first 20)
@@ -91,7 +91,7 @@ function getDateCategory(lastMessageAt: number): string {
 }
 
 // Create a new thread with optimistic update
-export const createThreadWithFirstMessage = mutation({
+export const createThreadWithFirstMessages = mutation({
 	args: {
 		clientThreadId: clientThreadIdValidator,
 		message: textPartValidator,
