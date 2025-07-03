@@ -129,7 +129,7 @@ export function InfiniteScrollThreadsList({
 	const loadMoreRef = useRef<HTMLDivElement>(null);
 
 	// Use separate query for pinned threads (non-paginated, always loaded)
-	const pinnedThreads = useQuery(api.threads.listPinned, {}) ?? [];
+	const pinnedThreads = useQuery(api.threads.listPinned, {});
 
 	// Use paginated query ONLY for unpinned threads
 	const {
@@ -188,8 +188,14 @@ export function InfiniteScrollThreadsList({
 		return () => observer.disconnect();
 	}, [status, isLoading, loadMore]);
 
-	// Show empty state if no threads (check both pinned and unpinned)
-	if (pinnedThreads.length === 0 && unpinnedThreads.length === 0) {
+	// Show empty state only if both queries have loaded and are confirmed empty
+	const pinnedLoaded = pinnedThreads !== undefined;
+	const pinnedEmpty = pinnedThreads?.length === 0;
+	const unpinnedLoaded = status !== "LoadingFirstPage";
+	const unpinnedEmpty = unpinnedThreads.length === 0;
+
+	// Only show "No conversations yet" when both are loaded AND empty
+	if (pinnedLoaded && pinnedEmpty && unpinnedLoaded && unpinnedEmpty) {
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
@@ -204,7 +210,7 @@ export function InfiniteScrollThreadsList({
 		<ScrollArea ref={scrollAreaRef} className={className}>
 			<div className="w-full max-w-full min-w-0 overflow-hidden">
 				{/* Pinned threads section */}
-				{pinnedThreads.length > 0 && (
+				{pinnedThreads && pinnedThreads.length > 0 && (
 					<ThreadGroup
 						categoryName="Pinned"
 						threads={pinnedThreads}
