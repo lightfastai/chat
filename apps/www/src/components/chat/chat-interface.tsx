@@ -2,7 +2,7 @@
 
 import { useChat } from "@/hooks/use-chat";
 import type { Preloaded } from "convex/react";
-import { usePreloadedQuery } from "convex/react";
+import { usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 import { CenteredChatStart } from "./centered-chat-start";
@@ -21,9 +21,13 @@ export function ChatInterface({
 	preloadedUser,
 	preloadedUserSettings,
 }: ChatInterfaceProps) {
-	// Let useChat determine everything from the current pathname
+  const dbMessages = preloadedMessages ? usePreloadedQuery(preloadedMessages) : useQuery(api.messages.listByClientId, {
+    clientId: "123",
+  }) || []
+
+  // Let useChat determine everything from the current pathname
 	const { messages, sendMessage, status, canSendMessage, isNewChat } = useChat({
-		initialMessages: preloadedMessages ? convertDbMessagesToUIMessages(usePreloadedQuery(preloadedMessages)) : [],
+		initialMessages: convertDbMessagesToUIMessages(dbMessages),
 		preloadedUserSettings,
 	});
 
@@ -33,7 +37,7 @@ export function ChatInterface({
 			<CenteredChatStart
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}
-				dbMessages={preloadedMessages ? usePreloadedQuery(preloadedMessages) : undefined}
+				dbMessages={dbMessages}
 				preloadedUser={preloadedUser}
 			/>
 		);
@@ -42,14 +46,14 @@ export function ChatInterface({
 	return (
 		<div className="flex flex-col h-full">
 			<ChatMessages
-				dbMessages={preloadedMessages ? usePreloadedQuery(preloadedMessages) : undefined}
+				dbMessages={dbMessages}
 				vercelMessages={messages}
 				status={status}
 			/>
 			<ChatInput
 				onSendMessage={sendMessage}
 				disabled={!canSendMessage}
-				dbMessages={preloadedMessages ? usePreloadedQuery(preloadedMessages) : undefined}
+				dbMessages={dbMessages}
 			/>
 		</div>
 	);
