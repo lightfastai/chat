@@ -45,25 +45,6 @@ export const ThreadContextStoreProvider = ({
 		storeRef.current = createThreadContextStore(initialState);
 	}
 
-	// Immediately sync on render if we're on /chat with new context
-	// This prevents flash of old content before useEffect runs
-	if (
-		pathname === "/chat" &&
-		initialContext.type === "new" &&
-		storeRef.current
-	) {
-		const currentState = storeRef.current.getState();
-		if (
-			currentState.threadContext.type === "existing" ||
-			currentState.threadContext.clientId !== initialContext.clientId
-		) {
-			storeRef.current.setState({
-				threadContext: initialContext,
-				threadId: undefined,
-			});
-		}
-	}
-
 	// Sync store with prop changes AND reset on navigation to /chat
 	useEffect(() => {
 		if (storeRef.current) {
