@@ -24,7 +24,7 @@ import { ThreadItem } from "./thread-item";
 type Thread = Doc<"threads">;
 
 interface InfiniteScrollThreadsListProps {
-	preloadedThreads: Preloaded<typeof api.threads.list>; // Kept for backward compatibility
+	preloadedThreads: Preloaded<typeof api.threads.list>; // Initial threads data
 	className?: string;
 }
 
