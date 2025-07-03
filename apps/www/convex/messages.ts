@@ -13,12 +13,12 @@ import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
 import {
-  clientIdValidator,
-  messageStatusValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  textPartValidator,
-  tokenUsageValidator,
+	clientIdValidator,
+	messageStatusValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	textPartValidator,
+	tokenUsageValidator,
 } from "./validators.js";
 
 // Export types

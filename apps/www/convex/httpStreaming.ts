@@ -11,23 +11,23 @@
  */
 
 import {
-  type ModelMessage,
-  type ReasoningUIPart,
-  type TextUIPart,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type ReasoningUIPart,
+	type TextUIPart,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -37,12 +37,15 @@ import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  handleStreamingSetupError,
-  createHTTPErrorResponse,
+	createHTTPErrorResponse,
+	extractErrorDetails,
+	formatErrorMessage,
+	handleStreamingSetupError,
+	logStreamingError,
 } from "./lib/error_handling";
 import {
-  StreamingReasoningWriter,
-  StreamingTextWriter,
+	StreamingReasoningWriter,
+	StreamingTextWriter,
 } from "./lib/streaming_writers";
 import type { DbMessage, DbMessagePart } from "./types";
 import type { modelIdValidator } from "./validators";
@@ -340,21 +343,11 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					textWriter.dispose();
 					reasoningWriter.dispose();
 
-					// Extract error information
-					const errorMessage =
-						error instanceof Error ? error.message : String(error);
-					const errorName =
-						error instanceof Error ? error.name : "Unknown Error";
-					const errorStack = error instanceof Error ? error.stack : undefined;
+					// Use composable error handling functions
+					logStreamingError(error, "StreamingResponse");
 
-					// Log specific error types for monitoring
-					if (errorMessage.includes("rate limit")) {
-						console.error("Rate limit error during streaming:", error);
-					} else if (errorMessage.includes("timeout")) {
-						console.error("Timeout error during streaming:", error);
-					} else {
-						console.error("Streaming error:", error);
-					}
+					const userFriendlyMessage = formatErrorMessage(error);
+					const errorDetails = extractErrorDetails(error);
 
 					// Update message status to error
 					await ctx.runMutation(internal.messages.updateMessageStatus, {
@@ -365,11 +358,11 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					// Add error part to message for visibility
 					await ctx.runMutation(internal.messages.addErrorPart, {
 						messageId: assistantMessage._id,
-						errorMessage: errorMessage || "An error occurred during streaming",
+						errorMessage: userFriendlyMessage,
 						errorDetails: {
-							name: errorName,
-							stack: errorStack,
-							raw: error,
+							...errorDetails,
+							context: "streaming_response",
+							modelId: modelId as ModelId,
 						},
 					});
 				},
