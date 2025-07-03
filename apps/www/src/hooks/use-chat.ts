@@ -206,10 +206,11 @@ export function useChat(options: UseChatOptions = {}) {
 			},
 		};
 
-		// Get existing threads from the store
-		const existingThreads = localStore.getQuery(api.threads.list, {}) || [];
+		// Update the pinned threads query (new threads are unpinned by default, so no action needed)
+		// The paginated query will refresh on its own after the mutation completes
 
-		// Add the new thread at the beginning of the list for sidebar display
+		// Also update the legacy query for backward compatibility
+		const existingThreads = localStore.getQuery(api.threads.list, {}) || [];
 		localStore.setQuery(api.threads.list, {}, [
 			optimisticThread as Doc<"threads">,
 			...existingThreads,
@@ -383,6 +384,29 @@ export function useChat(options: UseChatOptions = {}) {
 						localStore.setQuery(api.threads.list, {}, newThreadsList);
 					}
 				}
+
+				// Also update the pinned threads query if the thread is pinned
+				const threadToUpdate = localStore.getQuery(api.threads.get, { threadId });
+				if (threadToUpdate?.pinned) {
+					// Update pinned threads list
+					const existingPinnedThreads = localStore.getQuery(api.threads.listPinned, {});
+					if (existingPinnedThreads) {
+						const pinnedIndex = existingPinnedThreads.findIndex((t) => t._id === threadId);
+						if (pinnedIndex >= 0) {
+							const updatedPinnedThread = {
+								...existingPinnedThreads[pinnedIndex],
+								isGenerating: true,
+								lastMessageAt: now,
+							};
+							const newPinnedList = [
+								updatedPinnedThread,
+								...existingPinnedThreads.filter((_, i) => i !== pinnedIndex),
+							];
+							localStore.setQuery(api.threads.listPinned, {}, newPinnedList);
+						}
+					}
+				}
+				// For unpinned threads, the paginated query will update automatically
 			}
 		},
 	);
