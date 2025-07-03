@@ -3,8 +3,10 @@
 import { Button } from "@lightfast/ui/components/ui/button";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
+	SidebarGroup,
+	SidebarGroupContent,
 	SidebarGroupLabel,
-	SidebarMenuItem,
+	SidebarMenu,
 } from "@lightfast/ui/components/ui/sidebar";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -24,27 +26,6 @@ type Thread = Doc<"threads">;
 interface SimpleVirtualizedThreadsListProps {
 	preloadedThreads: Preloaded<typeof api.threads.list>;
 	className?: string;
-}
-
-// Constants for sizing
-const THREAD_ITEM_HEIGHT = 40; // Height of a single thread item
-const GROUP_HEADER_HEIGHT = 32; // Height of group label
-const GROUP_PADDING_TOP = 8; // Top padding of SidebarGroup
-const GROUP_PADDING_BOTTOM = 8; // Bottom padding of SidebarGroup
-const LOAD_MORE_HEIGHT = 56; // Height of load more button
-
-// Virtual item types
-type VirtualItemType = "group-header" | "thread" | "load-more";
-
-interface VirtualItem {
-	key: string;
-	type: VirtualItemType;
-	// For group headers
-	groupName?: string;
-	// For threads
-	thread?: Thread;
-	// For sizing
-	size: number;
 }
 
 // Group threads by date
@@ -80,6 +61,44 @@ function groupThreadsByDate(threads: Thread[]) {
 	}
 
 	return groups;
+}
+
+// Component to render a group of threads
+function ThreadGroup({
+	categoryName,
+	threads,
+	onPinToggle,
+}: {
+	categoryName: string;
+	threads: Thread[];
+	onPinToggle: (threadId: Id<"threads">) => void;
+}) {
+	return (
+		<SidebarGroup className="w-58">
+			<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+				{categoryName}
+			</SidebarGroupLabel>
+			<SidebarGroupContent className="w-full max-w-full overflow-hidden">
+				<SidebarMenu className="space-y-0.5">
+					{threads.map((thread) => (
+						<ThreadItem
+							key={thread._id}
+							thread={thread}
+							onPinToggle={onPinToggle}
+						/>
+					))}
+				</SidebarMenu>
+			</SidebarGroupContent>
+		</SidebarGroup>
+	);
+}
+
+// Virtual item types
+interface VirtualItem {
+	key: string;
+	type: "group" | "load-more";
+	categoryName?: string;
+	threads?: Thread[];
 }
 
 export function SimpleVirtualizedThreadsList({
@@ -169,37 +188,21 @@ export function SimpleVirtualizedThreadsList({
 		[unpinned],
 	);
 
-	// Create flat list of virtual items with proper sizing
+	// Create virtual items for rendering
 	const virtualItems = useMemo(() => {
 		const items: VirtualItem[] = [];
 
-		// Add pinned section if there are pinned threads
+		// Add pinned threads section
 		if (pinned.length > 0) {
-			// Add group header
 			items.push({
-				key: "pinned-header",
-				type: "group-header",
-				groupName: "Pinned",
-				size: GROUP_HEADER_HEIGHT + GROUP_PADDING_TOP,
+				key: "pinned-group",
+				type: "group",
+				categoryName: "Pinned",
+				threads: pinned,
 			});
-
-			// Add each pinned thread
-			for (const thread of pinned) {
-				items.push({
-					key: `thread-${thread._id}`,
-					type: "thread",
-					thread,
-					size: THREAD_ITEM_HEIGHT,
-				});
-			}
-
-			// Add bottom padding for the group
-			if (items.length > 0) {
-				items[items.length - 1].size += GROUP_PADDING_BOTTOM;
-			}
 		}
 
-		// Add date groups
+		// Add regular threads grouped by date
 		const categoryOrder = [
 			"Today",
 			"Yesterday",
@@ -211,37 +214,20 @@ export function SimpleVirtualizedThreadsList({
 		for (const category of categoryOrder) {
 			const categoryThreads = groupedThreads[category];
 			if (categoryThreads && categoryThreads.length > 0) {
-				// Add group header
 				items.push({
-					key: `${category.toLowerCase().replace(/\s+/g, "-")}-header`,
-					type: "group-header",
-					groupName: category,
-					size: GROUP_HEADER_HEIGHT + GROUP_PADDING_TOP,
+					key: `${category.toLowerCase().replace(/\s+/g, "-")}-group`,
+					type: "group",
+					categoryName: category,
+					threads: categoryThreads,
 				});
-
-				// Add each thread in the group
-				for (const thread of categoryThreads) {
-					items.push({
-						key: `thread-${thread._id}`,
-						type: "thread",
-						thread,
-						size: THREAD_ITEM_HEIGHT,
-					});
-				}
-
-				// Add bottom padding for the group
-				if (items.length > 0) {
-					items[items.length - 1].size += GROUP_PADDING_BOTTOM;
-				}
 			}
 		}
 
-		// Add load more button if needed
+		// Add load more button if there might be more threads
 		if (hasMore && threads.length >= 20) {
 			items.push({
 				key: "load-more",
 				type: "load-more",
-				size: LOAD_MORE_HEIGHT,
 			});
 		}
 
@@ -305,17 +291,40 @@ export function SimpleVirtualizedThreadsList({
 		}
 	}, []);
 
-	// Set up virtualizer with fixed sizes
+	// Calculate size for each virtual item
+	const estimateSize = useCallback(
+		(index: number) => {
+			const item = virtualItems[index];
+			if (!item) return 100;
+
+			if (item.type === "load-more") {
+				return 56; // Load more button height
+			}
+
+			// For groups, calculate based on:
+			// - SidebarGroup padding: p-2 (8px top + 8px bottom = 16px)
+			// - SidebarGroupLabel: h-8 (32px)
+			// - SidebarMenu gap: space-y-0.5 (2px between items)
+			// - Thread items: ~40px each
+			const threads = item.threads || [];
+			const groupPadding = 16;
+			const labelHeight = 32;
+			const threadHeight = 40;
+			const threadGaps = threads.length > 0 ? (threads.length - 1) * 2 : 0;
+
+			return (
+				groupPadding + labelHeight + threads.length * threadHeight + threadGaps
+			);
+		},
+		[virtualItems],
+	);
+
+	// Set up virtualizer
 	const virtualizer = useVirtualizer({
 		count: virtualItems.length,
 		getScrollElement: () => scrollElement,
-		estimateSize: useCallback(
-			(index: number) => {
-				return virtualItems[index]?.size || THREAD_ITEM_HEIGHT;
-			},
-			[virtualItems],
-		),
-		overscan: 5,
+		estimateSize,
+		overscan: 2,
 		enabled: scrollElement !== null,
 		getItemKey: useCallback(
 			(index: number) => virtualItems[index]?.key || `item-${index}`,
@@ -335,55 +344,33 @@ export function SimpleVirtualizedThreadsList({
 		);
 	}
 
-	// Render helper for virtual items
-	const renderVirtualItem = (item: VirtualItem) => {
-		switch (item.type) {
-			case "group-header":
-				return (
-					<div
-						className="sticky top-0 z-10 bg-sidebar"
-						style={{ paddingTop: GROUP_PADDING_TOP }}
-					>
-						<SidebarGroupLabel className="text-xs font-medium text-muted-foreground">
-							{item.groupName}
-						</SidebarGroupLabel>
-					</div>
-				);
-
-			case "thread":
-				return item.thread ? (
-					<SidebarMenuItem className="w-full max-w-full min-w-0 overflow-hidden">
-						<ThreadItem thread={item.thread} onPinToggle={handlePinToggle} />
-					</SidebarMenuItem>
-				) : null;
-
-			case "load-more":
-				return (
-					<div className="flex justify-center py-4">
-						<Button
-							onClick={handleLoadMore}
-							disabled={isLoadingMore}
-							variant="ghost"
-							size="sm"
-							className="text-xs"
-						>
-							{isLoadingMore ? "Loading..." : "Load More"}
-						</Button>
-					</div>
-				);
-
-			default:
-				return null;
-		}
-	};
-
 	// Render non-virtualized content while scroll element is loading
 	if (!scrollElement) {
 		return (
 			<ScrollArea ref={scrollAreaRef} className={className}>
 				<div className="w-full max-w-full min-w-0 overflow-hidden">
 					{virtualItems.map((item) => (
-						<div key={item.key}>{renderVirtualItem(item)}</div>
+						<div key={item.key}>
+							{item.type === "group" && item.threads && item.categoryName ? (
+								<ThreadGroup
+									categoryName={item.categoryName}
+									threads={item.threads}
+									onPinToggle={handlePinToggle}
+								/>
+							) : item.type === "load-more" ? (
+								<div className="flex justify-center py-4">
+									<Button
+										onClick={handleLoadMore}
+										disabled={isLoadingMore}
+										variant="ghost"
+										size="sm"
+										className="text-xs"
+									>
+										{isLoadingMore ? "Loading..." : "Load More"}
+									</Button>
+								</div>
+							) : null}
+						</div>
 					))}
 				</div>
 			</ScrollArea>
@@ -417,7 +404,25 @@ export function SimpleVirtualizedThreadsList({
 									transform: `translateY(${virtualRow.start}px)`,
 								}}
 							>
-								{renderVirtualItem(item)}
+								{item.type === "group" && item.threads && item.categoryName ? (
+									<ThreadGroup
+										categoryName={item.categoryName}
+										threads={item.threads}
+										onPinToggle={handlePinToggle}
+									/>
+								) : item.type === "load-more" ? (
+									<div className="flex justify-center py-4">
+										<Button
+											onClick={handleLoadMore}
+											disabled={isLoadingMore}
+											variant="ghost"
+											size="sm"
+											className="text-xs"
+										>
+											{isLoadingMore ? "Loading..." : "Load More"}
+										</Button>
+									</div>
+								) : null}
 							</div>
 						);
 					})}
