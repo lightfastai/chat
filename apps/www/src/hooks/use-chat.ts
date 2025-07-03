@@ -6,7 +6,7 @@ import { useAuthToken } from "@convex-dev/auth/react";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useMemo } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { ModelId } from "../lib/ai/schemas";
@@ -16,8 +16,6 @@ import { useCreateSubsequentMessages } from "./use-create-subsequent-messages";
 import { useCreateThreadWithFirstMessages } from "./use-create-thread-with-first-messages";
 
 interface UseChatProps {
-	/** The clientId if it exists */
-	clientId: string | null;
 	initialMessages: UIMessage[];
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
@@ -27,7 +25,6 @@ interface UseChatProps {
  * Uses Vercel AI SDK with custom Convex transport for streaming
  */
 export function useChat({
-	clientId,
 	initialMessages,
 	preloadedUserSettings,
 }: UseChatProps) {
@@ -39,8 +36,31 @@ export function useChat({
 	// Track if user has ever sent a message
 	const hasEverSentMessage = useRef(false);
 
-	// Determine if this is a new chat based on pathname
-	const isNewChat = pathname === "/chat" && !clientId;
+	// Extract current thread info from pathname (like staging)
+	const pathInfo = useMemo(() => {
+		if (pathname === "/chat") {
+			return { type: "new", id: "new" };
+		}
+
+		const match = pathname.match(/^\/chat\/(.+)$/);
+		if (!match) {
+			return { type: "new", id: "new" };
+		}
+
+		const id = match[1];
+
+		// Handle special routes
+		if (id === "settings" || id.startsWith("settings/")) {
+			return { type: "settings", id: "settings" };
+		}
+
+		// Assume it's a client-generated ID for now
+		return { type: "clientId", id };
+	}, [pathname]);
+
+	const currentClientId = pathInfo.type === "clientId" ? pathInfo.id : null;
+	const isSettingsPage = pathInfo.type === "settings";
+	const isNewChat = pathInfo.type === "new";
 
 	// Reset when we're in a truly new chat
 	useEffect(() => {
@@ -54,7 +74,7 @@ export function useChat({
 	// Query thread if we have a clientId
 	const thread = useQuery(
 		api.threads.getByClientId,
-		clientId ? { clientId } : "skip",
+		currentClientId && !isSettingsPage ? { clientId: currentClientId } : "skip",
 	);
 
 	// Extract data from preloaded queries if available
@@ -73,7 +93,7 @@ export function useChat({
 	});
 
 	// Generate or use existing clientId for the chat session
-	const chatId = clientId || nanoid();
+	const chatId = currentClientId || nanoid();
 
 	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
