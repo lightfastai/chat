@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@lightfast/ui/components/ui/button";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
 	SidebarGroup,
@@ -16,7 +15,7 @@ import {
 	usePaginatedQuery,
 	usePreloadedQuery,
 } from "convex/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
@@ -128,7 +127,6 @@ export function InfiniteScrollThreadsList({
 	const togglePinned = useMutation(api.threads.togglePinned);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const loadMoreRef = useRef<HTMLDivElement>(null);
-	const [showLoadingSkeletons, setShowLoadingSkeletons] = useState(false);
 
 	// Use preloaded data for immediate threads (includes both pinned and unpinned)
 	const initialThreads = usePreloadedQuery(preloadedThreads);
@@ -247,13 +245,9 @@ export function InfiniteScrollThreadsList({
 				if (
 					entry.isIntersecting &&
 					status === "CanLoadMore" &&
-					!isLoading &&
-					!showLoadingSkeletons
+					!isLoading
 				) {
-					setShowLoadingSkeletons(true);
 					await loadMore(5); // Load 5 more items
-					// Add a small delay to show the loading state
-					setTimeout(() => setShowLoadingSkeletons(false), 300);
 				}
 			},
 			{
@@ -267,7 +261,7 @@ export function InfiniteScrollThreadsList({
 		}
 
 		return () => observer.disconnect();
-	}, [status, isLoading, showLoadingSkeletons, loadMore]);
+	}, [status, isLoading, loadMore]);
 
 	// Show empty state if no threads
 	if (initialThreads.length === 0) {
@@ -311,8 +305,8 @@ export function InfiniteScrollThreadsList({
 					},
 				)}
 
-				{/* Loading skeletons only when actively loading */}
-				{showLoadingSkeletons && <LoadingGroup />}
+				{/* Loading skeletons when actively loading */}
+				{isLoading && <LoadingGroup />}
 
 				{/* Intersection observer target for auto-loading */}
 				{status === "CanLoadMore" && (
@@ -322,24 +316,6 @@ export function InfiniteScrollThreadsList({
 						style={{ minHeight: "16px" }} // Prevent layout shift
 					>
 						{/* Invisible trigger for intersection observer */}
-					</div>
-				)}
-
-				{/* Manual load more button (fallback) - only when not loading and auto-loading failed */}
-				{status === "CanLoadMore" && !showLoadingSkeletons && !isLoading && (
-					<div className="flex justify-center py-4">
-						<Button
-							onClick={async () => {
-								setShowLoadingSkeletons(true);
-								await loadMore(5);
-								setTimeout(() => setShowLoadingSkeletons(false), 300);
-							}}
-							variant="ghost"
-							size="sm"
-							className="text-xs"
-						>
-							Load More
-						</Button>
 					</div>
 				)}
 			</div>
