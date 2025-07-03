@@ -42,7 +42,10 @@ export const ModelConfigSchema = z.object({
 	deprecated: z.boolean().optional(),
 	replacedBy: z.string().optional(),
 	hidden: z.boolean().optional(),
-	streamingDelay: z.number().optional().describe("Streaming delay in milliseconds for optimal readability"),
+	streamingDelay: z
+		.number()
+		.optional()
+		.describe("Streaming delay in milliseconds for optimal readability"),
 });
 export type ModelConfig = z.infer<typeof ModelConfigSchema>;
 

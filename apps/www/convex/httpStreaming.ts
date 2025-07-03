@@ -269,11 +269,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				}),
 				onChunk: async ({ chunk }) => {
 					// Handle Vercel AI SDK v5 chunk types
-					// @todo check source, tool-call, tool-result and any other chunk we missed.
 					switch (chunk.type) {
 						case "text":
 							if (chunk.text) {
-								await transitionToStreaming();
 								textWriter.append(chunk.text);
 								fullText += chunk.text;
 							}
@@ -281,7 +279,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 						case "reasoning":
 							if (chunk.text) {
-								await transitionToStreaming();
 								reasoningWriter.append(chunk.text);
 							}
 							break;
@@ -315,9 +312,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							});
 							break;
 
+
 						default:
 							// Log unexpected chunk types for debugging
-							console.warn("Unexpected chunk type", chunk);
+							console.warn("Unexpected chunk type:", chunk.type, chunk);
 					}
 				},
 				onFinish: async (result) => {
@@ -343,6 +341,48 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					await ctx.runMutation(internal.messages.updateMessageStatus, {
 						messageId: assistantMessage._id,
 						status: "submitted",
+					});
+				},
+				onError: async ({ error }) => {
+					// Flush any partial content
+					await Promise.all([
+						textWriter.flush().catch(console.error),
+						reasoningWriter.flush().catch(console.error),
+					]);
+
+					// Clean up writers
+					textWriter.dispose();
+					reasoningWriter.dispose();
+
+					// Extract error information
+					const errorMessage = error instanceof Error ? error.message : String(error);
+					const errorName = error instanceof Error ? error.name : "Unknown Error";
+					const errorStack = error instanceof Error ? error.stack : undefined;
+
+					// Log specific error types for monitoring
+					if (errorMessage.includes("rate limit")) {
+						console.error("Rate limit error during streaming:", error);
+					} else if (errorMessage.includes("timeout")) {
+						console.error("Timeout error during streaming:", error);
+					} else {
+						console.error("Streaming error:", error);
+					}
+
+					// Update message status to error
+					await ctx.runMutation(internal.messages.updateMessageStatus, {
+						messageId: assistantMessage._id,
+						status: "error",
+					});
+
+					// Add error part to message for visibility
+					await ctx.runMutation(internal.messages.addErrorPart, {
+						messageId: assistantMessage._id,
+						errorMessage: errorMessage || "An error occurred during streaming",
+						errorDetails: {
+							name: errorName,
+							stack: errorStack,
+							raw: error,
+						},
 					});
 				},
 			};
@@ -373,6 +413,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			// Stream the text and return UI message stream response
 			const result = streamText(generationOptions);
 
+			// Immediately transition to streaming status
+			await transitionToStreaming();
+
 			// Return the stream response
 			// The frontend will handle merging assistant messages with user messages
 			return result.toUIMessageStreamResponse({
@@ -386,28 +429,33 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				},
 			});
 		} catch (error) {
-			// Clean up writers on error
-			await Promise.all([
-				textWriter.flush().catch(console.error),
-				reasoningWriter.flush().catch(console.error),
-			]);
+			// Only clean up if onError wasn't called
+			// (onError handles its own cleanup)
+			if (!hasTransitionedToStreaming) {
+				// Clean up writers on error
+				await Promise.all([
+					textWriter.flush().catch(console.error),
+					reasoningWriter.flush().catch(console.error),
+				]);
 
-			textWriter.dispose();
-			reasoningWriter.dispose();
+				textWriter.dispose();
+				reasoningWriter.dispose();
 
-			console.error("Streaming error:", error);
+				console.error("Pre-streaming error:", error);
 
-			await handleAIResponseError(
-				ctx,
-				error,
-				thread._id,
-				assistantMessage._id,
-				{
-					modelId: modelId as ModelId,
-					provider: getProviderFromModelId(modelId as ModelId),
-					useStreamingUpdate: true,
-				},
-			);
+				// Handle error that occurred before streaming started
+				await handleAIResponseError(
+					ctx,
+					error,
+					thread._id,
+					assistantMessage._id,
+					{
+						modelId: modelId as ModelId,
+						provider: getProviderFromModelId(modelId as ModelId),
+						useStreamingUpdate: true,
+					},
+				);
+			}
 
 			throw error;
 		}

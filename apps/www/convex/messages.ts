@@ -11,18 +11,14 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.js";
+import { internalMutation, mutation, query } from "./_generated/server.js";
 import {
-  internalMutation,
-  mutation,
-  query,
-} from "./_generated/server.js";
-import {
-  clientIdValidator,
-  messageStatusValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  textPartValidator,
-  tokenUsageValidator,
+	clientIdValidator,
+	messageStatusValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	textPartValidator,
+	tokenUsageValidator,
 } from "./validators.js";
 
 // Export types
@@ -322,6 +318,36 @@ export const addReasoningPart = internalMutation({
 			{
 				type: "reasoning" as const,
 				text: args.text,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add an error part to a message
+export const addErrorPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		errorMessage: v.string(),
+		errorDetails: v.optional(v.any()),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "error" as const,
+				errorMessage: args.errorMessage,
+				errorDetails: args.errorDetails,
 			},
 		];
 
