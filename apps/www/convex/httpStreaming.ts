@@ -343,11 +343,15 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					textWriter.dispose();
 					reasoningWriter.dispose();
 
-					// Use composable error handling functions
+					// Use enhanced composable error handling functions
 					logStreamingError(error, "StreamingResponse");
 
 					const userFriendlyMessage = formatErrorMessage(error);
-					const errorDetails = extractErrorDetails(error);
+					const errorDetails = extractErrorDetails(
+						error,
+						"streaming_response",
+						modelId as ModelId,
+					);
 
 					// Update message status to error
 					await ctx.runMutation(internal.messages.updateMessageStatus, {
@@ -355,15 +359,11 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						status: "error",
 					});
 
-					// Add error part to message for visibility
+					// Add error part with validated structured details
 					await ctx.runMutation(internal.messages.addErrorPart, {
 						messageId: assistantMessage._id,
 						errorMessage: userFriendlyMessage,
-						errorDetails: {
-							...errorDetails,
-							context: "streaming_response",
-							modelId: modelId as ModelId,
-						},
+						errorDetails,
 					});
 				},
 			};

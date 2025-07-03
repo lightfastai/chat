@@ -6,35 +6,56 @@
  * and can be easily tested and reused.
  */
 
+import type { Infer } from "convex/values";
 import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import type { ActionCtx } from "../_generated/server.js";
+import type {
+	errorContextValidator,
+	errorDetailsValidator,
+	errorTypeValidator,
+} from "../validators.js";
 
-interface ErrorDetails {
-	name: string;
-	message: string;
-	stack?: string;
-	raw: unknown;
-}
+// Type aliases for better type safety
+export type ErrorType = Infer<typeof errorTypeValidator>;
+export type ErrorContext = Infer<typeof errorContextValidator>;
+export type ErrorDetails = Infer<typeof errorDetailsValidator>;
 
 /**
  * Extract structured error details from any error type
+ * Now returns validated ErrorDetails matching our schema
  */
-export function extractErrorDetails(error: unknown): ErrorDetails {
-	if (error instanceof Error) {
-		return {
-			name: error.name,
-			message: error.message,
-			stack: error.stack,
-			raw: error,
-		};
-	}
+export function extractErrorDetails(
+	error: unknown,
+	context?: ErrorContext,
+	modelId?: string,
+): ErrorDetails {
+	const baseDetails: ErrorDetails =
+		error instanceof Error
+			? {
+					name: error.name,
+					message: error.message,
+					stack: error.stack,
+					raw: error,
+				}
+			: {
+					name: "Unknown Error",
+					message: String(error),
+					stack: undefined,
+					raw: error,
+				};
+
+	// Add enhanced details
+	const errorType = classifyError(error);
+	const isRetryable = isRetryableError(error);
 
 	return {
-		name: "Unknown Error",
-		message: String(error),
-		stack: undefined,
-		raw: error,
+		...baseDetails,
+		context,
+		modelId,
+		errorType,
+		timestamp: Date.now(),
+		retryable: isRetryable,
 	};
 }
 
@@ -109,19 +130,22 @@ export function logStreamingError(error: unknown, context?: string): void {
 
 /**
  * Classify error type for monitoring and handling
+ * Now returns validated ErrorType
  */
-export function classifyError(error: unknown): string {
-	const details = extractErrorDetails(error);
-	const message = details.message.toLowerCase();
+export function classifyError(error: unknown): ErrorType {
+	const message = error instanceof Error ? error.message : String(error);
+	const lowerMessage = message.toLowerCase();
 
-	if (message.includes("rate limit")) return "rate_limit";
-	if (message.includes("timeout")) return "timeout";
-	if (message.includes("unauthorized") || message.includes("api key"))
+	if (lowerMessage.includes("rate limit")) return "rate_limit";
+	if (lowerMessage.includes("timeout")) return "timeout";
+	if (lowerMessage.includes("unauthorized") || lowerMessage.includes("api key"))
 		return "auth";
-	if (message.includes("quota") || message.includes("billing")) return "quota";
-	if (message.includes("network") || message.includes("connection"))
+	if (lowerMessage.includes("quota") || lowerMessage.includes("billing"))
+		return "quota";
+	if (lowerMessage.includes("network") || lowerMessage.includes("connection"))
 		return "network";
-	if (message.includes("server") || message.includes("500")) return "server";
+	if (lowerMessage.includes("server") || lowerMessage.includes("500"))
+		return "server";
 
 	return "unknown";
 }
@@ -149,7 +173,7 @@ export async function handleStreamingSetupError(
 	logStreamingError(error, "StreamingSetup");
 
 	const errorMessage = formatErrorMessage(error);
-	const errorDetails = extractErrorDetails(error);
+	const errorDetails = extractErrorDetails(error, "streaming_setup", modelId);
 
 	try {
 		// Update message status to error
@@ -158,15 +182,11 @@ export async function handleStreamingSetupError(
 			status: "error",
 		});
 
-		// Add error part with details for debugging
+		// Add error part with validated structured details
 		await ctx.runMutation(internal.messages.addErrorPart, {
 			messageId,
 			errorMessage,
-			errorDetails: {
-				...errorDetails,
-				context: "streaming_setup",
-				modelId,
-			},
+			errorDetails,
 		});
 	} catch (errorHandlingError) {
 		console.error(
@@ -178,22 +198,36 @@ export async function handleStreamingSetupError(
 
 /**
  * Create HTTP error response with proper CORS headers and status codes
+ * Now uses enhanced error details with validation
  */
 export function createHTTPErrorResponse(error: unknown): Response {
-	const errorDetails = extractErrorDetails(error);
-	const errorType = classifyError(error);
+	const errorDetails = extractErrorDetails(error, "http_request");
+	const errorType = errorDetails.errorType || "unknown";
 
-	// Determine appropriate HTTP status code
+	// Determine appropriate HTTP status code based on error type
 	let status = 500; // Default to internal server error
 
-	if (errorType === "auth") {
-		status = 401;
-	} else if (errorType === "rate_limit") {
-		status = 429;
-	} else if (errorType === "quota") {
-		status = 402; // Payment required
-	} else if (errorType === "timeout") {
-		status = 408; // Request timeout
+	switch (errorType) {
+		case "auth":
+			status = 401; // Unauthorized
+			break;
+		case "rate_limit":
+			status = 429; // Too Many Requests
+			break;
+		case "quota":
+			status = 402; // Payment Required
+			break;
+		case "timeout":
+			status = 408; // Request Timeout
+			break;
+		case "network":
+			status = 503; // Service Unavailable
+			break;
+		case "server":
+			status = 500; // Internal Server Error
+			break;
+		default:
+			status = 500;
 	}
 
 	const corsHeaders = {
@@ -206,10 +240,13 @@ export function createHTTPErrorResponse(error: unknown): Response {
 		JSON.stringify({
 			error: formatErrorMessage(error),
 			type: errorType,
+			retryable: errorDetails.retryable,
+			timestamp: errorDetails.timestamp,
 			details: {
 				name: errorDetails.name,
 				// Don't expose sensitive error details to client
 				message: errorDetails.message,
+				context: errorDetails.context,
 			},
 		}),
 		{
@@ -220,4 +257,33 @@ export function createHTTPErrorResponse(error: unknown): Response {
 			},
 		},
 	);
+}
+
+/**
+ * Create a standardized error response for client consumption
+ * Ensures consistent error format across all endpoints
+ */
+export function createErrorResponse(
+	error: unknown,
+	context: ErrorContext = "general",
+	modelId?: string,
+) {
+	const errorDetails = extractErrorDetails(error, context, modelId);
+	const userMessage = formatErrorMessage(error);
+
+	return {
+		success: false,
+		error: {
+			message: userMessage,
+			type: errorDetails.errorType,
+			retryable: errorDetails.retryable,
+			timestamp: errorDetails.timestamp,
+			context: errorDetails.context,
+		},
+		// Internal details for debugging (not exposed to client)
+		_debug: {
+			name: errorDetails.name,
+			stack: errorDetails.stack?.substring(0, 200),
+		},
+	};
 }

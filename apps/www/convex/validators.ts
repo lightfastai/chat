@@ -230,11 +230,43 @@ export const rawPartValidator = v.object({
 	rawValue: v.any(),
 });
 
-// Error part validator - for stream errors
+// Error classification types that match our error handling functions
+export const errorTypeValidator = v.union(
+	v.literal("rate_limit"),
+	v.literal("timeout"),
+	v.literal("auth"),
+	v.literal("quota"),
+	v.literal("network"),
+	v.literal("server"),
+	v.literal("unknown"),
+);
+
+// Error context types for better debugging
+export const errorContextValidator = v.union(
+	v.literal("streaming_setup"),
+	v.literal("streaming_response"),
+	v.literal("http_request"),
+	v.literal("general"),
+);
+
+// Structured error details that match our extractErrorDetails function
+export const errorDetailsValidator = v.object({
+	name: v.string(),
+	message: v.string(),
+	stack: v.optional(v.string()),
+	raw: v.optional(v.any()), // The original error object
+	context: v.optional(errorContextValidator),
+	modelId: v.optional(v.string()),
+	errorType: v.optional(errorTypeValidator),
+	timestamp: v.optional(v.number()),
+	retryable: v.optional(v.boolean()),
+});
+
+// Error part validator - for stream errors with structured validation
 export const errorPartValidator = v.object({
 	type: v.literal("error"),
 	errorMessage: v.string(),
-	errorDetails: v.optional(v.any()),
+	errorDetails: v.optional(errorDetailsValidator),
 });
 
 // Tool call part validator - Official Vercel AI SDK v5 compliant
