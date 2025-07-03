@@ -1,8 +1,7 @@
 "use client";
 
-import { ThreadContextStoreProvider } from "@/components/providers/thread-context-provider";
 import { useChat } from "@/hooks/use-chat";
-import type { ThreadContext, ValidThread } from "@/types/schema";
+import type { ThreadContext } from "@/types/schema";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -21,29 +20,26 @@ interface ChatInterfaceProps {
 }
 
 interface SharedChatComponentProps {
-	threadContext: ValidThread;
+	clientId: string | null;
 	dbMessages: Doc<"messages">[] | undefined;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
 
 function SharedChatComponent({
-	threadContext,
+	clientId,
 	dbMessages,
 	preloadedUser,
 	preloadedUserSettings,
 }: SharedChatComponentProps) {
-	const { messages, sendMessage, status, canSendMessage } = useChat({
-		threadContext,
+	const { messages, sendMessage, status, canSendMessage, isNewChat } = useChat({
+		clientId,
 		initialMessages: convertDbMessagesToUIMessages(dbMessages || []),
 		preloadedUserSettings,
 	});
 
 	// Show centered layout only for new chats with no messages
-	if (
-		threadContext.type === "new" &&
-		(!dbMessages || dbMessages.length === 0)
-	) {
+	if (isNewChat && (!dbMessages || dbMessages.length === 0)) {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
@@ -67,56 +63,6 @@ function SharedChatComponent({
 				dbMessages={dbMessages}
 			/>
 		</div>
-	);
-}
-
-function ChatInterfaceWithPreloadedQueries({
-	threadContext,
-	preloadedMessages,
-	preloadedUser,
-	preloadedUserSettings,
-}: {
-	threadContext: ValidThread;
-	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
-	preloadedUser?: Preloaded<typeof api.users.current>;
-	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
-}) {
-	// Extract data from preloaded queries
-	const dbMessages = preloadedMessages
-		? usePreloadedQuery(preloadedMessages)
-		: undefined;
-
-	return (
-		<SharedChatComponent
-			threadContext={threadContext}
-			dbMessages={dbMessages}
-			preloadedUser={preloadedUser}
-			preloadedUserSettings={preloadedUserSettings}
-		/>
-	);
-}
-
-function ChatInterfaceWithRegularQueries({
-	threadContext,
-	preloadedUser,
-	preloadedUserSettings,
-}: {
-	threadContext: ValidThread;
-	preloadedUser?: Preloaded<typeof api.users.current>;
-	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
-}) {
-	// Use regular queries for non-existing threads
-	const dbMessages = useQuery(api.messages.listByClientId, {
-		clientId: threadContext.clientId,
-	});
-
-	return (
-		<SharedChatComponent
-			threadContext={threadContext}
-			dbMessages={dbMessages}
-			preloadedUser={preloadedUser}
-			preloadedUserSettings={preloadedUserSettings}
-		/>
 	);
 }
 
@@ -147,29 +93,27 @@ export function ChatInterface({
 		return null;
 	}
 
-	// Wrap valid thread contexts with the store provider
-	// Use clientId as key to force remount when switching between chats
-	const storeKey =
+	// Extract clientId from context
+	const clientId =
 		threadContext.type === "new" || threadContext.type === "existing"
 			? threadContext.clientId
-			: "fallback";
+			: null;
+
+	// Get messages - use preloaded if available, otherwise query
+	let dbMessages: Doc<"messages">[] | undefined;
+
+	if (threadContext.type === "existing" && preloadedMessages) {
+		dbMessages = usePreloadedQuery(preloadedMessages);
+	} else if (clientId) {
+		dbMessages = useQuery(api.messages.listByClientId, { clientId });
+	}
 
 	return (
-		<ThreadContextStoreProvider key={storeKey} initialContext={threadContext}>
-			{threadContext.type === "existing" ? (
-				<ChatInterfaceWithPreloadedQueries
-					threadContext={threadContext}
-					preloadedMessages={preloadedMessages}
-					preloadedUser={preloadedUser}
-					preloadedUserSettings={preloadedUserSettings}
-				/>
-			) : (
-				<ChatInterfaceWithRegularQueries
-					threadContext={threadContext}
-					preloadedUser={preloadedUser}
-					preloadedUserSettings={preloadedUserSettings}
-				/>
-			)}
-		</ThreadContextStoreProvider>
+		<SharedChatComponent
+			clientId={clientId}
+			dbMessages={dbMessages}
+			preloadedUser={preloadedUser}
+			preloadedUserSettings={preloadedUserSettings}
+		/>
 	);
 }

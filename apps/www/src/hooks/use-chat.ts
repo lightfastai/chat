@@ -1,23 +1,23 @@
 "use client";
 
-import { useThreadContextStore } from "@/components/providers/thread-context-provider";
 import { nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
-import { useCallback } from "react";
+import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { ModelId } from "../lib/ai/schemas";
-import type { UIMessage, ValidThread } from "../types/schema";
+import type { UIMessage } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
 import { useCreateSubsequentMessages } from "./use-create-subsequent-messages";
 import { useCreateThreadWithFirstMessages } from "./use-create-thread-with-first-messages";
 
 interface UseChatProps {
-	/** The chat context - type and clientId */
-	threadContext: ValidThread;
+	/** The clientId if it exists */
+	clientId: string | null;
 	initialMessages: UIMessage[];
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
@@ -27,23 +27,35 @@ interface UseChatProps {
  * Uses Vercel AI SDK with custom Convex transport for streaming
  */
 export function useChat({
-	threadContext,
+	clientId,
 	initialMessages,
 	preloadedUserSettings,
 }: UseChatProps) {
 	const authToken = useAuthToken();
+	const pathname = usePathname();
 	const createThreadOptimistic = useCreateThreadWithFirstMessages();
 	const createMessageOptimistic = useCreateSubsequentMessages();
-	const transitionToExisting = useThreadContextStore(
-		(state) => state.transitionToExisting,
+
+	// Track if user has ever sent a message
+	const hasEverSentMessage = useRef(false);
+
+	// Determine if this is a new chat based on pathname
+	const isNewChat = pathname === "/chat" && !clientId;
+
+	// Reset when we're in a truly new chat
+	useEffect(() => {
+		if (isNewChat && initialMessages.length === 0) {
+			hasEverSentMessage.current = false;
+		} else if (initialMessages.length > 0) {
+			hasEverSentMessage.current = true;
+		}
+	}, [isNewChat, initialMessages.length]);
+
+	// Query thread if we have a clientId
+	const thread = useQuery(
+		api.threads.getByClientId,
+		clientId ? { clientId } : "skip",
 	);
-	const threadContextFromStore = useThreadContextStore(
-		(state) => state.threadContext,
-	);
-	const setThreadId = useThreadContextStore((state) => state.setThreadId);
-	const thread = useQuery(api.threads.getByClientId, {
-		clientId: threadContext.clientId,
-	});
 
 	// Extract data from preloaded queries if available
 	let userSettings = null;
@@ -60,14 +72,16 @@ export function useChat({
 		defaultModel,
 	});
 
+	// Generate or use existing clientId for the chat session
+	const chatId = clientId || nanoid();
+
 	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
-		setMessages,
 	} = useVercelChat<UIMessage>({
-		id: threadContext.clientId,
+		id: chatId,
 		transport,
 		generateId: () => nanoid(),
 		messages: initialMessages,
@@ -92,38 +106,22 @@ export function useChat({
 			let userMessageId: string | undefined;
 			let assistantMessageId: string | undefined;
 
-			// Use prop-based context for initial check, fall back to store
-			// This ensures we respect the server-provided context on navigation
-			const effectiveContext =
-				threadContext.type === "new" &&
-				threadContextFromStore.type === "existing"
-					? threadContext
-					: threadContextFromStore;
-
-			if (effectiveContext.type === "new") {
+			// Check if this is a new thread (no thread exists yet)
+			if (!thread?._id) {
 				// Update URL using replaceState for seamless navigation
-				window.history.replaceState({}, "", `/chat/${threadContext.clientId}`);
+				window.history.replaceState({}, "", `/chat/${chatId}`);
 				const data = await createThreadOptimistic({
-					clientThreadId: threadContext.clientId,
+					clientThreadId: chatId,
 					message: { type: "text", text: message },
 					modelId: selectedModelId,
 				});
 				userMessageId = data.userMessageId;
 				assistantMessageId = data.assistantMessageId;
 
-				// Transition thread context from "new" to "existing"
-				transitionToExisting(effectiveContext.clientId);
-				setThreadId(data.threadId);
-			}
-
-			if (effectiveContext.type === "existing") {
-				if (!thread?._id) {
-					console.error("Thread not found", {
-						threadContext,
-					});
-					return;
-				}
-
+				// Mark that we've sent a message
+				hasEverSentMessage.current = true;
+			} else {
+				// Existing thread
 				const data = await createMessageOptimistic({
 					threadId: thread._id,
 					message: { type: "text", text: message },
@@ -152,7 +150,7 @@ export function useChat({
 					body: {
 						id: assistantMessageId,
 						userMessageId,
-						threadClientId: threadContext.clientId,
+						threadClientId: chatId,
 						options: {
 							webSearchEnabled: webSearchEnabledOverride || false,
 							attachments,
@@ -163,12 +161,10 @@ export function useChat({
 		},
 		[
 			vercelSendMessage,
-			threadContext.clientId,
+			chatId,
 			createThreadOptimistic,
 			createMessageOptimistic,
 			thread?._id,
-			setMessages,
-			transitionToExisting,
 		],
 	);
 
@@ -181,6 +177,7 @@ export function useChat({
 		// Status - direct from Vercel AI SDK
 		status,
 		canSendMessage,
+		isNewChat,
 
 		// Actions
 		sendMessage,
