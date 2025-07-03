@@ -1,60 +1,63 @@
 import type { NextRequest } from "next/server";
 
 /**
- * Common timezone mappings based on country/region
- * This is a simplified mapping - in production you'd use a GeoIP service
+ * Map of country codes to their primary timezones
+ * This covers the most common cases - for complete accuracy, use a geolocation API
  */
-const COUNTRY_TIMEZONE_MAP: Record<string, string> = {
-	// North America
-	US: "America/New_York", // Default to EST, could be more specific with state data
-	CA: "America/Toronto", // Default to EST, could be more specific with province data
+const countryToTimezone: Record<string, string> = {
+	// North America - Use central timezones for better average
+	US: "America/Chicago", // Central timezone - better average for US users
+	CA: "America/Toronto", // Most populous timezone in Canada
 	MX: "America/Mexico_City",
 
 	// Europe
 	GB: "Europe/London",
-	FR: "Europe/Paris",
 	DE: "Europe/Berlin",
+	FR: "Europe/Paris",
 	IT: "Europe/Rome",
 	ES: "Europe/Madrid",
 	NL: "Europe/Amsterdam",
 	BE: "Europe/Brussels",
 	CH: "Europe/Zurich",
 	AT: "Europe/Vienna",
+	PL: "Europe/Warsaw",
 	SE: "Europe/Stockholm",
 	NO: "Europe/Oslo",
 	DK: "Europe/Copenhagen",
 	FI: "Europe/Helsinki",
-	PL: "Europe/Warsaw",
-	CZ: "Europe/Prague",
-	HU: "Europe/Budapest",
-	RO: "Europe/Bucharest",
 	GR: "Europe/Athens",
 	PT: "Europe/Lisbon",
 	IE: "Europe/Dublin",
+	CZ: "Europe/Prague",
+	HU: "Europe/Budapest",
+	RO: "Europe/Bucharest",
 
 	// Asia
 	JP: "Asia/Tokyo",
 	CN: "Asia/Shanghai",
 	IN: "Asia/Kolkata",
 	KR: "Asia/Seoul",
-	SG: "Asia/Singapore",
-	HK: "Asia/Hong_Kong",
 	TW: "Asia/Taipei",
+	HK: "Asia/Hong_Kong",
+	SG: "Asia/Singapore",
+	MY: "Asia/Kuala_Lumpur",
 	TH: "Asia/Bangkok",
 	ID: "Asia/Jakarta",
-	MY: "Asia/Kuala_Lumpur",
-	PH: "Asia/Manila",
 	VN: "Asia/Ho_Chi_Minh",
+	PH: "Asia/Manila",
+	PK: "Asia/Karachi",
+	BD: "Asia/Dhaka",
+	TR: "Europe/Istanbul",
+	SA: "Asia/Riyadh",
 	AE: "Asia/Dubai",
 	IL: "Asia/Jerusalem",
-	TR: "Europe/Istanbul",
 
 	// Oceania
-	AU: "Australia/Sydney", // Default to Sydney, could be more specific with state data
+	AU: "Australia/Sydney", // Most populous timezone in Australia
 	NZ: "Pacific/Auckland",
 
 	// South America
-	BR: "America/Sao_Paulo",
+	BR: "America/Sao_Paulo", // Most populous timezone in Brazil
 	AR: "America/Argentina/Buenos_Aires",
 	CL: "America/Santiago",
 	CO: "America/Bogota",
@@ -67,44 +70,99 @@ const COUNTRY_TIMEZONE_MAP: Record<string, string> = {
 	NG: "Africa/Lagos",
 	KE: "Africa/Nairobi",
 	MA: "Africa/Casablanca",
+
+	// Russia (default to Moscow)
+	RU: "Europe/Moscow",
 };
 
 /**
- * Extract timezone from request based on various signals
+ * Map of US states/regions to timezones for better accuracy
+ */
+const usRegionToTimezone: Record<string, string> = {
+	// Eastern Time
+	NY: "America/New_York",
+	FL: "America/New_York", 
+	PA: "America/New_York",
+	OH: "America/New_York",
+	GA: "America/New_York",
+	NC: "America/New_York",
+	VA: "America/New_York",
+	MA: "America/New_York",
+	NJ: "America/New_York",
+	CT: "America/New_York",
+	MD: "America/New_York",
+	SC: "America/New_York",
+	// Central Time
+	TX: "America/Chicago",
+	IL: "America/Chicago",
+	WI: "America/Chicago",
+	MO: "America/Chicago",
+	MN: "America/Chicago",
+	LA: "America/Chicago",
+	IA: "America/Chicago",
+	OK: "America/Chicago",
+	KS: "America/Chicago",
+	// Mountain Time
+	CO: "America/Denver",
+	AZ: "America/Phoenix", // No DST
+	UT: "America/Denver",
+	NM: "America/Denver",
+	// Pacific Time
+	CA: "America/Los_Angeles",
+	WA: "America/Los_Angeles",
+	OR: "America/Los_Angeles",
+	NV: "America/Los_Angeles",
+};
+
+/**
+ * Get timezone from request headers using various methods
  */
 export function getTimezoneFromRequest(request: NextRequest): string | null {
 	try {
 		// 1. Check Cloudflare headers (if using Cloudflare)
 		const cfTimezone = request.headers.get("cf-timezone");
-		if (cfTimezone) return cfTimezone;
-
-		// 2. Check Vercel geo headers (if using Vercel)
-		const vercelCountry = request.headers.get("x-vercel-ip-country");
-		if (vercelCountry && COUNTRY_TIMEZONE_MAP[vercelCountry]) {
-			return COUNTRY_TIMEZONE_MAP[vercelCountry];
+		if (cfTimezone) {
+			return cfTimezone;
 		}
 
-		// 3. Check generic geo headers
+		// 2. Check for x-vercel-ip-timezone (Vercel's header)
+		const vercelTimezone = request.headers.get("x-vercel-ip-timezone");
+		if (vercelTimezone) {
+			return vercelTimezone;
+		}
+
+		// 3. Try to get country and region for better US timezone detection
 		const country =
-			request.headers.get("x-country-code") ||
-			request.headers.get("x-geoip-country-code");
-		if (country && COUNTRY_TIMEZONE_MAP[country]) {
-			return COUNTRY_TIMEZONE_MAP[country];
-		}
-
-		// 4. Parse Accept-Language header for hints
-		const acceptLang = request.headers.get("accept-language");
-		if (acceptLang) {
-			// Extract primary language-country code (e.g., "en-US" from "en-US,en;q=0.9")
-			const match = acceptLang.match(/^([a-z]{2})-([A-Z]{2})/);
-			if (match && match[2] && COUNTRY_TIMEZONE_MAP[match[2]]) {
-				return COUNTRY_TIMEZONE_MAP[match[2]];
+			request.headers.get("x-vercel-ip-country") ||
+			request.headers.get("cf-ipcountry") ||
+			request.headers.get("x-country-code");
+			
+		// For US, check region for more accurate timezone
+		if (country === "US") {
+			const region = request.headers.get("x-vercel-ip-country-region");
+			if (region && usRegionToTimezone[region]) {
+				return usRegionToTimezone[region];
 			}
 		}
 
+		if (country && countryToTimezone[country]) {
+			return countryToTimezone[country];
+		}
+
+		// 4. Fallback to Accept-Language header parsing
+		const acceptLanguage = request.headers.get("accept-language");
+		if (acceptLanguage) {
+			// Extract country from language tags like "en-US", "fr-FR"
+			const match = acceptLanguage.match(/[a-z]{2}-([A-Z]{2})/);
+			if (match && match[1] && countryToTimezone[match[1]]) {
+				return countryToTimezone[match[1]];
+			}
+		}
+
+		// 5. Default fallback
 		return null;
 	} catch (error) {
-		console.warn("Failed to extract timezone from request:", error);
+		console.warn("Failed to detect timezone from request:", error);
 		return null;
 	}
 }
