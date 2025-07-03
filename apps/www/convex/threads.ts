@@ -106,6 +106,23 @@ export const list = query({
 });
 
 // List paginated threads for a user (for infinite scroll)
+// Simple pagination for usePaginatedQuery hook
+export const listForInfiniteScroll = query({
+	args: {
+		paginationOpts: paginationOptsValidator,
+	},
+	handler: async (ctx, args) => {
+		const userId = await getAuthenticatedUserId(ctx);
+		return await ctx.db
+			.query("threads")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.filter((q) => q.eq(q.field("pinned"), undefined)) // Exclude pinned threads
+			.order("desc")
+			.paginate(args.paginationOpts);
+	},
+});
+
+// List paginated threads for a user (for infinite scroll)
 export const listPaginated = query({
 	args: {
 		paginationOpts: paginationOptsValidator,

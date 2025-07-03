@@ -7,13 +7,14 @@ import {
 	SidebarGroupContent,
 	SidebarGroupLabel,
 	SidebarMenu,
+	SidebarMenuItem,
 } from "@lightfast/ui/components/ui/sidebar";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { Skeleton } from "@lightfast/ui/components/ui/skeleton";
 import {
 	type Preloaded,
 	useMutation,
+	usePaginatedQuery,
 	usePreloadedQuery,
-	useQuery,
 } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -93,12 +94,34 @@ function ThreadGroup({
 	);
 }
 
-// Virtual item types
-interface VirtualItem {
-	key: string;
-	type: "group" | "load-more";
-	categoryName?: string;
-	threads?: Thread[];
+// Loading skeleton for threads
+function ThreadSkeleton() {
+	return (
+		<SidebarMenuItem className="w-full max-w-full min-w-0 overflow-hidden">
+			<div className="flex items-center gap-2 p-2">
+				<Skeleton className="h-4 w-4 rounded" />
+				<Skeleton className="h-4 flex-1" />
+			</div>
+		</SidebarMenuItem>
+	);
+}
+
+// Loading group with skeleton threads
+function LoadingGroup({ categoryName }: { categoryName: string }) {
+	return (
+		<SidebarGroup className="w-58">
+			<SidebarGroupLabel className="text-xs font-medium text-muted-foreground group-data-[collapsible=icon]:hidden">
+				{categoryName}
+			</SidebarGroupLabel>
+			<SidebarGroupContent className="w-full max-w-full overflow-hidden">
+				<SidebarMenu className="space-y-0.5">
+					<ThreadSkeleton />
+					<ThreadSkeleton />
+					<ThreadSkeleton />
+				</SidebarMenu>
+			</SidebarGroupContent>
+		</SidebarGroup>
+	);
 }
 
 export function SimpleVirtualizedThreadsList({
@@ -107,33 +130,22 @@ export function SimpleVirtualizedThreadsList({
 }: SimpleVirtualizedThreadsListProps) {
 	const togglePinned = useMutation(api.threads.togglePinned);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
-	const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+	const loadMoreRef = useRef<HTMLDivElement>(null);
+	const [isAutoLoading, setIsAutoLoading] = useState(false);
 
-	// Pagination state
-	const [paginationCursor, setPaginationCursor] = useState<string | null>(null);
-	const [isLoadingMore, setIsLoadingMore] = useState(false);
-	const [hasMore, setHasMore] = useState(true);
-	const [additionalThreads, setAdditionalThreads] = useState<Thread[]>([]);
-	const [hasStartedPagination, setHasStartedPagination] = useState(false);
-
-	// Use preloaded data with reactivity
+	// Use preloaded data for immediate threads (first 20)
 	const threads = usePreloadedQuery(preloadedThreads);
 
-	// Use the new paginated query with grouping and skip support
-	const paginationArgs =
-		isLoadingMore && hasMore && hasStartedPagination
-			? {
-					paginationOpts: {
-						numItems: 10,
-						cursor: paginationCursor,
-					},
-					skipFirst: paginationCursor === null ? 20 : undefined, // Skip first 20 on initial pagination
-				}
-			: "skip";
-
-	const paginatedResult = useQuery(
-		api.threads.listPaginatedWithGrouping,
-		paginationArgs,
+	// Use paginated query for infinite scroll (unpinned threads only)
+	const {
+		results: paginatedThreads,
+		status,
+		loadMore,
+		isLoading,
+	} = usePaginatedQuery(
+		api.threads.listForInfiniteScroll,
+		{},
+		{ initialNumItems: 3 }, // Load 3 at a time after initial 20
 	);
 
 	// Track previous threads to detect new threads at the top
@@ -141,37 +153,33 @@ export function SimpleVirtualizedThreadsList({
 
 	// Scroll to top when a new thread is added at the beginning
 	useEffect(() => {
-		if (
-			threads.length > 0 &&
-			prevThreadsRef.current.length > 0 &&
-			scrollElement
-		) {
-			const firstThread = threads[0];
-			const wasFirstThreadNew = !prevThreadsRef.current.some(
-				(thread) => thread._id === firstThread._id,
+		if (scrollAreaRef.current) {
+			const viewport = scrollAreaRef.current.querySelector(
+				'[data-slot="scroll-area-viewport"]',
 			);
+			if (viewport && threads.length > 0 && prevThreadsRef.current.length > 0) {
+				const firstThread = threads[0];
+				const wasFirstThreadNew = !prevThreadsRef.current.some(
+					(thread) => thread._id === firstThread._id,
+				);
 
-			if (wasFirstThreadNew) {
-				scrollElement.scrollTo({ top: 0, behavior: "smooth" });
+				if (wasFirstThreadNew) {
+					viewport.scrollTo({ top: 0, behavior: "smooth" });
+				}
 			}
 		}
 		prevThreadsRef.current = threads;
-	}, [threads, scrollElement]);
+	}, [threads]);
 
-	// Handle pagination results
-	useEffect(() => {
-		if (paginatedResult && isLoadingMore) {
-			setAdditionalThreads((prev) => [...prev, ...paginatedResult.page]);
-			setPaginationCursor(paginatedResult.continueCursor);
-			setHasMore(!paginatedResult.isDone);
-			setIsLoadingMore(false);
-		}
-	}, [paginatedResult, isLoadingMore]);
-
-	// Combine reactive threads with additional loaded threads
+	// Combine reactive threads (first 20) with paginated results
 	const allThreads = useMemo(() => {
+		// Remove duplicates - paginated results might include threads already in initial 20
+		const threadIds = new Set(threads.map((t) => t._id));
+		const additionalThreads = paginatedThreads.filter(
+			(t) => !threadIds.has(t._id),
+		);
 		return [...threads, ...additionalThreads];
-	}, [threads, additionalThreads]);
+	}, [threads, paginatedThreads]);
 
 	// Separate pinned and unpinned threads
 	const { pinned, unpinned } = useMemo(() => {
@@ -197,61 +205,6 @@ export function SimpleVirtualizedThreadsList({
 		() => groupThreadsByDate(unpinned),
 		[unpinned],
 	);
-
-	// Create virtual items for rendering
-	const virtualItems = useMemo(() => {
-		const items: VirtualItem[] = [];
-
-		// Add pinned threads section
-		if (pinned.length > 0) {
-			items.push({
-				key: "pinned-group",
-				type: "group",
-				categoryName: "Pinned",
-				threads: pinned,
-			});
-		}
-
-		// Add regular threads grouped by date
-		const categoryOrder = [
-			"Today",
-			"Yesterday",
-			"This Week",
-			"This Month",
-			"Older",
-		];
-
-		for (const category of categoryOrder) {
-			const categoryThreads = groupedThreads[category];
-			if (categoryThreads && categoryThreads.length > 0) {
-				items.push({
-					key: `${category.toLowerCase().replace(/\s+/g, "-")}-group`,
-					type: "group",
-					categoryName: category,
-					threads: categoryThreads,
-				});
-			}
-		}
-
-		// Add load more button if there might be more threads
-		// Only show if we have unpinned threads (not just pinned)
-		if (hasMore && unpinned.length >= 20) {
-			items.push({
-				key: "load-more",
-				type: "load-more",
-			});
-		}
-
-		return items;
-	}, [pinned, unpinned, groupedThreads, hasMore]);
-
-	// Handle load more
-	const handleLoadMore = useCallback(() => {
-		if (!isLoadingMore && hasMore) {
-			setIsLoadingMore(true);
-			setHasStartedPagination(true);
-		}
-	}, [isLoadingMore, hasMore]);
 
 	// Handle pin toggle with optimistic update
 	const handlePinToggle = useCallback(
@@ -285,61 +238,34 @@ export function SimpleVirtualizedThreadsList({
 		[togglePinned],
 	);
 
-	// Find the scroll viewport element when component mounts
+	// Auto-load more when scrolled to bottom
 	useEffect(() => {
-		if (scrollAreaRef.current) {
-			const timeoutId = setTimeout(() => {
-				const viewport = scrollAreaRef.current?.querySelector(
-					'[data-slot="scroll-area-viewport"]',
-				);
-				if (viewport) {
-					setScrollElement(viewport as HTMLElement);
+		const observer = new IntersectionObserver(
+			async (entries) => {
+				const [entry] = entries;
+				if (
+					entry.isIntersecting &&
+					status === "CanLoadMore" &&
+					!isLoading &&
+					!isAutoLoading
+				) {
+					setIsAutoLoading(true);
+					await loadMore(3); // Load 3 more items
+					setIsAutoLoading(false);
 				}
-			}, 0);
-			return () => clearTimeout(timeoutId);
+			},
+			{
+				threshold: 1.0,
+				rootMargin: "20px",
+			},
+		);
+
+		if (loadMoreRef.current) {
+			observer.observe(loadMoreRef.current);
 		}
-	}, []);
 
-	// Calculate size for each virtual item
-	const estimateSize = useCallback(
-		(index: number) => {
-			const item = virtualItems[index];
-			if (!item) return 100;
-
-			if (item.type === "load-more") {
-				return 56; // Load more button height
-			}
-
-			// For groups, calculate based on:
-			// - SidebarGroup padding: p-2 (8px top + 8px bottom = 16px)
-			// - SidebarGroupLabel: h-8 (32px)
-			// - SidebarMenu gap: space-y-0.5 (2px between items)
-			// - Thread items: ~40px each
-			const threads = item.threads || [];
-			const groupPadding = 16;
-			const labelHeight = 32;
-			const threadHeight = 40;
-			const threadGaps = threads.length > 0 ? (threads.length - 1) * 2 : 0;
-
-			return (
-				groupPadding + labelHeight + threads.length * threadHeight + threadGaps
-			);
-		},
-		[virtualItems],
-	);
-
-	// Set up virtualizer
-	const virtualizer = useVirtualizer({
-		count: virtualItems.length,
-		getScrollElement: () => scrollElement,
-		estimateSize,
-		overscan: 2,
-		enabled: scrollElement !== null,
-		getItemKey: useCallback(
-			(index: number) => virtualItems[index]?.key || `item-${index}`,
-			[virtualItems],
-		),
-	});
+		return () => observer.disconnect();
+	}, [status, isLoading, isAutoLoading, loadMore]);
 
 	// Show empty state if no threads
 	if (threads.length === 0) {
@@ -353,89 +279,64 @@ export function SimpleVirtualizedThreadsList({
 		);
 	}
 
-	// Render non-virtualized content while scroll element is loading
-	if (!scrollElement) {
-		return (
-			<ScrollArea ref={scrollAreaRef} className={className}>
-				<div className="w-full max-w-full min-w-0 overflow-hidden">
-					{virtualItems.map((item) => (
-						<div key={item.key}>
-							{item.type === "group" && item.threads && item.categoryName ? (
-								<ThreadGroup
-									categoryName={item.categoryName}
-									threads={item.threads}
-									onPinToggle={handlePinToggle}
-								/>
-							) : item.type === "load-more" ? (
-								<div className="flex justify-center py-4">
-									<Button
-										onClick={handleLoadMore}
-										disabled={isLoadingMore}
-										variant="ghost"
-										size="sm"
-										className="text-xs"
-									>
-										{isLoadingMore ? "Loading..." : "Load More"}
-									</Button>
-								</div>
-							) : null}
-						</div>
-					))}
-				</div>
-			</ScrollArea>
-		);
-	}
-
 	return (
 		<ScrollArea ref={scrollAreaRef} className={className}>
 			<div className="w-full max-w-full min-w-0 overflow-hidden">
-				<div
-					style={{
-						height: `${virtualizer.getTotalSize()}px`,
-						width: "100%",
-						position: "relative",
-					}}
-				>
-					{virtualizer.getVirtualItems().map((virtualRow) => {
-						const item = virtualItems[virtualRow.index];
-						if (!item) return null;
+				{/* Pinned threads section */}
+				{pinned.length > 0 && (
+					<ThreadGroup
+						categoryName="Pinned"
+						threads={pinned}
+						onPinToggle={handlePinToggle}
+					/>
+				)}
 
-						return (
-							<div
-								key={virtualRow.key}
-								data-index={virtualRow.index}
-								style={{
-									position: "absolute",
-									top: 0,
-									left: 0,
-									width: "100%",
-									height: `${virtualRow.size}px`,
-									transform: `translateY(${virtualRow.start}px)`,
-								}}
-							>
-								{item.type === "group" && item.threads && item.categoryName ? (
-									<ThreadGroup
-										categoryName={item.categoryName}
-										threads={item.threads}
-										onPinToggle={handlePinToggle}
-									/>
-								) : item.type === "load-more" ? (
-									<div className="flex justify-center py-4">
-										<Button
-											onClick={handleLoadMore}
-											disabled={isLoadingMore}
-											variant="ghost"
-											size="sm"
-											className="text-xs"
-										>
-											{isLoadingMore ? "Loading..." : "Load More"}
-										</Button>
-									</div>
-								) : null}
-							</div>
-						);
-					})}
-				</div>
+				{/* Regular threads grouped by date */}
+				{["Today", "Yesterday", "This Week", "This Month", "Older"].map(
+					(category) => {
+						const categoryThreads = groupedThreads[category];
+						if (categoryThreads && categoryThreads.length > 0) {
+							return (
+								<ThreadGroup
+									key={category}
+									categoryName={category}
+									threads={categoryThreads}
+									onPinToggle={handlePinToggle}
+								/>
+							);
+						}
+						return null;
+					},
+				)}
+
+				{/* Loading indicator during auto-load */}
+				{(isLoading || isAutoLoading) && (
+					<LoadingGroup categoryName="Loading..." />
+				)}
+
+				{/* Intersection observer target for auto-loading */}
+				{status === "CanLoadMore" && (
+					<div
+						ref={loadMoreRef}
+						className="h-4 w-full flex items-center justify-center"
+					>
+						{/* Invisible trigger for intersection observer */}
+					</div>
+				)}
+
+				{/* Manual load more button (fallback) */}
+				{status === "CanLoadMore" && !isLoading && !isAutoLoading && (
+					<div className="flex justify-center py-4">
+						<Button
+							onClick={() => loadMore(3)}
+							variant="ghost"
+							size="sm"
+							className="text-xs"
+						>
+							Load More
+						</Button>
+					</div>
+				)}
 			</div>
 		</ScrollArea>
 	);
