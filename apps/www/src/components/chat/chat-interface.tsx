@@ -7,10 +7,10 @@ import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
-import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 
 interface ChatInterfaceProps {
 	/** Chat context passed from the page */
@@ -39,7 +39,7 @@ function SharedChatComponent({
 		preloadedUserSettings,
 	});
 
-  // Show centered layout only for new chats with no messages
+	// Show centered layout only for new chats with no messages
 	if (
 		threadContext.type === "new" &&
 		(!dbMessages || dbMessages.length === 0)
@@ -148,8 +148,14 @@ export function ChatInterface({
 	}
 
 	// Wrap valid thread contexts with the store provider
+	// Use clientId as key to force remount when switching between chats
+	const storeKey =
+		threadContext.type === "new" || threadContext.type === "existing"
+			? threadContext.clientId
+			: "fallback";
+
 	return (
-		<ThreadContextStoreProvider initialContext={threadContext}>
+		<ThreadContextStoreProvider key={storeKey} initialContext={threadContext}>
 			{threadContext.type === "existing" ? (
 				<ChatInterfaceWithPreloadedQueries
 					threadContext={threadContext}
