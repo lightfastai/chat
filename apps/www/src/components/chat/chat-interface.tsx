@@ -10,6 +10,7 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
+import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 
 interface ChatInterfaceProps {
 	/** Chat context passed from the page */
@@ -34,15 +35,14 @@ function SharedChatComponent({
 }: SharedChatComponentProps) {
 	const { messages, sendMessage, status, canSendMessage } = useChat({
 		threadContext,
-		dbMessages,
+		initialMessages: convertDbMessagesToUIMessages(dbMessages || []),
 		preloadedUserSettings,
 	});
 
-	// Show centered layout only for new chats with no messages
+  // Show centered layout only for new chats with no messages
 	if (
 		threadContext.type === "new" &&
-		(!dbMessages || dbMessages.length === 0) &&
-		messages.length === 0
+		(!dbMessages || dbMessages.length === 0)
 	) {
 		return (
 			<CenteredChatStart

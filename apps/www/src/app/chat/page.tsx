@@ -1,7 +1,6 @@
 import { siteConfig } from "@/lib/site-config";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { api } from "../../../convex/_generated/api";
 import { ChatInterface } from "../../components/chat/chat-interface";
 import { getAuthToken } from "../../lib/auth";
@@ -31,11 +30,7 @@ export const metadata: Metadata = {
 
 // Server component that enables SSR for the new chat page with prefetched user data
 export default function ChatPage() {
-	return (
-		<Suspense fallback={<ChatInterface threadContext={{ type: "fallback" }} />}>
-			<ChatPageWithPreloadedData />
-		</Suspense>
-	);
+	return <ChatPageWithPreloadedData />;
 }
 
 // Server component that handles data preloading with PPR optimization

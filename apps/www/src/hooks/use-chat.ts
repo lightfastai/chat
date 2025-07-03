@@ -6,10 +6,9 @@ import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
-import type { DbMessagePart } from "../../convex/types";
+import type { Id } from "../../convex/_generated/dataModel";
 import type { ModelId } from "../lib/ai/schemas";
 import type { UIMessage, ValidThread } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
@@ -19,7 +18,7 @@ import { useCreateThreadWithFirstMessages } from "./use-create-thread-with-first
 interface UseChatProps {
 	/** The chat context - type and clientId */
 	threadContext: ValidThread;
-	dbMessages: Doc<"messages">[] | undefined;
+	initialMessages: UIMessage[];
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
 
@@ -29,7 +28,7 @@ interface UseChatProps {
  */
 export function useChat({
 	threadContext,
-	dbMessages,
+	initialMessages,
 	preloadedUserSettings,
 }: UseChatProps) {
 	const authToken = useAuthToken();
@@ -61,41 +60,6 @@ export function useChat({
 		defaultModel,
 	});
 
-	// Convert preloaded messages to Vercel AI SDK format - only for existing chats
-	const initialMessages = useMemo(() => {
-		// Only process messages for existing chats to prevent leakage to new chats
-		if (
-			threadContext.type === "new" ||
-			!dbMessages ||
-			dbMessages.length === 0
-		) {
-			return [];
-		}
-
-		// Convert Convex messages to Vercel AI UIMessage format
-		const converted: UIMessage[] = dbMessages.map((msg) => ({
-			id: msg._id,
-			role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
-			parts: (msg.parts || []).map((part: DbMessagePart) => {
-				if (part.type === "text") {
-					return {
-						type: "text",
-						text: part.text,
-					};
-				}
-
-				if (part.type === "reasoning") {
-					return {
-						type: "reasoning",
-						text: part.text,
-					};
-				}
-			}) as UIMessage["parts"],
-		}));
-
-		return converted;
-	}, []);
-
 	// Use Vercel AI SDK with custom transport and preloaded messages
 	const {
 		messages: uiMessages,
@@ -111,14 +75,6 @@ export function useChat({
 			console.error("Chat error:", error);
 		},
 	});
-
-	// // Explicitly clear messages when transitioning to a new chat to prevent message leakage
-	// // This addresses a limitation in Vercel AI SDK where messages persist when the ID changes
-	useEffect(() => {
-		if (threadContext.type === "new" && uiMessages.length > 0) {
-			setMessages([]);
-		}
-	}, [threadContext.clientId, threadContext.type, setMessages, uiMessages.length]);
 
 	// Computed values
 	const isEmpty = uiMessages.length === 0;

@@ -594,9 +594,6 @@ export const createUserMessage = internalMutation({
 			role: "user",
 			modelId: args.modelId,
 			status: "ready",
-			metadata: {
-				usage: undefined, // User messages don't typically have usage data
-			},
 		});
 
 		return messageId;
@@ -619,9 +616,6 @@ export const createAssistantMessage = internalMutation({
 			role: "assistant",
 			modelId: args.modelId,
 			status: "submitted",
-			metadata: {
-				usage: undefined, // Will be set when usage information is available
-			},
 		});
 
 		return messageId;
