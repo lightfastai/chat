@@ -168,6 +168,8 @@ export const createErrorMessage = internalMutation({
 			threadId: args.threadId,
 			parts: [{ type: "text", text: args.errorMessage }],
 			timestamp: now,
+			role: "assistant", // Use current schema field
+			// Keep legacy fields for backward compatibility
 			messageType: "assistant",
 			model: args.provider,
 			modelId: args.modelId,
@@ -309,6 +311,7 @@ export const addErrorPart = internalMutation({
 
 		await ctx.db.patch(args.messageId, {
 			parts: updatedParts,
+			status: "error", // Ensure message status reflects error state
 		});
 
 		return null;
@@ -517,7 +520,8 @@ export const addRawPart = internalMutation({
 	},
 });
 
-// @todo rework error handling.
+// Legacy function - use addErrorPart + updateMessageStatus instead
+// @deprecated - Remove after confirming no usage
 export const markError = internalMutation({
 	args: {
 		messageId: v.id("messages"),

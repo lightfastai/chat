@@ -11,23 +11,23 @@
  */
 
 import {
-	type ModelMessage,
-	type ReasoningUIPart,
-	type TextUIPart,
-	type UIMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type UIMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getModelStreamingDelay,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getModelStreamingDelay,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -37,10 +37,13 @@ import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-	StreamingReasoningWriter,
-	StreamingTextWriter,
+  handleStreamingSetupError,
+  createHTTPErrorResponse,
+} from "./lib/error_handling";
+import {
+  StreamingReasoningWriter,
+  StreamingTextWriter,
 } from "./lib/streaming_writers";
-import { handleAIResponseError } from "./messages/helpers";
 import type { DbMessage, DbMessagePart } from "./types";
 import type { modelIdValidator } from "./validators";
 
@@ -426,37 +429,18 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			textWriter.dispose();
 			reasoningWriter.dispose();
 
-			console.error("Streaming setup error:", error);
-
 			// Handle error that occurred during streaming setup
-			await handleAIResponseError(
+			await handleStreamingSetupError(
 				ctx,
 				error,
-				thread._id,
 				assistantMessage._id,
-				{
-					modelId: modelId as ModelId,
-					provider: getProviderFromModelId(modelId as ModelId),
-					useStreamingUpdate: true,
-				},
+				modelId as ModelId,
 			);
 
 			throw error;
 		}
 	} catch (error) {
 		console.error("HTTP streaming error:", error);
-		return new Response(
-			JSON.stringify({
-				error:
-					error instanceof Error ? error.message : "Failed to start streaming",
-			}),
-			{
-				status: 500,
-				headers: {
-					"Content-Type": "application/json",
-					...corsHeaders(),
-				},
-			},
-		);
+		return createHTTPErrorResponse(error);
 	}
 });
