@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
-	getTimezoneCookie,
-	setTimezoneCookie,
-	isTimezoneCookieStale,
-	getTimezoneConfidence,
-	isValidTimezone,
 	type TimezoneData,
+	getTimezoneConfidence,
+	getTimezoneCookie,
+	isTimezoneCookieStale,
+	isValidTimezone,
+	setTimezoneCookie,
 } from "./timezone-cookies";
 
 export interface TimezoneInfo {
@@ -144,7 +144,14 @@ export function useUserTimezone(
 		return () => {
 			isMounted = false;
 		};
-	}, [serverTimezone, ipEstimate, timezoneInfo.timezone, timezoneInfo.source]);
+	}, [
+		serverTimezone,
+		ipEstimate,
+		timezoneInfo.timezone,
+		timezoneInfo.source,
+		timezoneInfo.confidence,
+		timezoneInfo.isStale,
+	]);
 
 	return timezoneInfo;
 }

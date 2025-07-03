@@ -24,6 +24,11 @@ interface CenteredChatStartProps {
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	serverTimezone?: TimezoneData | null;
 	ipEstimate?: string;
+	serverGreeting?: {
+		greeting: string;
+		timezone: string;
+		source: "cookie" | "ip" | "fallback";
+	};
 }
 
 export function CenteredChatStart({
@@ -33,9 +38,14 @@ export function CenteredChatStart({
 	preloadedUser,
 	serverTimezone,
 	ipEstimate,
+	serverGreeting,
 }: CenteredChatStartProps) {
 	const { displayName, email } = useAuth();
-	const { greeting, confidence, source } = useTimeGreeting(serverTimezone, ipEstimate);
+	// Use server greeting if available to avoid client-side bounce
+	const clientGreetingInfo = useTimeGreeting(serverTimezone, ipEstimate);
+	const greeting = serverGreeting?.greeting || clientGreetingInfo.greeting;
+	const source = serverGreeting?.source || clientGreetingInfo.source;
+	const confidence = clientGreetingInfo.confidence;
 	const [message, setMessage] = useState("");
 	const chatInputRef = useRef<HTMLTextAreaElement>(null);
 

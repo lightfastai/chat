@@ -1,10 +1,10 @@
 "use client";
 
 import { useChat } from "@/hooks/use-chat";
+import type { TimezoneData } from "@/lib/timezone-cookies";
 import type { Preloaded } from "convex/react";
 import { useEffect, useMemo, useRef } from "react";
 import type { api } from "../../../convex/_generated/api";
-import type { TimezoneData } from "@/lib/timezone-cookies";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
@@ -17,6 +17,11 @@ interface ChatInterfaceProps {
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 	serverTimezone?: TimezoneData | null;
 	ipEstimate?: string;
+	serverGreeting?: {
+		greeting: string;
+		timezone: string;
+		source: "cookie" | "ip" | "fallback";
+	};
 }
 
 export function ChatInterface({
@@ -27,6 +32,7 @@ export function ChatInterface({
 	preloadedUserSettings,
 	serverTimezone,
 	ipEstimate,
+	serverGreeting,
 }: ChatInterfaceProps = {}) {
 	// Use custom chat hook with optimistic updates and preloaded data
 	const { messages, currentThread, handleSendMessage, isDisabled, isNewChat } =
@@ -74,6 +80,7 @@ export function ChatInterface({
 				preloadedUser={preloadedUser}
 				serverTimezone={serverTimezone}
 				ipEstimate={ipEstimate}
+				serverGreeting={serverGreeting}
 			/>
 		);
 	}

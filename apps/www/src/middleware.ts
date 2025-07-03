@@ -1,3 +1,4 @@
+import { getTimezoneFromRequest } from "@/lib/ip-timezone";
 import {
 	convexAuthNextjsMiddleware,
 	createRouteMatcher,
@@ -36,6 +37,12 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 
 	// Add prefetch headers for chat routes to improve performance
 	const response = NextResponse.next();
+
+	// Add IP-based timezone estimate to headers
+	const timezoneEstimate = getTimezoneFromRequest(request);
+	if (timezoneEstimate) {
+		response.headers.set("x-user-timezone", timezoneEstimate);
+	}
 
 	if (isAuthenticated && pathname.startsWith("/chat")) {
 		// Add cache headers for better navigation performance

@@ -1,14 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useUserTimezone } from "@/lib/use-user-timezone";
 import type { TimezoneData } from "@/lib/timezone-cookies";
+import { useUserTimezone } from "@/lib/use-user-timezone";
+import { useEffect, useState } from "react";
 
 export interface GreetingInfo {
 	greeting: string;
 	timezone: string;
 	confidence: "high" | "medium" | "low";
 	source: "cookie" | "browser" | "ip" | "fallback";
+}
+
+/**
+ * Calculate greeting based on timezone (pure function)
+ */
+function calculateGreeting(timezone: string): string {
+	try {
+		// Calculate greeting in user's timezone
+		const now = new Date();
+		const userTime = new Date(
+			now.toLocaleString("en-US", { timeZone: timezone }),
+		);
+		const hour = userTime.getHours();
+
+		if (hour < 12) {
+			return "Good morning";
+		} else if (hour < 17) {
+			return "Good afternoon";
+		} else {
+			return "Good evening";
+		}
+	} catch (error) {
+		console.warn("Timezone calculation failed:", error);
+		// Fallback to simple greeting
+		return "Hello";
+	}
 }
 
 /**
@@ -22,32 +48,15 @@ export function useTimeGreeting(
 		serverTimezone,
 		ipEstimate,
 	);
-	const [greeting, setGreeting] = useState("Welcome"); // Safe default
+
+	// Calculate greeting immediately based on current timezone
+	// This prevents the "Welcome" -> actual greeting bounce
+	const [greeting, setGreeting] = useState(() => calculateGreeting(timezone));
 
 	useEffect(() => {
-		try {
-			// Calculate greeting in user's timezone
-			const now = new Date();
-			const userTime = new Date(
-				now.toLocaleString("en-US", { timeZone: timezone }),
-			);
-			const hour = userTime.getHours();
-
-			let newGreeting: string;
-			if (hour < 12) {
-				newGreeting = "Good morning";
-			} else if (hour < 17) {
-				newGreeting = "Good afternoon";
-			} else {
-				newGreeting = "Good evening";
-			}
-
-			setGreeting(newGreeting);
-		} catch (error) {
-			console.warn("Timezone calculation failed:", error);
-			// Fallback to simple greeting
-			setGreeting("Hello");
-		}
+		// Update greeting when timezone changes
+		const newGreeting = calculateGreeting(timezone);
+		setGreeting(newGreeting);
 	}, [timezone]);
 
 	return {
