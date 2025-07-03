@@ -92,7 +92,15 @@ export function useChat({
 			let userMessageId: string | undefined;
 			let assistantMessageId: string | undefined;
 
-			if (threadContextFromStore.type === "new") {
+			// Use prop-based context for initial check, fall back to store
+			// This ensures we respect the server-provided context on navigation
+			const effectiveContext =
+				threadContext.type === "new" &&
+				threadContextFromStore.type === "existing"
+					? threadContext
+					: threadContextFromStore;
+
+			if (effectiveContext.type === "new") {
 				// Update URL using replaceState for seamless navigation
 				window.history.replaceState({}, "", `/chat/${threadContext.clientId}`);
 				const data = await createThreadOptimistic({
@@ -104,11 +112,11 @@ export function useChat({
 				assistantMessageId = data.assistantMessageId;
 
 				// Transition thread context from "new" to "existing"
-				transitionToExisting(threadContextFromStore.clientId);
+				transitionToExisting(effectiveContext.clientId);
 				setThreadId(data.threadId);
 			}
 
-			if (threadContextFromStore.type === "existing") {
+			if (effectiveContext.type === "existing") {
 				if (!thread?._id) {
 					console.error("Thread not found", {
 						threadContext,
