@@ -9,6 +9,7 @@
 
 import { tool } from "ai"
 import { z } from "zod/v4"
+import Exa from "exa-js"
 
 // Base tool definition interface
 interface ToolDefinition<
@@ -64,7 +65,7 @@ const webSearchTool = defineTool({
       }),
     ),
     query: z.string(),
-    enhancedQuery: z.string().optional(),
+    autopromptString: z.string().optional(),
   }),
   execute: async (input) => {
     const API_KEY = process.env.EXA_API_KEY
@@ -73,44 +74,23 @@ const webSearchTool = defineTool({
     }
 
     try {
-      const response = await fetch("https://api.exa.ai/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_KEY}`,
-        },
-        body: JSON.stringify({
-          query: input.query,
-          useAutoprompt: input.useAutoprompt,
-          numResults: input.numResults,
-          type: "neural",
-        }),
+      const exa = new Exa(API_KEY)
+
+      const response = await exa.searchAndContents(input.query, {
+        useAutoprompt: input.useAutoprompt,
+        numResults: input.numResults,
+        type: "neural",
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Exa API error: ${response.status} - ${errorText}`)
-      }
-
-      const data = await response.json()
-
-      // Define the expected result type from Exa API
-      interface ExaResult {
-        title: string
-        url: string
-        snippet?: string
-        score?: number
-      }
-
       return {
-        results: data.results.map((result: ExaResult) => ({
-          title: result.title,
+        results: response.results.map((result) => ({
+          title: result.title || "Untitled",
           url: result.url,
-          snippet: result.snippet,
-          score: result.score,
+          snippet: result.text || undefined,
+          score: result.score || undefined,
         })),
         query: input.query,
-        enhancedQuery: data.autopromptString,
+        autopromptString: response.autopromptString,
       }
     } catch (error) {
       console.error("Web search error:", error)
