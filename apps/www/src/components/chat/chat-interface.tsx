@@ -11,14 +11,12 @@ import { ChatMessages } from "./chat-messages";
 import { useChat } from "../../hooks/use-chat";
 import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 
-interface ChatInterfaceProps {
-	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
+interface ChatInterfaceProps  {
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
 
 export function ChatInterface({
-	preloadedMessages,
 	preloadedUser,
 	preloadedUserSettings,
 }: ChatInterfaceProps) {

@@ -43,15 +43,11 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 		notFound();
 	}
 
-	return <ChatThreadPageWithPreloadedData clientId={clientId} />;
+	return <ChatThreadPageWithPreloadedData />;
 }
 
 // Server component that handles data preloading with PPR optimization
-async function ChatThreadPageWithPreloadedData({
-	clientId,
-}: {
-	clientId: string;
-}) {
+async function ChatThreadPageWithPreloadedData() {
 	try {
 		// Get authentication token for server-side requests
 		const token = await getAuthToken();
