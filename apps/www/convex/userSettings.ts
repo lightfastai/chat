@@ -17,24 +17,6 @@ import {
 // Get user settings
 export const getUserSettings = query({
 	args: {},
-	returns: v.union(
-		v.null(),
-		v.object({
-			_id: v.id("userSettings"),
-			userId: v.id("users"),
-			preferences: v.optional(
-				v.object({
-					defaultModel: v.optional(modelIdValidator),
-					preferredProvider: v.optional(modelProviderValidator),
-				}),
-			),
-			createdAt: v.number(),
-			updatedAt: v.number(),
-			hasOpenAIKey: v.boolean(),
-			hasAnthropicKey: v.boolean(),
-			hasOpenRouterKey: v.boolean(),
-		}),
-	),
 	handler: async (ctx) => {
 		const userId = await getAuthUserId(ctx);
 		if (!userId) {
@@ -50,17 +32,7 @@ export const getUserSettings = query({
 			return null;
 		}
 
-		// Return settings without decrypted API keys for security
-		return {
-			_id: settings._id,
-			userId: settings.userId,
-			preferences: settings.preferences,
-			createdAt: settings.createdAt,
-			updatedAt: settings.updatedAt,
-			hasOpenAIKey: !!settings.apiKeys?.openai,
-			hasAnthropicKey: !!settings.apiKeys?.anthropic,
-			hasOpenRouterKey: !!settings.apiKeys?.openrouter,
-		};
+		return settings;
 	},
 });
 

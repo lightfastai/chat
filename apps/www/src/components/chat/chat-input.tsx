@@ -2,57 +2,57 @@
 
 import { useFileDrop } from "@/hooks/use-file-drop";
 import {
-	DEFAULT_MODEL_ID,
-	type ModelId,
-	getIncompatibilityMessage,
-	getModelCapabilities,
-	getModelConfig,
-	getVisibleModels,
-	validateAttachmentsForModel,
+  DEFAULT_MODEL_ID,
+  type ModelId,
+  getIncompatibilityMessage,
+  getModelCapabilities,
+  getModelConfig,
+  getVisibleModels,
+  validateAttachmentsForModel,
 } from "@/lib/ai";
 import { preprocessUserMessage } from "@/lib/message-preprocessing";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuPortal,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
-	DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
 import { ScrollArea, ScrollBar } from "@lightfast/ui/components/ui/scroll-area";
 import { Textarea } from "@lightfast/ui/components/ui/textarea";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@lightfast/ui/components/ui/tooltip";
 import { useMutation } from "convex/react";
 import {
-	ArrowUp,
-	Brain,
-	ChevronDown,
-	Eye,
-	FileIcon,
-	FileText,
-	Globe,
-	Image,
-	Loader2,
-	Paperclip,
-	Wrench,
-	X,
+  ArrowUp,
+  Brain,
+  ChevronDown,
+  Eye,
+  FileIcon,
+  FileText,
+  Globe,
+  Image,
+  Loader2,
+  Paperclip,
+  Wrench,
+  X,
 } from "lucide-react";
 import {
-	forwardRef,
-	memo,
-	useCallback,
-	useEffect,
-	useImperativeHandle,
-	useMemo,
-	useRef,
-	useState,
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
@@ -74,6 +74,7 @@ interface ChatInputProps {
 	showDisclaimer?: boolean;
 	value?: string;
 	onChange?: (value: string) => void;
+	defaultModel?: ModelId;
 }
 
 interface FileAttachment {
@@ -112,6 +113,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 			showDisclaimer = true,
 			value,
 			onChange,
+			defaultModel,
 		},
 		ref,
 	) => {
@@ -124,8 +126,9 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 		const [isSending, setIsSending] = useState(false);
 
 		// Initialize selectedModelId - load from sessionStorage after mount to avoid hydration issues
-		const [selectedModelId, setSelectedModelId] =
-			useState<ModelId>(DEFAULT_MODEL_ID);
+		const [selectedModelId, setSelectedModelId] = useState<ModelId>(
+			defaultModel || DEFAULT_MODEL_ID,
+		);
 
 		// Load persisted model selection after mount
 		useEffect(() => {

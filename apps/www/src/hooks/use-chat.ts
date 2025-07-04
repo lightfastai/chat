@@ -8,7 +8,7 @@ import { usePreloadedQuery, useQuery } from "convex/react";
 import { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import type { ModelId } from "../lib/ai/schemas";
+import { DEFAULT_MODEL_ID, type ModelId } from "../lib/ai/schemas";
 import type { UIMessage } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
 import { useCreateSubsequentMessages } from "./use-create-subsequent-messages";
@@ -46,7 +46,7 @@ export function useChat({
 		userSettings = usePreloadedQuery(preloadedUserSettings);
 	}
 
-	const defaultModel = userSettings?.preferences?.defaultModel || "gpt-4o-mini";
+	const defaultModel = userSettings?.preferences?.defaultModel || DEFAULT_MODEL_ID;
 
 	// Create transport using the dedicated hook
 	const transport = useChatTransport({

@@ -21,12 +21,14 @@ interface CenteredChatStartProps {
 	) => Promise<void> | void;
 	dbMessages?: Doc<"messages">[] | undefined;
 	preloadedUser?: Preloaded<typeof api.users.current>;
+	defaultModel?: ModelId;
 }
 
 export function CenteredChatStart({
 	onSendMessage,
 	dbMessages,
 	preloadedUser,
+	defaultModel,
 }: CenteredChatStartProps) {
 	const { displayName, email } = useAuth();
 	const greeting = useTimeGreeting();
@@ -69,6 +71,7 @@ export function CenteredChatStart({
 							showDisclaimer={false}
 							value={message}
 							onChange={setMessage}
+							defaultModel={defaultModel}
 						/>
 
 						{/* Prompt suggestions positioned absolutely below chat input */}

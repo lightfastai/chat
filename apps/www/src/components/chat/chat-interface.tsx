@@ -50,7 +50,7 @@ export function ChatInterface({
 		currentClientId ? { clientId: currentClientId } : "skip",
 	);
 
-	const { messages, sendMessage } = useChat({
+	const { messages, sendMessage, defaultModel } = useChat({
 		initialMessages: convertDbMessagesToUIMessages(dbMessages || []),
 		preloadedUserSettings,
 		clientId: currentClientId,
@@ -63,6 +63,7 @@ export function ChatInterface({
 				onSendMessage={sendMessage}
 				dbMessages={dbMessages}
 				preloadedUser={preloadedUser}
+				defaultModel={defaultModel}
 			/>
 		);
 	}
@@ -70,7 +71,11 @@ export function ChatInterface({
 	return (
 		<div className="flex flex-col h-full">
 			<ChatMessages dbMessages={dbMessages} vercelMessages={messages} />
-			<ChatInput onSendMessage={sendMessage} dbMessages={dbMessages} />
+			<ChatInput
+				onSendMessage={sendMessage}
+				dbMessages={dbMessages}
+				defaultModel={defaultModel}
+			/>
 		</div>
 	);
 }
