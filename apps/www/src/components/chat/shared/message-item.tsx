@@ -4,7 +4,7 @@ import type { Doc } from "@/convex/_generated/dataModel";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import type React from "react";
 import { MessageLayout } from "./message-layout";
-import { ThinkingIndicator } from "./thinking-indicator";
+import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
 
 export interface MessageItemProps {
 	message: Doc<"messages">;
@@ -21,8 +21,16 @@ export function MessageItem({
 	actions,
 	forceActionsVisible = false,
 }: MessageItemProps) {
-	// Determine if we should show thinking indicator
-	const hasContent =
+	// Extract reasoning content and check for reasoning parts
+	const reasoningParts =
+		message.parts?.filter((part) => part.type === "reasoning") || [];
+	const hasReasoningParts = reasoningParts.length > 0;
+	const reasoningContent = reasoningParts
+		.map((part) => (part.type === "reasoning" ? part.text : ""))
+		.join("\n\n");
+
+	// Check if message has actual text content (not just reasoning)
+	const hasTextContent =
 		message.parts &&
 		message.parts.length > 0 &&
 		message.parts.some(
@@ -30,27 +38,38 @@ export function MessageItem({
 				part.type === "text" && part.text && part.text.trim().length > 0,
 		);
 
-	// Show thinking for assistant messages that are submitted or streaming and have no content
-	const showThinking =
-		message.role === "assistant" &&
-		!hasContent &&
-		(message.status === "submitted" || message.status === "streaming");
+	// Determine streaming state
+	const isStreaming =
+		message.status === "submitted" || message.status === "streaming";
+	const isAssistant = message.role === "assistant";
 
 	// Content component
 	const content = (() => {
-		// Show only thinking indicator if no parts yet
-		if (showThinking) {
-			return <ThinkingIndicator />;
+		// For assistant messages that are streaming or just submitted
+		if (isAssistant && isStreaming && !hasTextContent) {
+			// Show reasoning display which handles both thinking and reasoning states
+			return (
+				<StreamingReasoningDisplay
+					isStreaming={isStreaming}
+					hasContent={!!hasTextContent}
+					reasoningContent={reasoningContent}
+					hasReasoningParts={hasReasoningParts}
+				/>
+			);
 		}
 
 		// If message has parts, render them (even if empty initially)
 		if (message.parts && message.parts.length > 0) {
-			// If we have parts but they're all empty, show a minimal placeholder to prevent layout shift
-			const allPartsEmpty = !message.parts.some(
-				(part) => part.type === "text" && part.text && part.text.length > 0,
+			// Filter out only text parts for display (reasoning is shown separately)
+			const textParts = message.parts.filter((part) => part.type === "text");
+			const allTextPartsEmpty = !textParts.some(
+				(part) => part.text && part.text.length > 0,
 			);
 
-			if (allPartsEmpty && (message.status === "submitted" || message.status === "streaming")) {
+			if (
+				allTextPartsEmpty &&
+				(message.status === "submitted" || message.status === "streaming")
+			) {
 				// Show just the cursor while waiting for content
 				return (
 					<div className="h-5">
@@ -61,7 +80,18 @@ export function MessageItem({
 
 			return (
 				<div className="space-y-2">
-					{message.parts.map((part, index) => {
+					{/* Show reasoning display if there are reasoning parts */}
+					{isAssistant && hasReasoningParts && (
+						<StreamingReasoningDisplay
+							isStreaming={isStreaming}
+							hasContent={!!hasTextContent}
+							reasoningContent={reasoningContent}
+							hasReasoningParts={hasReasoningParts}
+						/>
+					)}
+
+					{/* Render text parts */}
+					{textParts.map((part, index) => {
 						if (part.type === "text") {
 							return (
 								<div key={`${message._id}-text-${index}`}>
@@ -80,11 +110,6 @@ export function MessageItem({
 								</div>
 							);
 						}
-
-						// @biome-ignore lint/suspicious/noCommentText: TODO: Handle tool calls when needed
-						// Tool calls will be handled here in the future
-						// if (part.type.startsWith("tool-")) { ... }
-
 						return null;
 					})}
 				</div>

@@ -5,13 +5,13 @@ import { useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
+import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
+import { useChat } from "../../hooks/use-chat";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
-import { useChat } from "../../hooks/use-chat";
-import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 
-interface ChatInterfaceProps  {
+interface ChatInterfaceProps {
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 }
@@ -45,10 +45,9 @@ export function ChatInterface({
 
 	const currentClientId = pathInfo.type === "clientId" ? pathInfo.id : null;
 
-	const dbMessages =
-		useQuery(
-			api.messages.listByClientId,
-			currentClientId ? { clientId: currentClientId } : "skip",
+	const dbMessages = useQuery(
+		api.messages.listByClientId,
+		currentClientId ? { clientId: currentClientId } : "skip",
 	);
 
 	const { messages, sendMessage } = useChat({
@@ -56,6 +55,8 @@ export function ChatInterface({
 		preloadedUserSettings,
 		clientId: currentClientId,
 	});
+
+	console.log(dbMessages);
 
 	// Show centered layout only for new chats with no messages
 	if (pathInfo.type === "new" && !dbMessages) {
