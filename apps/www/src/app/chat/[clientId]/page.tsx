@@ -2,7 +2,6 @@ import { siteConfig } from "@/lib/site-config";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { ChatInterface } from "../../../components/chat/chat-interface";
 import { getAuthToken } from "../../../lib/auth";
@@ -44,11 +43,7 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 		notFound();
 	}
 
-	return (
-		<Suspense fallback={<ChatInterface />}>
-			<ChatThreadPageWithPreloadedData clientId={clientId} />
-		</Suspense>
-	);
+	return <ChatThreadPageWithPreloadedData clientId={clientId} />;
 }
 
 // Server component that handles data preloading with PPR optimization
@@ -73,19 +68,7 @@ async function ChatThreadPageWithPreloadedData({
 			{ token },
 		);
 
-		// Preload messages by client ID for better performance
-		const preloadedMessages = await preloadQuery(
-			api.messages.listByClientId,
-			{ clientId },
-			{ token },
-		);
-
-		return (
-			<ChatInterface
-				preloadedMessages={preloadedMessages}
-				preloadedUserSettings={preloadedUserSettings}
-			/>
-		);
+		return <ChatInterface preloadedUserSettings={preloadedUserSettings} />;
 	} catch (error) {
 		// Log error but still render - don't break the UI
 		console.warn("Server-side chat data preload failed:", error);
