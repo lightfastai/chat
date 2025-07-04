@@ -13,12 +13,12 @@ import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
 import {
-	clientIdValidator,
-	messageStatusValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	textPartValidator,
-	tokenUsageValidator,
+  clientIdValidator,
+  messageStatusValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  textPartValidator,
+  tokenUsageValidator,
 } from "./validators.js";
 
 // Export types
@@ -287,23 +287,6 @@ export const addReasoningPart = internalMutation({
 	},
 });
 
-// Internal mutation to clear all message parts
-export const clearMessageParts = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		await ctx.db.patch(args.messageId, {
-			parts: [],
-		});
-
-		return null;
-	},
-});
 
 // Internal mutation to add an error part to a message
 export const addErrorPart = internalMutation({

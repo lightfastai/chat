@@ -11,23 +11,23 @@
  */
 
 import {
-	type ModelMessage,
-	type ReasoningUIPart,
-	type TextUIPart,
-	type UIMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type UIMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getModelStreamingDelay,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getModelStreamingDelay,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -37,15 +37,15 @@ import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-	createHTTPErrorResponse,
-	extractErrorDetails,
-	formatErrorMessage,
-	handleStreamingSetupError,
-	logStreamingError,
+  createHTTPErrorResponse,
+  extractErrorDetails,
+  formatErrorMessage,
+  handleStreamingSetupError,
+  logStreamingError,
 } from "./lib/error_handling";
 import {
-	StreamingReasoningWriter,
-	StreamingTextWriter,
+  StreamingReasoningWriter,
+  StreamingTextWriter,
 } from "./lib/streaming_writers";
 import type { DbMessage, DbMessagePart } from "./types";
 import type { modelIdValidator } from "./validators";
@@ -239,8 +239,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
 
 		// Create debounced writers for streaming content
-		let textWriter = new StreamingTextWriter(assistantMessage._id, ctx);
-		let reasoningWriter = new StreamingReasoningWriter(
+		const textWriter = new StreamingTextWriter(assistantMessage._id, ctx);
+		const reasoningWriter = new StreamingReasoningWriter(
 			assistantMessage._id,
 			ctx,
 		);
@@ -308,37 +308,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					}
 				},
 				onStepFinish: async (stepResult) => {
-					// Clear existing parts to replace with complete content
-					await ctx.runMutation(internal.messages.clearMessageParts, {
-						messageId: assistantMessage._id,
-					});
-
-					// Add complete reasoning parts first (if any)
-					if (stepResult.reasoning && stepResult.reasoning.length > 0) {
-						for (const reasoningPart of stepResult.reasoning) {
-							await ctx.runMutation(internal.messages.addReasoningPart, {
-								messageId: assistantMessage._id,
-								text: reasoningPart.text,
-							});
-						}
-					}
-
-					// Add complete text content (if any)
-					if (stepResult.text) {
-						await ctx.runMutation(internal.messages.addTextPart, {
-							messageId: assistantMessage._id,
-							text: stepResult.text,
-						});
-					}
-
-					// Dispose writers to cancel any pending flushes
-					// Note: We don't flush here since we've already written complete content
-					textWriter.dispose();
-					reasoningWriter.dispose();
-					
-					// Recreate writers for any subsequent chunks
-					textWriter = new StreamingTextWriter(assistantMessage._id, ctx);
-					reasoningWriter = new StreamingReasoningWriter(assistantMessage._id, ctx);
+					// Immediately flush any accumulated content from the writers
+					// This ensures all partial content is written in the correct order
+					await Promise.all([
+						textWriter.flush(),
+						reasoningWriter.flush()
+					]);
 				},
 				onFinish: async (result) => {
 					// Flush any remaining content
