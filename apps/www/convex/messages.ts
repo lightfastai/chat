@@ -208,13 +208,42 @@ export const addTextPart = internalMutation({
 			timestamp: args.timestamp,
 		};
 
-		// Add the new part and sort all parts by their timestamp
-		const updatedParts: DbMessagePart[] = [...currentParts, newPart].sort((a, b) => {
-			// Get timestamp for each part (for sorting)
-			const aTimestamp = "timestamp" in a ? a.timestamp : 0;
-			const bTimestamp = "timestamp" in b ? b.timestamp : 0;
-			return aTimestamp - bTimestamp;
+		// Simply append the new part - sorting happens on client side
+		const updatedParts: DbMessagePart[] = [...currentParts, newPart];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
 		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add multiple text parts at once (for batched writes)
+export const addTextParts = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		parts: v.array(v.object({
+			text: v.string(),
+			timestamp: v.number(),
+		})),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+
+		// Create new text parts with timestamps
+		const newParts: DbTextPart[] = args.parts.map(part => ({
+			type: "text" as const,
+			text: part.text,
+			timestamp: part.timestamp,
+		}));
+
+		// Append all new parts at once
+		const updatedParts: DbMessagePart[] = [...currentParts, ...newParts];
 
 		await ctx.db.patch(args.messageId, {
 			parts: updatedParts,
@@ -245,13 +274,42 @@ export const addReasoningPart = internalMutation({
 			timestamp: args.timestamp,
 		};
 
-		// Add the new part and sort all parts by their timestamp
-		const updatedParts: DbMessagePart[] = [...currentParts, newPart].sort((a, b) => {
-			// Get timestamp for each part (for sorting)
-			const aTimestamp = "timestamp" in a ? a.timestamp : 0;
-			const bTimestamp = "timestamp" in b ? b.timestamp : 0;
-			return aTimestamp - bTimestamp;
+		// Simply append the new part - sorting happens on client side
+		const updatedParts: DbMessagePart[] = [...currentParts, newPart];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
 		});
+
+		return null;
+	},
+});
+
+// Internal mutation to add multiple reasoning parts at once (for batched writes)
+export const addReasoningParts = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		parts: v.array(v.object({
+			text: v.string(),
+			timestamp: v.number(),
+		})),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+
+		// Create new reasoning parts with timestamps
+		const newParts: DbReasoningPart[] = args.parts.map(part => ({
+			type: "reasoning" as const,
+			text: part.text,
+			timestamp: part.timestamp,
+		}));
+
+		// Append all new parts at once
+		const updatedParts: DbMessagePart[] = [...currentParts, ...newParts];
 
 		await ctx.db.patch(args.messageId, {
 			parts: updatedParts,

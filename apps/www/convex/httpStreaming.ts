@@ -259,17 +259,19 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					chunking: "word",
 				}),
 				onChunk: async ({ chunk }) => {
+					const chunkTimestamp = Date.now();
+					
 					// Handle Vercel AI SDK v5 chunk types
 					switch (chunk.type) {
 						case "text":
 							if (chunk.text) {
-								textWriter.append(chunk.text, Date.now());
+								textWriter.append(chunk.text);
 							}
 							break;
 
 						case "reasoning":
 							if (chunk.text) {
-								reasoningWriter.append(chunk.text, Date.now());
+								reasoningWriter.append(chunk.text);
 							}
 							break;
 
@@ -278,7 +280,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							await ctx.runMutation(internal.messages.addRawPart, {
 								messageId: assistantMessage._id,
 								rawValue: chunk.rawValue,
-								timestamp: Date.now(),
+								timestamp: chunkTimestamp,
 							});
 							break;
 
@@ -290,7 +292,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								toolName: chunk.toolName,
 								args: chunk.input || {},
 								state: "call",
-								timestamp: Date.now(),
+								timestamp: chunkTimestamp,
 							});
 							break;
 
@@ -301,7 +303,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								toolCallId: chunk.toolCallId,
 								result: chunk.output,
 								state: "result",
-								timestamp: Date.now(),
+								timestamp: chunkTimestamp,
 							});
 							break;
 
