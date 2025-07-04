@@ -30,11 +30,11 @@ export function MessageItem({
 				part.type === "text" && part.text && part.text.trim().length > 0,
 		);
 
-	// Show thinking only for assistant messages that are actively streaming and have no content
+	// Show thinking for assistant messages that are submitted or streaming and have no content
 	const showThinking =
 		message.role === "assistant" &&
 		!hasContent &&
-		message.status === "streaming";
+		(message.status === "submitted" || message.status === "streaming");
 
 	// Content component
 	const content = (() => {
@@ -50,7 +50,7 @@ export function MessageItem({
 				(part) => part.type === "text" && part.text && part.text.length > 0,
 			);
 
-			if (allPartsEmpty && message.status === "streaming") {
+			if (allPartsEmpty && (message.status === "submitted" || message.status === "streaming")) {
 				// Show just the cursor while waiting for content
 				return (
 					<div className="h-5">

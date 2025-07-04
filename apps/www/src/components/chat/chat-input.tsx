@@ -2,57 +2,57 @@
 
 import { useFileDrop } from "@/hooks/use-file-drop";
 import {
-	DEFAULT_MODEL_ID,
-	type ModelId,
-	getIncompatibilityMessage,
-	getModelCapabilities,
-	getModelConfig,
-	getVisibleModels,
-	validateAttachmentsForModel,
+  DEFAULT_MODEL_ID,
+  type ModelId,
+  getIncompatibilityMessage,
+  getModelCapabilities,
+  getModelConfig,
+  getVisibleModels,
+  validateAttachmentsForModel,
 } from "@/lib/ai";
 import { preprocessUserMessage } from "@/lib/message-preprocessing";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuPortal,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
-	DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
 import { ScrollArea, ScrollBar } from "@lightfast/ui/components/ui/scroll-area";
 import { Textarea } from "@lightfast/ui/components/ui/textarea";
 import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@lightfast/ui/components/ui/tooltip";
 import { useMutation } from "convex/react";
 import {
-	ArrowUp,
-	Brain,
-	ChevronDown,
-	Eye,
-	FileIcon,
-	FileText,
-	Globe,
-	Image,
-	Loader2,
-	Paperclip,
-	Wrench,
-	X,
+  ArrowUp,
+  Brain,
+  ChevronDown,
+  Eye,
+  FileIcon,
+  FileText,
+  Globe,
+  Image,
+  Loader2,
+  Paperclip,
+  Wrench,
+  X,
 } from "lucide-react";
 import {
-	forwardRef,
-	memo,
-	useCallback,
-	useEffect,
-	useImperativeHandle,
-	useMemo,
-	useRef,
-	useState,
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
@@ -727,7 +727,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 												return (
 													<div
 														key={attachment.id}
-														className="flex items-center gap-2 px-3 py-2 bg-background rounded-md border text-sm group hover:border-foreground/20 transition-colors flex-shrink-0"
+														className="flex items-center gap-2 px-3 py-2 bg-background rounded-md border border-muted/30 text-sm group hover:border-muted/50 transition-colors flex-shrink-0"
 													>
 														{isImage ? (
 															<Image className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -744,15 +744,16 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 																{formatFileSize(attachment.size)}
 															</p>
 														</div>
-														<button
-															type="button"
+														<Button
+															variant="ghost"
+															size="icon"
 															onClick={() => removeAttachment(attachment.id)}
-															className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-destructive/10 rounded"
+															className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 p-1 hover:bg-destructive/10 rounded-sm h-6 w-6"
 															disabled={disabled || isUploading}
 															aria-label={`Remove ${attachment.name}`}
 														>
-															<X className="w-3 h-3 text-destructive" />
-														</button>
+															<X className="w-2 h-2 text-destructive" />
+														</Button>
 													</div>
 												);
 											})}
