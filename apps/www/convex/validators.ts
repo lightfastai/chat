@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
-import { TOOL_NAMES } from "../src/lib/ai/tools/index.js";
+import { TOOL_NAMES } from "../src/lib/ai/tools.js";
 
 /**
  * Comprehensive validators for the chat application
