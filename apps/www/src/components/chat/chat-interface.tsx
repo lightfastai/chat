@@ -62,7 +62,7 @@ export function ChatInterface({
 	}
 
 	// Let useChat determine everything from the current pathname
-	const { messages, sendMessage, status, canSendMessage } = useChat({
+	const { messages, sendMessage, status } = useChat({
 		initialMessages: convertDbMessagesToUIMessages(dbMessages),
 		preloadedUserSettings,
 		clientId: currentClientId,
@@ -73,7 +73,6 @@ export function ChatInterface({
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
-				disabled={!canSendMessage}
 				dbMessages={dbMessages}
 				preloadedUser={preloadedUser}
 			/>
@@ -89,7 +88,6 @@ export function ChatInterface({
 			/>
 			<ChatInput
 				onSendMessage={sendMessage}
-				disabled={!canSendMessage}
 				dbMessages={dbMessages}
 			/>
 		</div>

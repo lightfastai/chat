@@ -72,10 +72,6 @@ export function useChat({
 		},
 	});
 
-	// Computed values
-	const isEmpty = uiMessages.length === 0;
-	const totalMessages = uiMessages.length;
-	const canSendMessage = status !== "streaming" && !!authToken;
 
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
@@ -150,12 +146,9 @@ export function useChat({
 	return {
 		// Messages
 		messages: uiMessages,
-		isEmpty,
-		totalMessages,
 
 		// Status - direct from Vercel AI SDK
 		status,
-		canSendMessage,
 
 		// Actions
 		sendMessage,

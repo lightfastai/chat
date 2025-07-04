@@ -19,14 +19,12 @@ interface CenteredChatStartProps {
 		attachments?: Id<"files">[],
 		webSearchEnabled?: boolean,
 	) => Promise<void> | void;
-	disabled?: boolean;
 	dbMessages?: Doc<"messages">[] | undefined;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 }
 
 export function CenteredChatStart({
 	onSendMessage,
-	disabled = false,
 	dbMessages,
 	preloadedUser,
 }: CenteredChatStartProps) {
@@ -67,7 +65,6 @@ export function CenteredChatStart({
 							ref={chatInputRef}
 							onSendMessage={onSendMessage}
 							placeholder="How can I help you today?"
-							disabled={disabled}
 							dbMessages={dbMessages}
 							showDisclaimer={false}
 							value={message}
