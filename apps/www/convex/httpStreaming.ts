@@ -263,32 +263,34 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					switch (chunk.type) {
 						case "text":
 							if (chunk.text) {
-								textWriter.append(chunk.text);
+								textWriter.append(chunk.text, Date.now());
 							}
 							break;
 
 						case "reasoning":
 							if (chunk.text) {
-								reasoningWriter.append(chunk.text);
+								reasoningWriter.append(chunk.text, Date.now());
 							}
 							break;
 
 						case "raw":
-							// Add raw part for unstructured data
+							// Add raw part for unstructured data with chunk timestamp
 							await ctx.runMutation(internal.messages.addRawPart, {
 								messageId: assistantMessage._id,
 								rawValue: chunk.rawValue,
+								timestamp: Date.now(),
 							});
 							break;
 
 						case "tool-call":
-							// Add tool call to database
+							// Add tool call to database with chunk timestamp
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
 								toolName: chunk.toolName,
 								args: chunk.input || {},
 								state: "call",
+								timestamp: Date.now(),
 							});
 							break;
 
@@ -299,6 +301,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								toolCallId: chunk.toolCallId,
 								result: chunk.output,
 								state: "result",
+								timestamp: Date.now(),
 							});
 							break;
 

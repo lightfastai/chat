@@ -217,17 +217,20 @@ export const threadMetadataValidator = v.optional(
 export const textPartValidator = v.object({
 	type: v.literal("text"),
 	text: v.string(),
+	timestamp: v.number(),
 });
 
 // Reasoning part validator - for Claude thinking/reasoning content
 export const reasoningPartValidator = v.object({
 	type: v.literal("reasoning"),
 	text: v.string(),
+	timestamp: v.number(),
 });
 
 export const rawPartValidator = v.object({
 	type: v.literal("raw"),
 	rawValue: v.any(),
+	timestamp: v.number(),
 });
 
 // Error classification types that match our error handling functions
@@ -267,6 +270,7 @@ export const errorPartValidator = v.object({
 	type: v.literal("error"),
 	errorMessage: v.string(),
 	errorDetails: v.optional(errorDetailsValidator),
+	timestamp: v.number(),
 });
 
 // Tool call part validator - Official Vercel AI SDK v5 compliant
@@ -282,6 +286,7 @@ export const toolCallPartValidator = v.object({
 		v.literal("result"), // Tool execution completed with results
 	),
 	step: v.optional(v.number()), // Official SDK step tracking for multi-step calls
+	timestamp: v.number(),
 });
 
 // Message part union validator - represents any type of message part

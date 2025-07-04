@@ -20,6 +20,7 @@ import {
   textPartValidator,
   tokenUsageValidator,
 } from "./validators.js";
+import { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 
 // Export types
 export type {
@@ -142,10 +143,11 @@ export const updateMessageError = internalMutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
+		const now = Date.now();
 		await ctx.db.patch(args.messageId, {
-			parts: [{ type: "text", text: args.errorMessage }],
+			parts: [{ type: "text", text: args.errorMessage, timestamp: now }],
 			status: "error",
-			thinkingCompletedAt: Date.now(),
+			thinkingCompletedAt: now,
 		});
 		return null;
 	},
@@ -166,7 +168,7 @@ export const createErrorMessage = internalMutation({
 		const now = Date.now();
 		await ctx.db.insert("messages", {
 			threadId: args.threadId,
-			parts: [{ type: "text", text: args.errorMessage }],
+			parts: [{ type: "text", text: args.errorMessage, timestamp: now }],
 			timestamp: now,
 			role: "assistant", // Use current schema field
 			// Keep legacy fields for backward compatibility
@@ -190,6 +192,7 @@ export const addTextPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		text: v.string(),
+		timestamp: v.number(),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -198,35 +201,20 @@ export const addTextPart = internalMutation({
 
 		const currentParts = message.parts || [];
 
-		// Check if the last part is a text part - if so, merge with it
-		if (currentParts.length > 0) {
-			const lastPart = currentParts[currentParts.length - 1];
-			if (lastPart.type === "text") {
-				// Merge with the last text part
-				const updatedParts = [
-					...currentParts.slice(0, -1), // All parts except the last one
-					{
-						type: "text" as const,
-						text: lastPart.text + args.text, // Concatenate text
-					},
-				];
+		// Create new text part with timestamp - each chunk is independent
+		const newPart: DbTextPart = {
+			type: "text" as const,
+			text: args.text,
+			timestamp: args.timestamp,
+		};
 
-				await ctx.db.patch(args.messageId, {
-					parts: updatedParts,
-				});
-
-				return null;
-			}
-		}
-
-		// If no existing text part to merge with, add as new part
-		const updatedParts = [
-			...currentParts,
-			{
-				type: "text" as const,
-				text: args.text,
-			},
-		];
+		// Add the new part and sort all parts by their timestamp
+		const updatedParts: DbMessagePart[] = [...currentParts, newPart].sort((a, b) => {
+			// Get timestamp for each part (for sorting)
+			const aTimestamp = "timestamp" in a ? a.timestamp : 0;
+			const bTimestamp = "timestamp" in b ? b.timestamp : 0;
+			return aTimestamp - bTimestamp;
+		});
 
 		await ctx.db.patch(args.messageId, {
 			parts: updatedParts,
@@ -241,43 +229,29 @@ export const addReasoningPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		text: v.string(),
+		timestamp: v.number(),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
 		if (!message) return null;
 
-		const currentParts = message.parts || [];
+		const currentParts: DbMessagePart[] = message.parts || [];
 
-		// Check if the last part is a reasoning part - if so, merge with it
-		if (currentParts.length > 0) {
-			const lastPart = currentParts[currentParts.length - 1];
-			if (lastPart.type === "reasoning") {
-				// Merge with the last reasoning part
-				const updatedParts = [
-					...currentParts.slice(0, -1), // All parts except the last one
-					{
-						type: "reasoning" as const,
-						text: lastPart.text + args.text, // Concatenate text
-					},
-				];
+		// Create new reasoning part with timestamp - each chunk is independent
+		const newPart: DbReasoningPart = {
+			type: "reasoning" as const,
+			text: args.text,
+			timestamp: args.timestamp,
+		};
 
-				await ctx.db.patch(args.messageId, {
-					parts: updatedParts,
-				});
-
-				return null;
-			}
-		}
-
-		// If no existing reasoning part to merge with, add as new part
-		const updatedParts = [
-			...currentParts,
-			{
-				type: "reasoning" as const,
-				text: args.text,
-			},
-		];
+		// Add the new part and sort all parts by their timestamp
+		const updatedParts: DbMessagePart[] = [...currentParts, newPart].sort((a, b) => {
+			// Get timestamp for each part (for sorting)
+			const aTimestamp = "timestamp" in a ? a.timestamp : 0;
+			const bTimestamp = "timestamp" in b ? b.timestamp : 0;
+			return aTimestamp - bTimestamp;
+		});
 
 		await ctx.db.patch(args.messageId, {
 			parts: updatedParts,
@@ -301,12 +275,14 @@ export const addErrorPart = internalMutation({
 		if (!message) return null;
 
 		const currentParts = message.parts || [];
+		const now = Date.now();
 		const updatedParts = [
 			...currentParts,
 			{
 				type: "error" as const,
 				errorMessage: args.errorMessage,
 				errorDetails: args.errorDetails,
+				timestamp: now,
 			},
 		];
 
@@ -333,6 +309,7 @@ export const addToolCallPart = internalMutation({
 				v.literal("result"),
 			),
 		),
+		timestamp: v.number(),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -348,6 +325,7 @@ export const addToolCallPart = internalMutation({
 				toolName: args.toolName,
 				args: args.args,
 				state: args.state || "call",
+				timestamp: args.timestamp,
 			},
 		];
 
@@ -373,6 +351,7 @@ export const updateToolCallPart = internalMutation({
 				v.literal("result"),
 			),
 		),
+		timestamp: v.number(),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -389,6 +368,7 @@ export const updateToolCallPart = internalMutation({
 					...(args.args !== undefined && { args: args.args }),
 					...(args.result !== undefined && { result: args.result }),
 					...(args.state !== undefined && { state: args.state }),
+					timestamp: args.timestamp,
 				};
 			}
 			return part;
@@ -510,11 +490,12 @@ export const addRawPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		rawValue: v.any(),
+		timestamp: v.number(),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.messageId, {
-			parts: [{ type: "raw", rawValue: args.rawValue }],
+			parts: [{ type: "raw", rawValue: args.rawValue, timestamp: args.timestamp }],
 		});
 
 		return null;
@@ -530,9 +511,10 @@ export const markError = internalMutation({
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
+		const now = Date.now();
 		await ctx.db.patch(args.messageId, {
 			status: "error",
-			parts: [{ type: "text", text: args.error }],
+			parts: [{ type: "text", text: args.error, timestamp: now }],
 		});
 
 		return null;
@@ -588,9 +570,15 @@ export const createUserMessage = internalMutation({
 	handler: async (ctx, args) => {
 		const now = Date.now();
 
+		// Ensure user message part has timestamp
+		const partWithTimestamp = {
+			...args.part,
+			timestamp: args.part.timestamp || now,
+		};
+
 		const messageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
-			parts: [args.part],
+			parts: [partWithTimestamp],
 			timestamp: now,
 			role: "user",
 			modelId: args.modelId,

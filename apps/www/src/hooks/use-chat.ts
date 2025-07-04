@@ -89,7 +89,7 @@ export function useChat({
 				window.history.replaceState({}, "", `/chat/${chatId}`);
 				const data = await createThreadOptimistic({
 					clientThreadId: chatId,
-					message: { type: "text", text: message },
+					message: { type: "text", text: message, timestamp: Date.now() },
 					modelId: selectedModelId,
 				});
 				userMessageId = data.userMessageId;
@@ -98,7 +98,7 @@ export function useChat({
 				// Existing thread
 				const data = await createMessageOptimistic({
 					threadId: thread._id,
-					message: { type: "text", text: message },
+					message: { type: "text", text: message, timestamp: Date.now() },
 					modelId: selectedModelId,
 				});
 				userMessageId = data.userMessageId;
