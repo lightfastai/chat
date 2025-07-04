@@ -1,16 +1,15 @@
 "use client";
 
-import { useChat } from "@/hooks/use-chat";
 import type { Preloaded } from "convex/react";
-import { usePreloadedQuery, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
-import type { Doc } from "../../../convex/_generated/dataModel";
-import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
+import { useChat } from "../../hooks/use-chat";
+import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 
 interface ChatInterfaceProps {
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
@@ -48,30 +47,20 @@ export function ChatInterface({
 
 	const currentClientId = pathInfo.type === "clientId" ? pathInfo.id : null;
 
-	let dbMessages: Doc<"messages">[] = [];
-	if (preloadedMessages) {
-		dbMessages = usePreloadedQuery(preloadedMessages);
-	}
+	const dbMessages =
+		useQuery(
+			api.messages.listByClientId,
+			currentClientId ? { clientId: currentClientId } : "skip",
+	);
 
-	if (!preloadedMessages) {
-		dbMessages =
-			useQuery(
-				api.messages.listByClientId,
-				currentClientId ? { clientId: currentClientId } : "skip",
-			) || [];
-	}
-
-	// Let useChat determine everything from the current pathname
 	const { messages, sendMessage } = useChat({
-		initialMessages: convertDbMessagesToUIMessages(dbMessages),
+		initialMessages: convertDbMessagesToUIMessages(dbMessages || []),
 		preloadedUserSettings,
 		clientId: currentClientId,
 	});
 
-	console.log(dbMessages);
-
 	// Show centered layout only for new chats with no messages
-	if (pathInfo.type === "new" && dbMessages.length === 0) {
+	if (pathInfo.type === "new" && !dbMessages) {
 		return (
 			<CenteredChatStart
 				onSendMessage={sendMessage}
