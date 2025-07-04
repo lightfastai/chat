@@ -24,7 +24,7 @@ export function SettingsContent({
 
 	return (
 		<div className="space-y-8 sm:space-y-12">
-			<ProfileSection user={user}  />
+			<ProfileSection user={user} />
 			<ApiKeysSection userSettings={userSettings} />
 		</div>
 	);

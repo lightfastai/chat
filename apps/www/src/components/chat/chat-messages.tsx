@@ -22,10 +22,10 @@ function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
 
 	// Step 2: Merge consecutive parts of the same type
 	const mergedParts: DbMessagePart[] = [];
-	
+
 	for (const part of sortedParts) {
 		const lastPart = mergedParts[mergedParts.length - 1];
-		
+
 		// Check if we can merge with the previous part
 		if (lastPart && lastPart.type === part.type) {
 			if (part.type === "text" && lastPart.type === "text") {
@@ -46,7 +46,7 @@ function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
 				continue;
 			}
 		}
-		
+
 		// If we can't merge, add as new part
 		mergedParts.push(part);
 	}

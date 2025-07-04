@@ -11,23 +11,23 @@
  */
 
 import {
-  type ModelMessage,
-  type ReasoningUIPart,
-  type TextUIPart,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type ReasoningUIPart,
+	type TextUIPart,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -37,15 +37,15 @@ import { createWebSearchTool } from "./lib/ai_tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  createHTTPErrorResponse,
-  extractErrorDetails,
-  formatErrorMessage,
-  handleStreamingSetupError,
-  logStreamingError,
+	createHTTPErrorResponse,
+	extractErrorDetails,
+	formatErrorMessage,
+	handleStreamingSetupError,
+	logStreamingError,
 } from "./lib/error_handling";
 import {
-  StreamingReasoningWriter,
-  StreamingTextWriter,
+	StreamingReasoningWriter,
+	StreamingTextWriter,
 } from "./lib/streaming_writers";
 import type { DbMessage, DbMessagePart } from "./types";
 import type { modelIdValidator } from "./validators";
@@ -54,7 +54,6 @@ interface HTTPStreamingRequest {
 	id: Id<"messages">;
 	threadClientId: string;
 	userMessageId: Id<"messages">;
-	messages: DbMessagePart[];
 	options: {
 		attachments: Id<"files">[];
 		webSearchEnabled: boolean;
@@ -84,13 +83,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 	try {
 		// Parse and validate request body
 		const body = (await request.json()) as HTTPStreamingRequest;
-		const {
-			threadClientId,
-			messages: mostRecentUiMessage,
-			options,
-			userMessageId,
-			id,
-		} = body;
+		const { threadClientId, options, userMessageId, id } = body;
 
 		console.log("[streamChatResponse] body", body);
 
@@ -111,13 +104,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 		if (!id) {
 			return new Response("Assistant message ID is required", {
-				status: 400,
-				headers: corsHeaders(),
-			});
-		}
-
-		if (!mostRecentUiMessage || mostRecentUiMessage.length === 0) {
-			return new Response("Messages are required", {
 				status: 400,
 				headers: corsHeaders(),
 			});
@@ -224,7 +210,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			options?.webSearchEnabled,
 		);
 
-		const messages: ModelMessage[] = [
+		const modelMessages: ModelMessage[] = [
 			{
 				role: "system",
 				content: systemPrompt,
@@ -249,7 +235,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			// Prepare generation options
 			const generationOptions: Parameters<typeof streamText>[0] = {
 				model: ai,
-				messages,
+				messages: modelMessages,
 				temperature: 0.7,
 				// _internal: {
 				// 	generateId: () => assistantMessage._id,
@@ -260,7 +246,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				}),
 				onChunk: async ({ chunk }) => {
 					const chunkTimestamp = Date.now();
-					
+
 					// Handle Vercel AI SDK v5 chunk types
 					switch (chunk.type) {
 						case "text":
@@ -284,27 +270,60 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							});
 							break;
 
+						case "tool-input-start":
+							// Add tool input start to database with chunk timestamp
+							await ctx.runMutation(internal.messages.addToolInputStartPart, {
+								messageId: assistantMessage._id,
+								toolCallId: chunk.id,
+								toolName: chunk.toolName,
+								timestamp: chunkTimestamp,
+							});
+							break;
+
 						case "tool-call":
 							// Add tool call to database with chunk timestamp
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
 								toolName: chunk.toolName,
-								args: chunk.input || {},
-								state: "call",
+								input: chunk.input || {},
 								timestamp: chunkTimestamp,
 							});
 							break;
 
 						case "tool-result":
 							// Update tool call with result
-							await ctx.runMutation(internal.messages.updateToolCallPart, {
+							await ctx.runMutation(internal.messages.addToolResultCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
-								result: chunk.output,
-								state: "result",
+								toolName: chunk.toolName,
+								input: chunk.input || {},
+								output: chunk.output,
 								timestamp: chunkTimestamp,
 							});
+							break;
+
+						case "source":
+							if (chunk.sourceType === "url") {
+								await ctx.runMutation(internal.messages.addSourceUrlPart, {
+									messageId: assistantMessage._id,
+									sourceId: chunk.id,
+									url: chunk.url,
+									title: chunk.title,
+									providerMetadata: chunk.providerMetadata,
+									timestamp: chunkTimestamp,
+								});
+							} else if (chunk.sourceType === "document") {
+								await ctx.runMutation(internal.messages.addSourceDocumentPart, {
+									messageId: assistantMessage._id,
+									sourceId: chunk.id,
+									mediaType: chunk.mediaType,
+									title: chunk.title,
+									filename: chunk.filename,
+									providerMetadata: chunk.providerMetadata,
+									timestamp: chunkTimestamp,
+								});
+							}
 							break;
 
 						default:
@@ -313,13 +332,13 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					}
 				},
 				onStepFinish: async (stepResult) => {
-          if (stepResult.reasoning.length > 0) {
-            await reasoningWriter.flush();
-          }
+					if (stepResult.reasoning.length > 0) {
+						await reasoningWriter.flush();
+					}
 
-          if (stepResult.text.length > 0) {
-            await textWriter.flush();
-          }
+					if (stepResult.text.length > 0) {
+						await textWriter.flush();
+					}
 				},
 				onFinish: async (result) => {
 					// Flush any remaining content

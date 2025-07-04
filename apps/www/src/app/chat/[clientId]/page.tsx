@@ -2,10 +2,10 @@ import { siteConfig } from "@/lib/site-config";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { api } from "../../../../convex/_generated/api";
 import { ChatInterface } from "../../../components/chat/chat-interface";
 import { getAuthToken } from "../../../lib/auth";
-import { Suspense } from "react";
 
 export const metadata: Metadata = {
 	title: "Chat Thread",

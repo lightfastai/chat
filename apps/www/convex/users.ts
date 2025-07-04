@@ -2,10 +2,10 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { query } from "./_generated/server.js";
 import {
-  emailValidator,
-  phoneValidator,
-  urlValidator,
-  userNameValidator,
+	emailValidator,
+	phoneValidator,
+	urlValidator,
+	userNameValidator,
 } from "./validators.js";
 
 /**

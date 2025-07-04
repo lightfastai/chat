@@ -4,12 +4,12 @@ import { validateApiKey } from "@/lib/ai/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
 } from "@lightfast/ui/components/ui/form";
 import { Input } from "@lightfast/ui/components/ui/input";
 import { useMutation } from "convex/react";
@@ -20,9 +20,9 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
+import type { Doc } from "../../../convex/_generated/dataModel";
 import { SettingsHeader } from "./settings-header";
 import { SettingsRow } from "./settings-row";
-import { Doc } from "../../../convex/_generated/dataModel";
 
 const OpenAIApiKeyFormSchema = z.object({
 	openaiKey: z

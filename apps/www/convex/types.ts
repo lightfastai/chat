@@ -2,9 +2,12 @@ import type { Infer } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type {
 	errorPartValidator,
+	filePartValidator,
 	messagePartValidator,
 	reasoningPartValidator,
 	roleValidator,
+	sourceDocumentPartValidator,
+	sourceUrlPartValidator,
 	textPartValidator,
 	toolCallPartValidator,
 } from "./validators";
@@ -15,6 +18,9 @@ export type DbTextPart = Infer<typeof textPartValidator>;
 export type DbToolCallPart = Infer<typeof toolCallPartValidator>;
 export type DbReasoningPart = Infer<typeof reasoningPartValidator>;
 export type DbErrorPart = Infer<typeof errorPartValidator>;
+export type DbSourceUrlPart = Infer<typeof sourceUrlPartValidator>;
+export type DbSourceDocumentPart = Infer<typeof sourceDocumentPartValidator>;
+export type DbFilePart = Infer<typeof filePartValidator>;
 export type DbMessageRole = Infer<typeof roleValidator>;
 
 export function isTextPart(part: DbMessagePart): part is DbTextPart {
@@ -31,6 +37,20 @@ export function isReasoningPart(part: DbMessagePart): part is DbReasoningPart {
 
 export function isErrorPart(part: DbMessagePart): part is DbErrorPart {
 	return part.type === "error";
+}
+
+export function isSourceUrlPart(part: DbMessagePart): part is DbSourceUrlPart {
+	return part.type === "source-url";
+}
+
+export function isSourceDocumentPart(
+	part: DbMessagePart,
+): part is DbSourceDocumentPart {
+	return part.type === "source-document";
+}
+
+export function isFilePart(part: DbMessagePart): part is DbFilePart {
+	return part.type === "file";
 }
 
 export function isToolCallInProgress(part: DbMessagePart): boolean {

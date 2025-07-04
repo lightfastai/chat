@@ -278,14 +278,53 @@ export const toolCallPartValidator = v.object({
 	type: v.literal("tool-call"),
 	toolCallId: v.string(),
 	toolName: v.string(),
-	args: v.optional(v.any()),
-	result: v.optional(v.any()),
-	state: v.union(
-		v.literal("partial-call"), // Tool call in progress (streaming args)
-		v.literal("call"), // Completed tool call (ready for execution)
-		v.literal("result"), // Tool execution completed with results
-	),
-	step: v.optional(v.number()), // Official SDK step tracking for multi-step calls
+	input: v.optional(v.any()),
+	timestamp: v.number(),
+});
+
+export const toolInputStartPartValidator = v.object({
+	type: v.literal("tool-input-start"),
+	toolCallId: v.string(),
+	toolName: v.string(),
+	timestamp: v.number(),
+});
+
+export const toolResultPartValidator = v.object({
+	type: v.literal("tool-result"),
+	toolCallId: v.string(),
+	toolName: v.string(),
+	input: v.optional(v.any()),
+	output: v.optional(v.any()),
+	timestamp: v.number(),
+});
+
+// Source URL part validator - matches Vercel AI SDK SourceUrlUIPart
+export const sourceUrlPartValidator = v.object({
+	type: v.literal("source-url"),
+	sourceId: v.string(),
+	url: v.string(),
+	title: v.optional(v.string()),
+	providerMetadata: v.optional(v.any()),
+	timestamp: v.number(),
+});
+
+// Source document part validator - matches Vercel AI SDK SourceDocumentUIPart
+export const sourceDocumentPartValidator = v.object({
+	type: v.literal("source-document"),
+	sourceId: v.string(),
+	mediaType: v.string(),
+	title: v.string(),
+	filename: v.optional(v.string()),
+	providerMetadata: v.optional(v.any()),
+	timestamp: v.number(),
+});
+
+// File part validator - matches Vercel AI SDK FileUIPart
+export const filePartValidator = v.object({
+	type: v.literal("file"),
+	mediaType: v.string(),
+	filename: v.optional(v.string()),
+	url: v.string(),
 	timestamp: v.number(),
 });
 
@@ -295,7 +334,12 @@ export const messagePartValidator = v.union(
 	reasoningPartValidator,
 	errorPartValidator,
 	toolCallPartValidator,
+	toolInputStartPartValidator,
+	toolResultPartValidator,
 	rawPartValidator,
+	sourceUrlPartValidator,
+	sourceDocumentPartValidator,
+	filePartValidator,
 );
 
 // Array of message parts validator

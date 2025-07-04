@@ -12,15 +12,17 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
+import type { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 import {
-  clientIdValidator,
-  messageStatusValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  textPartValidator,
-  tokenUsageValidator,
+	clientIdValidator,
+	messageStatusValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	sourceDocumentPartValidator,
+	sourceUrlPartValidator,
+	textPartValidator,
+	tokenUsageValidator,
 } from "./validators.js";
-import { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 
 // Export types
 export type {
@@ -223,10 +225,12 @@ export const addTextPart = internalMutation({
 export const addTextParts = internalMutation({
 	args: {
 		messageId: v.id("messages"),
-		parts: v.array(v.object({
-			text: v.string(),
-			timestamp: v.number(),
-		})),
+		parts: v.array(
+			v.object({
+				text: v.string(),
+				timestamp: v.number(),
+			}),
+		),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -236,7 +240,7 @@ export const addTextParts = internalMutation({
 		const currentParts = message.parts || [];
 
 		// Create new text parts with timestamps
-		const newParts: DbTextPart[] = args.parts.map(part => ({
+		const newParts: DbTextPart[] = args.parts.map((part) => ({
 			type: "text" as const,
 			text: part.text,
 			timestamp: part.timestamp,
@@ -289,10 +293,12 @@ export const addReasoningPart = internalMutation({
 export const addReasoningParts = internalMutation({
 	args: {
 		messageId: v.id("messages"),
-		parts: v.array(v.object({
-			text: v.string(),
-			timestamp: v.number(),
-		})),
+		parts: v.array(
+			v.object({
+				text: v.string(),
+				timestamp: v.number(),
+			}),
+		),
 	},
 	returns: v.null(),
 	handler: async (ctx, args) => {
@@ -302,7 +308,7 @@ export const addReasoningParts = internalMutation({
 		const currentParts = message.parts || [];
 
 		// Create new reasoning parts with timestamps
-		const newParts: DbReasoningPart[] = args.parts.map(part => ({
+		const newParts: DbReasoningPart[] = args.parts.map((part) => ({
 			type: "reasoning" as const,
 			text: part.text,
 			timestamp: part.timestamp,
@@ -318,7 +324,6 @@ export const addReasoningParts = internalMutation({
 		return null;
 	},
 });
-
 
 // Internal mutation to add an error part to a message
 export const addErrorPart = internalMutation({
@@ -353,20 +358,45 @@ export const addErrorPart = internalMutation({
 	},
 });
 
+// Internal mutation to add a tool input start part to a message
+export const addToolInputStartPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		toolCallId: v.string(),
+		toolName: v.string(),
+		timestamp: v.number(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts = [
+			...currentParts,
+			{
+				type: "tool-input-start" as const,
+				toolCallId: args.toolCallId,
+				toolName: args.toolName,
+				timestamp: args.timestamp,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
 // Internal mutation to add a tool call part to a message
 export const addToolCallPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		toolCallId: v.string(),
 		toolName: v.string(),
-		args: v.optional(v.any()),
-		state: v.optional(
-			v.union(
-				v.literal("partial-call"),
-				v.literal("call"),
-				v.literal("result"),
-			),
-		),
+		input: v.optional(v.any()),
 		timestamp: v.number(),
 	},
 	returns: v.null(),
@@ -381,8 +411,7 @@ export const addToolCallPart = internalMutation({
 				type: "tool-call" as const,
 				toolCallId: args.toolCallId,
 				toolName: args.toolName,
-				args: args.args,
-				state: args.state || "call",
+				input: args.input,
 				timestamp: args.timestamp,
 			},
 		];
@@ -396,19 +425,13 @@ export const addToolCallPart = internalMutation({
 });
 
 // Internal mutation to update a tool call part in a message
-export const updateToolCallPart = internalMutation({
+export const addToolResultCallPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		toolCallId: v.string(),
-		args: v.optional(v.any()),
-		result: v.optional(v.any()),
-		state: v.optional(
-			v.union(
-				v.literal("partial-call"),
-				v.literal("call"),
-				v.literal("result"),
-			),
-		),
+		toolName: v.string(),
+		input: v.optional(v.any()),
+		output: v.optional(v.any()),
 		timestamp: v.number(),
 	},
 	returns: v.null(),
@@ -418,19 +441,122 @@ export const updateToolCallPart = internalMutation({
 
 		const currentParts = message.parts || [];
 
-		// Find the tool call part and update its args, result, and/or state
-		const updatedParts = currentParts.map((part) => {
-			if (part.type === "tool-call" && part.toolCallId === args.toolCallId) {
-				return {
-					...part,
-					...(args.args !== undefined && { args: args.args }),
-					...(args.result !== undefined && { result: args.result }),
-					...(args.state !== undefined && { state: args.state }),
-					timestamp: args.timestamp,
-				};
-			}
-			return part;
+		const updatedParts: DbMessagePart[] = [
+			...currentParts,
+			{
+				type: "tool-result" as const,
+				toolCallId: args.toolCallId,
+				toolName: args.toolName,
+				input: args.input,
+				output: args.output,
+				timestamp: args.timestamp,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
 		});
+
+		return null;
+	},
+});
+
+export const addSourceUrlPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		sourceId: v.string(),
+		url: v.string(),
+		title: v.optional(v.string()),
+		providerMetadata: v.optional(v.any()),
+		timestamp: v.number(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts: DbMessagePart[] = [
+			...currentParts,
+			{
+				type: "source-url" as const,
+				sourceId: args.sourceId,
+				url: args.url,
+				title: args.title,
+				providerMetadata: args.providerMetadata,
+				timestamp: args.timestamp,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+export const addSourceDocumentPart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		sourceId: v.string(),
+		mediaType: v.string(),
+		title: v.string(),
+		filename: v.optional(v.string()),
+		providerMetadata: v.optional(v.any()),
+		timestamp: v.number(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts: DbMessagePart[] = [
+			...currentParts,
+			{
+				type: "source-document" as const,
+				sourceId: args.sourceId,
+				mediaType: args.mediaType,
+				title: args.title,
+				filename: args.filename,
+				providerMetadata: args.providerMetadata,
+				timestamp: args.timestamp,
+			},
+		];
+
+		await ctx.db.patch(args.messageId, {
+			parts: updatedParts,
+		});
+
+		return null;
+	},
+});
+
+export const addFilePart = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		mediaType: v.string(),
+		filename: v.optional(v.string()),
+		url: v.string(),
+		timestamp: v.number(),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		const currentParts = message.parts || [];
+		const updatedParts: DbMessagePart[] = [
+			...currentParts,
+			{
+				type: "file" as const,
+				mediaType: args.mediaType,
+				filename: args.filename,
+				url: args.url,
+				timestamp: args.timestamp,
+			},
+		];
 
 		await ctx.db.patch(args.messageId, {
 			parts: updatedParts,
@@ -553,7 +679,9 @@ export const addRawPart = internalMutation({
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.messageId, {
-			parts: [{ type: "raw", rawValue: args.rawValue, timestamp: args.timestamp }],
+			parts: [
+				{ type: "raw", rawValue: args.rawValue, timestamp: args.timestamp },
+			],
 		});
 
 		return null;

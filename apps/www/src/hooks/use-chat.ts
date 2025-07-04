@@ -46,7 +46,8 @@ export function useChat({
 		userSettings = usePreloadedQuery(preloadedUserSettings);
 	}
 
-	const defaultModel = userSettings?.preferences?.defaultModel || DEFAULT_MODEL_ID;
+	const defaultModel =
+		userSettings?.preferences?.defaultModel || DEFAULT_MODEL_ID;
 
 	// Create transport using the dedicated hook
 	const transport = useChatTransport({

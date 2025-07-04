@@ -1,13 +1,13 @@
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
 } from "@lightfast/ui/components/ui/avatar";
 import { Input } from "@lightfast/ui/components/ui/input";
 import { User } from "lucide-react";
+import type { Doc } from "../../../convex/_generated/dataModel";
 import { SettingsHeader } from "./settings-header";
 import { SettingsRow } from "./settings-row";
-import { Doc } from "../../../convex/_generated/dataModel";
 
 export function ProfileSection({ user }: { user: Doc<"users"> }) {
 	const formatDate = (timestamp: number) => {

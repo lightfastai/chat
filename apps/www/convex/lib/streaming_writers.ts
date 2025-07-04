@@ -57,14 +57,14 @@ export class StreamingTextWriter {
 		const texts = [...this.buffer];
 		this.buffer = [];
 		this.lastFlushTime = Date.now();
-		
+
 		// Create timestamp for this batch
 		const batchTimestamp = Date.now();
 
 		// Write all chunks in a single mutation with the same timestamp
 		await this.ctx.runMutation(internal.messages.addTextParts, {
 			messageId: this.messageId,
-			parts: texts.map(text => ({ text, timestamp: batchTimestamp })),
+			parts: texts.map((text) => ({ text, timestamp: batchTimestamp })),
 		});
 	}
 
@@ -134,14 +134,14 @@ export class StreamingReasoningWriter {
 		const texts = [...this.buffer];
 		this.buffer = [];
 		this.lastFlushTime = Date.now();
-		
+
 		// Create timestamp for this batch
 		const batchTimestamp = Date.now();
 
 		// Write all chunks in a single mutation with the same timestamp
 		await this.ctx.runMutation(internal.messages.addReasoningParts, {
 			messageId: this.messageId,
-			parts: texts.map(text => ({ text, timestamp: batchTimestamp })),
+			parts: texts.map((text) => ({ text, timestamp: batchTimestamp })),
 		});
 	}
 

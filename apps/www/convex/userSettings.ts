@@ -7,11 +7,11 @@ import { decrypt, encrypt } from "./lib/encryption.js";
 
 // Import validators
 import {
-  anthropicApiKeyValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  openaiApiKeyValidator,
-  openrouterApiKeyValidator,
+	anthropicApiKeyValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	openaiApiKeyValidator,
+	openrouterApiKeyValidator,
 } from "./validators";
 
 // Get user settings
