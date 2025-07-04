@@ -68,6 +68,8 @@ export function ChatInterface({
 		clientId: currentClientId,
 	});
 
+	console.log(dbMessages);
+
 	// Show centered layout only for new chats with no messages
 	if (pathInfo.type === "new" && dbMessages.length === 0) {
 		return (
