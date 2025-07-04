@@ -3,14 +3,14 @@
 import { useChat } from "@/hooks/use-chat";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
+import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
+import type { Doc } from "../../../convex/_generated/dataModel";
 import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
-import { useMemo } from "react";
-import { usePathname } from "next/navigation";
-import { Doc } from "../../../convex/_generated/dataModel";
 
 interface ChatInterfaceProps {
 	preloadedMessages?: Preloaded<typeof api.messages.listByClientId>;
@@ -62,7 +62,7 @@ export function ChatInterface({
 	}
 
 	// Let useChat determine everything from the current pathname
-	const { messages, sendMessage, status } = useChat({
+	const { messages, sendMessage } = useChat({
 		initialMessages: convertDbMessagesToUIMessages(dbMessages),
 		preloadedUserSettings,
 		clientId: currentClientId,
@@ -81,15 +81,8 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full">
-			<ChatMessages
-				dbMessages={dbMessages}
-				vercelMessages={messages}
-				status={status}
-			/>
-			<ChatInput
-				onSendMessage={sendMessage}
-				dbMessages={dbMessages}
-			/>
+			<ChatMessages dbMessages={dbMessages} vercelMessages={messages} />
+			<ChatInput onSendMessage={sendMessage} dbMessages={dbMessages} />
 		</div>
 	);
 }

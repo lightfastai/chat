@@ -115,7 +115,6 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 									message={message}
 									isReadOnly={true}
 									showActions={false}
-									status={"ready"}
 								/>
 							);
 						})}

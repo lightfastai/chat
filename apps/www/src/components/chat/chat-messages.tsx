@@ -2,7 +2,6 @@
 
 import type { UIMessage } from "@ai-sdk/react";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
-import type { ChatStatus } from "ai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { DbMessagePart } from "../../../convex/types";
@@ -19,7 +18,6 @@ interface UIMessageWithMetadata extends UIMessage {
 interface ChatMessagesProps {
 	dbMessages: Doc<"messages">[] | null | undefined;
 	vercelMessages: UIMessage[];
-	status?: ChatStatus;
 	emptyState?: {
 		icon?: React.ReactNode;
 		title?: string;
@@ -30,7 +28,6 @@ interface ChatMessagesProps {
 export function ChatMessages({
 	dbMessages,
 	vercelMessages,
-	status = "ready",
 }: ChatMessagesProps) {
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -112,8 +109,10 @@ export function ChatMessages({
 		const hasNewMessage = dbMessages.length > lastMessageCountRef.current;
 		lastMessageCountRef.current = dbMessages.length;
 
-		// Check if streaming
-		const isStreaming = status === "streaming";
+		// Check if the last message is streaming
+		const lastMessage = dbMessages[dbMessages.length - 1];
+		const isStreaming =
+			lastMessage?.role === "assistant" && lastMessage?.status === "streaming";
 
 		// Auto-scroll if:
 		// 1. User is NOT actively scrolling
@@ -130,7 +129,7 @@ export function ChatMessages({
 			setIsUserScrolling(false);
 			scrollToBottom(false);
 		}
-	}, [dbMessages, status, isNearBottom, isUserScrolling, scrollToBottom]);
+	}, [dbMessages, isNearBottom, isUserScrolling, scrollToBottom]);
 
 	// Scroll to bottom on initial load
 	useEffect(() => {
@@ -150,33 +149,33 @@ export function ChatMessages({
 		);
 	}
 
-	// Find the streaming message if we're streaming
+	// Find the streaming message from vercelMessages
 	let streamingVercelMessage: UIMessageWithMetadata | undefined;
-	if (status === "streaming" && vercelMessages.length > 0) {
+	if (vercelMessages.length > 0) {
 		// The last message in vercelMessages should be the streaming one
-		streamingVercelMessage = vercelMessages[
+		const lastVercelMessage = vercelMessages[
 			vercelMessages.length - 1
 		] as UIMessageWithMetadata;
+		// Check if there's a matching database message that's streaming
+		const matchingDbMessage = dbMessages.find(
+			(msg) =>
+				msg._id === lastVercelMessage.metadata?.id &&
+				msg.status === "streaming",
+		);
+		if (matchingDbMessage) {
+			streamingVercelMessage = lastVercelMessage;
+		}
 	}
 
 	return (
 		<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
 			<div className="p-2 md:p-4 pb-16">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-					{dbMessages.map((message, index) => {
-						// Check if this is the last assistant message in the entire list
-						const remainingMessages = dbMessages.slice(index + 1);
-						const hasAssistantAfter = remainingMessages.some(
-							(m) => m.role === "assistant",
-						);
-						const isLastAssistantMessage =
-							message.role === "assistant" && !hasAssistantAfter;
-
-						// For the last assistant message when streaming, use Vercel data directly
+					{dbMessages.map((message) => {
+						// For streaming messages, use Vercel data if available
 						let displayMessage = message;
 						if (
-							isLastAssistantMessage &&
-							status === "streaming" &&
+							message.status === "streaming" &&
 							streamingVercelMessage &&
 							streamingVercelMessage.metadata?.id === message._id
 						) {
@@ -194,17 +193,11 @@ export function ChatMessages({
 									}
 									return part;
 								}) as DbMessagePart[],
-								status: "streaming" as const,
 							};
 						}
 
 						return (
-							<MessageDisplay
-								key={message._id}
-								message={displayMessage}
-								status={status}
-								isLastAssistantMessage={isLastAssistantMessage}
-							/>
+							<MessageDisplay key={message._id} message={displayMessage} />
 						);
 					})}
 				</div>

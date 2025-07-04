@@ -72,7 +72,6 @@ export function useChat({
 		},
 	});
 
-
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
 		async (

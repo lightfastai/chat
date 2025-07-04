@@ -2,19 +2,16 @@
 
 import type { Doc } from "@/convex/_generated/dataModel";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
-import type { ChatStatus } from "ai";
 import type React from "react";
 import { MessageLayout } from "./message-layout";
 import { ThinkingIndicator } from "./thinking-indicator";
 
 export interface MessageItemProps {
 	message: Doc<"messages">;
-	status: ChatStatus;
 	showActions?: boolean;
 	isReadOnly?: boolean;
 	actions?: React.ReactNode;
 	forceActionsVisible?: boolean;
-	isLastAssistantMessage?: boolean;
 }
 
 export function MessageItem({
@@ -23,13 +20,8 @@ export function MessageItem({
 	isReadOnly = false,
 	actions,
 	forceActionsVisible = false,
-	status,
-	isLastAssistantMessage = false,
 }: MessageItemProps) {
 	// Determine if we should show thinking indicator
-	// Use the message's own status if available, otherwise fall back to global status
-	const messageStatus =
-		message.status || (isLastAssistantMessage ? status : "ready");
 	const hasContent =
 		message.parts &&
 		message.parts.length > 0 &&
@@ -38,8 +30,11 @@ export function MessageItem({
 				part.type === "text" && part.text && part.text.trim().length > 0,
 		);
 
-	// Show thinking for assistant messages without content
-	const showThinking = message.role === "assistant" && !hasContent;
+	// Show thinking only for assistant messages that are actively streaming and have no content
+	const showThinking =
+		message.role === "assistant" &&
+		!hasContent &&
+		message.status === "streaming";
 
 	// Content component
 	const content = (() => {
@@ -55,7 +50,7 @@ export function MessageItem({
 				(part) => part.type === "text" && part.text && part.text.length > 0,
 			);
 
-			if (allPartsEmpty && messageStatus === "streaming") {
+			if (allPartsEmpty && message.status === "streaming") {
 				// Show just the cursor while waiting for content
 				return (
 					<div className="h-5">
@@ -105,8 +100,7 @@ export function MessageItem({
 
 	// Actions (only for assistant messages in interactive mode)
 	const shouldDisableActions =
-		isLastAssistantMessage &&
-		(status === "streaming" || status === "submitted");
+		message.status === "streaming" || message.status === "submitted";
 
 	const messageActions =
 		!isReadOnly &&
