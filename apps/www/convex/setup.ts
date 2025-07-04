@@ -57,6 +57,7 @@ export const setupInitialData = mutation({
 				{
 					type: "text",
 					text: "Welcome to Lightfast Chat! 🚀\n\nThis is a preview deployment with fresh test data. You can:\n- Send messages and see real-time updates\n- Test AI integrations\n- Explore the chat interface\n\nEnjoy testing! 💬",
+					timestamp: now,
 				},
 			],
 			status: "ready",
@@ -104,6 +105,7 @@ export const setupInitialData = mutation({
 					{
 						type: "text",
 						text: message.text,
+						timestamp: message.timestamp,
 					},
 				],
 				status: "ready",
