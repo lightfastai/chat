@@ -13,6 +13,7 @@ import type { UIMessage } from "../types/schema";
 import { useChatTransport } from "./use-chat-transport";
 import { useCreateSubsequentMessages } from "./use-create-subsequent-messages";
 import { useCreateThreadWithFirstMessages } from "./use-create-thread-with-first-messages";
+import { useRouter } from "next/navigation";
 
 interface UseChatProps {
 	initialMessages: UIMessage[];
@@ -32,7 +33,7 @@ export function useChat({
 	const authToken = useAuthToken();
 	const createThreadOptimistic = useCreateThreadWithFirstMessages();
 	const createMessageOptimistic = useCreateSubsequentMessages();
-
+	const router = useRouter();
 	// Query thread if we have a clientId
 	const thread = useQuery(
 		api.threads.getByClientId,
@@ -86,7 +87,7 @@ export function useChat({
 			// Check if this is a new thread (no thread exists yet)
 			if (!thread?._id) {
 				// Update URL using replaceState for seamless navigation
-				window.history.replaceState({}, "", `/chat/${chatId}`);
+				router.replace(`/chat/${chatId}`);
 				const data = await createThreadOptimistic({
 					clientThreadId: chatId,
 					message: { type: "text", text: message },
