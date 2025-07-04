@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
+import { toolNameValidator } from "../src/lib/ai/tools/schemas.js";
 
 /**
  * Comprehensive validators for the chat application
@@ -274,27 +275,30 @@ export const errorPartValidator = v.object({
 });
 
 // Tool call part validator - Official Vercel AI SDK v5 compliant
+// Now with proper tool-specific input validation
 export const toolCallPartValidator = v.object({
 	type: v.literal("tool-call"),
 	toolCallId: v.string(),
-	toolName: v.string(),
-	input: v.optional(v.any()),
+	toolName: toolNameValidator,
+	// Input is validated based on the specific tool schema
+	input: v.optional(v.any()), // Runtime validation happens in handlers
 	timestamp: v.number(),
 });
 
 export const toolInputStartPartValidator = v.object({
 	type: v.literal("tool-input-start"),
 	toolCallId: v.string(),
-	toolName: v.string(),
+	toolName: toolNameValidator,
 	timestamp: v.number(),
 });
 
 export const toolResultPartValidator = v.object({
 	type: v.literal("tool-result"),
 	toolCallId: v.string(),
-	toolName: v.string(),
-	input: v.optional(v.any()),
-	output: v.optional(v.any()),
+	toolName: toolNameValidator,
+	// Input and output are validated based on the specific tool schema
+	input: v.optional(v.any()), // Runtime validation happens in handlers
+	output: v.optional(v.any()), // Runtime validation happens in handlers
 	timestamp: v.number(),
 });
 
@@ -344,6 +348,10 @@ export const messagePartValidator = v.union(
 
 // Array of message parts validator
 export const messagePartsValidator = v.array(messagePartValidator);
+
+// ===== Tool-Specific Validators =====
+// Re-export toolNameValidator from schemas
+export { toolNameValidator };
 
 // ===== Validation Functions =====
 // Title validation

@@ -20,7 +20,6 @@ import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as httpStreaming from "../httpStreaming.js";
 import type * as lib_ai_client from "../lib/ai_client.js";
-import type * as lib_ai_tools from "../lib/ai_tools.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_capability_guards from "../lib/capability_guards.js";
 import type * as lib_create_system_prompt from "../lib/create_system_prompt.js";
@@ -57,7 +56,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   httpStreaming: typeof httpStreaming;
   "lib/ai_client": typeof lib_ai_client;
-  "lib/ai_tools": typeof lib_ai_tools;
   "lib/auth": typeof lib_auth;
   "lib/capability_guards": typeof lib_capability_guards;
   "lib/create_system_prompt": typeof lib_create_system_prompt;

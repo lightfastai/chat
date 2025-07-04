@@ -21,13 +21,15 @@ interface SearchResult {
 }
 
 export function WebSearchTool({ toolCall }: WebSearchToolProps) {
-	const isLoading =
-		toolCall.state === "partial-call" || toolCall.state === "call";
-	const searchQuery = toolCall.args?.query as string | undefined;
+	// TODO: Add state field to database schema
+	// For now, check if we have result to determine if tool has completed
+	const isLoading = !('output' in toolCall && toolCall.output);
+	const searchQuery = toolCall.input?.query as string | undefined;
 
 	// Extract search results from the tool result
-	const searchResults = (toolCall.result as { results?: SearchResult[] })
-		?.results;
+	const searchResults = 'output' in toolCall && toolCall.output 
+		? (toolCall.output as { results?: SearchResult[] }).results
+		: undefined;
 
 	const resultCount = searchResults?.length || 0;
 	const accordionValue = `search-${toolCall.toolCallId}`;

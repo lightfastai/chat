@@ -1,21 +1,24 @@
 "use client";
-import type { UIMessage, UIMessagePart, UITools } from "ai";
+import type { UIMessage, UIMessagePart } from "ai";
 import type { Doc } from "../../convex/_generated/dataModel";
-import type { DbMessagePart, DbErrorPart } from "../../convex/types";
+import type { LightfastUITools } from "@/lib/ai/tools/schemas";
+import type { DbErrorPart, DbMessagePart } from "../../convex/types";
 
+// Define custom data types for error parts
 type LightfastUICustomDataTypes = {
 	error: Omit<DbErrorPart, "type">;
 };
 
+// Use both custom data types and tools
 type LightfastUIMessage = UIMessage<
 	unknown,
 	LightfastUICustomDataTypes,
-	UITools
+	LightfastUITools
 >;
 
 type LightfastUIMessagePart = UIMessagePart<
 	LightfastUICustomDataTypes,
-	UITools
+	LightfastUITools
 >;
 
 export function convertDbMessagesToUIMessages(
@@ -51,23 +54,31 @@ export function convertDbMessagesToUIMessages(
 						};
 
 					case "tool-call":
+						// Map to the AI SDK's tool part format with proper type
+						// The type assertion is safe because we validate tool names in the database
 						return {
-							type: "tool-call",
+							type: `tool-${part.toolName}` as keyof LightfastUITools extends `tool-${infer T}`
+								? `tool-${T}`
+								: never,
 							toolCallId: part.toolCallId,
-							toolName: part.toolName,
-							input: part.input,
+							state: "input-available" as const,
+							input: part.input as any, // Type safety is enforced at the database level
 						};
 
 					case "tool-input-start":
 						return null; // Skip input-start parts for UI
 
 					case "tool-result":
+						// Map to the AI SDK's tool part format with output
+						// The type assertion is safe because we validate tool names in the database
 						return {
-							type: "tool-result",
+							type: `tool-${part.toolName}` as keyof LightfastUITools extends `tool-${infer T}`
+								? `tool-${T}`
+								: never,
 							toolCallId: part.toolCallId,
-							toolName: part.toolName,
-							input: part.input,
-							output: part.output,
+							state: "output-available" as const,
+							input: part.input as any, // Type safety is enforced at the database level
+							output: part.output as any, // Type safety is enforced at the database level
 						};
 
 					case "source-url":

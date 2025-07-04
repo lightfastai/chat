@@ -18,10 +18,9 @@ import {
 	messageStatusValidator,
 	modelIdValidator,
 	modelProviderValidator,
-	sourceDocumentPartValidator,
-	sourceUrlPartValidator,
 	textPartValidator,
 	tokenUsageValidator,
+	toolNameValidator,
 } from "./validators.js";
 
 // Export types
@@ -363,7 +362,7 @@ export const addToolInputStartPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		toolCallId: v.string(),
-		toolName: v.string(),
+		toolName: toolNameValidator,
 		timestamp: v.number(),
 	},
 	returns: v.null(),
@@ -395,7 +394,7 @@ export const addToolCallPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		toolCallId: v.string(),
-		toolName: v.string(),
+		toolName: toolNameValidator,
 		input: v.optional(v.any()),
 		timestamp: v.number(),
 	},
@@ -429,7 +428,7 @@ export const addToolResultCallPart = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		toolCallId: v.string(),
-		toolName: v.string(),
+		toolName: toolNameValidator,
 		input: v.optional(v.any()),
 		output: v.optional(v.any()),
 		timestamp: v.number(),

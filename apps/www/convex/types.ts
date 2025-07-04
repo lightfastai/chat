@@ -1,6 +1,11 @@
 import type { Infer } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type {
+	ToolName,
+	ToolInputValidators,
+	ToolOutputValidators,
+} from "../src/lib/ai/tools/schemas";
+import type {
 	errorPartValidator,
 	filePartValidator,
 	messagePartValidator,
@@ -10,18 +15,46 @@ import type {
 	sourceUrlPartValidator,
 	textPartValidator,
 	toolCallPartValidator,
+	toolInputStartPartValidator,
+	toolNameValidator,
+	toolResultPartValidator,
 } from "./validators";
 
 export type DbMessage = Doc<"messages">;
 export type DbMessagePart = Infer<typeof messagePartValidator>;
 export type DbTextPart = Infer<typeof textPartValidator>;
 export type DbToolCallPart = Infer<typeof toolCallPartValidator>;
+export type DbToolInputStartPart = Infer<typeof toolInputStartPartValidator>;
+export type DbToolResultPart = Infer<typeof toolResultPartValidator>;
 export type DbReasoningPart = Infer<typeof reasoningPartValidator>;
 export type DbErrorPart = Infer<typeof errorPartValidator>;
 export type DbSourceUrlPart = Infer<typeof sourceUrlPartValidator>;
 export type DbSourceDocumentPart = Infer<typeof sourceDocumentPartValidator>;
 export type DbFilePart = Infer<typeof filePartValidator>;
 export type DbMessageRole = Infer<typeof roleValidator>;
+export type DbToolName = Infer<typeof toolNameValidator>;
+
+// Tool-specific types with proper type safety
+export type DbToolInput<T extends ToolName> = ToolInputValidators[T];
+export type DbToolOutput<T extends ToolName> = ToolOutputValidators[T];
+
+// Helper type to get tool call/result parts with proper typing
+export type TypedToolCallPart<T extends ToolName> = Omit<
+	DbToolCallPart,
+	"input"
+> & {
+	toolName: T;
+	input: DbToolInput<T>;
+};
+
+export type TypedToolResultPart<T extends ToolName> = Omit<
+	DbToolResultPart,
+	"input" | "output"
+> & {
+	toolName: T;
+	input: DbToolInput<T>;
+	output: DbToolOutput<T>;
+};
 
 export function isTextPart(part: DbMessagePart): part is DbTextPart {
 	return part.type === "text";
@@ -29,6 +62,18 @@ export function isTextPart(part: DbMessagePart): part is DbTextPart {
 
 export function isToolCallPart(part: DbMessagePart): part is DbToolCallPart {
 	return part.type === "tool-call";
+}
+
+export function isToolInputStartPart(
+	part: DbMessagePart,
+): part is DbToolInputStartPart {
+	return part.type === "tool-input-start";
+}
+
+export function isToolResultPart(
+	part: DbMessagePart,
+): part is DbToolResultPart {
+	return part.type === "tool-result";
 }
 
 export function isReasoningPart(part: DbMessagePart): part is DbReasoningPart {
@@ -53,16 +98,17 @@ export function isFilePart(part: DbMessagePart): part is DbFilePart {
 	return part.type === "file";
 }
 
-export function isToolCallInProgress(part: DbMessagePart): boolean {
-	return isToolCallPart(part) && part.state === "partial-call";
+// Type guards for specific tools
+export function isWebSearchToolCall(
+	part: DbMessagePart,
+): part is TypedToolCallPart<"web_search"> {
+	return isToolCallPart(part) && part.toolName === "web_search";
 }
 
-export function isToolCallComplete(part: DbMessagePart): boolean {
-	return isToolCallPart(part) && part.state === "call";
-}
-
-export function isToolCallWithResult(part: DbMessagePart): boolean {
-	return isToolCallPart(part) && part.state === "result";
+export function isWebSearchToolResult(
+	part: DbMessagePart,
+): part is TypedToolResultPart<"web_search"> {
+	return isToolResultPart(part) && part.toolName === "web_search";
 }
 
 // ===== Utility Functions =====
@@ -81,5 +127,25 @@ export function getPartText(part: DbMessagePart): string | null {
  */
 
 export function isStreamablePart(part: DbMessagePart): boolean {
-	return isTextPart(part) || isReasoningPart(part) || isToolCallPart(part);
+	return (
+		isTextPart(part) ||
+		isReasoningPart(part) ||
+		isToolCallPart(part) ||
+		isToolInputStartPart(part) ||
+		isToolResultPart(part)
+	);
+}
+
+/**
+ * Get tool name from any tool-related part
+ */
+export function getToolName(part: DbMessagePart): ToolName | null {
+	if (
+		isToolCallPart(part) ||
+		isToolInputStartPart(part) ||
+		isToolResultPart(part)
+	) {
+		return part.toolName;
+	}
+	return null;
 }

@@ -11,43 +11,43 @@
  */
 
 import {
-	type ModelMessage,
-	type ReasoningUIPart,
-	type TextUIPart,
-	type UIMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type UIMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getModelStreamingDelay,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getModelStreamingDelay,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
-import { createWebSearchTool } from "./lib/ai_tools";
+import { createWebSearchTool } from "./messages/tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-	createHTTPErrorResponse,
-	extractErrorDetails,
-	formatErrorMessage,
-	handleStreamingSetupError,
-	logStreamingError,
+  createHTTPErrorResponse,
+  extractErrorDetails,
+  formatErrorMessage,
+  handleStreamingSetupError,
+  logStreamingError,
 } from "./lib/error_handling";
 import {
-	StreamingReasoningWriter,
-	StreamingTextWriter,
+  StreamingReasoningWriter,
+  StreamingTextWriter,
 } from "./lib/streaming_writers";
-import type { DbMessage, DbMessagePart } from "./types";
+import type { DbMessage } from "./types";
 import type { modelIdValidator } from "./validators";
 
 interface HTTPStreamingRequest {
@@ -275,7 +275,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							await ctx.runMutation(internal.messages.addToolInputStartPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.id,
-								toolName: chunk.toolName,
+								toolName: chunk.toolName as "web_search", // TODO: Validate tool name
 								timestamp: chunkTimestamp,
 							});
 							break;
@@ -285,7 +285,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
-								toolName: chunk.toolName,
+								toolName: chunk.toolName as "web_search", // TODO: Validate tool name
 								input: chunk.input || {},
 								timestamp: chunkTimestamp,
 							});
@@ -296,7 +296,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							await ctx.runMutation(internal.messages.addToolResultCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
-								toolName: chunk.toolName,
+								toolName: chunk.toolName as "web_search", // TODO: Validate tool name
 								input: chunk.input || {},
 								output: chunk.output,
 								timestamp: chunkTimestamp,
