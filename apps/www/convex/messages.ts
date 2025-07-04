@@ -287,6 +287,24 @@ export const addReasoningPart = internalMutation({
 	},
 });
 
+// Internal mutation to clear all message parts
+export const clearMessageParts = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+	},
+	returns: v.null(),
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) return null;
+
+		await ctx.db.patch(args.messageId, {
+			parts: [],
+		});
+
+		return null;
+	},
+});
+
 // Internal mutation to add an error part to a message
 export const addErrorPart = internalMutation({
 	args: {

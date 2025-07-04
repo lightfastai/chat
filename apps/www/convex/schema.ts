@@ -62,7 +62,6 @@ export default defineSchema({
 		shareId: v.optional(shareIdValidator), // Unique ID for share links
 		sharedAt: v.optional(v.number()), // Timestamp when first shared
 		shareSettings: shareSettingsValidator,
-		// New metadata structure
 		metadata: v.optional(threadMetadataValidator),
 		// @deprecated fields
 		createdAt: v.optional(v.number()),

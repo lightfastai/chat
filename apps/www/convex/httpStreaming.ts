@@ -239,8 +239,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
 
 		// Create debounced writers for streaming content
-		const textWriter = new StreamingTextWriter(assistantMessage._id, ctx);
-		const reasoningWriter = new StreamingReasoningWriter(
+		let textWriter = new StreamingTextWriter(assistantMessage._id, ctx);
+		let reasoningWriter = new StreamingReasoningWriter(
 			assistantMessage._id,
 			ctx,
 		);
@@ -306,6 +306,39 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							// Log unexpected chunk types for debugging
 							console.warn("Unexpected chunk type:", chunk.type, chunk);
 					}
+				},
+				onStepFinish: async (stepResult) => {
+					// Clear existing parts to replace with complete content
+					await ctx.runMutation(internal.messages.clearMessageParts, {
+						messageId: assistantMessage._id,
+					});
+
+					// Add complete reasoning parts first (if any)
+					if (stepResult.reasoning && stepResult.reasoning.length > 0) {
+						for (const reasoningPart of stepResult.reasoning) {
+							await ctx.runMutation(internal.messages.addReasoningPart, {
+								messageId: assistantMessage._id,
+								text: reasoningPart.text,
+							});
+						}
+					}
+
+					// Add complete text content (if any)
+					if (stepResult.text) {
+						await ctx.runMutation(internal.messages.addTextPart, {
+							messageId: assistantMessage._id,
+							text: stepResult.text,
+						});
+					}
+
+					// Dispose writers to cancel any pending flushes
+					// Note: We don't flush here since we've already written complete content
+					textWriter.dispose();
+					reasoningWriter.dispose();
+					
+					// Recreate writers for any subsequent chunks
+					textWriter = new StreamingTextWriter(assistantMessage._id, ctx);
+					reasoningWriter = new StreamingReasoningWriter(assistantMessage._id, ctx);
 				},
 				onFinish: async (result) => {
 					// Flush any remaining content
