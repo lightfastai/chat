@@ -14,7 +14,7 @@ export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
 	const getStatusIcon = () => {
 		// TODO: Add state field to database schema
 		// For now, check if we have output to determine if tool has completed
-		if ('output' in toolCall && toolCall.output) {
+		if ("output" in toolCall && toolCall.output) {
 			return <Wrench className="h-4 w-4 text-green-500" />;
 		}
 		return <Loader2 className="h-4 w-4 animate-spin" />;
@@ -23,7 +23,7 @@ export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
 	const getStatusText = () => {
 		// TODO: Add state field to database schema
 		// For now, check if we have output to determine if tool has completed
-		if ('output' in toolCall && toolCall.output) {
+		if ("output" in toolCall && toolCall.output) {
 			return `${toolCall.toolName} completed`;
 		}
 		return `Calling ${toolCall.toolName}...`;
@@ -59,7 +59,7 @@ export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
 						</div>
 					)}
 
-					{'output' in toolCall && toolCall.output !== undefined && (
+					{"output" in toolCall && toolCall.output !== undefined && (
 						<div>
 							<p className="text-xs font-medium text-muted-foreground">
 								Result:

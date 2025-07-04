@@ -1,23 +1,23 @@
 import type { Infer } from "convex/values";
+import type {
+  LightfastToolName,
+  ToolInputValidators,
+  ToolOutputValidators,
+} from "../src/lib/ai/tools";
 import type { Doc } from "./_generated/dataModel";
 import type {
-	ToolName,
-	ToolInputValidators,
-	ToolOutputValidators,
-} from "../src/lib/ai/tools/schemas";
-import type {
-	errorPartValidator,
-	filePartValidator,
-	messagePartValidator,
-	reasoningPartValidator,
-	roleValidator,
-	sourceDocumentPartValidator,
-	sourceUrlPartValidator,
-	textPartValidator,
-	toolCallPartValidator,
-	toolInputStartPartValidator,
-	toolNameValidator,
-	toolResultPartValidator,
+  errorPartValidator,
+  filePartValidator,
+  messagePartValidator,
+  reasoningPartValidator,
+  roleValidator,
+  sourceDocumentPartValidator,
+  sourceUrlPartValidator,
+  textPartValidator,
+  toolCallPartValidator,
+  toolInputStartPartValidator,
+  toolNameValidator,
+  toolResultPartValidator,
 } from "./validators";
 
 export type DbMessage = Doc<"messages">;
@@ -35,11 +35,11 @@ export type DbMessageRole = Infer<typeof roleValidator>;
 export type DbToolName = Infer<typeof toolNameValidator>;
 
 // Tool-specific types with proper type safety
-export type DbToolInput<T extends ToolName> = ToolInputValidators[T];
-export type DbToolOutput<T extends ToolName> = ToolOutputValidators[T];
+export type DbToolInput<T extends LightfastToolName> = ToolInputValidators[T];
+export type DbToolOutput<T extends LightfastToolName> = ToolOutputValidators[T];
 
 // Helper type to get tool call/result parts with proper typing
-export type TypedToolCallPart<T extends ToolName> = Omit<
+export type TypedToolCallPart<T extends LightfastToolName> = Omit<
 	DbToolCallPart,
 	"input"
 > & {
@@ -47,7 +47,7 @@ export type TypedToolCallPart<T extends ToolName> = Omit<
 	input: DbToolInput<T>;
 };
 
-export type TypedToolResultPart<T extends ToolName> = Omit<
+export type TypedToolResultPart<T extends LightfastToolName> = Omit<
 	DbToolResultPart,
 	"input" | "output"
 > & {
@@ -139,7 +139,7 @@ export function isStreamablePart(part: DbMessagePart): boolean {
 /**
  * Get tool name from any tool-related part
  */
-export function getToolName(part: DbMessagePart): ToolName | null {
+export function getToolName(part: DbMessagePart): LightfastToolName | null {
 	if (
 		isToolCallPart(part) ||
 		isToolInputStartPart(part) ||

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
-import { toolNameValidator } from "../src/lib/ai/tools/schemas.js";
+import { TOOL_NAMES } from "../src/lib/ai/tools/index.js";
 
 /**
  * Comprehensive validators for the chat application
@@ -26,6 +26,12 @@ export const modelIdValidator = v.union(
 // Model provider validator (auto-synced from schemas)
 export const modelProviderValidator = v.union(
 	...ModelProviderSchema.options.map((provider) => v.literal(provider)),
+);
+
+// ===== Tool-Specific Validators =====
+// Create toolNameValidator from TOOL_NAMES
+export const toolNameValidator = v.union(
+	...TOOL_NAMES.map((name) => v.literal(name)),
 );
 
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
@@ -348,10 +354,6 @@ export const messagePartValidator = v.union(
 
 // Array of message parts validator
 export const messagePartsValidator = v.array(messagePartValidator);
-
-// ===== Tool-Specific Validators =====
-// Re-export toolNameValidator from schemas
-export { toolNameValidator };
 
 // ===== Validation Functions =====
 // Title validation

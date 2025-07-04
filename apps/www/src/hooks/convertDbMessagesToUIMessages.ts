@@ -1,7 +1,7 @@
 "use client";
+import type { LightfastToolSchemas } from "@/lib/ai/tools";
 import type { UIMessage, UIMessagePart } from "ai";
 import type { Doc } from "../../convex/_generated/dataModel";
-import type { LightfastUITools } from "@/lib/ai/tools/schemas";
 import type { DbErrorPart, DbMessagePart } from "../../convex/types";
 
 // Define custom data types for error parts
@@ -13,12 +13,12 @@ type LightfastUICustomDataTypes = {
 type LightfastUIMessage = UIMessage<
 	unknown,
 	LightfastUICustomDataTypes,
-	LightfastUITools
+	LightfastToolSchemas
 >;
 
 type LightfastUIMessagePart = UIMessagePart<
 	LightfastUICustomDataTypes,
-	LightfastUITools
+	LightfastToolSchemas
 >;
 
 export function convertDbMessagesToUIMessages(
@@ -57,7 +57,7 @@ export function convertDbMessagesToUIMessages(
 						// Map to the AI SDK's tool part format with proper type
 						// The type assertion is safe because we validate tool names in the database
 						return {
-							type: `tool-${part.toolName}` as keyof LightfastUITools extends `tool-${infer T}`
+							type: `tool-${part.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
 								? `tool-${T}`
 								: never,
 							toolCallId: part.toolCallId,
@@ -72,7 +72,7 @@ export function convertDbMessagesToUIMessages(
 						// Map to the AI SDK's tool part format with output
 						// The type assertion is safe because we validate tool names in the database
 						return {
-							type: `tool-${part.toolName}` as keyof LightfastUITools extends `tool-${infer T}`
+							type: `tool-${part.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
 								? `tool-${T}`
 								: never,
 							toolCallId: part.toolCallId,

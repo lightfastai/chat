@@ -11,41 +11,45 @@
  */
 
 import {
-  type ModelMessage,
-  type ReasoningUIPart,
-  type TextUIPart,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type ReasoningUIPart,
+	type TextUIPart,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
+import {
+	LIGHTFAST_TOOLS,
+	type LightfastToolSet,
+	validateToolName,
+} from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai_client";
-import { createWebSearchTool } from "./messages/tools";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  createHTTPErrorResponse,
-  extractErrorDetails,
-  formatErrorMessage,
-  handleStreamingSetupError,
-  logStreamingError,
+	createHTTPErrorResponse,
+	extractErrorDetails,
+	formatErrorMessage,
+	handleStreamingSetupError,
+	logStreamingError,
 } from "./lib/error_handling";
 import {
-  StreamingReasoningWriter,
-  StreamingTextWriter,
+	StreamingReasoningWriter,
+	StreamingTextWriter,
 } from "./lib/streaming_writers";
 import type { DbMessage } from "./types";
 import type { modelIdValidator } from "./validators";
@@ -233,7 +237,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 		try {
 			// Prepare generation options
-			const generationOptions: Parameters<typeof streamText>[0] = {
+			const generationOptions: Parameters<
+				typeof streamText<LightfastToolSet>
+			>[0] = {
 				model: ai,
 				messages: modelMessages,
 				temperature: 0.7,
@@ -275,7 +281,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							await ctx.runMutation(internal.messages.addToolInputStartPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.id,
-								toolName: chunk.toolName as "web_search", // TODO: Validate tool name
+								toolName: validateToolName(chunk.toolName),
 								timestamp: chunkTimestamp,
 							});
 							break;
@@ -285,7 +291,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
-								toolName: chunk.toolName as "web_search", // TODO: Validate tool name
+								toolName: chunk.toolName,
 								input: chunk.input || {},
 								timestamp: chunkTimestamp,
 							});
@@ -296,7 +302,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							await ctx.runMutation(internal.messages.addToolResultCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
-								toolName: chunk.toolName as "web_search", // TODO: Validate tool name
+								toolName: chunk.toolName,
 								input: chunk.input || {},
 								output: chunk.output,
 								timestamp: chunkTimestamp,
@@ -418,14 +424,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 			// Add tools if supported
 			if (model.features.functionCalling && options?.webSearchEnabled) {
-				generationOptions.tools = {
-					web_search: createWebSearchTool(),
-				};
+				generationOptions.tools = LIGHTFAST_TOOLS;
 				generationOptions.stopWhen = stepCountIs(5);
 			}
 
 			// Stream the text and return UI message stream response
-			const result = streamText(generationOptions);
+			const result = streamText<LightfastToolSet>(generationOptions);
 
 			// Immediately transition to streaming status
 			await ctx.runMutation(internal.messages.updateMessageStatus, {
