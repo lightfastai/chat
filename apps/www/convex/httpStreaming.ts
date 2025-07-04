@@ -308,12 +308,13 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					}
 				},
 				onStepFinish: async (stepResult) => {
-					// Immediately flush any accumulated content from the writers
-					// This ensures all partial content is written in the correct order
-					await Promise.all([
-						textWriter.flush(),
-						reasoningWriter.flush()
-					]);
+          if (stepResult.reasoning.length > 0) {
+            await reasoningWriter.flush();
+          }
+
+          if (stepResult.text.length > 0) {
+            await textWriter.flush();
+          }
 				},
 				onFinish: async (result) => {
 					// Flush any remaining content
