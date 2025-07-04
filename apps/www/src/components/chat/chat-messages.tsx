@@ -7,6 +7,53 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 import type { DbMessagePart } from "../../../convex/types";
 import { MessageDisplay } from "./message-display";
 
+/**
+ * Process message parts: sort by timestamp, then merge consecutive parts of same type
+ */
+function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
+	if (!parts || parts.length === 0) return [];
+
+	// Step 1: Sort all parts by timestamp
+	const sortedParts = [...parts].sort((a, b) => {
+		const aTimestamp = "timestamp" in a ? a.timestamp : 0;
+		const bTimestamp = "timestamp" in b ? b.timestamp : 0;
+		return aTimestamp - bTimestamp;
+	});
+
+	// Step 2: Merge consecutive parts of the same type
+	const mergedParts: DbMessagePart[] = [];
+	
+	for (const part of sortedParts) {
+		const lastPart = mergedParts[mergedParts.length - 1];
+		
+		// Check if we can merge with the previous part
+		if (lastPart && lastPart.type === part.type) {
+			if (part.type === "text" && lastPart.type === "text") {
+				// Merge text parts
+				mergedParts[mergedParts.length - 1] = {
+					...lastPart,
+					text: lastPart.text + part.text,
+					timestamp: Math.min(lastPart.timestamp, part.timestamp), // Use earliest timestamp
+				};
+				continue;
+			} else if (part.type === "reasoning" && lastPart.type === "reasoning") {
+				// Merge reasoning parts
+				mergedParts[mergedParts.length - 1] = {
+					...lastPart,
+					text: lastPart.text + part.text,
+					timestamp: Math.min(lastPart.timestamp, part.timestamp), // Use earliest timestamp
+				};
+				continue;
+			}
+		}
+		
+		// If we can't merge, add as new part
+		mergedParts.push(part);
+	}
+
+	return mergedParts;
+}
+
 // Extended UIMessage type with our metadata
 interface UIMessageWithMetadata extends UIMessage {
 	metadata?: {
@@ -196,8 +243,14 @@ export function ChatMessages({
 							};
 						}
 
+						// Process message parts: sort by timestamp and merge consecutive parts of same type
+						const processedMessage = {
+							...displayMessage,
+							parts: processMessageParts(displayMessage.parts || []),
+						};
+
 						return (
-							<MessageDisplay key={message._id} message={displayMessage} />
+							<MessageDisplay key={message._id} message={processedMessage} />
 						);
 					})}
 				</div>
