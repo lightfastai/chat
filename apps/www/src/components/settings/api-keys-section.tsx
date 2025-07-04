@@ -4,12 +4,12 @@ import { validateApiKey } from "@/lib/ai/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@lightfast/ui/components/ui/form";
 import { Input } from "@lightfast/ui/components/ui/input";
 import { useMutation } from "convex/react";
@@ -22,6 +22,7 @@ import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
 import { SettingsHeader } from "./settings-header";
 import { SettingsRow } from "./settings-row";
+import { Doc } from "../../../convex/_generated/dataModel";
 
 const OpenAIApiKeyFormSchema = z.object({
 	openaiKey: z
@@ -72,14 +73,7 @@ const OpenRouterApiKeyFormSchema = z.object({
 type OpenRouterApiKeyFormValues = z.infer<typeof OpenRouterApiKeyFormSchema>;
 
 interface ApiKeysSectionProps {
-	userSettings:
-		| {
-				hasOpenAIKey: boolean;
-				hasAnthropicKey: boolean;
-				hasOpenRouterKey: boolean;
-		  }
-		| null
-		| undefined;
+	userSettings: Doc<"userSettings"> | null;
 }
 
 export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
@@ -117,13 +111,13 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
 	useEffect(() => {
 		if (userSettings) {
 			openaiForm.reset({
-				openaiKey: userSettings.hasOpenAIKey ? "********" : "",
+				openaiKey: userSettings.apiKeys?.openai ? "********" : "",
 			});
 			anthropicForm.reset({
-				anthropicKey: userSettings.hasAnthropicKey ? "********" : "",
+				anthropicKey: userSettings.apiKeys?.anthropic ? "********" : "",
 			});
 			openrouterForm.reset({
-				openrouterKey: userSettings.hasOpenRouterKey ? "********" : "",
+				openrouterKey: userSettings.apiKeys?.openrouter ? "********" : "",
 			});
 		}
 	}, [userSettings, openaiForm, anthropicForm, openrouterForm]);
@@ -269,7 +263,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
 													)}
 													Save
 												</Button>
-												{userSettings?.hasOpenAIKey && (
+												{userSettings?.apiKeys?.openai && (
 													<Button
 														type="button"
 														variant="ghost"
@@ -355,7 +349,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
 													)}
 													Save
 												</Button>
-												{userSettings?.hasAnthropicKey && (
+												{userSettings?.apiKeys?.anthropic && (
 													<Button
 														type="button"
 														variant="ghost"
@@ -443,7 +437,7 @@ export function ApiKeysSection({ userSettings }: ApiKeysSectionProps) {
 													)}
 													Save
 												</Button>
-												{userSettings?.hasOpenRouterKey && (
+												{userSettings?.apiKeys?.openrouter && (
 													<Button
 														type="button"
 														variant="ghost"

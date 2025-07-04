@@ -1,35 +1,15 @@
 import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
 } from "@lightfast/ui/components/ui/avatar";
 import { Input } from "@lightfast/ui/components/ui/input";
 import { User } from "lucide-react";
 import { SettingsHeader } from "./settings-header";
 import { SettingsRow } from "./settings-row";
+import { Doc } from "../../../convex/_generated/dataModel";
 
-interface ProfileSectionProps {
-	user: {
-		_id: string;
-		_creationTime: number;
-		name?: string;
-		email?: string;
-		image?: string;
-		emailVerificationTime?: number;
-		phoneVerificationTime?: number;
-		isAnonymous?: boolean;
-	};
-	userSettings:
-		| {
-				hasOpenAIKey: boolean;
-				hasAnthropicKey: boolean;
-				hasOpenRouterKey: boolean;
-		  }
-		| null
-		| undefined; // Not used in ProfileSection but passed for consistency
-}
-
-export function ProfileSection({ user }: ProfileSectionProps) {
+export function ProfileSection({ user }: { user: Doc<"users"> }) {
 	const formatDate = (timestamp: number) => {
 		return new Date(timestamp).toLocaleDateString("en-US", {
 			year: "numeric",
