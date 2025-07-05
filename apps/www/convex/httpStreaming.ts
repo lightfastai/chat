@@ -11,25 +11,29 @@
  */
 
 import {
-  type ModelMessage, convertToModelMessages,
-  smoothStream,
-  streamText
+	type ModelMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
-import { convertDbMessagesToUIMessages, type LightfastUIMessage } from "../src/hooks/convertDbMessagesToUIMessages";
+import {
+	type LightfastUIMessage,
+	convertDbMessagesToUIMessages,
+} from "../src/hooks/convertDbMessagesToUIMessages";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import {
-  LIGHTFAST_TOOLS,
-  type LightfastToolSet,
-  validateToolName,
+	LIGHTFAST_TOOLS,
+	type LightfastToolSet,
+	validateToolName,
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -38,20 +42,17 @@ import { createAIClient } from "./lib/ai_client";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  createHTTPErrorResponse,
-  extractErrorDetails,
-  formatErrorMessage,
-  handleStreamingSetupError,
-  logStreamingError,
+	createHTTPErrorResponse,
+	extractErrorDetails,
+	formatErrorMessage,
+	handleStreamingSetupError,
+	logStreamingError,
 } from "./lib/error_handling";
 import {
-  StreamingReasoningWriter,
-  StreamingTextWriter,
+	StreamingReasoningWriter,
+	StreamingTextWriter,
 } from "./lib/streaming_writers";
-import type {
-  DbToolInputForName,
-  DbToolOutputForName
-} from "./types";
+import type { DbToolInputForName, DbToolOutputForName } from "./types";
 import type { modelIdValidator } from "./validators";
 
 interface HTTPStreamingRequest {

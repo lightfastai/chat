@@ -1,29 +1,29 @@
 "use client";
 
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
 } from "@lightfast/ui/components/ui/accordion";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import {
-  AlertCircle,
-  ExternalLink,
-  Loader2,
-  Search,
-  Sparkles,
+	AlertCircle,
+	ExternalLink,
+	Loader2,
+	Search,
+	Sparkles,
 } from "lucide-react";
 import type {
-  DbErrorPart,
-  DbToolCallPart,
-  DbToolInputStartPart,
-  DbToolResultPart,
+	DbErrorPart,
+	DbToolCallPart,
+	DbToolInputStartPart,
+	DbToolResultPart,
 } from "../../../../convex/types";
 import {
-  type LightfastToolInput,
-  type LightfastToolOutput,
-  getToolMetadata,
+	type LightfastToolInput,
+	type LightfastToolOutput,
+	getToolMetadata,
 } from "../../../lib/ai/tools";
 
 // Type-safe input/output types for web_search_1_0_0
@@ -54,9 +54,10 @@ export function WebSearchV1Tool({ toolCall, error }: WebSearchV1ToolProps) {
 	})();
 
 	// Extract data based on part type
-	const input = "input" in toolCall.args
-		? toolCall.args.input as WebSearchV1Input | undefined
-		: undefined;
+	const input =
+		"input" in toolCall.args
+			? (toolCall.args.input as WebSearchV1Input | undefined)
+			: undefined;
 	const searchQuery = input?.query;
 	const useAutoprompt = input?.useAutoprompt ?? true;
 	const numResults = input?.numResults ?? 5;

@@ -1,10 +1,10 @@
 "use client";
 
 import type {
-  DbErrorPart,
-  DbToolCallPart,
-  DbToolInputStartPart,
-  DbToolResultPart,
+	DbErrorPart,
+	DbToolCallPart,
+	DbToolInputStartPart,
+	DbToolResultPart,
 } from "../../../../convex/types";
 import { isLightfastToolName } from "../../../lib/ai/tools";
 import { GenericToolDisplay } from "./generic-tool-display";

@@ -1,35 +1,36 @@
 "use client";
 
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
 } from "@lightfast/ui/components/ui/accordion";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import {
-  AlertCircle,
-  Calendar,
-  Clock,
-  ExternalLink,
-  Filter,
-  Globe,
-  Hash,
-  Loader2, Sparkles,
-  User,
-  Zap
+	AlertCircle,
+	Calendar,
+	Clock,
+	ExternalLink,
+	Filter,
+	Globe,
+	Hash,
+	Loader2,
+	Sparkles,
+	User,
+	Zap,
 } from "lucide-react";
 import type {
-  DbErrorPart,
-  DbToolCallPart,
-  DbToolInputStartPart,
-  DbToolResultPart,
+	DbErrorPart,
+	DbToolCallPart,
+	DbToolInputStartPart,
+	DbToolResultPart,
 } from "../../../../convex/types";
 import {
-  type LightfastToolInput,
-  type LightfastToolOutput,
-  getToolMetadata,
+	type LightfastToolInput,
+	type LightfastToolOutput,
+	getToolMetadata,
 } from "../../../lib/ai/tools";
 
 // Type-safe input/output types for web_search_2_0_0
@@ -60,9 +61,10 @@ export function WebSearchV2Tool({ toolCall, error }: WebSearchV2ToolProps) {
 	})();
 
 	// Extract data based on part type
-	const input = "input" in toolCall.args
-		? toolCall.args.input as WebSearchV2Input | undefined
-		: undefined;
+	const input =
+		"input" in toolCall.args
+			? (toolCall.args.input as WebSearchV2Input | undefined)
+			: undefined;
 	const searchText = input?.search.text;
 	const searchMode = input?.search.mode || "smart";
 	const filters = input?.filters;
@@ -114,7 +116,8 @@ export function WebSearchV2Tool({ toolCall, error }: WebSearchV2ToolProps) {
 							<p className="text-xs mt-1 opacity-80">Query: "{searchText}"</p>
 						)}
 						<p className="text-xs mt-2">
-							{error?.errorMessage || "An error occurred during advanced search"}
+							{error?.errorMessage ||
+								"An error occurred during advanced search"}
 						</p>
 						{error?.errorDetails?.errorType && (
 							<p className="text-xs mt-1 font-mono opacity-70">
