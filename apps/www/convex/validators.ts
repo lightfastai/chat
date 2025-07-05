@@ -434,12 +434,6 @@ export const addToolResultArgsValidator = v.union(
 		input: webSearchV1InputValidator,
 		output: webSearchV1OutputValidator,
 	}),
-	// Web search v2.0.0 with v2 input/output schemas
-	v.object({
-		toolName: v.literal("web_search_2_0_0"),
-		input: webSearchV2InputValidator,
-		output: webSearchV2OutputValidator,
-	}),
 	// Add more versioned tools here as they are defined
 );
 

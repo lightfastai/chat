@@ -1,29 +1,28 @@
 "use client";
 
 import {
-	Accordion,
-	AccordionContent,
-	AccordionItem,
-	AccordionTrigger,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@lightfast/ui/components/ui/accordion";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import {
-	AlertCircle,
-	ExternalLink,
-	Loader2,
-	Search,
-	Sparkles,
+  AlertCircle,
+  ExternalLink,
+  Globe,
+  Loader2, Sparkles
 } from "lucide-react";
 import type {
-	DbErrorPart,
-	DbToolCallPart,
-	DbToolInputStartPart,
-	DbToolResultPart,
+  DbErrorPart,
+  DbToolCallPart,
+  DbToolInputStartPart,
+  DbToolResultPart,
 } from "../../../../convex/types";
 import {
-	type LightfastToolInput,
-	type LightfastToolOutput,
-	getToolMetadata,
+  type LightfastToolInput,
+  type LightfastToolOutput,
+  getToolMetadata,
 } from "../../../lib/ai/tools";
 
 // Type-safe input/output types for web_search_1_0_0
@@ -119,34 +118,34 @@ export function WebSearchV1Tool({ toolCall, error }: WebSearchV1ToolProps) {
 	}
 
 	return (
-		<div className="my-2 border rounded-lg px-4 py-1">
+		<div className="my-6 border rounded-lg px-4 py-1">
 			<Accordion type="single" collapsible className="w-full">
 				<AccordionItem value={accordionValue}>
-					<AccordionTrigger>
+					<AccordionTrigger className="py-2">
 						<div className="flex items-center gap-2">
 							{state === "input-available" ? (
 								<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
 							) : (
-								<Search className="h-4 w-4 text-muted-foreground" />
+								<Globe className="h-4 w-4 text-muted-foreground" />
 							)}
 							<div className="text-left">
-								<div className="font-medium">
+								<div className="font-medium lowercase">
 									{state === "input-available"
 										? `Searching with ${metadata.displayName}...`
-										: `${metadata.displayName} Results (${resultCount})`}
+										: searchQuery}
 								</div>
-								{searchQuery && (
+								{/* {searchQuery && (
 									<p className="text-xs text-muted-foreground mt-1">
 										Query: "{searchQuery}"
 										{useAutoprompt && <> • Autoprompt enabled</>}
 										{numResults !== 5 && <> • {numResults} results</>}
 									</p>
-								)}
-								{autopromptString && autopromptString !== searchQuery && (
+								)} */}
+								{/* {autopromptString && autopromptString !== searchQuery && (
 									<p className="text-xs text-muted-foreground/60 italic">
 										Enhanced: "{autopromptString}"
 									</p>
-								)}
+								)} */}
 							</div>
 						</div>
 					</AccordionTrigger>

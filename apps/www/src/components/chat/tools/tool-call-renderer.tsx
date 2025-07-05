@@ -1,15 +1,14 @@
 "use client";
 
 import type {
-	DbErrorPart,
-	DbToolCallPart,
-	DbToolInputStartPart,
-	DbToolResultPart,
+  DbErrorPart,
+  DbToolCallPart,
+  DbToolInputStartPart,
+  DbToolResultPart,
 } from "../../../../convex/types";
 import { isLightfastToolName } from "../../../lib/ai/tools";
 import { GenericToolDisplay } from "./generic-tool-display";
 import { WebSearchV1Tool } from "./web-search-v1-tool";
-import { WebSearchV2Tool } from "./web-search-v2-tool";
 
 export interface ToolCallRendererProps {
 	toolCall: DbToolCallPart | DbToolInputStartPart | DbToolResultPart;
@@ -24,8 +23,6 @@ export function ToolCallRenderer({ toolCall, error }: ToolCallRendererProps) {
 		switch (toolName) {
 			case "web_search_1_0_0":
 				return <WebSearchV1Tool toolCall={toolCall} error={error} />;
-			case "web_search_2_0_0":
-				return <WebSearchV2Tool toolCall={toolCall} error={error} />;
 			// Add more tool renderers here as tools are added to the system
 			// case "calculator_1_0_0":
 			//   return <CalculatorTool toolCall={toolCall} error={error} />;

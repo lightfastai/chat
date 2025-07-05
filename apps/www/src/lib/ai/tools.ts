@@ -107,127 +107,6 @@ const webSearchV1 = defineTool({
 	},
 });
 
-const webSearchV2 = defineTool({
-	name: "web_search_2_0_0" as const,
-	displayName: "Web Search v2",
-	description: "Advanced web search with filters and metadata (v2.0.0)",
-	inputSchema: z.object({
-		search: z.object({
-			text: z.string().describe("The search query text"),
-			mode: z.enum(["smart", "exact", "fuzzy"]).default("smart"),
-		}),
-		filters: z
-			.object({
-				domains: z
-					.array(z.string())
-					.optional()
-					.describe("List of domains to search"),
-				dateRange: z
-					.object({
-						from: z.string().optional(),
-						to: z.string().optional(),
-					})
-					.optional(),
-				excludeTerms: z.array(z.string()).optional(),
-			})
-			.optional(),
-		options: z
-			.object({
-				limit: z.number().min(1).max(50).default(10),
-				includeMetadata: z.boolean().default(true),
-				language: z.enum(["en", "es", "fr", "de", "ja"]).optional(),
-			})
-			.optional(),
-	}),
-	outputSchema: z.object({
-		results: z.array(
-			z.object({
-				title: z.string(),
-				url: z.string(),
-				snippet: z.string().optional(),
-				score: z.number().optional(),
-				publishedDate: z.string().optional(),
-				author: z.string().optional(),
-				highlights: z.array(z.string()).optional(),
-			}),
-		),
-		query: z.string(),
-		autopromptString: z.string().optional(),
-		searchType: z.enum(["neural", "keyword"]),
-		totalResults: z.number(),
-		metadata: z.object({
-			searchTime: z.number(),
-			version: z.literal("2_0_0"),
-		}),
-	}),
-	execute: async (input) => {
-		const API_KEY = process.env.EXA_API_KEY;
-		if (!API_KEY) {
-			throw new Error("EXA_API_KEY environment variable is not set");
-		}
-
-		const startTime = Date.now();
-
-		try {
-			const exa = new Exa(API_KEY);
-
-			const searchOptions: any = {
-				useAutoprompt: input.search.mode === "smart",
-				numResults: input.options?.limit || 10,
-				type: input.search.mode === "exact" ? "keyword" : "neural",
-				includeText: input.options?.includeMetadata ?? true,
-			};
-
-			if (input.filters?.domains && input.filters.domains.length > 0) {
-				searchOptions.domain = input.filters.domains[0];
-			}
-
-			if (input.filters?.dateRange) {
-				searchOptions.startCrawlDate = input.filters.dateRange.from;
-				searchOptions.endCrawlDate = input.filters.dateRange.to;
-			}
-
-			let query = input.search.text;
-			if (
-				input.filters?.excludeTerms &&
-				input.filters.excludeTerms.length > 0
-			) {
-				query += ` ${input.filters.excludeTerms
-					.map((term: string) => `-"${term}"`)
-					.join(" ")}`;
-			}
-
-			const response = await exa.searchAndContents(query, searchOptions);
-
-			const searchType: "neural" | "keyword" =
-				input.search.mode === "exact" ? "keyword" : "neural";
-
-			return {
-				results: response.results.map((result) => ({
-					title: result.title || "Untitled",
-					url: result.url,
-					snippet: result.text || undefined,
-					score: result.score || undefined,
-					publishedDate: result.publishedDate || undefined,
-					author: result.author || undefined,
-					highlights: undefined,
-				})),
-				query: input.search.text,
-				autopromptString: response.autopromptString,
-				searchType,
-				totalResults: response.results.length,
-				metadata: {
-					searchTime: Date.now() - startTime,
-					version: "2_0_0" as const,
-				},
-			};
-		} catch (error) {
-			console.error("Web search v2 error:", error);
-			throw error;
-		}
-	},
-});
-
 // Add more tools here as needed
 // const calculatorV1 = defineTool({ name: "calculator_1.0.0", ... });
 // const weatherV1 = defineTool({ name: "weather_1.0.0", ... });
@@ -239,7 +118,6 @@ const webSearchV2 = defineTool({
 // Collect all tool definitions
 const toolDefinitions = {
 	web_search_1_0_0: webSearchV1,
-	web_search_2_0_0: webSearchV2,
 	// calculator_1_0_0: calculatorV1,
 	// weather_1_0_0: weatherV1,
 } as const;
@@ -250,11 +128,6 @@ export const LIGHTFAST_TOOLS = {
 		description: webSearchV1.description,
 		inputSchema: webSearchV1.inputSchema,
 		execute: webSearchV1.execute,
-	}),
-	web_search_2_0_0: tool({
-		description: webSearchV2.description,
-		inputSchema: webSearchV2.inputSchema,
-		execute: webSearchV2.execute,
 	}),
 	// calculator_1_0_0: createToolFromDefinition(calculatorV1),
 	// weather_1_0_0: createToolFromDefinition(weatherV1),
