@@ -308,7 +308,7 @@ export const toolCallPartValidator = v.union(
 		type: v.literal("tool-call"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
-		input: v.optional(webSearchInputValidator),
+		input: webSearchInputValidator,
 		timestamp: v.number(),
 	}),
 	// Add more tool-specific validators here as tools are added
@@ -331,8 +331,8 @@ export const toolResultPartValidator = v.union(
 		type: v.literal("tool-result"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
-		input: v.optional(webSearchInputValidator),
-		output: v.optional(webSearchOutputValidator),
+		input: webSearchInputValidator,
+		output: webSearchOutputValidator,
 		timestamp: v.number(),
 	}),
 	// Add more tool-specific validators here as tools are added
