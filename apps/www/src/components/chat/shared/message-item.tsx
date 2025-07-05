@@ -26,17 +26,14 @@ export function MessageItem({
 	// Extract reasoning content and check for reasoning parts
 	const reasoningParts = message.parts?.filter(isReasoningPart) || [];
 	const hasReasoningParts = reasoningParts.length > 0;
-	const reasoningContent = reasoningParts
-		.map((part) => part.text)
-		.join("\n\n");
+	const reasoningContent = reasoningParts.map((part) => part.text).join("\n\n");
 
 	// Check if message has actual text content (not just reasoning)
 	const hasTextContent =
 		message.parts &&
 		message.parts.length > 0 &&
 		message.parts.some(
-			(part) =>
-				isTextPart(part) && part.text && part.text.trim().length > 0,
+			(part) => isTextPart(part) && part.text && part.text.trim().length > 0,
 		);
 
 	// Determine streaming state

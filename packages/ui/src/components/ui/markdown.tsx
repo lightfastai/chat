@@ -197,7 +197,7 @@ const components: Partial<Components> = {
 	// Paragraph with proper spacing
 	p({ children, ...props }: MarkdownComponentProps) {
 		return (
-			<p className="leading-7 [&:not(:first-child)]:mt-3 break-all" {...props}>
+			<p className="leading-7 [&:not(:first-child)]:mt-3 break-words" {...props}>
 				{children}
 			</p>
 		);
@@ -228,7 +228,7 @@ const components: Partial<Components> = {
 
 	li({ className, children, ...props }: MarkdownComponentProps) {
 		return (
-			<li className={cn("leading-7 break-all", className)} {...props}>
+			<li className={cn("leading-7 break-words", className)} {...props}>
 				{children}
 			</li>
 		);
@@ -299,7 +299,7 @@ const components: Partial<Components> = {
 		return (
 			<th
 				className={cn(
-					"h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 break-all",
+					"h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 break-words",
 					className,
 				)}
 				{...props}
@@ -313,7 +313,7 @@ const components: Partial<Components> = {
 		return (
 			<td
 				className={cn(
-					"p-2 align-middle [&:has([role=checkbox])]:pr-0 break-all",
+					"p-2 align-middle [&:has([role=checkbox])]:pr-0 break-words",
 					className,
 				)}
 				{...props}
@@ -339,7 +339,7 @@ export interface MarkdownProps {
  */
 const NonMemoizedMarkdown = ({ children, className }: MarkdownProps) => {
 	return (
-		<div className={cn("w-full break-all", className)}>
+		<div className={cn("w-full break-words", className)}>
 			<ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
 				{children}
 			</ReactMarkdown>

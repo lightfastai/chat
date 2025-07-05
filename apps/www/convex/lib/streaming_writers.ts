@@ -10,8 +10,6 @@ export class StreamingTextWriter {
 	private buffer: string[] = [];
 	private interval: NodeJS.Timeout | null = null;
 	private readonly flushDelay = 250; // ms
-	private readonly maxDelay = 500; // ms
-	private lastFlushTime = Date.now();
 	private isIntervalActive = false;
 
 	constructor(
@@ -39,7 +37,7 @@ export class StreamingTextWriter {
 			this.interval = setInterval(() => {
 				void this.flush();
 			}, this.flushDelay);
-			
+
 			// Also flush immediately to avoid initial delay
 			void this.flush();
 		}
@@ -61,14 +59,13 @@ export class StreamingTextWriter {
 
 		const texts = [...this.buffer];
 		this.buffer = [];
-		this.lastFlushTime = Date.now();
 
 		// Create timestamp for this batch
 		const batchTimestamp = Date.now();
 
 		// Concatenate all chunks into a single text part
 		const combinedText = texts.join("");
-		
+
 		// Write as a single text part
 		await this.ctx.runMutation(internal.messages.addTextPart, {
 			messageId: this.messageId,
@@ -106,8 +103,6 @@ export class StreamingReasoningWriter {
 	private buffer: string[] = [];
 	private interval: NodeJS.Timeout | null = null;
 	private readonly flushDelay = 300; // ms
-	private readonly maxDelay = 750; // ms
-	private lastFlushTime = Date.now();
 	private isIntervalActive = false;
 
 	constructor(
@@ -135,7 +130,7 @@ export class StreamingReasoningWriter {
 			this.interval = setInterval(() => {
 				void this.flush();
 			}, this.flushDelay);
-			
+
 			// Also flush immediately to avoid initial delay
 			void this.flush();
 		}
@@ -157,14 +152,13 @@ export class StreamingReasoningWriter {
 
 		const texts = [...this.buffer];
 		this.buffer = [];
-		this.lastFlushTime = Date.now();
 
 		// Create timestamp for this batch
 		const batchTimestamp = Date.now();
 
 		// Concatenate all chunks into a single reasoning part
 		const combinedText = texts.join("");
-		
+
 		// Write as a single reasoning part
 		await this.ctx.runMutation(internal.messages.addReasoningPart, {
 			messageId: this.messageId,
