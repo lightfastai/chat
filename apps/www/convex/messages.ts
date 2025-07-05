@@ -14,13 +14,15 @@ import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
 import type { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 import {
-	clientIdValidator,
-	messageStatusValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	textPartValidator,
-	tokenUsageValidator,
-	toolNameValidator,
+  addToolCallArgsValidator,
+  addToolInputStartArgsValidator,
+  addToolResultArgsValidator,
+  clientIdValidator,
+  messageStatusValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  textPartValidator,
+  tokenUsageValidator,
 } from "./validators.js";
 // Export types
 export type {
@@ -358,13 +360,12 @@ export const addErrorPart = internalMutation({
 
 // Internal mutation to add a tool input start part to a message
 export const addToolInputStartPart = internalMutation({
-	args: {
+	args: v.object({
 		messageId: v.id("messages"),
 		toolCallId: v.string(),
-		toolName: toolNameValidator,
-		toolVersion: v.string(),
 		timestamp: v.number(),
-	},
+		args: addToolInputStartArgsValidator,
+	}),
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -376,8 +377,8 @@ export const addToolInputStartPart = internalMutation({
 			{
 				type: "tool-input-start" as const,
 				toolCallId: args.toolCallId,
-				toolName: args.toolName,
-				toolVersion: args.toolVersion,
+				toolName: args.args.toolName,
+				toolVersion: args.args.toolVersion,
 				timestamp: args.timestamp,
 			},
 		];
@@ -392,14 +393,12 @@ export const addToolInputStartPart = internalMutation({
 
 // Internal mutation to add a tool call part to a message
 export const addToolCallPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		toolCallId: v.string(),
-		toolName: toolNameValidator,
-		toolVersion: v.string(),
-		input: v.optional(v.any()),
-		timestamp: v.number(),
-	},
+	args: v.object({
+    messageId: v.id("messages"),
+    toolCallId: v.string(),
+    timestamp: v.number(),
+    args: addToolCallArgsValidator,
+  }),
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -411,9 +410,9 @@ export const addToolCallPart = internalMutation({
 			{
 				type: "tool-call" as const,
 				toolCallId: args.toolCallId,
-				toolName: args.toolName,
-				toolVersion: args.toolVersion,
-				input: args.input,
+				toolName: args.args.toolName,
+				toolVersion: args.args.toolVersion,
+				input: args.args.input,
 				timestamp: args.timestamp,
 			},
 		];
@@ -428,15 +427,12 @@ export const addToolCallPart = internalMutation({
 
 // Internal mutation to update a tool call part in a message
 export const addToolResultCallPart = internalMutation({
-	args: {
+	args: v.object({
 		messageId: v.id("messages"),
 		toolCallId: v.string(),
-		toolName: toolNameValidator,
-		toolVersion: v.string(),
-		input: v.optional(v.any()),
-		output: v.optional(v.any()),
 		timestamp: v.number(),
-	},
+		args: addToolResultArgsValidator,
+	}),
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -449,10 +445,10 @@ export const addToolResultCallPart = internalMutation({
 			{
 				type: "tool-result" as const,
 				toolCallId: args.toolCallId,
-				toolName: args.toolName,
-				toolVersion: args.toolVersion,
-				input: args.input,
-				output: args.output,
+				toolName: args.args.toolName,
+				toolVersion: args.args.toolVersion,
+				input: args.args.input,
+				output: args.args.output,
 				timestamp: args.timestamp,
 			},
 		];

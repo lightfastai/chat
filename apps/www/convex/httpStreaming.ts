@@ -32,8 +32,7 @@ import {
 import {
   LIGHTFAST_TOOLS,
   type LightfastToolSet,
-  validateToolName,
-  getDefaultToolVersion,
+  validateToolName
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -279,39 +278,44 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 						case "tool-input-start":
 							// Add tool input start to database with chunk timestamp
+              // @todo why is tool-input-start not statically typed..?
 							const inputToolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolInputStartPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.id,
-								toolName: inputToolName,
-								toolVersion: getDefaultToolVersion(inputToolName),
+								args: {
+									toolName: inputToolName,
+									toolVersion: "1.0.0",
+								},
 								timestamp: chunkTimestamp,
 							});
 							break;
 
 						case "tool-call":
 							// Add tool call to database with chunk timestamp
-							const toolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
-								toolName: chunk.toolName,
-								toolVersion: getDefaultToolVersion(toolName),
-								input: chunk.input,
+								args: {
+									toolName: chunk.toolName,
+									toolVersion: "1.0.0",
+									input: chunk.input,
+								},
 								timestamp: chunkTimestamp,
 							});
 							break;
 
 						case "tool-result":
 							// Update tool call with result
-							const resultToolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolResultCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
-								toolName: chunk.toolName,
-								toolVersion: getDefaultToolVersion(resultToolName),
-								input: chunk.input,
-								output: chunk.output,
+								args: {
+									toolName: chunk.toolName,
+									toolVersion: "1.0.0",
+									input: chunk.input,
+									output: chunk.output,
+								},
 								timestamp: chunkTimestamp,
 							});
 							break;

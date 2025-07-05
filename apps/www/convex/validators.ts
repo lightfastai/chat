@@ -54,7 +54,6 @@ const webSearchOutputValidator = v.object({
 	autopromptString: v.optional(v.string()),
 });
 
-
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
 // 'submitted' - Message sent to API, awaiting response stream start
 // 'streaming' - Response actively streaming from API
@@ -308,7 +307,9 @@ export const toolCallPartValidator = v.union(
 		type: v.literal("tool-call"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
-		toolVersion: v.union(...TOOL_VERSIONS.web_search.map(ver => v.literal(ver))),
+		toolVersion: v.union(
+			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
+		),
 		input: webSearchInputValidator,
 		timestamp: v.number(),
 	}),
@@ -321,7 +322,9 @@ export const toolInputStartPartValidator = v.union(
 		type: v.literal("tool-input-start"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
-		toolVersion: v.union(...TOOL_VERSIONS.web_search.map(ver => v.literal(ver))),
+		toolVersion: v.union(
+			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
+		),
 		timestamp: v.number(),
 	}),
 	// Add more tool-specific validators here as tools are added
@@ -333,7 +336,9 @@ export const toolResultPartValidator = v.union(
 		type: v.literal("tool-result"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
-		toolVersion: v.union(...TOOL_VERSIONS.web_search.map(ver => v.literal(ver))),
+		toolVersion: v.union(
+			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
+		),
 		input: webSearchInputValidator,
 		output: webSearchOutputValidator,
 		timestamp: v.number(),
@@ -392,11 +397,51 @@ export const messagePartsValidator = v.array(messagePartValidator);
 // Create runtime validators for tool versions that accept strings
 // but validate against known versions
 export const webSearchVersionValidator = v.union(
-	...TOOL_VERSIONS.web_search.map(ver => v.literal(ver))
+	...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
 );
 
 // Generic tool version validator that validates at runtime
 export const toolVersionValidator = v.string();
+
+// ===== Mutation Argument Validators =====
+// Discriminated union validators for tool-related mutations
+// These ensure type safety from streaming handler through to database
+
+// Tool call mutation args - discriminated by tool name
+export const addToolCallArgsValidator = v.union(
+	v.object({
+		toolName: v.literal("web_search"),
+		toolVersion: v.union(
+			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
+		),
+		input: webSearchInputValidator,
+	}),
+	// Add more tool-specific validators here as tools are added
+);
+
+// Tool input start mutation args - discriminated by tool name
+export const addToolInputStartArgsValidator = v.union(
+	v.object({
+		toolName: v.literal("web_search"),
+		toolVersion: v.union(
+			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
+		),
+	}),
+	// Add more tool-specific validators here as tools are added
+);
+
+// Tool result mutation args - discriminated by tool name
+export const addToolResultArgsValidator = v.union(
+	v.object({
+		toolName: v.literal("web_search"),
+		toolVersion: v.union(
+			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
+		),
+		input: webSearchInputValidator,
+		output: webSearchOutputValidator,
+	}),
+	// Add more tool-specific validators here as tools are added
+);
 
 // ===== Validation Functions =====
 // Title validation
@@ -406,10 +451,7 @@ export function validateTitle(title: string): boolean {
 }
 
 // Tool version validation
-export function isValidToolVersion(
-	toolName: string,
-	version: string
-): boolean {
+export function isValidToolVersion(toolName: string, version: string): boolean {
 	if (!(toolName in TOOL_VERSIONS)) return false;
 	return (TOOL_VERSIONS as any)[toolName].includes(version);
 }

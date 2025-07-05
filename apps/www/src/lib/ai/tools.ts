@@ -12,10 +12,7 @@ import Exa from "exa-js";
 import { z } from "zod/v4";
 
 // Single version of a tool
-interface ToolVersion<
-	TInput extends z.ZodType,
-	TOutput extends z.ZodType,
-> {
+interface ToolVersion<TInput extends z.ZodType, TOutput extends z.ZodType> {
 	version: string;
 	inputSchema: TInput;
 	outputSchema: TOutput;
@@ -132,10 +129,13 @@ const toolDefinitions = {
 export const LIGHTFAST_TOOLS = {
 	web_search: tool({
 		description: webSearchTool.description,
-		inputSchema: webSearchTool.versions[webSearchTool.defaultVersion].inputSchema,
+		inputSchema:
+			webSearchTool.versions[webSearchTool.defaultVersion].inputSchema,
 		execute: async (input) => {
 			// The input should already have defaults applied by Zod
-			return webSearchTool.versions[webSearchTool.defaultVersion].execute(input);
+			return webSearchTool.versions[webSearchTool.defaultVersion].execute(
+				input,
+			);
 		},
 	}),
 } as const;
@@ -158,14 +158,18 @@ export const TOOL_VERSIONS = Object.fromEntries(
 	Object.entries(toolDefinitions).map(([toolName, toolDef]) => [
 		toolName,
 		Object.keys(toolDef.versions),
-	])
+	]),
 ) as { [K in LightfastToolName]: ToolVersions<K>[] };
 
 // For now, simplify to just use default version schemas
 export type LightfastToolSchemas = {
 	[K in keyof typeof toolDefinitions]: {
-		input: z.infer<(typeof toolDefinitions)[K]["versions"][(typeof toolDefinitions)[K]["defaultVersion"]]["inputSchema"]>;
-		output: z.infer<(typeof toolDefinitions)[K]["versions"][(typeof toolDefinitions)[K]["defaultVersion"]]["outputSchema"]>;
+		input: z.infer<
+			(typeof toolDefinitions)[K]["versions"][(typeof toolDefinitions)[K]["defaultVersion"]]["inputSchema"]
+		>;
+		output: z.infer<
+			(typeof toolDefinitions)[K]["versions"][(typeof toolDefinitions)[K]["defaultVersion"]]["outputSchema"]
+		>;
 	};
 };
 
@@ -206,10 +210,7 @@ export function getToolMetadata(name: LightfastToolName) {
 }
 
 // Get tool schemas for a specific version
-export function getToolSchemas(
-	name: LightfastToolName,
-	version?: string
-) {
+export function getToolSchemas(name: LightfastToolName, version?: string) {
 	const def = toolDefinitions[name];
 	const v = version || def.defaultVersion;
 
