@@ -31,7 +31,7 @@ interface ToolDefinition<
 	displayName: string;
 	description: string;
 	versions: TVersions;
-	defaultVersion: keyof TVersions & string;
+	defaultVersion: keyof TVersions; // Now strictly typed to available versions
 }
 
 // Helper to create a tool definition with versions
@@ -177,7 +177,7 @@ export function validateToolName(name: string): LightfastToolName {
 
 // Get default version for a tool
 export function getDefaultToolVersion(name: LightfastToolName): string {
-	return toolDefinitions[name].defaultVersion;
+	return toolDefinitions[name].defaultVersion as string;
 }
 
 // Get tool metadata
@@ -187,7 +187,7 @@ export function getToolMetadata(name: LightfastToolName) {
 		name: def.name,
 		displayName: def.displayName,
 		description: def.description,
-		defaultVersion: def.defaultVersion,
+		defaultVersion: def.defaultVersion as string,
 		availableVersions: Object.keys(def.versions),
 	};
 }
