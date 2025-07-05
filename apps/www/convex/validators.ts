@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
-import { TOOL_NAMES } from "../src/lib/ai/tools.js";
+import { TOOL_NAMES, TOOL_VERSIONS } from "../src/lib/ai/tools.js";
 
 /**
  * Comprehensive validators for the chat application
@@ -308,7 +308,7 @@ export const toolCallPartValidator = v.union(
 		type: v.literal("tool-call"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
-		toolVersion: v.string(),
+		toolVersion: v.union(...TOOL_VERSIONS.web_search.map(ver => v.literal(ver))),
 		input: webSearchInputValidator,
 		timestamp: v.number(),
 	}),
@@ -321,7 +321,7 @@ export const toolInputStartPartValidator = v.union(
 		type: v.literal("tool-input-start"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
-		toolVersion: v.string(),
+		toolVersion: v.union(...TOOL_VERSIONS.web_search.map(ver => v.literal(ver))),
 		timestamp: v.number(),
 	}),
 	// Add more tool-specific validators here as tools are added
@@ -333,7 +333,7 @@ export const toolResultPartValidator = v.union(
 		type: v.literal("tool-result"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
-		toolVersion: v.string(),
+		toolVersion: v.union(...TOOL_VERSIONS.web_search.map(ver => v.literal(ver))),
 		input: webSearchInputValidator,
 		output: webSearchOutputValidator,
 		timestamp: v.number(),
@@ -388,9 +388,28 @@ export const messagePartValidator = v.union(
 // Array of message parts validator
 export const messagePartsValidator = v.array(messagePartValidator);
 
+// ===== Tool Version Validators =====
+// Create runtime validators for tool versions that accept strings
+// but validate against known versions
+export const webSearchVersionValidator = v.union(
+	...TOOL_VERSIONS.web_search.map(ver => v.literal(ver))
+);
+
+// Generic tool version validator that validates at runtime
+export const toolVersionValidator = v.string();
+
 // ===== Validation Functions =====
 // Title validation
 
 export function validateTitle(title: string): boolean {
 	return title.length >= 1 && title.length <= 80;
+}
+
+// Tool version validation
+export function isValidToolVersion(
+	toolName: string,
+	version: string
+): boolean {
+	if (!(toolName in TOOL_VERSIONS)) return false;
+	return (TOOL_VERSIONS as any)[toolName].includes(version);
 }

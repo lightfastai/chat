@@ -148,6 +148,19 @@ export type LightfastToolName = keyof typeof toolDefinitions;
 export type ToolVersions<T extends LightfastToolName> =
 	keyof (typeof toolDefinitions)[T]["versions"] & string;
 
+// Create a map of all valid tool-version combinations
+export type ToolVersionMap = {
+	[K in LightfastToolName]: ToolVersions<K>;
+};
+
+// Export all available tool versions as a runtime value for Convex validators
+export const TOOL_VERSIONS = Object.fromEntries(
+	Object.entries(toolDefinitions).map(([toolName, toolDef]) => [
+		toolName,
+		Object.keys(toolDef.versions),
+	])
+) as { [K in LightfastToolName]: ToolVersions<K>[] };
+
 // For now, simplify to just use default version schemas
 export type LightfastToolSchemas = {
 	[K in keyof typeof toolDefinitions]: {
