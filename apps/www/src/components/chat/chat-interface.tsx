@@ -70,7 +70,7 @@ export function ChatInterface({
 
 	return (
 		<div className="flex flex-col h-full">
-			<ChatMessages dbMessages={dbMessages} vercelMessages={messages} />
+			<ChatMessages dbMessages={dbMessages} uiMessages={messages} />
 			<ChatInput
 				onSendMessage={sendMessage}
 				dbMessages={dbMessages}

@@ -1,12 +1,12 @@
 "use client";
 
-import type { UIMessage } from "@ai-sdk/react";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { DbMessagePart } from "../../../convex/types";
 import { isReasoningPart, isTextPart } from "../../../convex/types";
 import { MessageDisplay } from "./message-display";
+import { convertUIMessageToDbParts, LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
 
 /**
  * Process message parts: sort by timestamp, then merge consecutive parts of same type
@@ -55,17 +55,9 @@ function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
 	return mergedParts;
 }
 
-// Extended UIMessage type with our metadata
-interface UIMessageWithMetadata extends UIMessage {
-	metadata?: {
-		id?: string;
-		[key: string]: unknown;
-	};
-}
-
 interface ChatMessagesProps {
 	dbMessages: Doc<"messages">[] | null | undefined;
-	vercelMessages: UIMessage[];
+	uiMessages: LightfastUIMessage[];
 	emptyState?: {
 		icon?: React.ReactNode;
 		title?: string;
@@ -75,7 +67,7 @@ interface ChatMessagesProps {
 
 export function ChatMessages({
 	dbMessages,
-	vercelMessages,
+	uiMessages,
 }: ChatMessagesProps) {
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -197,17 +189,17 @@ export function ChatMessages({
 		);
 	}
 
-	// Find the streaming message from vercelMessages
-	let streamingVercelMessage: UIMessageWithMetadata | undefined;
-	if (vercelMessages.length > 0) {
-		// The last message in vercelMessages should be the streaming one
-		const lastVercelMessage = vercelMessages[
-			vercelMessages.length - 1
-		] as UIMessageWithMetadata;
+	// Find the streaming message from uiMessages
+	let streamingVercelMessage: LightfastUIMessage | undefined;
+	if (uiMessages.length > 0) {
+		// The last message in uiMessages should be the streaming one
+		const lastVercelMessage = uiMessages[
+			uiMessages.length - 1
+		] as LightfastUIMessage;
 		// Check if there's a matching database message that's streaming
 		const matchingDbMessage = dbMessages.find(
 			(msg) =>
-				msg._id === lastVercelMessage.metadata?.id &&
+				msg._id === lastVercelMessage.metadata?.dbId &&
 				msg.status === "streaming",
 		);
 		if (matchingDbMessage) {
@@ -225,22 +217,12 @@ export function ChatMessages({
 						if (
 							message.status === "streaming" &&
 							streamingVercelMessage &&
-							streamingVercelMessage.metadata?.id === message._id
+							streamingVercelMessage.metadata?.dbId === message._id
 						) {
 							// Override with Vercel streaming data
 							displayMessage = {
 								...message,
-								parts: (streamingVercelMessage.parts || []).map((part) => {
-									// Convert Vercel AI SDK "source-document" to Convex "source" type
-									// @todo iteratively introduce these on client-side.
-									if (part.type === "source-document") {
-										return {
-											...part,
-											type: "source" as const,
-										};
-									}
-									return part;
-								}) as DbMessagePart[],
+								parts: convertUIMessageToDbParts(streamingVercelMessage),
 							};
 						}
 

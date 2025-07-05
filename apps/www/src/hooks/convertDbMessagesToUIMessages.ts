@@ -21,9 +21,13 @@ type LightfastUICustomDataTypes = {
 	error: Omit<DbErrorPart, "type">;
 };
 
+interface LightfastUICustomMetadata {
+  dbId: string;
+}
+
 // Use both custom data types and tools
 export type LightfastUIMessage = UIMessage<
-	unknown,
+	LightfastUICustomMetadata,
 	LightfastUICustomDataTypes,
 	LightfastToolSchemas
 >;
@@ -32,6 +36,53 @@ export type LightfastUIMessagePart = UIMessagePart<
 	LightfastUICustomDataTypes,
 	LightfastToolSchemas
 >;
+
+export const convertUIMessageToDbParts = (uiMessage: LightfastUIMessage): DbMessagePart[] => {
+		return uiMessage.parts.map((part): DbMessagePart | null => {
+			switch (part.type) {
+				case "text":
+					return {
+						type: "text",
+						text: part.text,
+            timestamp: Date.now(),
+					};
+				case "reasoning":
+					return {
+						type: "reasoning",
+						text: part.text,
+            timestamp: Date.now(),
+					};
+				case "tool-web_search_1_0_0":
+          switch (part.state) {
+            case "input-streaming":
+              return {
+                type: "tool-call",
+                args: {
+                  toolName: "web_search_1_0_0",
+                  input: part.input as any,
+                },
+                toolCallId: part.toolCallId,
+                timestamp: Date.now(),
+              };
+            case "output-available":
+              return {
+                type: "tool-result",
+                args: {
+                  toolName: "web_search_1_0_0",
+                  input: part.input,
+                  output: part.output,
+                },
+                toolCallId: part.toolCallId,
+                timestamp: Date.now(),
+              };
+            default:
+              return null;
+          }
+				default:
+					return null;
+			}
+		}).filter((part): part is DbMessagePart  => part !== null)
+};
 
 export function convertDbMessagesToUIMessages(
 	dbMessages: Doc<"messages">[],
