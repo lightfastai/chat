@@ -2,18 +2,18 @@ import type { Infer } from "convex/values";
 import type { LightfastToolName } from "../src/lib/ai/tools";
 import type { Doc } from "./_generated/dataModel";
 import type {
-  errorPartValidator,
-  filePartValidator,
-  messagePartValidator,
-  reasoningPartValidator,
-  roleValidator,
-  sourceDocumentPartValidator,
-  sourceUrlPartValidator,
-  textPartValidator,
-  toolCallPartValidator,
-  toolInputStartPartValidator,
-  toolNameValidator,
-  toolResultPartValidator,
+	errorPartValidator,
+	filePartValidator,
+	messagePartValidator,
+	reasoningPartValidator,
+	roleValidator,
+	sourceDocumentPartValidator,
+	sourceUrlPartValidator,
+	textPartValidator,
+	toolCallPartValidator,
+	toolInputStartPartValidator,
+	toolNameValidator,
+	toolResultPartValidator,
 } from "./validators";
 
 export type DbMessage = Doc<"messages">;

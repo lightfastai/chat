@@ -34,12 +34,49 @@ export const toolNameValidator = v.union(
 	...TOOL_NAMES.map((name) => v.literal(name)),
 );
 
-// Web Search Tool Validators
-const webSearchInputValidator = v.object({
+// Web Search Tool Validators - Version-specific
+const webSearchV1InputValidator = v.object({
 	query: v.string(),
 	useAutoprompt: v.boolean(),
 	numResults: v.number(),
 });
+
+const webSearchV2InputValidator = v.object({
+	search: v.object({
+		text: v.string(),
+		mode: v.union(v.literal("smart"), v.literal("exact"), v.literal("fuzzy")),
+	}),
+	filters: v.optional(
+		v.object({
+			domains: v.optional(v.array(v.string())),
+			dateRange: v.optional(
+				v.object({
+					from: v.optional(v.string()),
+					to: v.optional(v.string()),
+				}),
+			),
+			excludeTerms: v.optional(v.array(v.string())),
+		}),
+	),
+	options: v.optional(
+		v.object({
+			limit: v.number(),
+			includeMetadata: v.boolean(),
+			language: v.optional(
+				v.union(
+					v.literal("en"),
+					v.literal("es"),
+					v.literal("fr"),
+					v.literal("de"),
+					v.literal("ja"),
+				),
+			),
+		}),
+	),
+});
+
+// Note: We don't need a union validator since we use discriminated unions
+// based on version in the mutation validators below
 
 const webSearchOutputValidator = v.object({
 	results: v.array(
@@ -53,7 +90,6 @@ const webSearchOutputValidator = v.object({
 	query: v.string(),
 	autopromptString: v.optional(v.string()),
 });
-
 
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
 // 'submitted' - Message sent to API, awaiting response stream start
@@ -301,7 +337,6 @@ export const errorPartValidator = v.object({
 	timestamp: v.number(),
 });
 
-
 // Source URL part validator - matches Vercel AI SDK SourceUrlUIPart
 export const sourceUrlPartValidator = v.object({
 	type: v.literal("source-url"),
@@ -346,14 +381,19 @@ export const toolVersionValidator = v.string();
 // Discriminated union validators for tool-related mutations
 // These ensure type safety from streaming handler through to database
 
-// Tool call mutation args - discriminated by tool name
+// Tool call mutation args - discriminated by tool name AND version
 export const addToolCallArgsValidator = v.union(
+	// Web search v1.0.0
 	v.object({
 		toolName: v.literal("web_search"),
-		toolVersion: v.union(
-			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
-		),
-		input: webSearchInputValidator,
+		toolVersion: v.literal("1.0.0"),
+		input: webSearchV1InputValidator,
+	}),
+	// Web search v2.0.0
+	v.object({
+		toolName: v.literal("web_search"),
+		toolVersion: v.literal("2.0.0"),
+		input: webSearchV2InputValidator,
 	}),
 	// Add more tool-specific validators here as tools are added
 );
@@ -369,14 +409,20 @@ export const addToolInputStartArgsValidator = v.union(
 	// Add more tool-specific validators here as tools are added
 );
 
-// Tool result mutation args - discriminated by tool name
+// Tool result mutation args - discriminated by tool name AND version
 export const addToolResultArgsValidator = v.union(
+	// Web search v1.0.0
 	v.object({
 		toolName: v.literal("web_search"),
-		toolVersion: v.union(
-			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
-		),
-		input: webSearchInputValidator,
+		toolVersion: v.literal("1.0.0"),
+		input: webSearchV1InputValidator,
+		output: webSearchOutputValidator,
+	}),
+	// Web search v2.0.0
+	v.object({
+		toolName: v.literal("web_search"),
+		toolVersion: v.literal("2.0.0"),
+		input: webSearchV2InputValidator,
 		output: webSearchOutputValidator,
 	}),
 	// Add more tool-specific validators here as tools are added

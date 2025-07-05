@@ -14,15 +14,15 @@ import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
 import type { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 import {
-  addToolCallArgsValidator,
-  addToolInputStartArgsValidator,
-  addToolResultArgsValidator,
-  clientIdValidator,
-  messageStatusValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  textPartValidator,
-  tokenUsageValidator,
+	addToolCallArgsValidator,
+	addToolInputStartArgsValidator,
+	addToolResultArgsValidator,
+	clientIdValidator,
+	messageStatusValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	textPartValidator,
+	tokenUsageValidator,
 } from "./validators.js";
 // Export types
 export type {
@@ -393,11 +393,11 @@ export const addToolInputStartPart = internalMutation({
 // Internal mutation to add a tool call part to a message
 export const addToolCallPart = internalMutation({
 	args: v.object({
-    messageId: v.id("messages"),
-    toolCallId: v.string(),
-    timestamp: v.number(),
-    args: addToolCallArgsValidator,
-  }),
+		messageId: v.id("messages"),
+		toolCallId: v.string(),
+		timestamp: v.number(),
+		args: addToolCallArgsValidator,
+	}),
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);

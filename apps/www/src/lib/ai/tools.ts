@@ -47,7 +47,7 @@ const webSearchTool = defineTool({
 	name: "web_search" as const,
 	displayName: "Web Search",
 	description: "Search the web for information using Exa AI",
-	defaultVersion: "1.0.0",
+	defaultVersion: "2.0.0" as const,
 	versions: {
 		"1.0.0": {
 			version: "1.0.0",
@@ -107,6 +107,128 @@ const webSearchTool = defineTool({
 				}
 			},
 		},
+		"2.0.0": {
+			version: "2.0.0",
+			inputSchema: z.object({
+				// Completely different structure for v2
+				search: z.object({
+					text: z.string().describe("The search query text"),
+					mode: z.enum(["smart", "exact", "fuzzy"]).default("smart"),
+				}),
+				filters: z
+					.object({
+						domains: z
+							.array(z.string())
+							.optional()
+							.describe("List of domains to search"),
+						dateRange: z
+							.object({
+								from: z.string().optional(),
+								to: z.string().optional(),
+							})
+							.optional(),
+						excludeTerms: z.array(z.string()).optional(),
+					})
+					.optional(),
+				options: z
+					.object({
+						limit: z.number().min(1).max(50).default(10),
+						includeMetadata: z.boolean().default(true),
+						language: z.enum(["en", "es", "fr", "de", "ja"]).optional(),
+					})
+					.optional(),
+			}),
+			outputSchema: z.object({
+				results: z.array(
+					z.object({
+						title: z.string(),
+						url: z.string(),
+						snippet: z.string().optional(),
+						score: z.number().optional(),
+						publishedDate: z.string().optional(),
+						author: z.string().optional(),
+						highlights: z.array(z.string()).optional(),
+					}),
+				),
+				query: z.string(),
+				autopromptString: z.string().optional(),
+				searchType: z.enum(["neural", "keyword"]),
+				totalResults: z.number(),
+				metadata: z.object({
+					searchTime: z.number(),
+					version: z.literal("2.0.0"),
+				}),
+			}),
+			execute: async (input) => {
+				const API_KEY = process.env.EXA_API_KEY;
+				if (!API_KEY) {
+					throw new Error("EXA_API_KEY environment variable is not set");
+				}
+
+				const startTime = Date.now();
+
+				try {
+					const exa = new Exa(API_KEY);
+
+					// Map new v2 input structure to Exa API
+					const searchOptions: any = {
+						useAutoprompt: input.search.mode === "smart",
+						numResults: input.options?.limit || 10,
+						type: input.search.mode === "exact" ? "keyword" : "neural",
+						includeText: input.options?.includeMetadata ?? true,
+					};
+
+					// Handle domain filters differently
+					if (input.filters?.domains && input.filters.domains.length > 0) {
+						// Exa only supports single domain, so we take the first
+						searchOptions.domain = input.filters.domains[0];
+					}
+
+					if (input.filters?.dateRange) {
+						searchOptions.startCrawlDate = input.filters.dateRange.from;
+						searchOptions.endCrawlDate = input.filters.dateRange.to;
+					}
+
+					// Build query with exclusions
+					let query = input.search.text;
+					if (
+						input.filters?.excludeTerms &&
+						input.filters.excludeTerms.length > 0
+					) {
+						query +=
+							" " +
+							input.filters.excludeTerms
+								.map((term: string) => `-"${term}"`)
+								.join(" ");
+					}
+
+					const response = await exa.searchAndContents(query, searchOptions);
+
+					return {
+						results: response.results.map((result) => ({
+							title: result.title || "Untitled",
+							url: result.url,
+							snippet: result.text || undefined,
+							score: result.score || undefined,
+							publishedDate: result.publishedDate || undefined,
+							author: result.author || undefined,
+							highlights: undefined, // Not available in current Exa API
+						})),
+						query: input.search.text,
+						autopromptString: response.autopromptString,
+						searchType: input.search.mode === "exact" ? "keyword" : "neural",
+						totalResults: response.results.length,
+						metadata: {
+							searchTime: Date.now() - startTime,
+							version: "2.0.0" as const,
+						},
+					};
+				} catch (error) {
+					console.error("Web search v2 error:", error);
+					throw error;
+				}
+			},
+		},
 	},
 });
 
@@ -126,17 +248,19 @@ const toolDefinitions = {
 } as const;
 
 // Create AI SDK tools from definitions (using default versions)
+// Extract the default version for type safety
+const webSearchDefaultVersion =
+	webSearchTool.versions[webSearchTool.defaultVersion];
+
+// Type the input and output explicitly to help TypeScript
+type WebSearchInput = z.infer<typeof webSearchDefaultVersion.inputSchema>;
+type WebSearchOutput = z.infer<typeof webSearchDefaultVersion.outputSchema>;
+
 export const LIGHTFAST_TOOLS = {
-	web_search: tool({
+	web_search: tool<WebSearchInput, WebSearchOutput>({
 		description: webSearchTool.description,
-		inputSchema:
-			webSearchTool.versions[webSearchTool.defaultVersion].inputSchema,
-		execute: async (input) => {
-			// The input should already have defaults applied by Zod
-			return webSearchTool.versions[webSearchTool.defaultVersion].execute(
-				input,
-			);
-		},
+		inputSchema: webSearchDefaultVersion.inputSchema,
+		execute: webSearchDefaultVersion.execute,
 	}),
 } as const;
 
@@ -194,7 +318,7 @@ export function validateToolName(name: string): LightfastToolName {
 
 // Get default version for a tool with preserved literal type
 export function getToolDefaultVersion<T extends LightfastToolName>(
-	name: T
+	name: T,
 ): (typeof toolDefinitions)[T]["defaultVersion"] {
 	return toolDefinitions[name].defaultVersion;
 }
@@ -214,7 +338,7 @@ export function getToolMetadata<T extends LightfastToolName>(name: T) {
 // Get tool schemas for a specific version
 export function getToolSchemas<T extends LightfastToolName>(
 	name: T,
-	version?: ToolVersions<T>
+	version?: ToolVersions<T>,
 ) {
 	const def = toolDefinitions[name];
 	const v = version || def.defaultVersion;

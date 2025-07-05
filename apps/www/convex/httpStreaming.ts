@@ -11,29 +11,29 @@
  */
 
 import {
-  type ModelMessage,
-  type ReasoningUIPart,
-  type TextUIPart,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type ReasoningUIPart,
+	type TextUIPart,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import {
-  LIGHTFAST_TOOLS,
-  type LightfastToolSet,
-  validateToolName,
-  getToolDefaultVersion
+	LIGHTFAST_TOOLS,
+	type LightfastToolSet,
+	getToolDefaultVersion,
+	validateToolName,
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -42,15 +42,15 @@ import { createAIClient } from "./lib/ai_client";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  createHTTPErrorResponse,
-  extractErrorDetails,
-  formatErrorMessage,
-  handleStreamingSetupError,
-  logStreamingError,
+	createHTTPErrorResponse,
+	extractErrorDetails,
+	formatErrorMessage,
+	handleStreamingSetupError,
+	logStreamingError,
 } from "./lib/error_handling";
 import {
-  StreamingReasoningWriter,
-  StreamingTextWriter,
+	StreamingReasoningWriter,
+	StreamingTextWriter,
 } from "./lib/streaming_writers";
 import type { DbMessage } from "./types";
 import type { modelIdValidator } from "./validators";
@@ -277,9 +277,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							});
 							break;
 
-						case "tool-input-start":
+						case "tool-input-start": {
 							// Add tool input start to database with chunk timestamp
-              // @todo why is tool-input-start not statically typed..?
+							// @todo why is tool-input-start not statically typed..?
 							const inputToolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolInputStartPart, {
 								messageId: assistantMessage._id,
@@ -291,8 +291,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								timestamp: chunkTimestamp,
 							});
 							break;
+						}
 
-						case "tool-call":
+						case "tool-call": {
 							// Add tool call to database with chunk timestamp
 							const callToolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolCallPart, {
@@ -301,13 +302,14 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								args: {
 									toolName: callToolName,
 									toolVersion: getToolDefaultVersion(callToolName),
-									input: chunk.input,
+									input: chunk.input as any, // Type will be validated by Convex validator
 								},
 								timestamp: chunkTimestamp,
 							});
 							break;
+						}
 
-						case "tool-result":
+						case "tool-result": {
 							// Update tool call with result
 							const resultToolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolResultCallPart, {
@@ -316,12 +318,13 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								args: {
 									toolName: resultToolName,
 									toolVersion: getToolDefaultVersion(resultToolName),
-									input: chunk.input,
-									output: chunk.output,
+									input: chunk.input as any, // Type will be validated by Convex validator
+									output: chunk.output as any, // Type will be validated by Convex validator
 								},
 								timestamp: chunkTimestamp,
 							});
 							break;
+						}
 
 						case "source":
 							if (chunk.sourceType === "url") {

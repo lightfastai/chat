@@ -24,7 +24,23 @@ export function WebSearchTool({ toolCall }: WebSearchToolProps) {
 	// TODO: Add state field to database schema
 	// For now, check if we have result to determine if tool has completed
 	const isLoading = !("output" in toolCall.args && toolCall.args.output);
-	const searchQuery = toolCall.args.input?.query as string | undefined;
+
+	// Extract search query - handle both v1 and v2 schemas
+	let searchQuery: string | undefined;
+	const input = toolCall.args.input;
+	if (input && typeof input === "object") {
+		if ("query" in input) {
+			// v1.0.0 schema
+			searchQuery = input.query as string;
+		} else if (
+			"search" in input &&
+			typeof input.search === "object" &&
+			"text" in input.search
+		) {
+			// v2.0.0 schema
+			searchQuery = input.search.text as string;
+		}
+	}
 
 	// Extract search results from the tool result
 	const searchResults =
