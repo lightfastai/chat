@@ -5,8 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { DbMessagePart } from "../../../convex/types";
 import { isReasoningPart, isTextPart } from "../../../convex/types";
+import {
+	type LightfastUIMessage,
+	convertUIMessageToDbParts,
+} from "../../hooks/convertDbMessagesToUIMessages";
 import { MessageDisplay } from "./message-display";
-import { convertUIMessageToDbParts, LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
 
 /**
  * Process message parts: sort by timestamp, then merge consecutive parts of same type
@@ -65,10 +68,7 @@ interface ChatMessagesProps {
 	};
 }
 
-export function ChatMessages({
-	dbMessages,
-	uiMessages,
-}: ChatMessagesProps) {
+export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
 	const [isNearBottom, setIsNearBottom] = useState(true);

@@ -197,7 +197,10 @@ const components: Partial<Components> = {
 	// Paragraph with proper spacing
 	p({ children, ...props }: MarkdownComponentProps) {
 		return (
-			<p className="leading-7 [&:not(:first-child)]:mt-3 break-words" {...props}>
+			<p
+				className="leading-7 [&:not(:first-child)]:mt-3 break-words"
+				{...props}
+			>
 				{children}
 			</p>
 		);
