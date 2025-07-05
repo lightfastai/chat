@@ -192,34 +192,39 @@ export function validateToolName(name: string): LightfastToolName {
 	throw new Error(`Invalid tool name: ${name}`);
 }
 
-// Get default version for a tool
-export function getDefaultToolVersion(name: LightfastToolName): string {
-	return toolDefinitions[name].defaultVersion as string;
+// Get default version for a tool with preserved literal type
+export function getToolDefaultVersion<T extends LightfastToolName>(
+	name: T
+): (typeof toolDefinitions)[T]["defaultVersion"] {
+	return toolDefinitions[name].defaultVersion;
 }
 
-// Get tool metadata
-export function getToolMetadata(name: LightfastToolName) {
+// Get tool metadata with strongly typed return value
+export function getToolMetadata<T extends LightfastToolName>(name: T) {
 	const def = toolDefinitions[name];
 	return {
 		name: def.name,
 		displayName: def.displayName,
 		description: def.description,
-		defaultVersion: def.defaultVersion as string,
-		availableVersions: Object.keys(def.versions),
-	};
+		defaultVersion: def.defaultVersion,
+		availableVersions: Object.keys(def.versions) as ToolVersions<T>[],
+	} as const;
 }
 
 // Get tool schemas for a specific version
-export function getToolSchemas(name: LightfastToolName, version?: string) {
+export function getToolSchemas<T extends LightfastToolName>(
+	name: T,
+	version?: ToolVersions<T>
+) {
 	const def = toolDefinitions[name];
 	const v = version || def.defaultVersion;
 
-	// Use type assertion since we know the structure
-	const versionDef = (def.versions as any)[v];
-
-	if (!versionDef) {
+	// Type-safe access
+	if (!(v in def.versions)) {
 		throw new Error(`Version ${v} not found for tool ${name}`);
 	}
+
+	const versionDef = def.versions[v as keyof typeof def.versions];
 
 	return {
 		input: versionDef.inputSchema,
