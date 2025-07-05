@@ -11,29 +11,28 @@
  */
 
 import {
-  type ModelMessage,
-  type ReasoningUIPart,
-  type TextUIPart,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type ReasoningUIPart,
+	type TextUIPart,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import {
-  LIGHTFAST_TOOLS,
-  type LightfastToolSet,
-  getToolDefaultVersion,
-  validateToolName,
+	LIGHTFAST_TOOLS,
+	type LightfastToolSet,
+	validateToolName,
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -42,15 +41,15 @@ import { createAIClient } from "./lib/ai_client";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  createHTTPErrorResponse,
-  extractErrorDetails,
-  formatErrorMessage,
-  handleStreamingSetupError,
-  logStreamingError,
+	createHTTPErrorResponse,
+	extractErrorDetails,
+	formatErrorMessage,
+	handleStreamingSetupError,
+	logStreamingError,
 } from "./lib/error_handling";
 import {
-  StreamingReasoningWriter,
-  StreamingTextWriter,
+	StreamingReasoningWriter,
+	StreamingTextWriter,
 } from "./lib/streaming_writers";
 import type { DbMessage } from "./types";
 import type { modelIdValidator } from "./validators";
@@ -279,50 +278,98 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 						case "tool-input-start": {
 							// Add tool input start to database with chunk timestamp
-							// @todo why is tool-input-start not statically typed..?
+							// Note: chunk.toolName now includes version (e.g., "web_search_1_0_0")
 							const inputToolName = validateToolName(chunk.toolName);
-							await ctx.runMutation(internal.messages.addToolInputStartPart, {
-								messageId: assistantMessage._id,
-								toolCallId: chunk.id,
-								args: {
-									toolName: inputToolName,
-									toolVersion: getToolDefaultVersion(inputToolName),
-								},
-								timestamp: chunkTimestamp,
-							});
+
+							// Type-safe handling based on specific tool version
+							if (
+								inputToolName === "web_search_1_0_0" ||
+								inputToolName === "web_search_2_0_0"
+							) {
+								await ctx.runMutation(internal.messages.addToolInputStartPart, {
+									messageId: assistantMessage._id,
+									toolCallId: chunk.id,
+									args: {
+										toolName: inputToolName,
+									},
+									timestamp: chunkTimestamp,
+								});
+							} else {
+								// Handle unknown tool versions
+								console.warn(`Unknown tool name: ${inputToolName}`);
+							}
 							break;
 						}
 
 						case "tool-call": {
 							// Add tool call to database with chunk timestamp
+							// Note: chunk.toolName now includes version (e.g., "web_search_1_0_0")
 							const callToolName = validateToolName(chunk.toolName);
-							await ctx.runMutation(internal.messages.addToolCallPart, {
-								messageId: assistantMessage._id,
-								toolCallId: chunk.toolCallId,
-								args: {
-									toolName: callToolName,
-									toolVersion: getToolDefaultVersion(callToolName),
-									input: chunk.input, // Type will be validated by Convex validator
-								},
-								timestamp: chunkTimestamp,
-							});
+
+							// Type-safe handling based on specific tool version
+							// Note: We use type assertion here because the AI SDK doesn't know about our versioned naming
+							// The Convex validator will ensure type safety at runtime
+							if (callToolName === "web_search_1_0_0") {
+								await ctx.runMutation(internal.messages.addToolCallPart, {
+									messageId: assistantMessage._id,
+									toolCallId: chunk.toolCallId,
+									args: {
+										toolName: "web_search_1_0_0" as const,
+										input: chunk.input as any, // Runtime validation by Convex validator
+									},
+									timestamp: chunkTimestamp,
+								});
+							} else if (callToolName === "web_search_2_0_0") {
+								await ctx.runMutation(internal.messages.addToolCallPart, {
+									messageId: assistantMessage._id,
+									toolCallId: chunk.toolCallId,
+									args: {
+										toolName: "web_search_2_0_0" as const,
+										input: chunk.input as any, // Runtime validation by Convex validator
+									},
+									timestamp: chunkTimestamp,
+								});
+							} else {
+								// Handle unknown tool versions
+								console.warn(`Unknown tool name: ${callToolName}`);
+							}
 							break;
 						}
 
 						case "tool-result": {
 							// Update tool call with result
+							// Note: chunk.toolName now includes version (e.g., "web_search_1_0_0")
 							const resultToolName = validateToolName(chunk.toolName);
-							await ctx.runMutation(internal.messages.addToolResultCallPart, {
-								messageId: assistantMessage._id,
-								toolCallId: chunk.toolCallId,
-								args: {
-									toolName: resultToolName,
-									toolVersion: getToolDefaultVersion(resultToolName),
-									input: chunk.input, // Type will be validated by Convex validator
-									output: chunk.output, // Type will be validated by Convex validator
-								},
-								timestamp: chunkTimestamp,
-							});
+
+							// Type-safe handling based on specific tool version
+							// Note: We use type assertion here because the AI SDK doesn't know about our versioned naming
+							// The Convex validator will ensure type safety at runtime
+							if (resultToolName === "web_search_1_0_0") {
+								await ctx.runMutation(internal.messages.addToolResultCallPart, {
+									messageId: assistantMessage._id,
+									toolCallId: chunk.toolCallId,
+									args: {
+										toolName: "web_search_1_0_0" as const,
+										input: chunk.input as any, // Runtime validation by Convex validator
+										output: chunk.output as any, // Runtime validation by Convex validator
+									},
+									timestamp: chunkTimestamp,
+								});
+							} else if (resultToolName === "web_search_2_0_0") {
+								await ctx.runMutation(internal.messages.addToolResultCallPart, {
+									messageId: assistantMessage._id,
+									toolCallId: chunk.toolCallId,
+									args: {
+										toolName: "web_search_2_0_0" as const,
+										input: chunk.input as any, // Runtime validation by Convex validator
+										output: chunk.output as any, // Runtime validation by Convex validator
+									},
+									timestamp: chunkTimestamp,
+								});
+							} else {
+								// Handle unknown tool versions
+								console.warn(`Unknown tool name: ${resultToolName}`);
+							}
 							break;
 						}
 

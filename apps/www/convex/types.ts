@@ -101,14 +101,56 @@ export function isFilePart(part: DbMessagePart): part is DbFilePart {
 // Type guards for specific tools
 export function isWebSearchToolCall(
 	part: DbMessagePart,
-): part is TypedToolCallPart<"web_search"> {
-	return isToolCallPart(part) && part.args.toolName === "web_search";
+): part is
+	| TypedToolCallPart<"web_search_1_0_0">
+	| TypedToolCallPart<"web_search_2_0_0"> {
+	return (
+		isToolCallPart(part) &&
+		(part.args.toolName === "web_search_1_0_0" ||
+			part.args.toolName === "web_search_2_0_0")
+	);
 }
 
 export function isWebSearchToolResult(
 	part: DbMessagePart,
-): part is TypedToolResultPart<"web_search"> {
-	return isToolResultPart(part) && part.args.toolName === "web_search";
+): part is
+	| TypedToolResultPart<"web_search_1_0_0">
+	| TypedToolResultPart<"web_search_2_0_0"> {
+	return (
+		isToolResultPart(part) &&
+		(part.args.toolName === "web_search_1_0_0" ||
+			part.args.toolName === "web_search_2_0_0")
+	);
+}
+
+// Version-specific helper functions
+export function isWebSearchV1ToolCall(
+	part: DbMessagePart,
+): part is TypedToolCallPart<"web_search_1_0_0"> {
+	return isToolCallPart(part) && part.args.toolName === "web_search_1_0_0";
+}
+
+export function isWebSearchV1ToolResult(
+	part: DbMessagePart,
+): part is TypedToolResultPart<"web_search_1_0_0"> {
+	return isToolResultPart(part) && part.args.toolName === "web_search_1_0_0";
+}
+
+export function isWebSearchV2ToolCall(
+	part: DbMessagePart,
+): part is TypedToolCallPart<"web_search_2_0_0"> {
+	return isToolCallPart(part) && part.args.toolName === "web_search_2_0_0";
+}
+
+export function isWebSearchV2ToolResult(
+	part: DbMessagePart,
+): part is TypedToolResultPart<"web_search_2_0_0"> {
+	return isToolResultPart(part) && part.args.toolName === "web_search_2_0_0";
+}
+
+// Generic helper to check if tool name is any version of web search
+export function isWebSearchTool(toolName: string): boolean {
+	return toolName.startsWith("web_search_");
 }
 
 // ===== Utility Functions =====

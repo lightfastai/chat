@@ -1,6 +1,9 @@
 import { v } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
-import { TOOL_NAMES, TOOL_VERSIONS } from "../src/lib/ai/tools.js";
+import {
+	type LightfastToolName,
+	TOOL_NAMES,
+} from "../src/lib/ai/tools.js";
 
 /**
  * Comprehensive validators for the chat application
@@ -15,6 +18,9 @@ import { TOOL_NAMES, TOOL_VERSIONS } from "../src/lib/ai/tools.js";
  *
  * IMPORTANT: The messagePartValidator is the single source of truth for
  * message content structure, following Vercel AI SDK v5 exactly.
+ *
+ * Tool names now include version information (e.g., "web_search_1_0_0")
+ * instead of separate toolName + toolVersion fields for simpler type safety.
  */
 
 // ===== Model Validators =====
@@ -29,18 +35,33 @@ export const modelProviderValidator = v.union(
 );
 
 // ===== Tool-Specific Validators =====
-// Create toolNameValidator from TOOL_NAMES
+// Create toolNameValidator from TOOL_NAMES (now includes version in name)
 export const toolNameValidator = v.union(
 	...TOOL_NAMES.map((name) => v.literal(name)),
 );
 
-// Web Search Tool Validators - Version-specific
+// Tool Input/Output Validators - Auto-generated from tool definitions
+// Web Search v1.0.0 - Simple search with basic options
 const webSearchV1InputValidator = v.object({
 	query: v.string(),
 	useAutoprompt: v.boolean(),
 	numResults: v.number(),
 });
 
+const webSearchV1OutputValidator = v.object({
+	results: v.array(
+		v.object({
+			title: v.string(),
+			url: v.string(),
+			snippet: v.optional(v.string()),
+			score: v.optional(v.number()),
+		}),
+	),
+	query: v.string(),
+	autopromptString: v.optional(v.string()),
+});
+
+// Web Search v2.0.0 - Advanced search with filters and metadata
 const webSearchV2InputValidator = v.object({
 	search: v.object({
 		text: v.string(),
@@ -75,20 +96,26 @@ const webSearchV2InputValidator = v.object({
 	),
 });
 
-// Note: We don't need a union validator since we use discriminated unions
-// based on version in the mutation validators below
-
-const webSearchOutputValidator = v.object({
+const webSearchV2OutputValidator = v.object({
 	results: v.array(
 		v.object({
 			title: v.string(),
 			url: v.string(),
 			snippet: v.optional(v.string()),
 			score: v.optional(v.number()),
+			publishedDate: v.optional(v.string()),
+			author: v.optional(v.string()),
+			highlights: v.optional(v.array(v.string())),
 		}),
 	),
 	query: v.string(),
 	autopromptString: v.optional(v.string()),
+	searchType: v.union(v.literal("neural"), v.literal("keyword")),
+	totalResults: v.number(),
+	metadata: v.object({
+		searchTime: v.number(),
+		version: v.literal("2_0_0"),
+	}),
 });
 
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
@@ -367,65 +394,56 @@ export const filePartValidator = v.object({
 	timestamp: v.number(),
 });
 
-// ===== Tool Version Validators =====
-// Create runtime validators for tool versions that accept strings
-// but validate against known versions
-export const webSearchVersionValidator = v.union(
-	...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
-);
-
-// Generic tool version validator that validates at runtime
-export const toolVersionValidator = v.string();
+// ===== Tool Argument Validators =====
+// Create discriminated union validators for each tool's arguments
+// Tool arguments are now identified by the full versioned tool name
 
 // ===== Mutation Argument Validators =====
 // Discriminated union validators for tool-related mutations
-// These ensure type safety from streaming handler through to database
+// Now using versioned tool names instead of toolName + toolVersion
 
-// Tool call mutation args - discriminated by tool name AND version
+// Tool call mutation args - discriminated by versioned tool name
 export const addToolCallArgsValidator = v.union(
-	// Web search v1.0.0
+	// Web search v1.0.0 - Simple search interface
 	v.object({
-		toolName: v.literal("web_search"),
-		toolVersion: v.literal("1.0.0"),
+		toolName: v.literal("web_search_1_0_0"),
 		input: webSearchV1InputValidator,
 	}),
-	// Web search v2.0.0
+	// Web search v2.0.0 - Advanced search with filters
 	v.object({
-		toolName: v.literal("web_search"),
-		toolVersion: v.literal("2.0.0"),
+		toolName: v.literal("web_search_2_0_0"),
 		input: webSearchV2InputValidator,
 	}),
-	// Add more tool-specific validators here as tools are added
+	// Add more versioned tools here as they are defined
 );
 
-// Tool input start mutation args - discriminated by tool name
+// Tool input start mutation args - discriminated by versioned tool name
 export const addToolInputStartArgsValidator = v.union(
+	// Web search tools
 	v.object({
-		toolName: v.literal("web_search"),
-		toolVersion: v.union(
-			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
-		),
+		toolName: v.literal("web_search_1_0_0"),
 	}),
-	// Add more tool-specific validators here as tools are added
+	v.object({
+		toolName: v.literal("web_search_2_0_0"),
+	}),
+	// Add more versioned tools here as they are defined
 );
 
-// Tool result mutation args - discriminated by tool name AND version
+// Tool result mutation args - discriminated by versioned tool name
 export const addToolResultArgsValidator = v.union(
-	// Web search v1.0.0
+	// Web search v1.0.0 with v1 input/output schemas
 	v.object({
-		toolName: v.literal("web_search"),
-		toolVersion: v.literal("1.0.0"),
+		toolName: v.literal("web_search_1_0_0"),
 		input: webSearchV1InputValidator,
-		output: webSearchOutputValidator,
+		output: webSearchV1OutputValidator,
 	}),
-	// Web search v2.0.0
+	// Web search v2.0.0 with v2 input/output schemas
 	v.object({
-		toolName: v.literal("web_search"),
-		toolVersion: v.literal("2.0.0"),
+		toolName: v.literal("web_search_2_0_0"),
 		input: webSearchV2InputValidator,
-		output: webSearchOutputValidator,
+		output: webSearchV2OutputValidator,
 	}),
-	// Add more tool-specific validators here as tools are added
+	// Add more versioned tools here as they are defined
 );
 
 // Tool call part validator - uses args field with discriminated union
@@ -476,8 +494,9 @@ export function validateTitle(title: string): boolean {
 	return title.length >= 1 && title.length <= 80;
 }
 
-// Tool version validation
-export function isValidToolVersion(toolName: string, version: string): boolean {
-	if (!(toolName in TOOL_VERSIONS)) return false;
-	return (TOOL_VERSIONS as any)[toolName].includes(version);
+// Tool name validation using the new versioned tool names
+export function isValidToolName(
+	toolName: string,
+): toolName is LightfastToolName {
+	return TOOL_NAMES.includes(toolName as LightfastToolName);
 }

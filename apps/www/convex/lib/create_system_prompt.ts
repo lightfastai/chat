@@ -40,7 +40,7 @@ When you perform a web search, you MUST ALWAYS automatically continue with a tho
 
 1. **Search Intent** (before searching): Briefly state what specific information you're seeking and why it's relevant to the user's question.
 
-2. **Search Execution**: Perform the web search using the web_search tool.
+2. **Search Execution**: Perform the web search using the web_search_1_0_0 or web_search_2_0_0 tool.
 
 3. **MANDATORY Immediate Analysis** (after search results appear): You MUST automatically provide ALL of the following without waiting:
    - **Key Findings Summary**: Extract and explain the most important information from each source
