@@ -33,6 +33,7 @@ import {
   LIGHTFAST_TOOLS,
   type LightfastToolSet,
   validateToolName,
+  getDefaultToolVersion,
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -278,20 +279,24 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 						case "tool-input-start":
 							// Add tool input start to database with chunk timestamp
+							const inputToolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolInputStartPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.id,
-								toolName: validateToolName(chunk.toolName),
+								toolName: inputToolName,
+								toolVersion: getDefaultToolVersion(inputToolName),
 								timestamp: chunkTimestamp,
 							});
 							break;
 
 						case "tool-call":
 							// Add tool call to database with chunk timestamp
+							const toolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
 								toolName: chunk.toolName,
+								toolVersion: getDefaultToolVersion(toolName),
 								input: chunk.input,
 								timestamp: chunkTimestamp,
 							});
@@ -299,10 +304,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 						case "tool-result":
 							// Update tool call with result
+							const resultToolName = validateToolName(chunk.toolName);
 							await ctx.runMutation(internal.messages.addToolResultCallPart, {
 								messageId: assistantMessage._id,
 								toolCallId: chunk.toolCallId,
 								toolName: chunk.toolName,
+								toolVersion: getDefaultToolVersion(resultToolName),
 								input: chunk.input,
 								output: chunk.output,
 								timestamp: chunkTimestamp,

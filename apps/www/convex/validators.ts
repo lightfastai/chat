@@ -302,12 +302,13 @@ export const errorPartValidator = v.object({
 });
 
 // Tool call part validator - Official Vercel AI SDK v5 compliant
-// With strongly typed discriminated union based on tool name
+// With strongly typed discriminated union based on tool name and version
 export const toolCallPartValidator = v.union(
 	v.object({
 		type: v.literal("tool-call"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
+		toolVersion: v.string(),
 		input: webSearchInputValidator,
 		timestamp: v.number(),
 	}),
@@ -320,6 +321,7 @@ export const toolInputStartPartValidator = v.union(
 		type: v.literal("tool-input-start"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
+		toolVersion: v.string(),
 		timestamp: v.number(),
 	}),
 	// Add more tool-specific validators here as tools are added
@@ -331,6 +333,7 @@ export const toolResultPartValidator = v.union(
 		type: v.literal("tool-result"),
 		toolCallId: v.string(),
 		toolName: v.literal("web_search"),
+		toolVersion: v.string(),
 		input: webSearchInputValidator,
 		output: webSearchOutputValidator,
 		timestamp: v.number(),
