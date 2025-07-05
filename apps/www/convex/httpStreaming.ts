@@ -11,28 +11,28 @@
  */
 
 import {
-  type ModelMessage,
-  type ReasoningUIPart,
-  type TextUIPart,
-  type UIMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	type ReasoningUIPart,
+	type TextUIPart,
+	type UIMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import {
-  LIGHTFAST_TOOLS,
-  type LightfastToolSet,
-  validateToolName,
+	LIGHTFAST_TOOLS,
+	type LightfastToolSet,
+	validateToolName,
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -41,17 +41,21 @@ import { createAIClient } from "./lib/ai_client";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  createHTTPErrorResponse,
-  extractErrorDetails,
-  formatErrorMessage,
-  handleStreamingSetupError,
-  logStreamingError,
+	createHTTPErrorResponse,
+	extractErrorDetails,
+	formatErrorMessage,
+	handleStreamingSetupError,
+	logStreamingError,
 } from "./lib/error_handling";
 import {
-  StreamingReasoningWriter,
-  StreamingTextWriter,
+	StreamingReasoningWriter,
+	StreamingTextWriter,
 } from "./lib/streaming_writers";
-import type { DbMessage, DbToolInputForName, DbToolOutputForName } from "./types";
+import type {
+	DbMessage,
+	DbToolInputForName,
+	DbToolOutputForName,
+} from "./types";
 import type { modelIdValidator } from "./validators";
 
 interface HTTPStreamingRequest {
@@ -90,7 +94,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		const { threadClientId, options, userMessageId, id } = body;
 
 		console.log("[streamChatResponse] body", body);
-		console.log("[streamChatResponse] webSearchEnabled =", options?.webSearchEnabled);
+		console.log(
+			"[streamChatResponse] webSearchEnabled =",
+			options?.webSearchEnabled,
+		);
 
 		// Validate required fields
 		if (!threadClientId) {
@@ -351,8 +358,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 									toolCallId: chunk.toolCallId,
 									args: {
 										toolName: "web_search_1_0_0",
-										input: chunk.input as DbToolInputForName<"web_search_1_0_0">,
-										output: chunk.output as DbToolOutputForName<"web_search_1_0_0">,
+										input:
+											chunk.input as DbToolInputForName<"web_search_1_0_0">,
+										output:
+											chunk.output as DbToolOutputForName<"web_search_1_0_0">,
 									},
 									timestamp: chunkTimestamp,
 								});
@@ -362,8 +371,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 									toolCallId: chunk.toolCallId,
 									args: {
 										toolName: "web_search_2_0_0" as const,
-										input: chunk.input as DbToolInputForName<"web_search_2_0_0">,
-										output: chunk.output as DbToolOutputForName<"web_search_2_0_0">,
+										input:
+											chunk.input as DbToolInputForName<"web_search_2_0_0">,
+										output:
+											chunk.output as DbToolOutputForName<"web_search_2_0_0">,
 									},
 									timestamp: chunkTimestamp,
 								});
@@ -487,10 +498,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				}
 			}
 
-
 			// Add tools if supported
 			if (model.features.functionCalling && options?.webSearchEnabled) {
-        generationOptions.tools = LIGHTFAST_TOOLS;
+				generationOptions.tools = LIGHTFAST_TOOLS;
 				generationOptions.stopWhen = stepCountIs(5);
 				generationOptions.activeTools = ["web_search_1_0_0"] as const;
 			}

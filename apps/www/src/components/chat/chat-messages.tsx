@@ -5,6 +5,7 @@ import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { DbMessagePart } from "../../../convex/types";
+import { isReasoningPart, isTextPart } from "../../../convex/types";
 import { MessageDisplay } from "./message-display";
 
 /**
@@ -28,7 +29,7 @@ function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
 
 		// Check if we can merge with the previous part
 		if (lastPart && lastPart.type === part.type) {
-			if (part.type === "text" && lastPart.type === "text") {
+			if (isTextPart(part) && isTextPart(lastPart)) {
 				// Merge text parts
 				mergedParts[mergedParts.length - 1] = {
 					...lastPart,
@@ -36,7 +37,7 @@ function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
 					timestamp: Math.min(lastPart.timestamp, part.timestamp), // Use earliest timestamp
 				};
 				continue;
-			} else if (part.type === "reasoning" && lastPart.type === "reasoning") {
+			} else if (isReasoningPart(part) && isReasoningPart(lastPart)) {
 				// Merge reasoning parts
 				mergedParts[mergedParts.length - 1] = {
 					...lastPart,

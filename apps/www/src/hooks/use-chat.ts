@@ -8,10 +8,13 @@ import { usePreloadedQuery, useQuery } from "convex/react";
 import { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
 import { DEFAULT_MODEL_ID } from "../lib/ai/schemas";
+import type {
+  LightfastUIMessage,
+  LightfastUIMessageOptions,
+} from "./convertDbMessagesToUIMessages";
 import { useChatTransport } from "./use-chat-transport";
 import { useCreateSubsequentMessages } from "./use-create-subsequent-messages";
 import { useCreateThreadWithFirstMessages } from "./use-create-thread-with-first-messages";
-import { LightfastUIMessageOptions, type LightfastUIMessage } from "./convertDbMessagesToUIMessages";
 
 interface UseChatProps {
 	initialMessages: LightfastUIMessage[];
@@ -74,9 +77,7 @@ export function useChat({
 
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
-		async (
-			options: LightfastUIMessageOptions,
-		) => {
+		async (options: LightfastUIMessageOptions) => {
 			let userMessageId: string | undefined;
 			let assistantMessageId: string | undefined;
 
@@ -86,7 +87,11 @@ export function useChat({
 				window.history.replaceState({}, "", `/chat/${chatId}`);
 				const data = await createThreadOptimistic({
 					clientThreadId: chatId,
-					message: { type: "text", text: options.message, timestamp: Date.now() },
+					message: {
+						type: "text",
+						text: options.message,
+						timestamp: Date.now(),
+					},
 					modelId: options.modelId,
 				});
 				userMessageId = data.userMessageId;
@@ -95,7 +100,11 @@ export function useChat({
 				// Existing thread
 				const data = await createMessageOptimistic({
 					threadId: thread._id,
-					message: { type: "text", text: options.message, timestamp: Date.now() },
+					message: {
+						type: "text",
+						text: options.message,
+						timestamp: Date.now(),
+					},
 					modelId: options.modelId,
 				});
 				userMessageId = data.userMessageId;

@@ -30,7 +30,7 @@ export function useChatTransport({
 		// Return undefined if not authenticated - this prevents transport creation
 		if (!authToken) return undefined;
 
-    // @todo storngly type the body field.
+		// @todo storngly type the body field.
 		return new DefaultChatTransport<LightfastUIMessage>({
 			api: createStreamUrl(),
 			headers: {

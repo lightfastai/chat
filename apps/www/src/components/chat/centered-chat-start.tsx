@@ -8,10 +8,10 @@ import { ZapIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import type { LightfastUIMessageOptions } from "../../hooks/convertDbMessagesToUIMessages";
 import type { ModelId } from "../../lib/ai/schemas";
 import { ChatInput } from "./chat-input";
 import { PromptSuggestions } from "./prompt-suggestions";
-import { LightfastUIMessageOptions } from "../../hooks/convertDbMessagesToUIMessages";
 
 interface CenteredChatStartProps {
 	onSendMessage: (options: LightfastUIMessageOptions) => Promise<void> | void;

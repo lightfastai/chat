@@ -2,68 +2,66 @@
 
 import { useFileDrop } from "@/hooks/use-file-drop";
 import {
-  DEFAULT_MODEL_ID,
-  type ModelId,
-  getIncompatibilityMessage,
-  getModelCapabilities,
-  getModelConfig,
-  getVisibleModels,
-  validateAttachmentsForModel,
+	DEFAULT_MODEL_ID,
+	type ModelId,
+	getIncompatibilityMessage,
+	getModelCapabilities,
+	getModelConfig,
+	getVisibleModels,
+	validateAttachmentsForModel,
 } from "@/lib/ai";
 import { preprocessUserMessage } from "@/lib/message-preprocessing";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuPortal,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
 import { ScrollArea, ScrollBar } from "@lightfast/ui/components/ui/scroll-area";
 import { Textarea } from "@lightfast/ui/components/ui/textarea";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
 } from "@lightfast/ui/components/ui/tooltip";
 import { useMutation } from "convex/react";
 import {
-  ArrowUp,
-  Brain,
-  ChevronDown,
-  Eye,
-  FileIcon,
-  FileText,
-  Globe,
-  Image,
-  Loader2,
-  Paperclip,
-  Wrench,
-  X,
+	ArrowUp,
+	Brain,
+	ChevronDown,
+	Eye,
+	FileIcon,
+	FileText,
+	Globe,
+	Image,
+	Loader2,
+	Paperclip,
+	Wrench,
+	X,
 } from "lucide-react";
 import {
-  forwardRef,
-  memo,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
+	forwardRef,
+	memo,
+	useCallback,
+	useEffect,
+	useImperativeHandle,
+	useMemo,
+	useRef,
+	useState,
 } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import type { LightfastUIMessageOptions } from "../../hooks/convertDbMessagesToUIMessages";
 import { useKeyboardShortcutsContext } from "../providers/keyboard-shortcuts-provider";
-import { LightfastUIMessageOptions } from "../../hooks/convertDbMessagesToUIMessages";
 
 interface ChatInputProps {
-	onSendMessage: (
-		options: LightfastUIMessageOptions,
-	) => Promise<void> | void;
+	onSendMessage: (options: LightfastUIMessageOptions) => Promise<void> | void;
 	dbMessages?: Doc<"messages">[] | undefined;
 	placeholder?: string;
 	disabled?: boolean;
@@ -399,16 +397,14 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
 				console.log("ChatInput: webSearchEnabled =", webSearchEnabled);
 
-				await onSendMessage(
-					{
-						message: processedMessage,
-						modelId: selectedModelId,
-						options: {
-							webSearchEnabled,
-							attachments: attachmentIds,
-						},
+				await onSendMessage({
+					message: processedMessage,
+					modelId: selectedModelId,
+					options: {
+						webSearchEnabled,
+						attachments: attachmentIds,
 					},
-				);
+				});
 			} catch (error) {
 				console.error("Error sending message:", error);
 
@@ -512,7 +508,12 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
 		const handleWebSearchToggle = useCallback(() => {
 			setWebSearchEnabled((prev) => {
-				console.log("ChatInput: toggling webSearchEnabled from", prev, "to", !prev);
+				console.log(
+					"ChatInput: toggling webSearchEnabled from",
+					prev,
+					"to",
+					!prev,
+				);
 				return !prev;
 			});
 		}, []);

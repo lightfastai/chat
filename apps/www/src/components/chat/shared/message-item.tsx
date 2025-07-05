@@ -1,8 +1,10 @@
 "use client";
 
 import type { Doc } from "@/convex/_generated/dataModel";
+import { isReasoningPart, isTextPart, isToolCallPart } from "@/convex/types";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import type React from "react";
+import { ToolCallRenderer } from "../tools/tool-call-renderer";
 import { MessageLayout } from "./message-layout";
 import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
 
@@ -22,11 +24,10 @@ export function MessageItem({
 	forceActionsVisible = false,
 }: MessageItemProps) {
 	// Extract reasoning content and check for reasoning parts
-	const reasoningParts =
-		message.parts?.filter((part) => part.type === "reasoning") || [];
+	const reasoningParts = message.parts?.filter(isReasoningPart) || [];
 	const hasReasoningParts = reasoningParts.length > 0;
 	const reasoningContent = reasoningParts
-		.map((part) => (part.type === "reasoning" ? part.text : ""))
+		.map((part) => part.text)
 		.join("\n\n");
 
 	// Check if message has actual text content (not just reasoning)
@@ -35,7 +36,7 @@ export function MessageItem({
 		message.parts.length > 0 &&
 		message.parts.some(
 			(part) =>
-				part.type === "text" && part.text && part.text.trim().length > 0,
+				isTextPart(part) && part.text && part.text.trim().length > 0,
 		);
 
 	// Determine streaming state
@@ -60,8 +61,11 @@ export function MessageItem({
 
 		// If message has parts, render them (even if empty initially)
 		if (message.parts && message.parts.length > 0) {
-			// Filter out only text parts for display (reasoning is shown separately)
-			const textParts = message.parts.filter((part) => part.type === "text");
+			// Filter out text and tool-call parts for display (reasoning is shown separately)
+			const displayParts = message.parts.filter(
+				(part) => isTextPart(part) || isToolCallPart(part),
+			);
+			const textParts = displayParts.filter(isTextPart);
 			const allTextPartsEmpty = !textParts.some(
 				(part) => part.text && part.text.length > 0,
 			);
@@ -90,9 +94,9 @@ export function MessageItem({
 						/>
 					)}
 
-					{/* Render text parts */}
-					{textParts.map((part, index) => {
-						if (part.type === "text") {
+					{/* Render text and tool-call parts */}
+					{displayParts.map((part, index) => {
+						if (isTextPart(part)) {
 							return (
 								<div key={`${message._id}-text-${index}`}>
 									{message.role === "assistant" ? (
@@ -107,6 +111,12 @@ export function MessageItem({
 										index === (message.parts?.length || 0) - 1 && (
 											<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
 										)} */}
+								</div>
+							);
+						} else if (isToolCallPart(part)) {
+							return (
+								<div key={`${message._id}-tool-call-${index}`}>
+									<ToolCallRenderer toolCall={part} />
 								</div>
 							);
 						}
