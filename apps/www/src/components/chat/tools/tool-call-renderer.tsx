@@ -1,20 +1,40 @@
 "use client";
 
-import type { DbToolCallPart } from "../../../../convex/types";
+import type {
+  DbErrorPart,
+  DbToolCallPart,
+  DbToolInputStartPart,
+  DbToolResultPart,
+} from "../../../../convex/types";
+import { isLightfastToolName } from "../../../lib/ai/tools";
 import { GenericToolDisplay } from "./generic-tool-display";
-import { WebSearchTool } from "./web-search-tool";
+import { WebSearchV1Tool } from "./web-search-v1-tool";
+import { WebSearchV2Tool } from "./web-search-v2-tool";
 
 export interface ToolCallRendererProps {
-	toolCall: DbToolCallPart;
+	toolCall: DbToolCallPart | DbToolInputStartPart | DbToolResultPart;
+	error?: DbErrorPart;
 }
 
-export function ToolCallRenderer({ toolCall }: ToolCallRendererProps) {
-	// Directly render tool call parts (no legacy conversion needed)
-	switch (toolCall.args.toolName) {
-		case "web_search_1_0_0":
-		case "web_search_2_0_0":
-			return <WebSearchTool toolCall={toolCall} />;
-		default:
-			return <GenericToolDisplay toolCall={toolCall} />;
+export function ToolCallRenderer({ toolCall, error }: ToolCallRendererProps) {
+	const toolName = toolCall.args.toolName;
+
+	// Use type-safe tool name validation
+	if (isLightfastToolName(toolName)) {
+		switch (toolName) {
+			case "web_search_1_0_0":
+				return <WebSearchV1Tool toolCall={toolCall} error={error} />;
+			case "web_search_2_0_0":
+				return <WebSearchV2Tool toolCall={toolCall} error={error} />;
+			// Add more tool renderers here as tools are added to the system
+			// case "calculator_1_0_0":
+			//   return <CalculatorTool toolCall={toolCall} error={error} />;
+			default:
+				// This should never happen if isLightfastToolName is correct
+				return <GenericToolDisplay toolCall={toolCall as DbToolCallPart} />;
+		}
 	}
+
+	// Unknown tool - use generic display
+	return <GenericToolDisplay toolCall={toolCall as DbToolCallPart} />;
 }

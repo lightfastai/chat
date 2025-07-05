@@ -32,6 +32,7 @@ export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
 	return (
 		<div className="my-2 rounded-lg border border-border bg-muted/50 p-3">
 			<button
+				type="button"
 				onClick={() => setIsExpanded(!isExpanded)}
 				className="flex w-full items-center justify-between text-left"
 			>

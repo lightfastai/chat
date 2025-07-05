@@ -1,7 +1,15 @@
 "use client";
 
 import type { Doc } from "@/convex/_generated/dataModel";
-import { isReasoningPart, isTextPart, isToolCallPart } from "@/convex/types";
+import { 
+	isReasoningPart, 
+	isTextPart, 
+	isToolCallPart,
+	isToolInputStartPart,
+	isToolResultPart,
+	isErrorPart,
+	type DbMessagePart
+} from "@/convex/types";
 import { Markdown } from "@lightfast/ui/components/ui/markdown";
 import type React from "react";
 import { ToolCallRenderer } from "../tools/tool-call-renderer";
@@ -58,17 +66,39 @@ export function MessageItem({
 
 		// If message has parts, render them (even if empty initially)
 		if (message.parts && message.parts.length > 0) {
-			// Filter out text and tool-call parts for display (reasoning is shown separately)
-			const displayParts = message.parts.filter(
-				(part) => isTextPart(part) || isToolCallPart(part),
-			);
-			const textParts = displayParts.filter(isTextPart);
+			// Group tool-related parts by toolCallId
+			const toolGroups = new Map<string, DbMessagePart[]>();
+			const textParts: DbMessagePart[] = [];
+			const otherParts: DbMessagePart[] = [];
+
+			// Sort parts into groups
+			for (const part of message.parts) {
+				if (isTextPart(part)) {
+					textParts.push(part);
+				} else if (
+					isToolCallPart(part) || 
+					isToolInputStartPart(part) || 
+					isToolResultPart(part)
+				) {
+					const toolCallId = part.toolCallId;
+					if (!toolGroups.has(toolCallId)) {
+						toolGroups.set(toolCallId, []);
+					}
+					toolGroups.get(toolCallId)!.push(part);
+				} else if (!isReasoningPart(part)) {
+					// Don't include reasoning parts here as they're handled separately
+					otherParts.push(part);
+				}
+			}
+
+			// Check if all text parts are empty
 			const allTextPartsEmpty = !textParts.some(
-				(part) => part.text && part.text.length > 0,
+				(part) => isTextPart(part) && part.text && part.text.length > 0,
 			);
 
 			if (
 				allTextPartsEmpty &&
+				toolGroups.size === 0 &&
 				(message.status === "submitted" || message.status === "streaming")
 			) {
 				// Show just the cursor while waiting for content
@@ -91,33 +121,49 @@ export function MessageItem({
 						/>
 					)}
 
-					{/* Render text and tool-call parts */}
-					{displayParts.map((part, index) => {
-						if (isTextPart(part)) {
-							return (
-								<div key={`${message._id}-text-${index}`}>
-									{message.role === "assistant" ? (
-										<Markdown className="text-sm">{part.text}</Markdown>
-									) : (
-										<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-											{part.text}
-										</div>
-									)}
-									{/* Show streaming cursor for last text part @todo fix. the - 1 part.*/}
-									{/* {messageStatus === "streaming" &&
-										index === (message.parts?.length || 0) - 1 && (
-											<span className="inline-block w-2 h-4 bg-current animate-pulse ml-1 opacity-70" />
-										)} */}
-								</div>
-							);
-						} else if (isToolCallPart(part)) {
-							return (
-								<div key={`${message._id}-tool-call-${index}`}>
-									<ToolCallRenderer toolCall={part} />
-								</div>
-							);
-						}
-						return null;
+					{/* Render text parts first */}
+					{textParts.map((part, index) => {
+						if (!isTextPart(part)) return null;
+						return (
+							<div key={`${message._id}-text-${index}`}>
+								{message.role === "assistant" ? (
+									<Markdown className="text-sm">{part.text}</Markdown>
+								) : (
+									<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+										{part.text}
+									</div>
+								)}
+							</div>
+						);
+					})}
+
+					{/* Render tool groups */}
+					{Array.from(toolGroups.entries()).map(([toolCallId, parts]) => {
+						// Sort parts by timestamp to get the latest state
+						const sortedParts = [...parts].sort((a, b) => {
+							const aTime = "timestamp" in a ? a.timestamp : 0;
+							const bTime = "timestamp" in b ? b.timestamp : 0;
+							return bTime - aTime; // Latest first
+						});
+
+						// Get the most recent part to represent current state
+						const latestPart = sortedParts[0];
+						
+						// Check if there's an error for this tool
+						const errorPart = otherParts.find(
+							(part) => isErrorPart(part) && 
+							// TODO: Add toolCallId to error parts to properly associate them
+							false
+						);
+
+						return (
+							<div key={`${message._id}-tool-${toolCallId}`}>
+								<ToolCallRenderer 
+									toolCall={latestPart as any} 
+									error={errorPart && isErrorPart(errorPart) ? errorPart : undefined}
+								/>
+							</div>
+						);
 					})}
 				</div>
 			);
