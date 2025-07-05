@@ -37,8 +37,8 @@ export const toolNameValidator = v.union(
 // Web Search Tool Validators
 const webSearchInputValidator = v.object({
 	query: v.string(),
-	useAutoprompt: v.optional(v.boolean()),
-	numResults: v.optional(v.number()),
+	useAutoprompt: v.boolean(),
+	numResults: v.number(),
 });
 
 const webSearchOutputValidator = v.object({

@@ -62,7 +62,7 @@ export function convertDbMessagesToUIMessages(
 								: never,
 							toolCallId: part.toolCallId,
 							state: "input-available" as const,
-							input: part.args.input as any, // Type safety is enforced at the database level
+							input: part.args.input,
 						};
 
 					case "tool-input-start":
@@ -77,8 +77,8 @@ export function convertDbMessagesToUIMessages(
 								: never,
 							toolCallId: part.toolCallId,
 							state: "output-available" as const,
-							input: part.args.input as any, // Type safety is enforced at the database level
-							output: part.args.output as any, // Type safety is enforced at the database level
+							input: part.args.input,
+							output: part.args.output,
 						};
 
 					case "source-url":
