@@ -3,15 +3,16 @@ import type { Id } from "../_generated/dataModel.js";
 import type { ActionCtx } from "../_generated/server.js";
 
 /**
- * A debounced streaming text writer that batches chunks.
- * Prevents concurrent mutation conflicts by batching writes.
+ * A streaming text writer that flushes on regular intervals.
+ * Uses setInterval to ensure consistent 250ms flushes during active streaming.
  */
 export class StreamingTextWriter {
 	private buffer: string[] = [];
-	private timer: NodeJS.Timeout | null = null;
+	private interval: NodeJS.Timeout | null = null;
 	private readonly flushDelay = 250; // ms
 	private readonly maxDelay = 500; // ms
 	private lastFlushTime = Date.now();
+	private isIntervalActive = false;
 
 	constructor(
 		private readonly messageId: Id<"messages">,
@@ -27,19 +28,20 @@ export class StreamingTextWriter {
 	}
 
 	private scheduleFlush(): void {
-		if (this.timer) {
-			clearTimeout(this.timer);
+		// If interval is already running, just let it continue
+		if (this.isIntervalActive) {
+			return;
 		}
 
-		const elapsed = Date.now() - this.lastFlushTime;
-		const shouldFlushNow = elapsed >= this.maxDelay && this.buffer.length > 0;
-
-		if (shouldFlushNow) {
-			void this.flush();
-		} else if (this.buffer.length > 0) {
-			this.timer = setTimeout(() => {
+		// Start regular interval flushing
+		if (this.buffer.length > 0) {
+			this.isIntervalActive = true;
+			this.interval = setInterval(() => {
 				void this.flush();
 			}, this.flushDelay);
+			
+			// Also flush immediately to avoid initial delay
+			void this.flush();
 		}
 	}
 
@@ -47,11 +49,14 @@ export class StreamingTextWriter {
 	 * Flush all buffered chunks as individual parts with the same timestamp
 	 */
 	async flush(): Promise<void> {
-		if (this.buffer.length === 0) return;
-
-		if (this.timer) {
-			clearTimeout(this.timer);
-			this.timer = null;
+		if (this.buffer.length === 0) {
+			// If buffer is empty, stop the interval
+			if (this.interval) {
+				clearInterval(this.interval);
+				this.interval = null;
+				this.isIntervalActive = false;
+			}
+			return;
 		}
 
 		const texts = [...this.buffer];
@@ -61,34 +66,49 @@ export class StreamingTextWriter {
 		// Create timestamp for this batch
 		const batchTimestamp = Date.now();
 
-		// Write all chunks in a single mutation with the same timestamp
-		await this.ctx.runMutation(internal.messages.addTextParts, {
+		// Concatenate all chunks into a single text part
+		const combinedText = texts.join("");
+		
+		// Write as a single text part
+		await this.ctx.runMutation(internal.messages.addTextPart, {
 			messageId: this.messageId,
-			parts: texts.map((text) => ({ text, timestamp: batchTimestamp })),
+			text: combinedText,
+			timestamp: batchTimestamp,
 		});
+
+		// If buffer is still empty after flush, stop the interval
+		if (this.buffer.length === 0) {
+			if (this.interval) {
+				clearInterval(this.interval);
+				this.interval = null;
+				this.isIntervalActive = false;
+			}
+		}
 	}
 
 	/**
-	 * Clean up any pending timers
+	 * Clean up any pending intervals
 	 */
 	dispose(): void {
-		if (this.timer) {
-			clearTimeout(this.timer);
-			this.timer = null;
+		if (this.interval) {
+			clearInterval(this.interval);
+			this.interval = null;
 		}
+		this.isIntervalActive = false;
 	}
 }
 
 /**
- * A debounced streaming reasoning writer that batches chunks.
- * Prevents concurrent mutation conflicts by batching writes.
+ * A streaming reasoning writer that flushes on regular intervals.
+ * Uses setInterval to ensure consistent 300ms flushes during active streaming.
  */
 export class StreamingReasoningWriter {
 	private buffer: string[] = [];
-	private timer: NodeJS.Timeout | null = null;
+	private interval: NodeJS.Timeout | null = null;
 	private readonly flushDelay = 300; // ms
 	private readonly maxDelay = 750; // ms
 	private lastFlushTime = Date.now();
+	private isIntervalActive = false;
 
 	constructor(
 		private readonly messageId: Id<"messages">,
@@ -104,19 +124,20 @@ export class StreamingReasoningWriter {
 	}
 
 	private scheduleFlush(): void {
-		if (this.timer) {
-			clearTimeout(this.timer);
+		// If interval is already running, just let it continue
+		if (this.isIntervalActive) {
+			return;
 		}
 
-		const elapsed = Date.now() - this.lastFlushTime;
-		const shouldFlushNow = elapsed >= this.maxDelay && this.buffer.length > 0;
-
-		if (shouldFlushNow) {
-			void this.flush();
-		} else if (this.buffer.length > 0) {
-			this.timer = setTimeout(() => {
+		// Start regular interval flushing
+		if (this.buffer.length > 0) {
+			this.isIntervalActive = true;
+			this.interval = setInterval(() => {
 				void this.flush();
 			}, this.flushDelay);
+			
+			// Also flush immediately to avoid initial delay
+			void this.flush();
 		}
 	}
 
@@ -124,11 +145,14 @@ export class StreamingReasoningWriter {
 	 * Flush all buffered chunks as individual parts with the same timestamp
 	 */
 	async flush(): Promise<void> {
-		if (this.buffer.length === 0) return;
-
-		if (this.timer) {
-			clearTimeout(this.timer);
-			this.timer = null;
+		if (this.buffer.length === 0) {
+			// If buffer is empty, stop the interval
+			if (this.interval) {
+				clearInterval(this.interval);
+				this.interval = null;
+				this.isIntervalActive = false;
+			}
+			return;
 		}
 
 		const texts = [...this.buffer];
@@ -138,20 +162,34 @@ export class StreamingReasoningWriter {
 		// Create timestamp for this batch
 		const batchTimestamp = Date.now();
 
-		// Write all chunks in a single mutation with the same timestamp
-		await this.ctx.runMutation(internal.messages.addReasoningParts, {
+		// Concatenate all chunks into a single reasoning part
+		const combinedText = texts.join("");
+		
+		// Write as a single reasoning part
+		await this.ctx.runMutation(internal.messages.addReasoningPart, {
 			messageId: this.messageId,
-			parts: texts.map((text) => ({ text, timestamp: batchTimestamp })),
+			text: combinedText,
+			timestamp: batchTimestamp,
 		});
+
+		// If buffer is still empty after flush, stop the interval
+		if (this.buffer.length === 0) {
+			if (this.interval) {
+				clearInterval(this.interval);
+				this.interval = null;
+				this.isIntervalActive = false;
+			}
+		}
 	}
 
 	/**
-	 * Clean up any pending timers
+	 * Clean up any pending intervals
 	 */
 	dispose(): void {
-		if (this.timer) {
-			clearTimeout(this.timer);
-			this.timer = null;
+		if (this.interval) {
+			clearInterval(this.interval);
+			this.interval = null;
 		}
+		this.isIntervalActive = false;
 	}
 }
