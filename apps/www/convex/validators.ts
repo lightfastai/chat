@@ -34,6 +34,27 @@ export const toolNameValidator = v.union(
 	...TOOL_NAMES.map((name) => v.literal(name)),
 );
 
+// Web Search Tool Validators
+const webSearchInputValidator = v.object({
+	query: v.string(),
+	useAutoprompt: v.optional(v.boolean()),
+	numResults: v.optional(v.number()),
+});
+
+const webSearchOutputValidator = v.object({
+	results: v.array(
+		v.object({
+			title: v.string(),
+			url: v.string(),
+			snippet: v.optional(v.string()),
+			score: v.optional(v.number()),
+		}),
+	),
+	query: v.string(),
+	autopromptString: v.optional(v.string()),
+});
+
+
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
 // 'submitted' - Message sent to API, awaiting response stream start
 // 'streaming' - Response actively streaming from API
@@ -281,32 +302,41 @@ export const errorPartValidator = v.object({
 });
 
 // Tool call part validator - Official Vercel AI SDK v5 compliant
-// Now with proper tool-specific input validation
-export const toolCallPartValidator = v.object({
-	type: v.literal("tool-call"),
-	toolCallId: v.string(),
-	toolName: toolNameValidator,
-	// Input is validated based on the specific tool schema
-	input: v.optional(v.any()), // Runtime validation happens in handlers
-	timestamp: v.number(),
-});
+// With strongly typed discriminated union based on tool name
+export const toolCallPartValidator = v.union(
+	v.object({
+		type: v.literal("tool-call"),
+		toolCallId: v.string(),
+		toolName: v.literal("web_search"),
+		input: v.optional(webSearchInputValidator),
+		timestamp: v.number(),
+	}),
+	// Add more tool-specific validators here as tools are added
+);
 
-export const toolInputStartPartValidator = v.object({
-	type: v.literal("tool-input-start"),
-	toolCallId: v.string(),
-	toolName: toolNameValidator,
-	timestamp: v.number(),
-});
+// Tool input start part validator with strongly typed discriminated union
+export const toolInputStartPartValidator = v.union(
+	v.object({
+		type: v.literal("tool-input-start"),
+		toolCallId: v.string(),
+		toolName: v.literal("web_search"),
+		timestamp: v.number(),
+	}),
+	// Add more tool-specific validators here as tools are added
+);
 
-export const toolResultPartValidator = v.object({
-	type: v.literal("tool-result"),
-	toolCallId: v.string(),
-	toolName: toolNameValidator,
-	// Input and output are validated based on the specific tool schema
-	input: v.optional(v.any()), // Runtime validation happens in handlers
-	output: v.optional(v.any()), // Runtime validation happens in handlers
-	timestamp: v.number(),
-});
+// Tool result part validator with strongly typed discriminated union
+export const toolResultPartValidator = v.union(
+	v.object({
+		type: v.literal("tool-result"),
+		toolCallId: v.string(),
+		toolName: v.literal("web_search"),
+		input: v.optional(webSearchInputValidator),
+		output: v.optional(webSearchOutputValidator),
+		timestamp: v.number(),
+	}),
+	// Add more tool-specific validators here as tools are added
+);
 
 // Source URL part validator - matches Vercel AI SDK SourceUrlUIPart
 export const sourceUrlPartValidator = v.object({

@@ -7,31 +7,31 @@
  * - Automatic registry management
  */
 
-import { tool } from "ai"
-import { z } from "zod/v4"
-import Exa from "exa-js"
+import { tool } from "ai";
+import Exa from "exa-js";
+import { z } from "zod/v4";
 
 // Base tool definition interface
 interface ToolDefinition<
-  TName extends string,
-  TInput extends z.ZodType,
-  TOutput extends z.ZodType,
+	TName extends string,
+	TInput extends z.ZodType,
+	TOutput extends z.ZodType,
 > {
-  name: TName
-  displayName: string
-  description: string
-  inputSchema: TInput
-  outputSchema: TOutput
-  execute: (input: z.infer<TInput>) => Promise<z.infer<TOutput>>
+	name: TName;
+	displayName: string;
+	description: string;
+	inputSchema: TInput;
+	outputSchema: TOutput;
+	execute: (input: z.infer<TInput>) => Promise<z.infer<TOutput>>;
 }
 
 // Helper to create a tool definition
 function defineTool<
-  TName extends string,
-  TInput extends z.ZodType,
-  TOutput extends z.ZodType,
+	TName extends string,
+	TInput extends z.ZodType,
+	TOutput extends z.ZodType,
 >(def: ToolDefinition<TName, TInput, TOutput>) {
-  return def
+	return def;
 }
 
 // ============================================
@@ -39,65 +39,65 @@ function defineTool<
 // ============================================
 
 const webSearchTool = defineTool({
-  name: "web_search" as const,
-  displayName: "Web Search",
-  description: "Search the web for information using Exa AI",
-  inputSchema: z.object({
-    query: z.string().describe("The search query"),
-    useAutoprompt: z
-      .boolean()
-      .default(true)
-      .describe("Whether to enhance the query automatically"),
-    numResults: z
-      .number()
-      .min(1)
-      .max(10)
-      .default(5)
-      .describe("Number of results to return"),
-  }),
-  outputSchema: z.object({
-    results: z.array(
-      z.object({
-        title: z.string(),
-        url: z.string(),
-        snippet: z.string().optional(),
-        score: z.number().optional(),
-      }),
-    ),
-    query: z.string(),
-    autopromptString: z.string().optional(),
-  }),
-  execute: async (input) => {
-    const API_KEY = process.env.EXA_API_KEY
-    if (!API_KEY) {
-      throw new Error("EXA_API_KEY environment variable is not set")
-    }
+	name: "web_search" as const,
+	displayName: "Web Search",
+	description: "Search the web for information using Exa AI",
+	inputSchema: z.object({
+		query: z.string().describe("The search query"),
+		useAutoprompt: z
+			.boolean()
+			.default(true)
+			.describe("Whether to enhance the query automatically"),
+		numResults: z
+			.number()
+			.min(1)
+			.max(10)
+			.default(5)
+			.describe("Number of results to return"),
+	}),
+	outputSchema: z.object({
+		results: z.array(
+			z.object({
+				title: z.string(),
+				url: z.string(),
+				snippet: z.string().optional(),
+				score: z.number().optional(),
+			}),
+		),
+		query: z.string(),
+		autopromptString: z.string().optional(),
+	}),
+	execute: async (input) => {
+		const API_KEY = process.env.EXA_API_KEY;
+		if (!API_KEY) {
+			throw new Error("EXA_API_KEY environment variable is not set");
+		}
 
-    try {
-      const exa = new Exa(API_KEY)
+		try {
+			const exa = new Exa(API_KEY);
 
-      const response = await exa.searchAndContents(input.query, {
-        useAutoprompt: input.useAutoprompt,
-        numResults: input.numResults,
-        type: "neural",
-      })
+			const response = await exa.searchAndContents(input.query, {
+				useAutoprompt: input.useAutoprompt,
+				numResults: input.numResults,
+				type: "neural",
+			});
 
-      return {
-        results: response.results.map((result) => ({
-          title: result.title || "Untitled",
-          url: result.url,
-          snippet: result.text || undefined,
-          score: result.score || undefined,
-        })),
-        query: input.query,
-        autopromptString: response.autopromptString,
-      }
-    } catch (error) {
-      console.error("Web search error:", error)
-      throw error
-    }
-  },
-})
+			return {
+				results: response.results.map((result) => ({
+					title: result.title || "Untitled",
+					url: result.url,
+					snippet: result.text || undefined,
+					score: result.score || undefined,
+				})),
+				query: input.query,
+				autopromptString: response.autopromptString,
+			};
+		} catch (error) {
+			console.error("Web search error:", error);
+			throw error;
+		}
+	},
+});
 
 // Add more tools here as needed
 // const calculatorTool = defineTool({ ... });
@@ -109,82 +109,84 @@ const webSearchTool = defineTool({
 
 // Collect all tool definitions
 const toolDefinitions = {
-  web_search: webSearchTool,
-  // calculator: calculatorTool,
-  // weather: weatherTool,
-} as const
+	web_search: webSearchTool,
+	// calculator: calculatorTool,
+	// weather: weatherTool,
+} as const;
 
 // Create AI SDK tools from definitions
 export const LIGHTFAST_TOOLS = {
-  web_search: tool({
-    description: webSearchTool.description,
-    inputSchema: webSearchTool.inputSchema,
-    execute: async (input) => {
-      // The input should already have defaults applied by Zod
-      return webSearchTool.execute(input)
-    },
-  }),
-} as const
+	web_search: tool({
+		description: webSearchTool.description,
+		inputSchema: webSearchTool.inputSchema,
+		execute: async (input) => {
+			// The input should already have defaults applied by Zod
+			return webSearchTool.execute(input);
+		},
+	}),
+} as const;
 
 // Type exports - everything is inferred!
-export type LightfastToolSet = typeof LIGHTFAST_TOOLS
-export type LightfastToolName = keyof typeof toolDefinitions
+export type LightfastToolSet = typeof LIGHTFAST_TOOLS;
+export type LightfastToolName = keyof typeof toolDefinitions;
 
 // Tool schemas type - for UI components
 export type LightfastToolSchemas = {
-  [K in keyof typeof toolDefinitions]: {
-    input: z.infer<(typeof toolDefinitions)[K]["inputSchema"]>
-    output: z.infer<(typeof toolDefinitions)[K]["outputSchema"]>
-  }
-}
+	[K in keyof typeof toolDefinitions]: {
+		input: z.infer<(typeof toolDefinitions)[K]["inputSchema"]>;
+		output: z.infer<(typeof toolDefinitions)[K]["outputSchema"]>;
+	};
+};
 
 // Get specific tool types
 export type LightfastToolInput<T extends LightfastToolName> =
-  LightfastToolSchemas[T]["input"]
+	LightfastToolSchemas[T]["input"];
 
 export type LightfastToolOutput<T extends LightfastToolName> =
-  LightfastToolSchemas[T]["output"]
+	LightfastToolSchemas[T]["output"];
 
 // Runtime helpers
 export function isLightfastToolName(name: string): name is LightfastToolName {
-  return name in toolDefinitions
+	return name in toolDefinitions;
 }
 
 export function validateToolName(name: string): LightfastToolName {
-  if (isLightfastToolName(name)) {
-    return name
-  }
-  throw new Error(`Invalid tool name: ${name}`)
+	if (isLightfastToolName(name)) {
+		return name;
+	}
+	throw new Error(`Invalid tool name: ${name}`);
 }
 
 // Get tool metadata
 export function getToolMetadata(name: LightfastToolName) {
-  const def = toolDefinitions[name]
-  return {
-    name: def.name,
-    displayName: def.displayName,
-    description: def.description,
-  }
+	const def = toolDefinitions[name];
+	return {
+		name: def.name,
+		displayName: def.displayName,
+		description: def.description,
+	};
 }
 
 // Get tool schemas (for validation elsewhere)
 export function getToolSchemas(name: LightfastToolName) {
-  const def = toolDefinitions[name]
-  return {
-    input: def.inputSchema,
-    output: def.outputSchema,
-  }
+	const def = toolDefinitions[name];
+	return {
+		input: def.inputSchema,
+		output: def.outputSchema,
+	};
 }
 
 // Tool names array
-export const TOOL_NAMES = Object.keys(toolDefinitions) as LightfastToolName[]
+export const TOOL_NAMES = Object.keys(toolDefinitions) as LightfastToolName[];
 
 // Create tool input/output validators types for Convex
 // Map tool names to their schemas for type inference
 export type ToolInputValidators = {
-  [K in LightfastToolName]: z.infer<(typeof toolDefinitions)[K]["inputSchema"]>
-}
+	[K in LightfastToolName]: z.infer<(typeof toolDefinitions)[K]["inputSchema"]>;
+};
 
 export type ToolOutputValidators = {
-  [K in LightfastToolName]: z.infer<(typeof toolDefinitions)[K]["outputSchema"]>
-}
+	[K in LightfastToolName]: z.infer<
+		(typeof toolDefinitions)[K]["outputSchema"]
+	>;
+};

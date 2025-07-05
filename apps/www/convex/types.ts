@@ -1,23 +1,19 @@
 import type { Infer } from "convex/values";
-import type {
-  LightfastToolName,
-  ToolInputValidators,
-  ToolOutputValidators,
-} from "../src/lib/ai/tools";
+import type { LightfastToolName } from "../src/lib/ai/tools";
 import type { Doc } from "./_generated/dataModel";
 import type {
-  errorPartValidator,
-  filePartValidator,
-  messagePartValidator,
-  reasoningPartValidator,
-  roleValidator,
-  sourceDocumentPartValidator,
-  sourceUrlPartValidator,
-  textPartValidator,
-  toolCallPartValidator,
-  toolInputStartPartValidator,
-  toolNameValidator,
-  toolResultPartValidator,
+	errorPartValidator,
+	filePartValidator,
+	messagePartValidator,
+	reasoningPartValidator,
+	roleValidator,
+	sourceDocumentPartValidator,
+	sourceUrlPartValidator,
+	textPartValidator,
+	toolCallPartValidator,
+	toolInputStartPartValidator,
+	toolNameValidator,
+	toolResultPartValidator,
 } from "./validators";
 
 export type DbMessage = Doc<"messages">;
@@ -34,9 +30,16 @@ export type DbFilePart = Infer<typeof filePartValidator>;
 export type DbMessageRole = Infer<typeof roleValidator>;
 export type DbToolName = Infer<typeof toolNameValidator>;
 
-// Tool-specific types with proper type safety
-export type DbToolInput<T extends LightfastToolName> = ToolInputValidators[T];
-export type DbToolOutput<T extends LightfastToolName> = ToolOutputValidators[T];
+// Extract specific tool input/output types from the discriminated unions
+export type DbToolInputForName<T extends LightfastToolName> = Extract<
+	DbToolCallPart,
+	{ toolName: T }
+>["input"];
+
+export type DbToolOutputForName<T extends LightfastToolName> = Extract<
+	DbToolResultPart,
+	{ toolName: T }
+>["output"];
 
 // Helper type to get tool call/result parts with proper typing
 export type TypedToolCallPart<T extends LightfastToolName> = Omit<
@@ -44,7 +47,7 @@ export type TypedToolCallPart<T extends LightfastToolName> = Omit<
 	"input"
 > & {
 	toolName: T;
-	input: DbToolInput<T>;
+	input: DbToolInputForName<T>;
 };
 
 export type TypedToolResultPart<T extends LightfastToolName> = Omit<
@@ -52,8 +55,8 @@ export type TypedToolResultPart<T extends LightfastToolName> = Omit<
 	"input" | "output"
 > & {
 	toolName: T;
-	input: DbToolInput<T>;
-	output: DbToolOutput<T>;
+	input: DbToolInputForName<T>;
+	output: DbToolOutputForName<T>;
 };
 
 export function isTextPart(part: DbMessagePart): part is DbTextPart {
