@@ -195,11 +195,9 @@ const webSearchTool = defineTool({
 						input.filters?.excludeTerms &&
 						input.filters.excludeTerms.length > 0
 					) {
-						query +=
-							" " +
-							input.filters.excludeTerms
-								.map((term: string) => `-"${term}"`)
-								.join(" ");
+						query += ` ${input.filters.excludeTerms
+							.map((term: string) => `-"${term}"`)
+							.join(" ")}`;
 					}
 
 					const response = await exa.searchAndContents(query, searchOptions);
@@ -247,21 +245,28 @@ const toolDefinitions = {
 	// weather: weatherTool,
 } as const;
 
+// Helper function to create a tool from a tool definition
+function createToolFromDefinition<
+	TName extends LightfastToolName,
+	TDef extends typeof toolDefinitions[TName]
+>(toolDef: TDef) {
+	const defaultVersion = toolDef.versions[toolDef.defaultVersion];
+	type Input = z.infer<typeof defaultVersion.inputSchema>;
+	type Output = z.infer<typeof defaultVersion.outputSchema>;
+	
+	return tool<Input, Output>({
+		description: toolDef.description,
+		inputSchema: defaultVersion.inputSchema,
+		execute: defaultVersion.execute,
+	});
+}
+
 // Create AI SDK tools from definitions (using default versions)
-// Extract the default version for type safety
-const webSearchDefaultVersion =
-	webSearchTool.versions[webSearchTool.defaultVersion];
-
-// Type the input and output explicitly to help TypeScript
-type WebSearchInput = z.infer<typeof webSearchDefaultVersion.inputSchema>;
-type WebSearchOutput = z.infer<typeof webSearchDefaultVersion.outputSchema>;
-
 export const LIGHTFAST_TOOLS = {
-	web_search: tool<WebSearchInput, WebSearchOutput>({
-		description: webSearchTool.description,
-		inputSchema: webSearchDefaultVersion.inputSchema,
-		execute: webSearchDefaultVersion.execute,
-	}),
+	web_search: createToolFromDefinition(webSearchTool),
+	// When adding new tools, just add them here:
+	// calculator: createToolFromDefinition(calculatorTool),
+	// weather: createToolFromDefinition(weatherTool),
 } as const;
 
 // Type exports - everything is inferred!

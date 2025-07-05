@@ -11,29 +11,29 @@
  */
 
 import {
-	type ModelMessage,
-	type ReasoningUIPart,
-	type TextUIPart,
-	type UIMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  type ReasoningUIPart,
+  type TextUIPart,
+  type UIMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getModelStreamingDelay,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getModelStreamingDelay,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import {
-	LIGHTFAST_TOOLS,
-	type LightfastToolSet,
-	getToolDefaultVersion,
-	validateToolName,
+  LIGHTFAST_TOOLS,
+  type LightfastToolSet,
+  getToolDefaultVersion,
+  validateToolName,
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -42,15 +42,15 @@ import { createAIClient } from "./lib/ai_client";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-	createHTTPErrorResponse,
-	extractErrorDetails,
-	formatErrorMessage,
-	handleStreamingSetupError,
-	logStreamingError,
+  createHTTPErrorResponse,
+  extractErrorDetails,
+  formatErrorMessage,
+  handleStreamingSetupError,
+  logStreamingError,
 } from "./lib/error_handling";
 import {
-	StreamingReasoningWriter,
-	StreamingTextWriter,
+  StreamingReasoningWriter,
+  StreamingTextWriter,
 } from "./lib/streaming_writers";
 import type { DbMessage } from "./types";
 import type { modelIdValidator } from "./validators";
@@ -302,7 +302,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								args: {
 									toolName: callToolName,
 									toolVersion: getToolDefaultVersion(callToolName),
-									input: chunk.input as any, // Type will be validated by Convex validator
+									input: chunk.input, // Type will be validated by Convex validator
 								},
 								timestamp: chunkTimestamp,
 							});
@@ -318,8 +318,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								args: {
 									toolName: resultToolName,
 									toolVersion: getToolDefaultVersion(resultToolName),
-									input: chunk.input as any, // Type will be validated by Convex validator
-									output: chunk.output as any, // Type will be validated by Convex validator
+									input: chunk.input, // Type will be validated by Convex validator
+									output: chunk.output, // Type will be validated by Convex validator
 								},
 								timestamp: chunkTimestamp,
 							});
