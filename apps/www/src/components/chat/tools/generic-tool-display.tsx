@@ -23,10 +23,10 @@ export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
 	const getStatusText = () => {
 		// TODO: Add state field to database schema
 		// For now, check if we have output to determine if tool has completed
-		if ("output" in toolCall && toolCall.output) {
-			return `${toolCall.toolName} completed`;
+		if ("output" in toolCall.args && toolCall.args.output) {
+			return `${toolCall.args.toolName} completed`;
 		}
-		return `Calling ${toolCall.toolName}...`;
+		return `Calling ${toolCall.args.toolName}...`;
 	};
 
 	return (
@@ -48,24 +48,24 @@ export function GenericToolDisplay({ toolCall }: GenericToolDisplayProps) {
 
 			{isExpanded && (
 				<div className="mt-3 space-y-2">
-					{toolCall.input && (
+					{toolCall.args.input && (
 						<div>
 							<p className="text-xs font-medium text-muted-foreground">
 								Arguments:
 							</p>
 							<pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
-								{JSON.stringify(toolCall.input, null, 2)}
+								{JSON.stringify(toolCall.args.input, null, 2)}
 							</pre>
 						</div>
 					)}
 
-					{"output" in toolCall && toolCall.output !== undefined && (
+					{"output" in toolCall.args && toolCall.args.output !== undefined && (
 						<div>
 							<p className="text-xs font-medium text-muted-foreground">
 								Result:
 							</p>
 							<pre className="mt-1 overflow-auto rounded bg-background p-2 text-xs">
-								{JSON.stringify(toolCall.output, null, 2)}
+								{JSON.stringify(toolCall.args.output, null, 2)}
 							</pre>
 						</div>
 					)}

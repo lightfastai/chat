@@ -377,9 +377,8 @@ export const addToolInputStartPart = internalMutation({
 			{
 				type: "tool-input-start" as const,
 				toolCallId: args.toolCallId,
-				toolName: args.args.toolName,
-				toolVersion: args.args.toolVersion,
 				timestamp: args.timestamp,
+				args: args.args,
 			},
 		];
 
@@ -410,10 +409,8 @@ export const addToolCallPart = internalMutation({
 			{
 				type: "tool-call" as const,
 				toolCallId: args.toolCallId,
-				toolName: args.args.toolName,
-				toolVersion: args.args.toolVersion,
-				input: args.args.input,
 				timestamp: args.timestamp,
+				args: args.args,
 			},
 		];
 
@@ -445,11 +442,8 @@ export const addToolResultCallPart = internalMutation({
 			{
 				type: "tool-result" as const,
 				toolCallId: args.toolCallId,
-				toolName: args.args.toolName,
-				toolVersion: args.args.toolVersion,
-				input: args.args.input,
-				output: args.args.output,
 				timestamp: args.timestamp,
+				args: args.args,
 			},
 		];
 

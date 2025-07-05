@@ -2,18 +2,18 @@ import type { Infer } from "convex/values";
 import type { LightfastToolName } from "../src/lib/ai/tools";
 import type { Doc } from "./_generated/dataModel";
 import type {
-	errorPartValidator,
-	filePartValidator,
-	messagePartValidator,
-	reasoningPartValidator,
-	roleValidator,
-	sourceDocumentPartValidator,
-	sourceUrlPartValidator,
-	textPartValidator,
-	toolCallPartValidator,
-	toolInputStartPartValidator,
-	toolNameValidator,
-	toolResultPartValidator,
+  errorPartValidator,
+  filePartValidator,
+  messagePartValidator,
+  reasoningPartValidator,
+  roleValidator,
+  sourceDocumentPartValidator,
+  sourceUrlPartValidator,
+  textPartValidator,
+  toolCallPartValidator,
+  toolInputStartPartValidator,
+  toolNameValidator,
+  toolResultPartValidator,
 } from "./validators";
 
 export type DbMessage = Doc<"messages">;
@@ -32,31 +32,28 @@ export type DbToolName = Infer<typeof toolNameValidator>;
 
 // Extract specific tool input/output types from the discriminated unions
 export type DbToolInputForName<T extends LightfastToolName> = Extract<
-	DbToolCallPart,
+	DbToolCallPart["args"],
 	{ toolName: T }
 >["input"];
 
 export type DbToolOutputForName<T extends LightfastToolName> = Extract<
-	DbToolResultPart,
+	DbToolResultPart["args"],
 	{ toolName: T }
 >["output"];
 
 // Helper type to get tool call/result parts with proper typing
 export type TypedToolCallPart<T extends LightfastToolName> = Omit<
 	DbToolCallPart,
-	"input"
+	"args"
 > & {
-	toolName: T;
-	input: DbToolInputForName<T>;
+	args: Extract<DbToolCallPart["args"], { toolName: T }>;
 };
 
 export type TypedToolResultPart<T extends LightfastToolName> = Omit<
 	DbToolResultPart,
-	"input" | "output"
+	"args"
 > & {
-	toolName: T;
-	input: DbToolInputForName<T>;
-	output: DbToolOutputForName<T>;
+	args: Extract<DbToolResultPart["args"], { toolName: T }>;
 };
 
 export function isTextPart(part: DbMessagePart): part is DbTextPart {
@@ -105,13 +102,13 @@ export function isFilePart(part: DbMessagePart): part is DbFilePart {
 export function isWebSearchToolCall(
 	part: DbMessagePart,
 ): part is TypedToolCallPart<"web_search"> {
-	return isToolCallPart(part) && part.toolName === "web_search";
+	return isToolCallPart(part) && part.args.toolName === "web_search";
 }
 
 export function isWebSearchToolResult(
 	part: DbMessagePart,
 ): part is TypedToolResultPart<"web_search"> {
-	return isToolResultPart(part) && part.toolName === "web_search";
+	return isToolResultPart(part) && part.args.toolName === "web_search";
 }
 
 // ===== Utility Functions =====
@@ -148,7 +145,7 @@ export function getToolName(part: DbMessagePart): LightfastToolName | null {
 		isToolInputStartPart(part) ||
 		isToolResultPart(part)
 	) {
-		return part.toolName;
+		return part.args.toolName;
 	}
 	return null;
 }

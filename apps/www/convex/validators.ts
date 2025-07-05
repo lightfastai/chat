@@ -54,6 +54,7 @@ const webSearchOutputValidator = v.object({
 	autopromptString: v.optional(v.string()),
 });
 
+
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
 // 'submitted' - Message sent to API, awaiting response stream start
 // 'streaming' - Response actively streaming from API
@@ -300,51 +301,6 @@ export const errorPartValidator = v.object({
 	timestamp: v.number(),
 });
 
-// Tool call part validator - Official Vercel AI SDK v5 compliant
-// With strongly typed discriminated union based on tool name and version
-export const toolCallPartValidator = v.union(
-	v.object({
-		type: v.literal("tool-call"),
-		toolCallId: v.string(),
-		toolName: v.literal("web_search"),
-		toolVersion: v.union(
-			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
-		),
-		input: webSearchInputValidator,
-		timestamp: v.number(),
-	}),
-	// Add more tool-specific validators here as tools are added
-);
-
-// Tool input start part validator with strongly typed discriminated union
-export const toolInputStartPartValidator = v.union(
-	v.object({
-		type: v.literal("tool-input-start"),
-		toolCallId: v.string(),
-		toolName: v.literal("web_search"),
-		toolVersion: v.union(
-			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
-		),
-		timestamp: v.number(),
-	}),
-	// Add more tool-specific validators here as tools are added
-);
-
-// Tool result part validator with strongly typed discriminated union
-export const toolResultPartValidator = v.union(
-	v.object({
-		type: v.literal("tool-result"),
-		toolCallId: v.string(),
-		toolName: v.literal("web_search"),
-		toolVersion: v.union(
-			...TOOL_VERSIONS.web_search.map((ver) => v.literal(ver)),
-		),
-		input: webSearchInputValidator,
-		output: webSearchOutputValidator,
-		timestamp: v.number(),
-	}),
-	// Add more tool-specific validators here as tools are added
-);
 
 // Source URL part validator - matches Vercel AI SDK SourceUrlUIPart
 export const sourceUrlPartValidator = v.object({
@@ -375,23 +331,6 @@ export const filePartValidator = v.object({
 	url: v.string(),
 	timestamp: v.number(),
 });
-
-// Message part union validator - represents any type of message part
-export const messagePartValidator = v.union(
-	textPartValidator,
-	reasoningPartValidator,
-	errorPartValidator,
-	toolCallPartValidator,
-	toolInputStartPartValidator,
-	toolResultPartValidator,
-	rawPartValidator,
-	sourceUrlPartValidator,
-	sourceDocumentPartValidator,
-	filePartValidator,
-);
-
-// Array of message parts validator
-export const messagePartsValidator = v.array(messagePartValidator);
 
 // ===== Tool Version Validators =====
 // Create runtime validators for tool versions that accept strings
@@ -442,6 +381,47 @@ export const addToolResultArgsValidator = v.union(
 	}),
 	// Add more tool-specific validators here as tools are added
 );
+
+// Tool call part validator - uses args field with discriminated union
+export const toolCallPartValidator = v.object({
+	type: v.literal("tool-call"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolCallArgsValidator,
+});
+
+// Tool input start part validator - uses args field with discriminated union
+export const toolInputStartPartValidator = v.object({
+	type: v.literal("tool-input-start"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolInputStartArgsValidator,
+});
+
+// Tool result part validator - uses args field with discriminated union
+export const toolResultPartValidator = v.object({
+	type: v.literal("tool-result"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolResultArgsValidator,
+});
+
+// Message part union validator - represents any type of message part
+export const messagePartValidator = v.union(
+	textPartValidator,
+	reasoningPartValidator,
+	errorPartValidator,
+	toolCallPartValidator,
+	toolInputStartPartValidator,
+	toolResultPartValidator,
+	rawPartValidator,
+	sourceUrlPartValidator,
+	sourceDocumentPartValidator,
+	filePartValidator,
+);
+
+// Array of message parts validator
+export const messagePartsValidator = v.array(messagePartValidator);
 
 // ===== Validation Functions =====
 // Title validation

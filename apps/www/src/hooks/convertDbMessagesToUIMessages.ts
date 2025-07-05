@@ -57,12 +57,12 @@ export function convertDbMessagesToUIMessages(
 						// Map to the AI SDK's tool part format with proper type
 						// The type assertion is safe because we validate tool names in the database
 						return {
-							type: `tool-${part.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
+							type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
 								? `tool-${T}`
 								: never,
 							toolCallId: part.toolCallId,
 							state: "input-available" as const,
-							input: part.input as any, // Type safety is enforced at the database level
+							input: part.args.input as any, // Type safety is enforced at the database level
 						};
 
 					case "tool-input-start":
@@ -72,13 +72,13 @@ export function convertDbMessagesToUIMessages(
 						// Map to the AI SDK's tool part format with output
 						// The type assertion is safe because we validate tool names in the database
 						return {
-							type: `tool-${part.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
+							type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
 								? `tool-${T}`
 								: never,
 							toolCallId: part.toolCallId,
 							state: "output-available" as const,
-							input: part.input as any, // Type safety is enforced at the database level
-							output: part.output as any, // Type safety is enforced at the database level
+							input: part.args.input as any, // Type safety is enforced at the database level
+							output: part.args.output as any, // Type safety is enforced at the database level
 						};
 
 					case "source-url":

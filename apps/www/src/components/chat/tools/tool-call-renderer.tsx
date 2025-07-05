@@ -10,7 +10,7 @@ export interface ToolCallRendererProps {
 
 export function ToolCallRenderer({ toolCall }: ToolCallRendererProps) {
 	// Directly render tool call parts (no legacy conversion needed)
-	switch (toolCall.toolName) {
+	switch (toolCall.args.toolName) {
 		case "web_search":
 			return <WebSearchTool toolCall={toolCall} />;
 		default:
