@@ -7,15 +7,14 @@ import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
 import { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
-import { DEFAULT_MODEL_ID, type ModelId } from "../lib/ai/schemas";
-import type { UIMessage } from "../types/schema";
+import { DEFAULT_MODEL_ID } from "../lib/ai/schemas";
 import { useChatTransport } from "./use-chat-transport";
 import { useCreateSubsequentMessages } from "./use-create-subsequent-messages";
 import { useCreateThreadWithFirstMessages } from "./use-create-thread-with-first-messages";
+import { LightfastUIMessageOptions, type LightfastUIMessage } from "./convertDbMessagesToUIMessages";
 
 interface UseChatProps {
-	initialMessages: UIMessage[];
+	initialMessages: LightfastUIMessage[];
 	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
 	clientId: string | null;
 }
@@ -63,7 +62,7 @@ export function useChat({
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
-	} = useVercelChat<UIMessage>({
+	} = useVercelChat<LightfastUIMessage>({
 		id: chatId,
 		transport,
 		generateId: () => nanoid(),
@@ -76,10 +75,7 @@ export function useChat({
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
 		async (
-			message: string,
-			selectedModelId: ModelId,
-			attachments?: Id<"files">[],
-			webSearchEnabledOverride?: boolean,
+			options: LightfastUIMessageOptions,
 		) => {
 			let userMessageId: string | undefined;
 			let assistantMessageId: string | undefined;
@@ -90,8 +86,8 @@ export function useChat({
 				window.history.replaceState({}, "", `/chat/${chatId}`);
 				const data = await createThreadOptimistic({
 					clientThreadId: chatId,
-					message: { type: "text", text: message, timestamp: Date.now() },
-					modelId: selectedModelId,
+					message: { type: "text", text: options.message, timestamp: Date.now() },
+					modelId: options.modelId,
 				});
 				userMessageId = data.userMessageId;
 				assistantMessageId = data.assistantMessageId;
@@ -99,8 +95,8 @@ export function useChat({
 				// Existing thread
 				const data = await createMessageOptimistic({
 					threadId: thread._id,
-					message: { type: "text", text: message, timestamp: Date.now() },
-					modelId: selectedModelId,
+					message: { type: "text", text: options.message, timestamp: Date.now() },
+					modelId: options.modelId,
 				});
 				userMessageId = data.userMessageId;
 				assistantMessageId = data.assistantMessageId;
@@ -115,12 +111,10 @@ export function useChat({
 				return;
 			}
 
-			console.log("useChat: webSearchEnabledOverride =", webSearchEnabledOverride);
-			
 			await vercelSendMessage(
 				{
 					role: "user",
-					parts: [{ type: "text", text: message }],
+					parts: [{ type: "text", text: options.message }],
 					id: userMessageId,
 				},
 				{
@@ -129,8 +123,8 @@ export function useChat({
 						userMessageId,
 						threadClientId: chatId,
 						options: {
-							webSearchEnabled: webSearchEnabledOverride ?? false,
-							attachments,
+							webSearchEnabled: options.options.webSearchEnabled,
+							attachments: options.options.attachments,
 						},
 					},
 				},

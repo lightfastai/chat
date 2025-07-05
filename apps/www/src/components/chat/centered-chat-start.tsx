@@ -7,18 +7,14 @@ import { usePreloadedQuery } from "convex/react";
 import { ZapIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import type { Doc } from "../../../convex/_generated/dataModel";
 import type { ModelId } from "../../lib/ai/schemas";
 import { ChatInput } from "./chat-input";
 import { PromptSuggestions } from "./prompt-suggestions";
+import { LightfastUIMessageOptions } from "../../hooks/convertDbMessagesToUIMessages";
 
 interface CenteredChatStartProps {
-	onSendMessage: (
-		message: string,
-		modelId: ModelId,
-		attachments?: Id<"files">[],
-		webSearchEnabled?: boolean,
-	) => Promise<void> | void;
+	onSendMessage: (options: LightfastUIMessageOptions) => Promise<void> | void;
 	dbMessages?: Doc<"messages">[] | undefined;
 	preloadedUser?: Preloaded<typeof api.users.current>;
 	defaultModel?: ModelId;

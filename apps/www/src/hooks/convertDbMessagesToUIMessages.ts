@@ -1,8 +1,20 @@
 "use client";
 import type { LightfastToolSchemas } from "@/lib/ai/tools";
 import type { UIMessage, UIMessagePart } from "ai";
-import type { Doc } from "../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { DbErrorPart, DbMessagePart } from "../../convex/types";
+import { ModelId } from "../lib/ai";
+
+export type LightfastUIMessageOptions = {
+	message: string;
+	modelId: ModelId;
+	options: LightfastUIMessageSendOptions;
+};
+
+export type LightfastUIMessageSendOptions = {
+	webSearchEnabled: boolean;
+	attachments: Id<"files">[];
+};
 
 // Define custom data types for error parts
 type LightfastUICustomDataTypes = {
@@ -10,13 +22,13 @@ type LightfastUICustomDataTypes = {
 };
 
 // Use both custom data types and tools
-type LightfastUIMessage = UIMessage<
+export type LightfastUIMessage = UIMessage<
 	unknown,
 	LightfastUICustomDataTypes,
 	LightfastToolSchemas
 >;
 
-type LightfastUIMessagePart = UIMessagePart<
+export type LightfastUIMessagePart = UIMessagePart<
 	LightfastUICustomDataTypes,
 	LightfastToolSchemas
 >;

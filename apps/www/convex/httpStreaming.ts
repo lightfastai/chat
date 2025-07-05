@@ -487,10 +487,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				}
 			}
 
-      generationOptions.tools = LIGHTFAST_TOOLS;
 
 			// Add tools if supported
 			if (model.features.functionCalling && options?.webSearchEnabled) {
+        generationOptions.tools = LIGHTFAST_TOOLS;
 				generationOptions.stopWhen = stepCountIs(5);
 				generationOptions.activeTools = ["web_search_1_0_0"] as const;
 			}

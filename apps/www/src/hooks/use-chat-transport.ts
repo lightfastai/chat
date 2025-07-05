@@ -5,7 +5,7 @@ import type { ChatTransport } from "ai";
 import { DefaultChatTransport } from "ai";
 import { useMemo } from "react";
 import type { Id } from "../../convex/_generated/dataModel";
-import type { UIMessage } from "../types/schema";
+import type { LightfastUIMessage } from "./convertDbMessagesToUIMessages";
 
 interface UseChatTransportProps {
 	/** Authentication token for Convex requests */
@@ -25,12 +25,13 @@ interface UseChatTransportProps {
 export function useChatTransport({
 	authToken,
 	defaultModel,
-}: UseChatTransportProps): ChatTransport<UIMessage> | undefined {
+}: UseChatTransportProps): ChatTransport<LightfastUIMessage> | undefined {
 	const transport = useMemo(() => {
 		// Return undefined if not authenticated - this prevents transport creation
 		if (!authToken) return undefined;
 
-		return new DefaultChatTransport<UIMessage>({
+    // @todo storngly type the body field.
+		return new DefaultChatTransport<LightfastUIMessage>({
 			api: createStreamUrl(),
 			headers: {
 				Authorization: `Bearer ${authToken}`,
@@ -42,7 +43,6 @@ export function useChatTransport({
 				credentials,
 				api,
 			}) => {
-				console.log("[useChatTransport] requestBody:", body);
 				return {
 					api,
 					headers,
@@ -52,8 +52,8 @@ export function useChatTransport({
 						userMessageId: body?.userMessageId,
 						messages: messages[messages.length - 1],
 						options: {
-							webSearchEnabled: (body?.webSearchEnabled as boolean) || false,
-							attachments: body?.attachments as Id<"files">[] | undefined,
+							webSearchEnabled: body?.options?.webSearchEnabled as boolean,
+							attachments: body?.options?.attachments as Id<"files">[],
 						},
 					},
 					credentials: credentials,
