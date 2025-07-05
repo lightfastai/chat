@@ -115,6 +115,8 @@ export function useChat({
 				return;
 			}
 
+			console.log("useChat: webSearchEnabledOverride =", webSearchEnabledOverride);
+			
 			await vercelSendMessage(
 				{
 					role: "user",
@@ -127,7 +129,7 @@ export function useChat({
 						userMessageId,
 						threadClientId: chatId,
 						options: {
-							webSearchEnabled: webSearchEnabledOverride || false,
+							webSearchEnabled: webSearchEnabledOverride ?? false,
 							attachments,
 						},
 					},

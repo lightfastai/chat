@@ -90,6 +90,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		const { threadClientId, options, userMessageId, id } = body;
 
 		console.log("[streamChatResponse] body", body);
+		console.log("[streamChatResponse] webSearchEnabled =", options?.webSearchEnabled);
 
 		// Validate required fields
 		if (!threadClientId) {
@@ -349,7 +350,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 									messageId: assistantMessage._id,
 									toolCallId: chunk.toolCallId,
 									args: {
-										toolName: "web_search_1_0_0" as const,
+										toolName: "web_search_1_0_0",
 										input: chunk.input as DbToolInputForName<"web_search_1_0_0">,
 										output: chunk.output as DbToolOutputForName<"web_search_1_0_0">,
 									},
@@ -486,10 +487,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				}
 			}
 
+      generationOptions.tools = LIGHTFAST_TOOLS;
+
 			// Add tools if supported
 			if (model.features.functionCalling && options?.webSearchEnabled) {
-				generationOptions.tools = LIGHTFAST_TOOLS;
 				generationOptions.stopWhen = stepCountIs(5);
+				generationOptions.activeTools = ["web_search_1_0_0"] as const;
 			}
 
 			// Stream the text and return UI message stream response
