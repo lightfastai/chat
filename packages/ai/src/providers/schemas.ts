@@ -40,7 +40,6 @@ export const ModelConfigSchema = z.object({
 	features: ModelFeaturesSchema,
 	thinkingConfig: ThinkingConfigSchema.optional(),
 	active: z.boolean().default(true),
-	replacedBy: z.string().optional(),
 	streamingDelay: z
 		.number()
 		.optional()

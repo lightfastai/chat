@@ -48,9 +48,7 @@ export const MODELS = {
       enabled: true,
       defaultBudgetTokens: 12000,
     },
-    deprecated: false,    // Optional
-    replacedBy: undefined, // Optional, for deprecated models
-    hidden: false,        // Optional, hide from UI
+    active: true,         // Optional, defaults to true
   }),
 } as const
 ```
@@ -119,13 +117,11 @@ export const modelIdValidator = v.union(
 
 #### Safe Migration Process
 
-1. **Mark as deprecated** instead of removing:
+1. **Mark as inactive** instead of removing:
 ```typescript
 "old-model-id": ModelConfigSchema.parse({
   id: "old-model-id",
-  deprecated: true,
-  replacedBy: "new-model-id",
-  hidden: true,  // Hide from UI
+  active: false,  // Hide from UI
   // ... rest of config
 }),
 ```

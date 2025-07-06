@@ -30,7 +30,6 @@ export const DEPRECATED_MODELS = {
 		},
 		streamingDelay: 12,
 		active: false,
-		replacedBy: "claude-4-sonnet-20250514",
 		
 	}),
 	"claude-sonnet-4-20250514-thinking": ModelConfigSchema.parse({
@@ -55,7 +54,6 @@ export const DEPRECATED_MODELS = {
 		},
 		streamingDelay: 18,
 		active: false,
-		replacedBy: "claude-4-sonnet-20250514-thinking",
 		
 	}),
 	"claude-3-haiku-20240307": ModelConfigSchema.parse({
@@ -76,7 +74,6 @@ export const DEPRECATED_MODELS = {
 		},
 		streamingDelay: 22,
 		active: false,
-		replacedBy: "claude-3-5-haiku-20241022",
 		
 	}),
 
