@@ -12,17 +12,35 @@ import type { Id } from "../_generated/dataModel.js";
 import type { DataModel } from "../_generated/dataModel.js";
 
 import type { Infer } from "convex/values";
+import type {
+	DbFilePart,
+	DbSourceDocumentPart,
+	DbSourceUrlPart,
+} from "../types.js";
 // Import the exact types from validators for type safety
 import type {
 	addToolCallArgsValidator,
 	addToolInputStartArgsValidator,
 	addToolResultArgsValidator,
+	errorDetailsValidator,
+	messageStatusValidator,
+	tokenUsageValidator,
 } from "../validators.js";
 
 // Extract the inferred types from validators
 type AddToolCallArgs = Infer<typeof addToolCallArgsValidator>;
 type AddToolInputStartArgs = Infer<typeof addToolInputStartArgsValidator>;
 type AddToolResultArgs = Infer<typeof addToolResultArgsValidator>;
+
+// Extract types for source and file parts (without type and timestamp)
+type SourceUrlParams = Omit<DbSourceUrlPart, "type" | "timestamp">;
+type SourceDocumentParams = Omit<DbSourceDocumentPart, "type" | "timestamp">;
+type FileParams = Omit<DbFilePart, "type" | "timestamp">;
+
+// Extract types for other operations
+type ErrorDetails = Infer<typeof errorDetailsValidator>;
+type MessageStatus = Infer<typeof messageStatusValidator>;
+type TokenUsage = NonNullable<Infer<typeof tokenUsageValidator>>;
 
 export interface UnifiedStreamingWriter {
 	// Text streaming
@@ -52,59 +70,31 @@ export interface UnifiedStreamingWriter {
 	) => Promise<void>;
 
 	// Source citations
-	addSourceUrlPart: (params: {
-		sourceId: string;
-		url: string;
-		title?: string;
-		providerMetadata?: unknown;
-		timestamp: number;
-	}) => Promise<void>;
+	addSourceUrlPart: (
+		params: SourceUrlParams & { timestamp: number },
+	) => Promise<void>;
 
-	addSourceDocumentPart: (params: {
-		sourceId: string;
-		mediaType: string;
-		title: string;
-		filename?: string;
-		providerMetadata?: unknown;
-		timestamp: number;
-	}) => Promise<void>;
+	addSourceDocumentPart: (
+		params: SourceDocumentParams & { timestamp: number },
+	) => Promise<void>;
 
 	// File attachments
-	addFilePart?: (params: {
-		mediaType: string;
-		filename?: string;
-		url: string;
-		timestamp: number;
-	}) => Promise<void>;
+	addFilePart?: (params: FileParams & { timestamp: number }) => Promise<void>;
 
 	// Error handling
 	addErrorPart?: (
 		errorMessage: string,
-		errorDetails?: unknown,
+		errorDetails?: ErrorDetails,
 	) => Promise<void>;
 
 	// Status updates
-	updateMessageStatus?: (
-		status: "submitted" | "streaming" | "ready" | "error",
-	) => Promise<void>;
+	updateMessageStatus?: (status: MessageStatus) => Promise<void>;
 
 	// Usage tracking
-	updateMessageUsage?: (usage: {
-		inputTokens?: number;
-		outputTokens?: number;
-		totalTokens?: number;
-		reasoningTokens?: number;
-		cachedInputTokens?: number;
-	}) => Promise<void>;
+	updateMessageUsage?: (usage: TokenUsage) => Promise<void>;
 
 	updateThreadUsage?: (
-		messageUsage: {
-			inputTokens?: number;
-			outputTokens?: number;
-			totalTokens?: number;
-			reasoningTokens?: number;
-			cachedInputTokens?: number;
-		},
+		messageUsage: TokenUsage,
 		modelId?: string,
 	) => Promise<void>;
 }
@@ -203,7 +193,7 @@ export function createMutationWriter(
 			});
 		},
 
-		addErrorPart: async (errorMessage: string, errorDetails?: unknown) => {
+		addErrorPart: async (errorMessage: string, errorDetails?: ErrorDetails) => {
 			await ctx.runMutation(internal.messages.addErrorPart, {
 				messageId,
 				errorMessage,
@@ -325,7 +315,7 @@ export function createBatchWriter(
 			});
 		},
 
-		addErrorPart: async (errorMessage: string, errorDetails?: unknown) => {
+		addErrorPart: async (errorMessage: string, errorDetails?: ErrorDetails) => {
 			operations.push({
 				type: "addErrorPart",
 				args: { messageId, errorMessage, errorDetails },
@@ -355,6 +345,80 @@ export function createBatchWriter(
 	};
 }
 
+// Type definitions for batch operations
+type TextPartArgs = {
+	messageId: Id<"messages">;
+	text: string;
+	timestamp: number;
+};
+
+type ReasoningPartArgs = {
+	messageId: Id<"messages">;
+	text: string;
+	timestamp: number;
+};
+
+type RawPartArgs = {
+	messageId: Id<"messages">;
+	rawValue: unknown;
+	timestamp: number;
+};
+
+type ToolCallPartArgs = {
+	messageId: Id<"messages">;
+	toolCallId: string;
+	timestamp: number;
+	args: AddToolCallArgs;
+};
+
+type ToolResultCallPartArgs = {
+	messageId: Id<"messages">;
+	toolCallId: string;
+	timestamp: number;
+	args: AddToolResultArgs;
+};
+
+type ToolInputStartPartArgs = {
+	messageId: Id<"messages">;
+	toolCallId: string;
+	timestamp: number;
+	args: AddToolInputStartArgs;
+};
+
+type SourceUrlPartArgs = {
+	messageId: Id<"messages">;
+} & SourceUrlParams & { timestamp: number };
+
+type SourceDocumentPartArgs = {
+	messageId: Id<"messages">;
+} & SourceDocumentParams & { timestamp: number };
+
+type FilePartArgs = {
+	messageId: Id<"messages">;
+} & FileParams & { timestamp: number };
+
+type ErrorPartArgs = {
+	messageId: Id<"messages">;
+	errorMessage: string;
+	errorDetails?: ErrorDetails;
+};
+
+type MessageStatusArgs = {
+	messageId: Id<"messages">;
+	status: MessageStatus;
+};
+
+type MessageUsageArgs = {
+	messageId: Id<"messages">;
+	usage: TokenUsage;
+};
+
+type ThreadUsageArgs = {
+	threadId: Id<"threads">;
+	messageUsage: TokenUsage;
+	modelId?: string;
+};
+
 /**
  * Executes a batch of operations using the provided context.
  * This is called after collecting operations with createBatchWriter.
@@ -366,69 +430,81 @@ export async function executeBatchOperations(
 	for (const op of operations) {
 		switch (op.type) {
 			case "addTextPart":
-				await ctx.runMutation(internal.messages.addTextPart, op.args as any);
+				await ctx.runMutation(
+					internal.messages.addTextPart,
+					op.args as TextPartArgs,
+				);
 				break;
 			case "addReasoningPart":
 				await ctx.runMutation(
 					internal.messages.addReasoningPart,
-					op.args as any,
+					op.args as ReasoningPartArgs,
 				);
 				break;
 			case "addRawPart":
-				await ctx.runMutation(internal.messages.addRawPart, op.args as any);
+				await ctx.runMutation(
+					internal.messages.addRawPart,
+					op.args as RawPartArgs,
+				);
 				break;
 			case "addToolCallPart":
 				await ctx.runMutation(
 					internal.messages.addToolCallPart,
-					op.args as any,
+					op.args as ToolCallPartArgs,
 				);
 				break;
 			case "addToolResultCallPart":
 				await ctx.runMutation(
 					internal.messages.addToolResultCallPart,
-					op.args as any,
+					op.args as ToolResultCallPartArgs,
 				);
 				break;
 			case "addToolInputStartPart":
 				await ctx.runMutation(
 					internal.messages.addToolInputStartPart,
-					op.args as any,
+					op.args as ToolInputStartPartArgs,
 				);
 				break;
 			case "addSourceUrlPart":
 				await ctx.runMutation(
 					internal.messages.addSourceUrlPart,
-					op.args as any,
+					op.args as SourceUrlPartArgs,
 				);
 				break;
 			case "addSourceDocumentPart":
 				await ctx.runMutation(
 					internal.messages.addSourceDocumentPart,
-					op.args as any,
+					op.args as SourceDocumentPartArgs,
 				);
 				break;
 			case "addFilePart":
-				await ctx.runMutation(internal.messages.addFilePart, op.args as any);
+				await ctx.runMutation(
+					internal.messages.addFilePart,
+					op.args as FilePartArgs,
+				);
 				break;
 			case "addErrorPart":
-				await ctx.runMutation(internal.messages.addErrorPart, op.args as any);
+				await ctx.runMutation(
+					internal.messages.addErrorPart,
+					op.args as ErrorPartArgs,
+				);
 				break;
 			case "updateMessageStatus":
 				await ctx.runMutation(
 					internal.messages.updateMessageStatus,
-					op.args as any,
+					op.args as MessageStatusArgs,
 				);
 				break;
 			case "updateMessageUsage":
 				await ctx.runMutation(
 					internal.messages.updateMessageUsage,
-					op.args as any,
+					op.args as MessageUsageArgs,
 				);
 				break;
 			case "updateThreadUsage":
 				await ctx.runMutation(
 					internal.messages.updateThreadUsage,
-					op.args as any,
+					op.args as ThreadUsageArgs,
 				);
 				break;
 		}

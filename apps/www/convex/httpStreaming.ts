@@ -167,15 +167,11 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		});
 
 		// Get user's API keys for the AI provider
-		// @todo rework.
-		const userApiKeys = (await ctx.runMutation(
+		// Type safety is ensured by the return type of getDecryptedApiKeys
+		const userApiKeys = await ctx.runMutation(
 			internal.userSettings.getDecryptedApiKeys,
 			{ userId: thread.userId },
-		)) as {
-			anthropic?: string;
-			openai?: string;
-			openrouter?: string;
-		} | null;
+		);
 
 		// Convert UIMessages to ModelMessages for the AI SDK
 		const convertedMessages = convertToModelMessages(

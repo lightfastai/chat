@@ -4,18 +4,20 @@ import {
 } from "@lightfast/ai/client";
 import type { ModelId } from "@lightfast/ai/providers";
 import type { LanguageModel } from "ai";
+import type { Infer } from "convex/values";
 import { env } from "../../env";
+import { userApiKeysValidator } from "../../validators";
 
-// Type for user API keys (matching getDecryptedApiKeys return type)
-type UserApiKeys = {
-	openai?: string;
-	anthropic?: string;
-	openrouter?: string;
-};
+// Infer the UserApiKeys type from the Convex validator
+// This ensures perfect type alignment with the database schema
+export type UserApiKeys = Infer<typeof userApiKeysValidator>;
 
 /**
  * Create an AI client with API keys from either user settings or environment
  * This is the Convex-specific implementation that knows about env.ts
+ *
+ * Type safety is ensured by inferring UserApiKeys from the Convex validator,
+ * which guarantees alignment with the database schema.
  */
 export function createAIClient(
 	modelId: ModelId,
