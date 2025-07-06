@@ -4,7 +4,7 @@ import { ModelConfigSchema } from "../schemas";
  * Active AI Models
  *
  * These are the models currently available and supported.
- * Models marked with `hidden: true` are functional but not shown in the UI.
+ * Models with `active: false` are functional but not shown in the UI.
  */
 export const ACTIVE_MODELS = {
 	// ===== OpenAI Models =====
@@ -179,7 +179,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: true,
 		},
 		streamingDelay: 10,
-		hidden: true, // Hidden due to high cost
+		active: false, // High cost
 	}),
 	"claude-4-sonnet-20250514": ModelConfigSchema.parse({
 		id: "claude-4-sonnet-20250514",
@@ -248,7 +248,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: true,
 		},
 		streamingDelay: 15,
-		hidden: true, // Hidden - older version
+		active: false, // Older version
 	}),
 	"claude-3-5-haiku-20241022": ModelConfigSchema.parse({
 		id: "claude-3-5-haiku-20241022",
@@ -266,7 +266,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 22,
-		hidden: true, // Hidden - specialized use case
+		active: false, // Specialized use case
 	}),
 
 	// ===== Thinking Mode Variants =====
@@ -290,7 +290,7 @@ export const ACTIVE_MODELS = {
 			defaultBudgetTokens: 20000,
 		},
 		streamingDelay: 18,
-		hidden: true, // Hidden due to high cost
+		active: false, // High cost
 	}),
 	"claude-4-sonnet-20250514-thinking": ModelConfigSchema.parse({
 		id: "claude-4-sonnet-20250514-thinking",
@@ -350,7 +350,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: true,
 		},
 		streamingDelay: 20,
-		hidden: true, // Hidden to reduce UI clutter
+		active: false, // Reduce UI clutter
 	}),
 	"claude-3-5-sonnet-20240620-thinking": ModelConfigSchema.parse({
 		id: "claude-3-5-sonnet-20240620-thinking",
@@ -368,7 +368,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: true,
 		},
 		streamingDelay: 20,
-		hidden: true, // Hidden - older version
+		active: false, // Older version
 	}),
 	"claude-3-5-haiku-20241022-thinking": ModelConfigSchema.parse({
 		id: "claude-3-5-haiku-20241022-thinking",
@@ -386,7 +386,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 25,
-		hidden: true, // Hidden - specialized use case
+		active: false, // Specialized use case
 	}),
 
 	// ===== OpenRouter Models (Beta/Preview) =====
@@ -406,7 +406,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: true,
 		},
 		streamingDelay: 10,
-		hidden: true, // Hidden - beta model
+		active: false, // Beta model
 	}),
 	"x-ai/grok-3-mini-beta": ModelConfigSchema.parse({
 		id: "x-ai/grok-3-mini-beta",
@@ -443,7 +443,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 10,
-		hidden: true, // Hidden - preview model
+		active: false, // Preview model
 	}),
 	"google/gemini-2.5-flash-preview": ModelConfigSchema.parse({
 		id: "google/gemini-2.5-flash-preview",

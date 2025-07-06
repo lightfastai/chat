@@ -39,9 +39,8 @@ export const ModelConfigSchema = z.object({
 	}),
 	features: ModelFeaturesSchema,
 	thinkingConfig: ThinkingConfigSchema.optional(),
-	deprecated: z.boolean().optional(),
+	active: z.boolean().default(true),
 	replacedBy: z.string().optional(),
-	hidden: z.boolean().optional(),
 	streamingDelay: z
 		.number()
 		.optional()

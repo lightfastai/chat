@@ -31,7 +31,7 @@ export function getModelConfig(modelId: ModelId): ModelConfig {
 }
 
 export function getVisibleModels(): ModelConfig[] {
-	return Object.values(MODELS).filter((model) => !model.hidden);
+	return Object.values(MODELS).filter((model) => model.active);
 }
 
 // Default model ID

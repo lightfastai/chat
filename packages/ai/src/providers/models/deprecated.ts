@@ -4,7 +4,7 @@ import { ModelConfigSchema } from "../schemas";
  * Deprecated AI Models
  *
  * These models are no longer recommended but are kept for backward compatibility.
- * All deprecated models are automatically hidden from the UI.
+ * All deprecated models have `active: false` to hide them from the UI.
  * They remain functional to support existing conversations and threads.
  */
 export const DEPRECATED_MODELS = {
@@ -29,9 +29,9 @@ export const DEPRECATED_MODELS = {
 			defaultBudgetTokens: 15000,
 		},
 		streamingDelay: 12,
-		deprecated: true,
+		active: false,
 		replacedBy: "claude-4-sonnet-20250514",
-		hidden: true,
+		
 	}),
 	"claude-sonnet-4-20250514-thinking": ModelConfigSchema.parse({
 		id: "claude-sonnet-4-20250514-thinking",
@@ -54,9 +54,9 @@ export const DEPRECATED_MODELS = {
 			defaultBudgetTokens: 15000,
 		},
 		streamingDelay: 18,
-		deprecated: true,
+		active: false,
 		replacedBy: "claude-4-sonnet-20250514-thinking",
-		hidden: true,
+		
 	}),
 	"claude-3-haiku-20240307": ModelConfigSchema.parse({
 		id: "claude-3-haiku-20240307",
@@ -75,9 +75,9 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: true,
 		},
 		streamingDelay: 22,
-		deprecated: true,
+		active: false,
 		replacedBy: "claude-3-5-haiku-20241022",
-		hidden: true,
+		
 	}),
 
 	// ===== OpenRouter Duplicate Models =====
@@ -98,8 +98,8 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 12,
-		hidden: true,
-		deprecated: true,
+		
+		active: false,
 	}),
 	"anthropic/claude-3.5-sonnet": ModelConfigSchema.parse({
 		id: "anthropic/claude-3.5-sonnet",
@@ -117,8 +117,8 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 15,
-		hidden: true,
-		deprecated: true,
+		
+		active: false,
 	}),
 	"openai/gpt-4o": ModelConfigSchema.parse({
 		id: "openai/gpt-4o",
@@ -136,8 +136,8 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 15,
-		hidden: true,
-		deprecated: true,
+		
+		active: false,
 	}),
 	"google/gemini-pro-1.5": ModelConfigSchema.parse({
 		id: "google/gemini-pro-1.5",
@@ -155,8 +155,8 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 12,
-		hidden: true,
-		deprecated: true,
+		
+		active: false,
 	}),
 	"mistralai/mistral-large": ModelConfigSchema.parse({
 		id: "mistralai/mistral-large",
@@ -175,7 +175,7 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: true, // Through Document AI API
 		},
 		streamingDelay: 12,
-		hidden: true,
-		deprecated: true,
+		
+		active: false,
 	}),
 } as const;
