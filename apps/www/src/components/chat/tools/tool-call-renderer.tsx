@@ -1,10 +1,11 @@
 "use client";
 
+import { memo } from "react";
 import type {
-  DbErrorPart,
-  DbToolCallPart,
-  DbToolInputStartPart,
-  DbToolResultPart,
+	DbErrorPart,
+	DbToolCallPart,
+	DbToolInputStartPart,
+	DbToolResultPart,
 } from "../../../../convex/types";
 import { isLightfastToolName } from "../../../lib/ai/tools";
 import { GenericToolDisplay } from "./generic-tool-display";
@@ -15,7 +16,10 @@ export interface ToolCallRendererProps {
 	error?: DbErrorPart;
 }
 
-export function ToolCallRenderer({ toolCall, error }: ToolCallRendererProps) {
+export const ToolCallRenderer = memo(function ToolCallRenderer({
+	toolCall,
+	error,
+}: ToolCallRendererProps) {
 	const toolName = toolCall.args.toolName;
 
 	// Use type-safe tool name validation
@@ -34,4 +38,4 @@ export function ToolCallRenderer({ toolCall, error }: ToolCallRendererProps) {
 
 	// Unknown tool - use generic display
 	return <GenericToolDisplay toolCall={toolCall as DbToolCallPart} />;
-}
+});

@@ -2,7 +2,7 @@
 
 import type { Doc } from "@/convex/_generated/dataModel";
 import { getModelDisplayName } from "@/lib/ai";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { AttachmentPreview } from "./attachment-preview";
 import { MessageActions } from "./message-actions";
 import { MessageItem } from "./shared";
@@ -12,7 +12,9 @@ interface MessageDisplayProps {
 }
 
 // Component to display individual messages with streaming support
-export function MessageDisplay({ message }: MessageDisplayProps) {
+export const MessageDisplay = memo(function MessageDisplay({
+	message,
+}: MessageDisplayProps) {
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 	const isAI = message.role === "assistant";
@@ -47,4 +49,4 @@ export function MessageDisplay({ message }: MessageDisplayProps) {
 			)}
 		</>
 	);
-}
+});

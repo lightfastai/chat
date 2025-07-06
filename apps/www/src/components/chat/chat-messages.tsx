@@ -3,60 +3,10 @@
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
-import type { DbMessagePart } from "../../../convex/types";
-import { isReasoningPart, isTextPart } from "../../../convex/types";
-import {
-	type LightfastUIMessage,
-	convertUIMessageToDbParts,
-} from "../../hooks/convertDbMessagesToUIMessages";
+import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
+import { useProcessedMessages } from "../../hooks/use-processed-messages";
+import { useStreamingMessageParts } from "../../hooks/use-streaming-message-parts";
 import { MessageDisplay } from "./message-display";
-
-/**
- * Process message parts: sort by timestamp, then merge consecutive parts of same type
- */
-function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
-	if (!parts || parts.length === 0) return [];
-
-	// Step 1: Sort all parts by timestamp
-	const sortedParts = [...parts].sort((a, b) => {
-		const aTimestamp = "timestamp" in a ? a.timestamp : 0;
-		const bTimestamp = "timestamp" in b ? b.timestamp : 0;
-		return aTimestamp - bTimestamp;
-	});
-
-	// Step 2: Merge consecutive parts of the same type
-	const mergedParts: DbMessagePart[] = [];
-
-	for (const part of sortedParts) {
-		const lastPart = mergedParts[mergedParts.length - 1];
-
-		// Check if we can merge with the previous part
-		if (lastPart && lastPart.type === part.type) {
-			if (isTextPart(part) && isTextPart(lastPart)) {
-				// Merge text parts
-				mergedParts[mergedParts.length - 1] = {
-					...lastPart,
-					text: lastPart.text + part.text,
-					timestamp: Math.min(lastPart.timestamp, part.timestamp), // Use earliest timestamp
-				};
-				continue;
-			} else if (isReasoningPart(part) && isReasoningPart(lastPart)) {
-				// Merge reasoning parts
-				mergedParts[mergedParts.length - 1] = {
-					...lastPart,
-					text: lastPart.text + part.text,
-					timestamp: Math.min(lastPart.timestamp, part.timestamp), // Use earliest timestamp
-				};
-				continue;
-			}
-		}
-
-		// If we can't merge, add as new part
-		mergedParts.push(part);
-	}
-
-	return mergedParts;
-}
 
 interface ChatMessagesProps {
 	dbMessages: Doc<"messages">[] | null | undefined;
@@ -176,22 +126,9 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 		scrollToBottom(false);
 	}, [scrollToBottom]);
 
-	// Handle empty state
-	if (!dbMessages || dbMessages.length === 0) {
-		return (
-			<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
-				<div className="p-2 md:p-4 pb-16">
-					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-						{/* Empty state */}
-					</div>
-				</div>
-			</ScrollArea>
-		);
-	}
-
 	// Find the streaming message from uiMessages
 	let streamingVercelMessage: LightfastUIMessage | undefined;
-	if (uiMessages.length > 0) {
+	if (dbMessages && dbMessages.length > 0 && uiMessages.length > 0) {
 		// The last message in uiMessages should be the streaming one
 		const lastVercelMessage = uiMessages[
 			uiMessages.length - 1
@@ -207,31 +144,52 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 		}
 	}
 
+	// Use the custom hook for efficient message processing
+	const processedMessages = useProcessedMessages(dbMessages);
+
+	// Use efficient streaming message parts conversion with caching
+	const streamingMessageParts = useStreamingMessageParts(
+		streamingVercelMessage,
+	);
+
+	// Handle empty state
+	if (!dbMessages || dbMessages.length === 0) {
+		return (
+			<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
+				<div className="p-2 md:p-4 pb-16">
+					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+						{/* Empty state */}
+					</div>
+				</div>
+			</ScrollArea>
+		);
+	}
+
 	return (
 		<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
 			<div className="p-2 md:p-4 pb-16">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 					{dbMessages.map((message) => {
-						// For streaming messages, use Vercel data if available
-						let displayMessage = message;
+						// For streaming messages, use memoized Vercel data directly
 						if (
 							message.status === "streaming" &&
 							streamingVercelMessage &&
-							streamingVercelMessage.metadata?.dbId === message._id
+							streamingVercelMessage.metadata?.dbId === message._id &&
+							streamingMessageParts
 						) {
-							// Override with Vercel streaming data
-							displayMessage = {
+							// Use memoized streaming data without reprocessing
+							const streamingMessage = {
 								...message,
-								parts: convertUIMessageToDbParts(streamingVercelMessage),
+								parts: streamingMessageParts,
 							};
+							return (
+								<MessageDisplay key={message._id} message={streamingMessage} />
+							);
 						}
 
-						// Process message parts: sort by timestamp and merge consecutive parts of same type
-						const processedMessage = {
-							...displayMessage,
-							parts: processMessageParts(displayMessage.parts || []),
-						};
-
+						// Use pre-processed message from cache
+						const processedMessage =
+							processedMessages.get(message._id) || message;
 						return (
 							<MessageDisplay key={message._id} message={processedMessage} />
 						);

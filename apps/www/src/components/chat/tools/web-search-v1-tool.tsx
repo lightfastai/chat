@@ -1,29 +1,31 @@
 "use client";
 
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
 } from "@lightfast/ui/components/ui/accordion";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import {
-  AlertCircle,
-  ExternalLink,
-  Globe,
-  Loader2, Sparkles
+	AlertCircle,
+	ExternalLink,
+	Globe,
+	Loader2,
+	Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { memo } from "react";
 import type {
-  DbErrorPart,
-  DbToolCallPart,
-  DbToolInputStartPart,
-  DbToolResultPart,
+	DbErrorPart,
+	DbToolCallPart,
+	DbToolInputStartPart,
+	DbToolResultPart,
 } from "../../../../convex/types";
 import {
-  type LightfastToolInput,
-  type LightfastToolOutput,
-  getToolMetadata,
+	type LightfastToolInput,
+	type LightfastToolOutput,
+	getToolMetadata,
 } from "../../../lib/ai/tools";
 
 // Type-safe input/output types for web_search_1_0_0
@@ -35,7 +37,10 @@ export interface WebSearchV1ToolProps {
 	error?: DbErrorPart;
 }
 
-export function WebSearchV1Tool({ toolCall, error }: WebSearchV1ToolProps) {
+export const WebSearchV1Tool = memo(function WebSearchV1Tool({
+	toolCall,
+	error,
+}: WebSearchV1ToolProps) {
 	const metadata = getToolMetadata("web_search_1_0_0");
 
 	// Determine state based on part type
@@ -168,9 +173,7 @@ export function WebSearchV1Tool({ toolCall, error }: WebSearchV1ToolProps) {
 						) : results && results.length > 0 ? (
 							<div className="pt-3">
 								{results.map((result, index) => (
-									<div
-										key={`${toolCall.toolCallId}-v1-result-${index}`}
-									>
+									<div key={`${toolCall.toolCallId}-v1-result-${index}`}>
 										<Link
 											href={result.url}
 											target="_blank"
@@ -198,4 +201,4 @@ export function WebSearchV1Tool({ toolCall, error }: WebSearchV1ToolProps) {
 			</Accordion>
 		</div>
 	);
-}
+});
