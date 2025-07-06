@@ -259,9 +259,11 @@ export const reasoningPartValidator = v.object({
 	timestamp: v.number(),
 });
 
+// Raw part validator - for debugging/development only
+// Using v.any() is acceptable here as this is specifically for untyped raw data
 export const rawPartValidator = v.object({
 	type: v.literal("raw"),
-	rawValue: v.any(),
+	rawValue: v.any(), // Intentionally untyped for raw debugging data
 	timestamp: v.number(),
 });
 
@@ -289,7 +291,7 @@ export const errorDetailsValidator = v.object({
 	name: v.string(),
 	message: v.string(),
 	stack: v.optional(v.string()),
-	raw: v.optional(v.any()), // The original error object
+	raw: v.optional(v.any()), // Original error object for debugging - any type is acceptable here
 	context: v.optional(errorContextValidator),
 	modelId: v.optional(v.string()),
 	errorType: v.optional(errorTypeValidator),

@@ -1,8 +1,8 @@
 "use client";
-import type { LightfastToolSchemas } from "@/lib/ai/tools";
+import type { LightfastToolName, LightfastToolSchemas } from "@/lib/ai/tools";
 import type { UIMessage, UIMessagePart } from "ai";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import type { DbErrorPart, DbMessagePart } from "../../convex/types";
+import type { DbErrorPart, DbMessagePart, DbToolCallPart, DbToolResultPart } from "../../convex/types";
 import type { ModelId } from "../lib/ai";
 
 export type LightfastUIMessageOptions = {
@@ -41,16 +41,73 @@ export type LightfastUIMessagePart = UIMessagePart<
  * Generate a stable key for a UI message part based on its content
  */
 export function getPartKey(part: LightfastUIMessagePart, index: number): string {
-	switch (part.type) {
-		case "text":
-		case "reasoning":
-			// For text/reasoning, use type + content hash
-			return `${part.type}-${index}-${part.text}`;
-		case "tool-web_search_1_0_0":
-			// For tools, use type + toolCallId + state
-			return `${part.type}-${part.toolCallId}-${part.state}`;
+	// Handle text-based parts
+	if (part.type === "text" || part.type === "reasoning") {
+		return `${part.type}-${index}-${part.text}`;
+	}
+	
+	// Handle tool parts generically
+	if (part.type.startsWith("tool-") && "toolCallId" in part && "state" in part) {
+		return `${part.type}-${part.toolCallId}-${part.state}`;
+	}
+	
+	// Handle other known part types
+	if (part.type === "data-error") {
+		return `error-${index}`;
+	}
+	
+	if (part.type === "source-url" && "sourceId" in part) {
+		return `source-url-${part.sourceId}`;
+	}
+	
+	if (part.type === "source-document" && "sourceId" in part) {
+		return `source-doc-${part.sourceId}`;
+	}
+	
+	if (part.type === "file" && "url" in part) {
+		return `file-${index}-${part.url}`;
+	}
+	
+	// Fallback for unknown types
+	return `unknown-${index}`;
+}
+
+/**
+ * Type-safe tool part converter that handles all tool types generically
+ */
+function convertToolPartToDb(
+	part: Extract<LightfastUIMessagePart, { type: `tool-${string}` }>,
+	timestamp: number,
+): DbMessagePart | null {
+	// Extract the tool name from the part type
+	const toolName = part.type.replace(/^tool-/, "") as LightfastToolName;
+	
+	switch (part.state) {
+		case "input-streaming":
+		case "input-available":
+			return {
+				type: "tool-call",
+				args: {
+					toolName,
+					// TypeScript knows the input type matches the tool schema
+					input: part.input,
+				} as DbToolCallPart["args"],
+				toolCallId: part.toolCallId,
+				timestamp,
+			};
+		case "output-available":
+			return {
+				type: "tool-result",
+				args: {
+					toolName,
+					input: part.input,
+					output: part.output,
+				} as DbToolResultPart["args"],
+				toolCallId: part.toolCallId,
+				timestamp,
+			};
 		default:
-			return `unknown-${index}`;
+			return null;
 	}
 }
 
@@ -75,32 +132,7 @@ export function convertUIPartToDbPart(
 				timestamp,
 			};
 		case "tool-web_search_1_0_0":
-			switch (part.state) {
-				case "input-streaming":
-				case "input-available":
-					return {
-						type: "tool-call",
-						args: {
-							toolName: "web_search_1_0_0",
-							input: part.input as any,
-						},
-						toolCallId: part.toolCallId,
-						timestamp,
-					};
-				case "output-available":
-					return {
-						type: "tool-result",
-						args: {
-							toolName: "web_search_1_0_0",
-							input: part.input,
-							output: part.output,
-						},
-						toolCallId: part.toolCallId,
-						timestamp,
-					};
-				default:
-					return null;
-			}
+			return convertToolPartToDb(part, timestamp);
 		default:
 			return null;
 	}
@@ -204,9 +236,14 @@ export function convertDbMessagesToUIMessages(
 							url: part.url,
 						};
 
+					case "raw":
+						// Raw parts are for debugging and shouldn't appear in UI
+						return null;
+
 					default:
 						// Handle any unknown part types
-						console.warn(`Unknown message part type: ${(part as any).type}`);
+						const exhaustiveCheck: never = part;
+						console.warn(`Unknown message part type: ${(exhaustiveCheck as DbMessagePart).type}`);
 						return null;
 				}
 			})
