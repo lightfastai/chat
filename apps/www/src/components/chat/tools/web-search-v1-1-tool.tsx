@@ -7,14 +7,12 @@ import {
 	AccordionTrigger,
 } from "@lightfast/ui/components/ui/accordion";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
-import { Badge } from "@lightfast/ui/components/ui/badge";
 import {
 	AlertCircle,
 	ExternalLink,
 	Globe,
 	Loader2,
 	Sparkles,
-	Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { memo } from "react";
@@ -66,7 +64,6 @@ export const WebSearchV1_1Tool = memo(function WebSearchV1_1Tool({
 			? (toolCall.args.input as WebSearchV1_1Input | undefined)
 			: undefined;
 	const searchQuery = input?.query;
-	const contentType = input?.contentType || "highlights";
 
 	// Get output if available
 	const output =
@@ -75,7 +72,6 @@ export const WebSearchV1_1Tool = memo(function WebSearchV1_1Tool({
 			: undefined;
 	const results = output?.results;
 	const resultCount = results?.length || 0;
-	const tokensEstimate = output?.tokensEstimate;
 
 	const accordionValue = `web-search-v1-1-${toolCall.toolCallId}`;
 
@@ -124,26 +120,6 @@ export const WebSearchV1_1Tool = memo(function WebSearchV1_1Tool({
 		);
 	}
 
-	// Helper to format content type display
-	const getContentTypeLabel = (type: string) => {
-		switch (type) {
-			case "highlights":
-				return "Highlights";
-			case "summary":
-				return "Summary";
-			case "text":
-				return "Text";
-			default:
-				return type;
-		}
-	};
-
-	// Helper to format tokens
-	const formatTokens = (tokens: number) => {
-		if (tokens < 1000) return `${tokens} tokens`;
-		return `${(tokens / 1000).toFixed(1)}k tokens`;
-	};
-
 	return (
 		<div className="my-6 border rounded-lg">
 			<Accordion type="single" collapsible className="w-full">
@@ -159,25 +135,23 @@ export const WebSearchV1_1Tool = memo(function WebSearchV1_1Tool({
 								<div className="font-medium text-xs lowercase text-muted-foreground">
 									{state === "input-available" ? "searching..." : searchQuery}
 								</div>
+								{/* {searchQuery && (
+									<p className="text-xs text-muted-foreground mt-1">
+										Query: "{searchQuery}"
+										{useAutoprompt && <> • Autoprompt enabled</>}
+										{numResults !== 5 && <> • {numResults} results</>}
+									</p>
+								)} */}
+								{/* {autopromptString && autopromptString !== searchQuery && (
+									<p className="text-xs text-muted-foreground/60 italic">
+										Enhanced: "{autopromptString}"
+									</p>
+								)} */}
 							</div>
 							{state === "output-available" && (
-								<div className="flex items-center gap-2">
-									<Badge
-										variant="secondary"
-										className="text-xs px-2 py-0 h-5 font-normal"
-									>
-										{getContentTypeLabel(contentType)}
-									</Badge>
-									{tokensEstimate && (
-										<div className="flex items-center gap-1 text-xs text-muted-foreground/70">
-											<Zap className="h-3 w-3" />
-											<span>{formatTokens(tokensEstimate)}</span>
-										</div>
-									)}
-									<span className="text-xs text-muted-foreground/70">
-										{resultCount} results
-									</span>
-								</div>
+								<span className="text-xs text-muted-foreground/70">
+									{resultCount} results
+								</span>
 							)}
 						</div>
 					</AccordionTrigger>
@@ -194,32 +168,20 @@ export const WebSearchV1_1Tool = memo(function WebSearchV1_1Tool({
 						) : results && results.length > 0 ? (
 							<div className="pt-3">
 								{results.map((result, index) => (
-									<div
-										key={`${toolCall.toolCallId}-v1-1-result-${index}`}
-										className="mb-3 last:mb-0"
-									>
+									<div key={`${toolCall.toolCallId}-v1-1-result-${index}`}>
 										<Link
 											href={result.url}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="group block hover:bg-muted/50 rounded-sm p-3"
+											className="group flex items-center gap-3 hover:bg-muted/50 rounded-sm p-2 px-3"
 										>
-											<div className="flex items-start justify-between gap-3 mb-1">
-												<h4 className="text-xs font-medium text-foreground flex-1">
-													{result.title}
-												</h4>
-												<div className="flex items-center gap-2 shrink-0">
-													<span className="text-xs text-muted-foreground/70">
-														{new URL(result.url).hostname}
-													</span>
-													<ExternalLink className="h-3 w-3 text-muted-foreground/50" />
-												</div>
-											</div>
-											{result.content && (
-												<p className="text-xs text-muted-foreground line-clamp-3 mt-1">
-													{result.content}
-												</p>
-											)}
+											<h4 className="text-xs font-medium text-foreground flex-1 truncate">
+												{result.title}
+											</h4>
+											<span className="text-xs text-muted-foreground/70 shrink-0">
+												{new URL(result.url).hostname}
+											</span>
+											<ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/50" />
 										</Link>
 									</div>
 								))}
