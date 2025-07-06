@@ -30,7 +30,6 @@ export const DEPRECATED_MODELS = {
 		},
 		streamingDelay: 12,
 		active: false,
-		
 	}),
 	"claude-sonnet-4-20250514-thinking": ModelConfigSchema.parse({
 		id: "claude-sonnet-4-20250514-thinking",
@@ -54,7 +53,6 @@ export const DEPRECATED_MODELS = {
 		},
 		streamingDelay: 18,
 		active: false,
-		
 	}),
 	"claude-3-haiku-20240307": ModelConfigSchema.parse({
 		id: "claude-3-haiku-20240307",
@@ -74,7 +72,6 @@ export const DEPRECATED_MODELS = {
 		},
 		streamingDelay: 22,
 		active: false,
-		
 	}),
 
 	// ===== OpenRouter Duplicate Models =====
@@ -95,7 +92,7 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 12,
-		
+
 		active: false,
 	}),
 	"anthropic/claude-3.5-sonnet": ModelConfigSchema.parse({
@@ -114,7 +111,7 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 15,
-		
+
 		active: false,
 	}),
 	"openai/gpt-4o": ModelConfigSchema.parse({
@@ -133,7 +130,7 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 15,
-		
+
 		active: false,
 	}),
 	"google/gemini-pro-1.5": ModelConfigSchema.parse({
@@ -152,7 +149,7 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 12,
-		
+
 		active: false,
 	}),
 	"mistralai/mistral-large": ModelConfigSchema.parse({
@@ -172,7 +169,7 @@ export const DEPRECATED_MODELS = {
 			pdfSupport: true, // Through Document AI API
 		},
 		streamingDelay: 12,
-		
+
 		active: false,
 	}),
 } as const;

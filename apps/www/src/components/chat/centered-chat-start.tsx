@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useTimeGreeting } from "@/hooks/use-time-greeting";
+import type { ModelId } from "@lightfast/ai/providers";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { ZapIcon } from "lucide-react";
@@ -9,7 +10,6 @@ import { useRef, useState } from "react";
 import type { api } from "../../../convex/_generated/api";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessageOptions } from "../../hooks/convertDbMessagesToUIMessages";
-import type { ModelId } from "../../lib/ai/schemas";
 import { ChatInput } from "./chat-input";
 import { PromptSuggestions } from "./prompt-suggestions";
 

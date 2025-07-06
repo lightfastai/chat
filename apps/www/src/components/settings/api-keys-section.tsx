@@ -1,7 +1,7 @@
 "use client";
 
-import { validateApiKey } from "@/lib/ai";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { validateApiKey } from "@lightfast/ai/providers";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
 	Form,

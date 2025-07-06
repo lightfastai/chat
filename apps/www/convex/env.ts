@@ -4,11 +4,16 @@ import { z } from "zod";
 export const env = createEnv({
 	server: {
 		// AI API Keys
-		EXA_API_KEY: z.string().min(1).describe("Exa API key for web search"),
+		ANTHROPIC_API_KEY: z
+			.string()
+			.min(1)
+			.describe("Anthropic API key for Claude models"),
+		OPENAI_API_KEY: z.string().min(1).describe("OpenAI API key for GPT models"),
 		OPENROUTER_API_KEY: z
 			.string()
 			.min(1)
 			.describe("OpenRouter API key for AI models"),
+		EXA_API_KEY: z.string().min(1).describe("Exa API key for web search"),
 
 		// Authentication & Encryption
 		JWT_PRIVATE_KEY: z

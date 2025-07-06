@@ -2,15 +2,17 @@
 
 import { useFileDrop } from "@/hooks/use-file-drop";
 import {
-	DEFAULT_MODEL_ID,
-	type ModelId,
 	getIncompatibilityMessage,
 	getModelCapabilities,
+	validateAttachmentsForModel,
+} from "@/lib/ai/capabilities";
+import { preprocessUserMessage } from "@/lib/message-preprocessing";
+import {
+	DEFAULT_MODEL_ID,
+	type ModelId,
 	getModelConfig,
 	getVisibleModels,
-	validateAttachmentsForModel,
-} from "@/lib/ai";
-import { preprocessUserMessage } from "@/lib/message-preprocessing";
+} from "@lightfast/ai/providers";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
 	DropdownMenu,

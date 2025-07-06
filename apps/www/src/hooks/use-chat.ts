@@ -3,11 +3,11 @@
 import { nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
+import { DEFAULT_MODEL_ID } from "@lightfast/ai/providers";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery, useQuery } from "convex/react";
 import { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
-import { DEFAULT_MODEL_ID } from "../lib/ai/schemas";
 import type {
 	LightfastUIMessage,
 	LightfastUIMessageOptions,

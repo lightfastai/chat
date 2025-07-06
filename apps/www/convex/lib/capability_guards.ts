@@ -5,8 +5,7 @@
  * incompatible combinations from reaching the AI providers.
  */
 
-import type { ModelId } from "../../src/lib/ai/schemas.js";
-import { getModelById } from "../../src/lib/ai/schemas.js";
+import { type ModelId, getModelById } from "@lightfast/ai/providers";
 import { internal } from "../_generated/api.js";
 import type { Id } from "../_generated/dataModel.js";
 import type { ActionCtx, QueryCtx } from "../_generated/server.js";

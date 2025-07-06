@@ -1,4 +1,4 @@
-import { type ModelId, getModelById } from "../../src/lib/ai/schemas.js";
+import { type ModelId, getModelById } from "@lightfast/ai/providers";
 
 function createRootSystemPrompt(): string {
 	return `You are an AI assistant powered by Lightfast Chat, created by Lightfast.

@@ -1,4 +1,5 @@
 "use client";
+import type { ModelId } from "@lightfast/ai/providers";
 import type {
 	LightfastToolName,
 	LightfastToolSchemas,
@@ -11,7 +12,6 @@ import type {
 	DbToolCallPart,
 	DbToolResultPart,
 } from "../../convex/types";
-import type { ModelId } from "../lib/ai";
 
 export type LightfastUIMessageOptions = {
 	message: string;

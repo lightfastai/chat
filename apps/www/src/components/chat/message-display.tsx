@@ -1,7 +1,7 @@
 "use client";
 
 import type { Doc } from "@/convex/_generated/dataModel";
-import { getModelDisplayName } from "@/lib/ai";
+import { getModelDisplayName } from "@lightfast/ai/providers";
 import { memo, useState } from "react";
 import { AttachmentPreview } from "./attachment-preview";
 import { MessageActions } from "./message-actions";

@@ -5,7 +5,11 @@
  * client-side and server-side guards for feature support.
  */
 
-import { type ModelFeatures, type ModelId, getModelConfig } from "./schemas";
+import {
+	type ModelFeatures,
+	type ModelId,
+	getModelConfig,
+} from "@lightfast/ai/providers";
 
 export type AttachmentType = "image" | "pdf" | "document" | "unknown";
 
