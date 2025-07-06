@@ -2,18 +2,35 @@ import type { LightfastToolName } from "@lightfast/ai/tools";
 import type { Infer } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type {
+	addErrorPartArgsValidator,
+	addFilePartArgsValidator,
+	addRawPartArgsValidator,
+	addReasoningPartArgsValidator,
+	addSourceDocumentPartArgsValidator,
+	addSourceUrlPartArgsValidator,
+	addTextPartArgsValidator,
+	addToolCallArgsValidator,
+	addToolCallPartArgsValidator,
+	addToolInputStartArgsValidator,
+	addToolInputStartPartArgsValidator,
+	addToolResultArgsValidator,
+	addToolResultPartArgsValidator,
+	errorDetailsValidator,
 	errorPartValidator,
 	filePartValidator,
 	messagePartValidator,
+	messageStatusValidator,
 	reasoningPartValidator,
 	roleValidator,
 	sourceDocumentPartValidator,
 	sourceUrlPartValidator,
 	textPartValidator,
+	tokenUsageValidator,
 	toolCallPartValidator,
 	toolInputStartPartValidator,
 	toolNameValidator,
 	toolResultPartValidator,
+	userApiKeysValidator,
 } from "./validators";
 
 export type DbMessage = Doc<"messages">;
@@ -29,8 +46,43 @@ export type DbSourceDocumentPart = Infer<typeof sourceDocumentPartValidator>;
 export type DbFilePart = Infer<typeof filePartValidator>;
 export type DbMessageRole = Infer<typeof roleValidator>;
 export type DbToolName = Infer<typeof toolNameValidator>;
+export type UserApiKeys = Infer<typeof userApiKeysValidator>;
 
-// Extract specific tool input/output types from the discriminated unions
+// Tool argument types
+export type AddToolCallArgs = Infer<typeof addToolCallArgsValidator>;
+export type AddToolInputStartArgs = Infer<
+	typeof addToolInputStartArgsValidator
+>;
+export type AddToolResultArgs = Infer<typeof addToolResultArgsValidator>;
+
+// Other types
+export type ErrorDetails = Infer<typeof errorDetailsValidator>;
+export type MessageStatus = Infer<typeof messageStatusValidator>;
+export type TokenUsage = NonNullable<Infer<typeof tokenUsageValidator>>;
+
+// Derived type that extracts all possible message part type literals
+export type MessagePartType = DbMessagePart["type"];
+
+// ===== Mutation Argument Types =====
+// These types are inferred from the validators for mutation arguments
+
+export type AddTextPartArgs = Infer<typeof addTextPartArgsValidator>;
+export type AddReasoningPartArgs = Infer<typeof addReasoningPartArgsValidator>;
+export type AddRawPartArgs = Infer<typeof addRawPartArgsValidator>;
+export type AddErrorPartArgs = Infer<typeof addErrorPartArgsValidator>;
+export type AddToolInputStartPartArgs = Infer<
+	typeof addToolInputStartPartArgsValidator
+>;
+export type AddToolCallPartArgs = Infer<typeof addToolCallPartArgsValidator>;
+export type AddToolResultPartArgs = Infer<
+	typeof addToolResultPartArgsValidator
+>;
+export type AddSourceUrlPartArgs = Infer<typeof addSourceUrlPartArgsValidator>;
+export type AddSourceDocumentPartArgs = Infer<
+	typeof addSourceDocumentPartArgsValidator
+>;
+export type AddFilePartArgs = Infer<typeof addFilePartArgsValidator>;
+
 export type DbToolInputForName<T extends LightfastToolName> = Extract<
 	DbToolCallPart["args"],
 	{ toolName: T }

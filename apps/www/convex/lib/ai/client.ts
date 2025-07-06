@@ -4,13 +4,8 @@ import {
 } from "@lightfast/ai/client";
 import type { ModelId } from "@lightfast/ai/providers";
 import type { LanguageModel } from "ai";
-import type { Infer } from "convex/values";
 import { env } from "../../env";
-import { userApiKeysValidator } from "../../validators";
-
-// Infer the UserApiKeys type from the Convex validator
-// This ensures perfect type alignment with the database schema
-export type UserApiKeys = Infer<typeof userApiKeysValidator>;
+import type { UserApiKeys } from "../../types";
 
 /**
  * Create an AI client with API keys from either user settings or environment

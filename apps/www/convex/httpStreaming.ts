@@ -39,6 +39,7 @@ import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai/client";
+import { MessagePartWriter } from "./lib/ai/writer/message-part-writer";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
@@ -48,7 +49,6 @@ import {
 	handleStreamingSetupError,
 	logStreamingError,
 } from "./lib/error_handling";
-import { UnifiedStreamingWriter } from "./lib/streaming_writers";
 import type { DbToolInputForName, DbToolOutputForName } from "./types";
 import type { modelIdValidator } from "./validators";
 
@@ -199,8 +199,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		// Create AI client
 		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
 
-		// Create unified writer for streaming content
-		const writer = new UnifiedStreamingWriter(assistantMessage._id, ctx);
+		// Create message part writer for streaming content
+		const writer = new MessagePartWriter(ctx);
 
 		try {
 			// Prepare generation options
@@ -222,19 +222,19 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					switch (chunk.type) {
 						case "text":
 							if (chunk.text) {
-								writer.appendText(chunk.text);
+								writer.appendText(assistantMessage._id, chunk.text);
 							}
 							break;
 
 						case "reasoning":
 							if (chunk.text) {
-								writer.appendReasoning(chunk.text);
+								writer.appendReasoning(assistantMessage._id, chunk.text);
 							}
 							break;
 
 						case "raw":
 							// Buffer raw part for batch writing
-							writer.appendRaw(chunk.rawValue);
+							writer.appendRaw(assistantMessage._id, chunk.rawValue);
 							break;
 
 						case "tool-input-start": {
@@ -245,12 +245,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							// Type-safe handling based on specific tool version
 							if (inputToolName === "web_search_1_0_0") {
 								// Buffer this chunk instead of writing directly
-								writer.appendToolInputStart(chunk.id, {
+								writer.appendToolInputStart(assistantMessage._id, chunk.id, {
 									toolName: inputToolName,
 								});
 							} else if (inputToolName === "web_search_1_1_0") {
 								// Buffer this chunk instead of writing directly
-								writer.appendToolInputStart(chunk.id, {
+								writer.appendToolInputStart(assistantMessage._id, chunk.id, {
 									toolName: inputToolName,
 								});
 							} else {
@@ -270,13 +270,13 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							// The Convex validator will ensure type safety at runtime
 							if (callToolName === "web_search_1_0_0") {
 								// Buffer this chunk instead of writing directly
-								writer.appendToolCall(chunk.toolCallId, {
+								writer.appendToolCall(assistantMessage._id, chunk.toolCallId, {
 									toolName: "web_search_1_0_0" as const,
 									input: chunk.input as DbToolInputForName<"web_search_1_0_0">, // Runtime validation by Convex validator
 								});
 							} else if (callToolName === "web_search_1_1_0") {
 								// Buffer this chunk instead of writing directly
-								writer.appendToolCall(chunk.toolCallId, {
+								writer.appendToolCall(assistantMessage._id, chunk.toolCallId, {
 									toolName: "web_search_1_1_0" as const,
 									input: chunk.input as DbToolInputForName<"web_search_1_1_0">, // Runtime validation by Convex validator
 								});
@@ -297,20 +297,30 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							// The Convex validator will ensure type safety at runtime
 							if (resultToolName === "web_search_1_0_0") {
 								// Buffer this chunk instead of writing directly
-								writer.appendToolResult(chunk.toolCallId, {
-									toolName: "web_search_1_0_0",
-									input: chunk.input as DbToolInputForName<"web_search_1_0_0">,
-									output:
-										chunk.output as DbToolOutputForName<"web_search_1_0_0">,
-								});
+								writer.appendToolResult(
+									assistantMessage._id,
+									chunk.toolCallId,
+									{
+										toolName: "web_search_1_0_0",
+										input:
+											chunk.input as DbToolInputForName<"web_search_1_0_0">,
+										output:
+											chunk.output as DbToolOutputForName<"web_search_1_0_0">,
+									},
+								);
 							} else if (resultToolName === "web_search_1_1_0") {
 								// Buffer this chunk instead of writing directly
-								writer.appendToolResult(chunk.toolCallId, {
-									toolName: "web_search_1_1_0",
-									input: chunk.input as DbToolInputForName<"web_search_1_1_0">,
-									output:
-										chunk.output as DbToolOutputForName<"web_search_1_1_0">,
-								});
+								writer.appendToolResult(
+									assistantMessage._id,
+									chunk.toolCallId,
+									{
+										toolName: "web_search_1_1_0",
+										input:
+											chunk.input as DbToolInputForName<"web_search_1_1_0">,
+										output:
+											chunk.output as DbToolOutputForName<"web_search_1_1_0">,
+									},
+								);
 							} else {
 								// Handle unknown tool versions
 								console.warn(`Unknown tool name: ${resultToolName}`);
@@ -323,18 +333,18 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							// Buffer source chunks for batch writing
 							if (chunk.sourceType === "url") {
 								writer.appendSourceUrl(
+									assistantMessage._id,
 									chunk.id,
 									chunk.url,
 									chunk.title,
-									chunk.providerMetadata,
 								);
 							} else if (chunk.sourceType === "document") {
 								writer.appendSourceDocument(
+									assistantMessage._id,
 									chunk.id,
 									chunk.mediaType,
 									chunk.title,
 									chunk.filename,
-									chunk.providerMetadata,
 								);
 							}
 							break;

@@ -14,9 +14,16 @@ import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
 import type { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 import {
-	addToolCallArgsValidator,
-	addToolInputStartArgsValidator,
-	addToolResultArgsValidator,
+	addErrorPartArgsValidator,
+	addFilePartArgsValidator,
+	addRawPartArgsValidator,
+	addReasoningPartArgsValidator,
+	addSourceDocumentPartArgsValidator,
+	addSourceUrlPartArgsValidator,
+	addTextPartArgsValidator,
+	addToolCallPartArgsValidator,
+	addToolInputStartPartArgsValidator,
+	addToolResultPartArgsValidator,
 	clientIdValidator,
 	messageStatusValidator,
 	modelIdValidator,
@@ -191,11 +198,7 @@ export const createErrorMessage = internalMutation({
 
 // Internal mutation to add a text part to a message
 export const addTextPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		text: v.string(),
-		timestamp: v.number(),
-	},
+	args: addTextPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -221,49 +224,9 @@ export const addTextPart = internalMutation({
 	},
 });
 
-// Internal mutation to add multiple text parts at once (for batched writes)
-export const addTextParts = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		parts: v.array(
-			v.object({
-				text: v.string(),
-				timestamp: v.number(),
-			}),
-		),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		const currentParts = message.parts || [];
-
-		// Create new text parts with timestamps
-		const newParts: DbTextPart[] = args.parts.map((part) => ({
-			type: "text" as const,
-			text: part.text,
-			timestamp: part.timestamp,
-		}));
-
-		// Append all new parts at once
-		const updatedParts: DbMessagePart[] = [...currentParts, ...newParts];
-
-		await ctx.db.patch(args.messageId, {
-			parts: updatedParts,
-		});
-
-		return null;
-	},
-});
-
 // Internal mutation to add a reasoning part to a message
 export const addReasoningPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		text: v.string(),
-		timestamp: v.number(),
-	},
+	args: addReasoningPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -289,49 +252,9 @@ export const addReasoningPart = internalMutation({
 	},
 });
 
-// Internal mutation to add multiple reasoning parts at once (for batched writes)
-export const addReasoningParts = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		parts: v.array(
-			v.object({
-				text: v.string(),
-				timestamp: v.number(),
-			}),
-		),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		const message = await ctx.db.get(args.messageId);
-		if (!message) return null;
-
-		const currentParts = message.parts || [];
-
-		// Create new reasoning parts with timestamps
-		const newParts: DbReasoningPart[] = args.parts.map((part) => ({
-			type: "reasoning" as const,
-			text: part.text,
-			timestamp: part.timestamp,
-		}));
-
-		// Append all new parts at once
-		const updatedParts: DbMessagePart[] = [...currentParts, ...newParts];
-
-		await ctx.db.patch(args.messageId, {
-			parts: updatedParts,
-		});
-
-		return null;
-	},
-});
-
 // Internal mutation to add an error part to a message
 export const addErrorPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		errorMessage: v.string(),
-		errorDetails: v.optional(v.any()),
-	},
+	args: addErrorPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -360,12 +283,7 @@ export const addErrorPart = internalMutation({
 
 // Internal mutation to add a tool input start part to a message
 export const addToolInputStartPart = internalMutation({
-	args: v.object({
-		messageId: v.id("messages"),
-		toolCallId: v.string(),
-		timestamp: v.number(),
-		args: addToolInputStartArgsValidator,
-	}),
+	args: addToolInputStartPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -392,12 +310,7 @@ export const addToolInputStartPart = internalMutation({
 
 // Internal mutation to add a tool call part to a message
 export const addToolCallPart = internalMutation({
-	args: v.object({
-		messageId: v.id("messages"),
-		toolCallId: v.string(),
-		timestamp: v.number(),
-		args: addToolCallArgsValidator,
-	}),
+	args: addToolCallPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -424,12 +337,7 @@ export const addToolCallPart = internalMutation({
 
 // Internal mutation to update a tool call part in a message
 export const addToolResultCallPart = internalMutation({
-	args: v.object({
-		messageId: v.id("messages"),
-		toolCallId: v.string(),
-		timestamp: v.number(),
-		args: addToolResultArgsValidator,
-	}),
+	args: addToolResultPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -456,14 +364,7 @@ export const addToolResultCallPart = internalMutation({
 });
 
 export const addSourceUrlPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		sourceId: v.string(),
-		url: v.string(),
-		title: v.optional(v.string()),
-		providerMetadata: v.optional(v.any()),
-		timestamp: v.number(),
-	},
+	args: addSourceUrlPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -477,7 +378,6 @@ export const addSourceUrlPart = internalMutation({
 				sourceId: args.sourceId,
 				url: args.url,
 				title: args.title,
-				providerMetadata: args.providerMetadata,
 				timestamp: args.timestamp,
 			},
 		];
@@ -491,15 +391,7 @@ export const addSourceUrlPart = internalMutation({
 });
 
 export const addSourceDocumentPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		sourceId: v.string(),
-		mediaType: v.string(),
-		title: v.string(),
-		filename: v.optional(v.string()),
-		providerMetadata: v.optional(v.any()),
-		timestamp: v.number(),
-	},
+	args: addSourceDocumentPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -514,7 +406,6 @@ export const addSourceDocumentPart = internalMutation({
 				mediaType: args.mediaType,
 				title: args.title,
 				filename: args.filename,
-				providerMetadata: args.providerMetadata,
 				timestamp: args.timestamp,
 			},
 		];
@@ -528,13 +419,7 @@ export const addSourceDocumentPart = internalMutation({
 });
 
 export const addFilePart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		mediaType: v.string(),
-		filename: v.optional(v.string()),
-		url: v.string(),
-		timestamp: v.number(),
-	},
+	args: addFilePartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -665,11 +550,7 @@ export const addUsage = internalMutation({
 });
 
 export const addRawPart = internalMutation({
-	args: {
-		messageId: v.id("messages"),
-		rawValue: v.any(),
-		timestamp: v.number(),
-	},
+	args: addRawPartArgsValidator,
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.messageId, {

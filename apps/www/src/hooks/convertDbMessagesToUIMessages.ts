@@ -243,7 +243,6 @@ export function convertDbMessagesToUIMessages(
 							sourceId: part.sourceId,
 							url: part.url,
 							title: part.title,
-							providerMetadata: part.providerMetadata,
 						};
 
 					case "source-document":
@@ -253,7 +252,6 @@ export function convertDbMessagesToUIMessages(
 							mediaType: part.mediaType,
 							title: part.title,
 							filename: part.filename,
-							providerMetadata: part.providerMetadata,
 						};
 
 					case "file":

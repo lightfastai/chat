@@ -347,7 +347,6 @@ export const sourceUrlPartValidator = v.object({
 	sourceId: v.string(),
 	url: v.string(),
 	title: v.optional(v.string()),
-	providerMetadata: v.optional(v.any()),
 	timestamp: v.number(),
 });
 
@@ -358,7 +357,6 @@ export const sourceDocumentPartValidator = v.object({
 	mediaType: v.string(),
 	title: v.string(),
 	filename: v.optional(v.string()),
-	providerMetadata: v.optional(v.any()),
 	timestamp: v.number(),
 });
 
@@ -464,6 +462,187 @@ export const messagePartValidator = v.union(
 
 // Array of message parts validator
 export const messagePartsValidator = v.array(messagePartValidator);
+
+// ===== Chunk Data Validators =====
+// These validators define the data structure for buffered chunks (without messageId)
+
+// Text chunk data
+export const textChunkValidator = v.object({
+	type: v.literal("text"),
+	text: v.string(),
+	timestamp: v.number(),
+});
+
+// Reasoning chunk data
+export const reasoningChunkValidator = v.object({
+	type: v.literal("reasoning"),
+	text: v.string(),
+	timestamp: v.number(),
+});
+
+// Raw chunk data
+export const rawChunkValidator = v.object({
+	type: v.literal("raw"),
+	rawValue: v.any(),
+	timestamp: v.number(),
+});
+
+// Error chunk data
+export const errorChunkValidator = v.object({
+	type: v.literal("error"),
+	errorMessage: v.string(),
+	errorDetails: v.optional(errorDetailsValidator),
+	timestamp: v.number(),
+});
+
+// Tool input start chunk data
+export const toolInputStartChunkValidator = v.object({
+	type: v.literal("tool-input-start"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolInputStartArgsValidator,
+});
+
+// Tool call chunk data
+export const toolCallChunkValidator = v.object({
+	type: v.literal("tool-call"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolCallArgsValidator,
+});
+
+// Tool result chunk data
+export const toolResultChunkValidator = v.object({
+	type: v.literal("tool-result"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolResultArgsValidator,
+});
+
+// Source URL chunk data
+export const sourceUrlChunkValidator = v.object({
+	type: v.literal("source-url"),
+	sourceId: v.string(),
+	url: v.string(),
+	title: v.optional(v.string()),
+	timestamp: v.number(),
+});
+
+// Source document chunk data
+export const sourceDocumentChunkValidator = v.object({
+	type: v.literal("source-document"),
+	sourceId: v.string(),
+	mediaType: v.string(),
+	title: v.string(),
+	filename: v.optional(v.string()),
+	timestamp: v.number(),
+});
+
+// File chunk data
+export const fileChunkValidator = v.object({
+	type: v.literal("file"),
+	mediaType: v.string(),
+	filename: v.optional(v.string()),
+	url: v.string(),
+	timestamp: v.number(),
+});
+
+// Union of all chunk types for buffering
+export const bufferedChunkValidator = v.union(
+	textChunkValidator,
+	reasoningChunkValidator,
+	rawChunkValidator,
+	errorChunkValidator,
+	toolInputStartChunkValidator,
+	toolCallChunkValidator,
+	toolResultChunkValidator,
+	sourceUrlChunkValidator,
+	sourceDocumentChunkValidator,
+	fileChunkValidator,
+);
+
+// ===== Mutation Argument Validators =====
+// These validators define the arguments for message part mutations
+
+// Add text part mutation args
+export const addTextPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	text: v.string(),
+	timestamp: v.number(),
+});
+
+// Add reasoning part mutation args
+export const addReasoningPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	text: v.string(),
+	timestamp: v.number(),
+});
+
+// Add raw part mutation args
+export const addRawPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	rawValue: v.any(),
+	timestamp: v.number(),
+});
+
+// Add error part mutation args
+export const addErrorPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	errorMessage: v.string(),
+	errorDetails: v.optional(errorDetailsValidator),
+});
+
+// Add tool input start part mutation args
+export const addToolInputStartPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolInputStartArgsValidator,
+});
+
+// Add tool call part mutation args
+export const addToolCallPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolCallArgsValidator,
+});
+
+// Add tool result part mutation args
+export const addToolResultPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	toolCallId: v.string(),
+	timestamp: v.number(),
+	args: addToolResultArgsValidator,
+});
+
+// Add source URL part mutation args
+export const addSourceUrlPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	sourceId: v.string(),
+	url: v.string(),
+	title: v.optional(v.string()),
+	timestamp: v.number(),
+});
+
+// Add source document part mutation args
+export const addSourceDocumentPartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	sourceId: v.string(),
+	mediaType: v.string(),
+	title: v.string(),
+	filename: v.optional(v.string()),
+	timestamp: v.number(),
+});
+
+// Add file part mutation args
+export const addFilePartArgsValidator = v.object({
+	messageId: v.id("messages"),
+	mediaType: v.string(),
+	filename: v.optional(v.string()),
+	url: v.string(),
+	timestamp: v.number(),
+});
 
 // ===== Validation Functions =====
 // Title validation
