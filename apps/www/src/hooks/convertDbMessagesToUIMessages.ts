@@ -82,33 +82,6 @@ export const convertUIMessageToDbParts = (
 						default:
 							return null;
 					}
-				case "tool-web_search_2_0_0":
-					switch (part.state) {
-						case "input-streaming":
-						case "input-available":
-							return {
-								type: "tool-call",
-								args: {
-									toolName: "web_search_2_0_0",
-									input: part.input as any,
-								},
-								toolCallId: part.toolCallId,
-								timestamp: Date.now(),
-							};
-						case "output-available":
-							return {
-								type: "tool-result",
-								args: {
-									toolName: "web_search_2_0_0",
-									input: part.input,
-									output: part.output,
-								},
-								toolCallId: part.toolCallId,
-								timestamp: Date.now(),
-							};
-						default:
-							return null;
-					}
 				default:
 					return null;
 			}

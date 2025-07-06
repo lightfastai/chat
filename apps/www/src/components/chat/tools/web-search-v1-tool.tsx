@@ -13,6 +13,7 @@ import {
   Globe,
   Loader2, Sparkles
 } from "lucide-react";
+import Link from "next/link";
 import type {
   DbErrorPart,
   DbToolCallPart,
@@ -118,18 +119,18 @@ export function WebSearchV1Tool({ toolCall, error }: WebSearchV1ToolProps) {
 	}
 
 	return (
-		<div className="my-6 border rounded-lg px-4 py-1">
+		<div className="my-6 border rounded-lg">
 			<Accordion type="single" collapsible className="w-full">
 				<AccordionItem value={accordionValue}>
-					<AccordionTrigger className="py-2">
-						<div className="flex items-center gap-2">
+					<AccordionTrigger className="py-3 px-4 hover:no-underline data-[state=closed]:hover:bg-muted/50 items-center">
+						<div className="flex items-center gap-2 flex-1">
 							{state === "input-available" ? (
 								<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
 							) : (
 								<Globe className="h-4 w-4 text-muted-foreground" />
 							)}
-							<div className="text-left">
-								<div className="font-medium lowercase">
+							<div className="text-left flex-1">
+								<div className="font-medium text-xs lowercase text-muted-foreground">
 									{state === "input-available"
 										? `Searching with ${metadata.displayName}...`
 										: searchQuery}
@@ -147,50 +148,43 @@ export function WebSearchV1Tool({ toolCall, error }: WebSearchV1ToolProps) {
 									</p>
 								)} */}
 							</div>
+							{state === "output-available" && (
+								<span className="text-xs text-muted-foreground/70">
+									{resultCount} results
+								</span>
+							)}
 						</div>
 					</AccordionTrigger>
-					<AccordionContent>
+					<AccordionContent className="px-4">
 						{state === "input-available" ? (
-							<div className="text-sm text-muted-foreground py-2">
-								<div className="flex items-center gap-2">
-									<Loader2 className="h-3 w-3 animate-spin" />
-									Searching for relevant information...
+							<div className="pt-3">
+								<div className="group flex items-center gap-3 rounded-lg p-2 px-3">
+									<Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+									<span className="text-xs font-medium text-muted-foreground flex-1">
+										Searching for relevant information...
+									</span>
 								</div>
 							</div>
 						) : results && results.length > 0 ? (
-							<div className="divide-y">
+							<div className="pt-3">
 								{results.map((result, index) => (
 									<div
 										key={`${toolCall.toolCallId}-v1-result-${index}`}
-										className="py-3 first:pt-0 last:pb-0"
 									>
-										<a
+										<Link
 											href={result.url}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="group flex items-start gap-2"
+											className="group flex items-center gap-3 hover:bg-muted/50 rounded-sm p-2 px-3"
 										>
-											<div className="flex-1">
-												<h4 className="text-sm font-medium text-blue-600 group-hover:underline dark:text-blue-400">
-													{result.title}
-												</h4>
-												{result.snippet && (
-													<p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-														{result.snippet}
-													</p>
-												)}
-												<div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground/70">
-													<span>{new URL(result.url).hostname}</span>
-													{result.score !== undefined && (
-														<>
-															<span>•</span>
-															<span>Score: {result.score.toFixed(2)}</span>
-														</>
-													)}
-												</div>
-											</div>
+											<h4 className="text-xs font-medium text-foreground flex-1 truncate">
+												{result.title}
+											</h4>
+											<span className="text-xs text-muted-foreground/70 shrink-0">
+												{new URL(result.url).hostname}
+											</span>
 											<ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground/50" />
-										</a>
+										</Link>
 									</div>
 								))}
 							</div>

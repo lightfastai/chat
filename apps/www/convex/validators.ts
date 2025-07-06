@@ -58,41 +58,6 @@ const webSearchV1OutputValidator = v.object({
 	autopromptString: v.optional(v.string()),
 });
 
-// Web Search v2.0.0 - Advanced search with filters and metadata
-const webSearchV2InputValidator = v.object({
-	search: v.object({
-		text: v.string(),
-		mode: v.union(v.literal("smart"), v.literal("exact"), v.literal("fuzzy")),
-	}),
-	filters: v.optional(
-		v.object({
-			domains: v.optional(v.array(v.string())),
-			dateRange: v.optional(
-				v.object({
-					from: v.optional(v.string()),
-					to: v.optional(v.string()),
-				}),
-			),
-			excludeTerms: v.optional(v.array(v.string())),
-		}),
-	),
-	options: v.optional(
-		v.object({
-			limit: v.number(),
-			includeMetadata: v.boolean(),
-			language: v.optional(
-				v.union(
-					v.literal("en"),
-					v.literal("es"),
-					v.literal("fr"),
-					v.literal("de"),
-					v.literal("ja"),
-				),
-			),
-		}),
-	),
-});
-
 const webSearchV2OutputValidator = v.object({
 	results: v.array(
 		v.object({
@@ -405,11 +370,6 @@ export const addToolCallArgsValidator = v.union(
 	v.object({
 		toolName: v.literal("web_search_1_0_0"),
 		input: webSearchV1InputValidator,
-	}),
-	// Web search v2.0.0 - Advanced search with filters
-	v.object({
-		toolName: v.literal("web_search_2_0_0"),
-		input: webSearchV2InputValidator,
 	}),
 	// Add more versioned tools here as they are defined
 );
