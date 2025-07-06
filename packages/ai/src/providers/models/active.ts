@@ -32,7 +32,7 @@ export const ACTIVE_MODELS = {
 		displayName: "GPT-4o",
 		description: "Most capable GPT-4 model with vision capabilities",
 		maxTokens: 128000,
-		costPer1KTokens: { input: 0.003, output: 0.01 },
+		costPer1KTokens: { input: 0.0025, output: 0.01 },
 		features: {
 			streaming: true,
 			functionCalling: true,
