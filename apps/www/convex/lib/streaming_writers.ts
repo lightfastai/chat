@@ -7,7 +7,7 @@ import type { ActionCtx } from "../_generated/server.js";
  * Uses setInterval to ensure consistent 250ms flushes during active streaming.
  */
 export class StreamingTextWriter {
-	private buffer: string[] = [];
+	private buffer: Array<{ text: string; timestamp: number }> = [];
 	private interval: NodeJS.Timeout | null = null;
 	private readonly flushDelay = 250; // ms
 	private isIntervalActive = false;
@@ -21,7 +21,7 @@ export class StreamingTextWriter {
 	 * Append text chunk - buffers for batched writing
 	 */
 	append(text: string): void {
-		this.buffer.push(text);
+		this.buffer.push({ text, timestamp: Date.now() });
 		this.scheduleFlush();
 	}
 
@@ -57,14 +57,14 @@ export class StreamingTextWriter {
 			return;
 		}
 
-		const texts = [...this.buffer];
+		const chunks = [...this.buffer];
 		this.buffer = [];
 
-		// Create timestamp for this batch
-		const batchTimestamp = Date.now();
+		// Use the earliest timestamp from the batch
+		const batchTimestamp = Math.min(...chunks.map(chunk => chunk.timestamp));
 
 		// Concatenate all chunks into a single text part
-		const combinedText = texts.join("");
+		const combinedText = chunks.map(chunk => chunk.text).join("");
 
 		// Write as a single text part
 		await this.ctx.runMutation(internal.messages.addTextPart, {
@@ -100,7 +100,7 @@ export class StreamingTextWriter {
  * Uses setInterval to ensure consistent 300ms flushes during active streaming.
  */
 export class StreamingReasoningWriter {
-	private buffer: string[] = [];
+	private buffer: Array<{ text: string; timestamp: number }> = [];
 	private interval: NodeJS.Timeout | null = null;
 	private readonly flushDelay = 300; // ms
 	private isIntervalActive = false;
@@ -114,7 +114,7 @@ export class StreamingReasoningWriter {
 	 * Append reasoning chunk - buffers for batched writing
 	 */
 	append(text: string): void {
-		this.buffer.push(text);
+		this.buffer.push({ text, timestamp: Date.now() });
 		this.scheduleFlush();
 	}
 
@@ -150,14 +150,14 @@ export class StreamingReasoningWriter {
 			return;
 		}
 
-		const texts = [...this.buffer];
+		const chunks = [...this.buffer];
 		this.buffer = [];
 
-		// Create timestamp for this batch
-		const batchTimestamp = Date.now();
+		// Use the earliest timestamp from the batch
+		const batchTimestamp = Math.min(...chunks.map(chunk => chunk.timestamp));
 
 		// Concatenate all chunks into a single reasoning part
-		const combinedText = texts.join("");
+		const combinedText = chunks.map(chunk => chunk.text).join("");
 
 		// Write as a single reasoning part
 		await this.ctx.runMutation(internal.messages.addReasoningPart, {
