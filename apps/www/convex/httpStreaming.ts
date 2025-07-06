@@ -297,16 +297,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 									},
 									timestamp: chunkTimestamp,
 								});
-							} else if (callToolName === "web_search_2_0_0") {
-								await ctx.runMutation(internal.messages.addToolCallPart, {
-									messageId: assistantMessage._id,
-									toolCallId: chunk.toolCallId,
-									args: {
-										toolName: "web_search_2_0_0" as const,
-										input: chunk.input as any, // Runtime validation by Convex validator
-									},
-									timestamp: chunkTimestamp,
-								});
 							} else {
 								// Handle unknown tool versions
 								console.warn(`Unknown tool name: ${callToolName}`);
