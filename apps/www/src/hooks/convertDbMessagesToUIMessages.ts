@@ -118,24 +118,30 @@ export function convertUIPartToDbPart(
 	part: LightfastUIMessagePart,
 	timestamp: number,
 ): DbMessagePart | null {
-	switch (part.type) {
-		case "text":
-			return {
-				type: "text",
-				text: part.text,
-				timestamp,
-			};
-		case "reasoning":
-			return {
-				type: "reasoning",
-				text: part.text,
-				timestamp,
-			};
-		case "tool-web_search_1_0_0":
-			return convertToolPartToDb(part, timestamp);
-		default:
-			return null;
+	// Handle text-based parts
+	if (part.type === "text") {
+		return {
+			type: "text",
+			text: part.text,
+			timestamp,
+		};
 	}
+	
+	if (part.type === "reasoning") {
+		return {
+			type: "reasoning",
+			text: part.text,
+			timestamp,
+		};
+	}
+	
+	// Handle tool parts generically
+	if (part.type.startsWith("tool-") && "toolCallId" in part && "state" in part) {
+		return convertToolPartToDb(part as Extract<LightfastUIMessagePart, { type: `tool-${string}` }>, timestamp);
+	}
+	
+	// Other part types not supported in DB conversion
+	return null;
 }
 
 export const convertUIMessageToDbParts = (
