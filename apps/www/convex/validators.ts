@@ -58,27 +58,6 @@ const webSearchV1OutputValidator = v.object({
 	autopromptString: v.optional(v.string()),
 });
 
-const webSearchV2OutputValidator = v.object({
-	results: v.array(
-		v.object({
-			title: v.string(),
-			url: v.string(),
-			snippet: v.optional(v.string()),
-			score: v.optional(v.number()),
-			publishedDate: v.optional(v.string()),
-			author: v.optional(v.string()),
-			highlights: v.optional(v.array(v.string())),
-		}),
-	),
-	query: v.string(),
-	autopromptString: v.optional(v.string()),
-	searchType: v.union(v.literal("neural"), v.literal("keyword")),
-	totalResults: v.number(),
-	metadata: v.object({
-		searchTime: v.number(),
-		version: v.literal("2_0_0"),
-	}),
-});
 
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
 // 'submitted' - Message sent to API, awaiting response stream start
@@ -379,9 +358,6 @@ export const addToolInputStartArgsValidator = v.union(
 	// Web search tools
 	v.object({
 		toolName: v.literal("web_search_1_0_0"),
-	}),
-	v.object({
-		toolName: v.literal("web_search_2_0_0"),
 	}),
 	// Add more versioned tools here as they are defined
 );

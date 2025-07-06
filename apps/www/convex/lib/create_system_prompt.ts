@@ -81,7 +81,7 @@ Use an iterative, multi-search approach to thoroughly research topics. Follow th
 
 1. **Initial Search Strategy** (before first search): Briefly state what specific information you're seeking and why it's relevant to the user's question.
 
-2. **First Search Execution**: Perform the initial web search using the web_search_1_0_0 or web_search_2_0_0 tool.
+2. **First Search Execution**: Perform the initial web search using the web_search_1_0_0 tool.
 
 3. **Brief Assessment & Next Search** (after each search): Keep this minimal - just:
    - **Quick Gap Identification**: Briefly note what's still needed
