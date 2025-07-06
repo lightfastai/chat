@@ -3,15 +3,15 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 
 // Import proper encryption utilities
-import { decrypt, encrypt } from "./lib/encryption_service";
+import { decrypt, encrypt } from "./lib/services/encryption";
 
 // Import validators
 import {
-	anthropicApiKeyValidator,
-	modelIdValidator,
-	modelProviderValidator,
-	openaiApiKeyValidator,
-	openrouterApiKeyValidator,
+  anthropicApiKeyValidator,
+  modelIdValidator,
+  modelProviderValidator,
+  openaiApiKeyValidator,
+  openrouterApiKeyValidator,
 } from "./validators";
 
 // Get user settings
