@@ -11,29 +11,29 @@
  */
 
 import {
-	type ModelMessage,
-	convertToModelMessages,
-	smoothStream,
-	streamText,
+  type ModelMessage,
+  convertToModelMessages,
+  smoothStream,
+  streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import {
-	type LightfastUIMessage,
-	convertDbMessagesToUIMessages,
+  type LightfastUIMessage,
+  convertDbMessagesToUIMessages,
 } from "../src/hooks/convertDbMessagesToUIMessages";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-	getModelById,
-	getModelConfig,
-	getModelStreamingDelay,
-	getProviderFromModelId,
-	isThinkingMode,
+  getModelById,
+  getModelConfig,
+  getModelStreamingDelay,
+  getProviderFromModelId,
+  isThinkingMode,
 } from "../src/lib/ai/schemas";
 import {
-	LIGHTFAST_TOOLS,
-	type LightfastToolSet,
-	validateToolName,
+  LIGHTFAST_TOOLS,
+  type LightfastToolSet,
+  validateToolName,
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -42,16 +42,13 @@ import { createAIClient } from "./lib/ai_client";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-	createHTTPErrorResponse,
-	extractErrorDetails,
-	formatErrorMessage,
-	handleStreamingSetupError,
-	logStreamingError,
+  createHTTPErrorResponse,
+  extractErrorDetails,
+  formatErrorMessage,
+  handleStreamingSetupError,
+  logStreamingError,
 } from "./lib/error_handling";
-import {
-	StreamingReasoningWriter,
-	StreamingTextWriter,
-} from "./lib/streaming_writers";
+import { UnifiedStreamingWriter } from "./lib/streaming_writers";
 import type { DbToolInputForName, DbToolOutputForName } from "./types";
 import type { modelIdValidator } from "./validators";
 
@@ -206,12 +203,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		// Create AI client
 		const ai = createAIClient(modelId as ModelId, userApiKeys || undefined);
 
-		// Create debounced writers for streaming content
-		const textWriter = new StreamingTextWriter(assistantMessage._id, ctx);
-		const reasoningWriter = new StreamingReasoningWriter(
-			assistantMessage._id,
-			ctx,
-		);
+		// Create unified writer for streaming content
+		const writer = new UnifiedStreamingWriter(assistantMessage._id, ctx);
 
 		try {
 			// Prepare generation options
@@ -229,33 +222,27 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					chunking: "word",
 				}),
 				onChunk: async ({ chunk }) => {
-					const chunkTimestamp = Date.now();
-
 					// Handle Vercel AI SDK v5 chunk types
 					switch (chunk.type) {
 						case "text":
 							if (chunk.text) {
-								textWriter.append(chunk.text);
+								writer.appendText(chunk.text);
 							}
 							break;
 
 						case "reasoning":
 							if (chunk.text) {
-								reasoningWriter.append(chunk.text);
+								writer.appendReasoning(chunk.text);
 							}
 							break;
 
 						case "raw":
-							// Add raw part for unstructured data with chunk timestamp
-							await ctx.runMutation(internal.messages.addRawPart, {
-								messageId: assistantMessage._id,
-								rawValue: chunk.rawValue,
-								timestamp: chunkTimestamp,
-							});
+							// Buffer raw part for batch writing
+							writer.appendRaw(chunk.rawValue);
 							break;
 
 						case "tool-input-start": {
-							// Add tool input start to database with chunk timestamp
+							// Buffer tool input start for batch writing
 							// Note: chunk.toolName now includes version (e.g., "web_search_1_0_0")
 							const inputToolName = validateToolName(chunk.toolName);
 
@@ -264,13 +251,9 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								inputToolName === "web_search_1_0_0" ||
 								inputToolName === "web_search_1_0_0"
 							) {
-								await ctx.runMutation(internal.messages.addToolInputStartPart, {
-									messageId: assistantMessage._id,
-									toolCallId: chunk.id,
-									args: {
-										toolName: inputToolName,
-									},
-									timestamp: chunkTimestamp,
+								// Buffer this chunk instead of writing directly
+								writer.appendToolInputStart(chunk.id, {
+									toolName: inputToolName,
 								});
 							} else {
 								// Handle unknown tool versions
@@ -280,7 +263,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						}
 
 						case "tool-call": {
-							// Add tool call to database with chunk timestamp
+							// Buffer tool call for batch writing
 							// Note: chunk.toolName now includes version (e.g., "web_search_1_0_0")
 							const callToolName = validateToolName(chunk.toolName);
 
@@ -288,15 +271,10 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							// Note: We use type assertion here because the AI SDK doesn't know about our versioned naming
 							// The Convex validator will ensure type safety at runtime
 							if (callToolName === "web_search_1_0_0") {
-								await ctx.runMutation(internal.messages.addToolCallPart, {
-									messageId: assistantMessage._id,
-									toolCallId: chunk.toolCallId,
-									args: {
-										toolName: "web_search_1_0_0" as const,
-										input:
-											chunk.input as DbToolInputForName<"web_search_1_0_0">, // Runtime validation by Convex validator
-									},
-									timestamp: chunkTimestamp,
+								// Buffer this chunk instead of writing directly
+								writer.appendToolCall(chunk.toolCallId, {
+									toolName: "web_search_1_0_0" as const,
+									input: chunk.input as DbToolInputForName<"web_search_1_0_0">, // Runtime validation by Convex validator
 								});
 							} else {
 								// Handle unknown tool versions
@@ -306,7 +284,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						}
 
 						case "tool-result": {
-							// Update tool call with result
+							// Buffer tool result for batch writing
 							// Note: chunk.toolName now includes version (e.g., "web_search_1_0_0")
 							const resultToolName = validateToolName(chunk.toolName);
 
@@ -314,17 +292,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							// Note: We use type assertion here because the AI SDK doesn't know about our versioned naming
 							// The Convex validator will ensure type safety at runtime
 							if (resultToolName === "web_search_1_0_0") {
-								await ctx.runMutation(internal.messages.addToolResultCallPart, {
-									messageId: assistantMessage._id,
-									toolCallId: chunk.toolCallId,
-									args: {
-										toolName: "web_search_1_0_0",
-										input:
-											chunk.input as DbToolInputForName<"web_search_1_0_0">,
-										output:
-											chunk.output as DbToolOutputForName<"web_search_1_0_0">,
-									},
-									timestamp: chunkTimestamp,
+								// Buffer this chunk instead of writing directly
+								writer.appendToolResult(chunk.toolCallId, {
+									toolName: "web_search_1_0_0",
+									input: chunk.input as DbToolInputForName<"web_search_1_0_0">,
+									output:
+										chunk.output as DbToolOutputForName<"web_search_1_0_0">,
 								});
 							} else {
 								// Handle unknown tool versions
@@ -334,25 +307,22 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						}
 
 						case "source":
+							// Buffer source chunks for batch writing
 							if (chunk.sourceType === "url") {
-								await ctx.runMutation(internal.messages.addSourceUrlPart, {
-									messageId: assistantMessage._id,
-									sourceId: chunk.id,
-									url: chunk.url,
-									title: chunk.title,
-									providerMetadata: chunk.providerMetadata,
-									timestamp: chunkTimestamp,
-								});
+								writer.appendSourceUrl(
+									chunk.id,
+									chunk.url,
+									chunk.title,
+									chunk.providerMetadata,
+								);
 							} else if (chunk.sourceType === "document") {
-								await ctx.runMutation(internal.messages.addSourceDocumentPart, {
-									messageId: assistantMessage._id,
-									sourceId: chunk.id,
-									mediaType: chunk.mediaType,
-									title: chunk.title,
-									filename: chunk.filename,
-									providerMetadata: chunk.providerMetadata,
-									timestamp: chunkTimestamp,
-								});
+								writer.appendSourceDocument(
+									chunk.id,
+									chunk.mediaType,
+									chunk.title,
+									chunk.filename,
+									chunk.providerMetadata,
+								);
 							}
 							break;
 
@@ -361,22 +331,13 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							console.warn("Unexpected chunk type:", chunk.type, chunk);
 					}
 				},
-				onStepFinish: async (stepResult) => {
-					if (stepResult.reasoning.length > 0) {
-						await reasoningWriter.flush();
-					}
-
-					if (stepResult.text.length > 0) {
-						await textWriter.flush();
-					}
+				onStepFinish: async () => {
+					// Flush unified writer on step finish
+					await writer.flush();
 				},
 				onFinish: async (result) => {
-					// Flush any remaining content
-					await Promise.all([textWriter.flush(), reasoningWriter.flush()]);
-
-					// Clean up writers
-					textWriter.dispose();
-					reasoningWriter.dispose();
+					// Dispose writer (which also flushes any remaining content)
+					await writer.dispose();
 
 					await ctx.runMutation(internal.messages.addUsage, {
 						messageId: assistantMessage._id,
@@ -396,15 +357,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 					});
 				},
 				onError: async ({ error }) => {
-					// Flush any partial content
-					await Promise.all([
-						textWriter.flush().catch(console.error),
-						reasoningWriter.flush().catch(console.error),
-					]);
-
-					// Clean up writers
-					textWriter.dispose();
-					reasoningWriter.dispose();
+					// Dispose writer (which also flushes any partial content)
+					await writer.dispose();
 
 					// Use enhanced composable error handling functions
 					logStreamingError(error, "StreamingResponse");
@@ -475,14 +429,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				},
 			});
 		} catch (error) {
-			// Clean up writers on error
-			await Promise.all([
-				textWriter.flush().catch(console.error),
-				reasoningWriter.flush().catch(console.error),
-			]);
-
-			textWriter.dispose();
-			reasoningWriter.dispose();
+			// Clean up writer on error
+			await writer.dispose();
 
 			// Handle error that occurred during streaming setup
 			await handleStreamingSetupError(

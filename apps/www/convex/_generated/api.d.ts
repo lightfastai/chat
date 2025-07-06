@@ -28,6 +28,7 @@ import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_error_handling from "../lib/error_handling.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_streaming_writers from "../lib/streaming_writers.js";
+import type * as lib_unified_streaming_writer from "../lib/unified_streaming_writer.js";
 import type * as messages_types from "../messages/types.js";
 import type * as messages from "../messages.js";
 import type * as setup from "../setup.js";
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   "lib/error_handling": typeof lib_error_handling;
   "lib/errors": typeof lib_errors;
   "lib/streaming_writers": typeof lib_streaming_writers;
+  "lib/unified_streaming_writer": typeof lib_unified_streaming_writer;
   "messages/types": typeof messages_types;
   messages: typeof messages;
   setup: typeof setup;
