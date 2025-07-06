@@ -1,5 +1,6 @@
 "use client";
 
+import { isLightfastToolName } from "@lightfast/ai/tools";
 import { memo } from "react";
 import type {
 	DbErrorPart,
@@ -7,7 +8,6 @@ import type {
 	DbToolInputStartPart,
 	DbToolResultPart,
 } from "../../../../convex/types";
-import { isLightfastToolName } from "@lightfast/ai/tools";
 import { GenericToolDisplay } from "./generic-tool-display";
 import { WebSearchV1_1Tool } from "./web-search-v1-1-tool";
 import { WebSearchV1Tool } from "./web-search-v1-tool";

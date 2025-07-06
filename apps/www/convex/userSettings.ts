@@ -155,7 +155,8 @@ export const removeApiKey = mutation({
 		provider: modelProviderValidator,
 	},
 	returns: v.object({ success: v.boolean() }),
-	handler: async (ctx, { provider }) => {
+	handler: async (ctx, args) => {
+		const provider = args.provider;
 		const userId = await getAuthUserId(ctx);
 		if (!userId) {
 			throw new ConvexError("Unauthorized");
@@ -171,7 +172,9 @@ export const removeApiKey = mutation({
 		}
 
 		const apiKeys = { ...existingSettings.apiKeys };
-		delete apiKeys[provider];
+		// TypeScript needs explicit type narrowing for the provider key
+		const key = provider as keyof typeof apiKeys;
+		delete apiKeys[key];
 
 		await ctx.db.patch(existingSettings._id, {
 			apiKeys,

@@ -47,17 +47,6 @@ export const MODEL_CAPABILITIES: ModelCapability[] = [
 ];
 
 /**
- * Check if a model supports a specific capability
- */
-export function modelSupportsCapability(
-	modelId: ModelId,
-	capability: keyof ModelFeatures,
-): boolean {
-	const config = getModelConfig(modelId);
-	return config.features[capability] === true;
-}
-
-/**
  * Get all capabilities supported by a model
  */
 export function getModelCapabilities(modelId: ModelId): ModelCapability[] {
@@ -65,62 +54,6 @@ export function getModelCapabilities(modelId: ModelId): ModelCapability[] {
 	return MODEL_CAPABILITIES.filter(
 		(capability) => config.features[capability.key] === true,
 	);
-}
-
-/**
- * Determine attachment type from file type or name
- */
-export function getAttachmentType(
-	fileType: string,
-	fileName?: string,
-): AttachmentType {
-	if (fileType.startsWith("image/")) {
-		return "image";
-	}
-
-	if (
-		fileType === "application/pdf" ||
-		fileName?.toLowerCase().endsWith(".pdf")
-	) {
-		return "pdf";
-	}
-
-	// Text files, Word docs, etc.
-	if (
-		fileType.startsWith("text/") ||
-		fileType === "application/msword" ||
-		fileType ===
-			"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-	) {
-		return "document";
-	}
-
-	return "unknown";
-}
-
-/**
- * Check if a model can handle a specific attachment type
- */
-export function modelSupportsAttachment(
-	modelId: ModelId,
-	attachmentType: AttachmentType,
-): boolean {
-	const config = getModelConfig(modelId);
-
-	switch (attachmentType) {
-		case "image":
-			return config.features.vision === true;
-		case "pdf":
-			return config.features.pdfSupport === true;
-		case "document":
-			// Most models can handle document descriptions
-			return true;
-		case "unknown":
-			// Unknown files are treated as generic attachments
-			return true;
-		default:
-			return false;
-	}
 }
 
 /**
@@ -138,6 +71,7 @@ export function validateAttachmentsForModel(
 	}>;
 	suggestedModels: ModelId[];
 } {
+	const config = getModelConfig(modelId);
 	const incompatibleAttachments: Array<{
 		name: string;
 		type: AttachmentType;
@@ -147,9 +81,43 @@ export function validateAttachmentsForModel(
 	const suggestedModelSet = new Set<ModelId>();
 
 	for (const attachment of attachments) {
-		const attachmentType = getAttachmentType(attachment.type, attachment.name);
+		// Determine attachment type
+		let attachmentType: AttachmentType;
+		if (attachment.type.startsWith("image/")) {
+			attachmentType = "image";
+		} else if (
+			attachment.type === "application/pdf" ||
+			attachment.name?.toLowerCase().endsWith(".pdf")
+		) {
+			attachmentType = "pdf";
+		} else if (
+			attachment.type.startsWith("text/") ||
+			attachment.type === "application/msword" ||
+			attachment.type ===
+				"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+		) {
+			attachmentType = "document";
+		} else {
+			attachmentType = "unknown";
+		}
 
-		if (!modelSupportsAttachment(modelId, attachmentType)) {
+		// Check if model supports this attachment type
+		let isSupported = false;
+		switch (attachmentType) {
+			case "image":
+				isSupported = config.features.vision === true;
+				break;
+			case "pdf":
+				isSupported = config.features.pdfSupport === true;
+				break;
+			case "document":
+			case "unknown":
+				// Most models can handle document descriptions and unknown files
+				isSupported = true;
+				break;
+		}
+
+		if (!isSupported) {
 			let reason: string;
 			let suggestedModels: ModelId[] = [];
 
@@ -243,15 +211,4 @@ export function getIncompatibilityMessage(
 	}
 
 	return message;
-}
-
-/**
- * Check if model requires warning about missing capabilities
- */
-export function shouldWarnAboutCapabilities(
-	modelId: ModelId,
-	attachments: Array<{ type: string; name: string }>,
-): boolean {
-	const validation = validateAttachmentsForModel(modelId, attachments);
-	return !validation.isValid;
 }

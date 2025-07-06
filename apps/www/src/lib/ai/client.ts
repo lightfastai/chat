@@ -1,12 +1,12 @@
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI, openai } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
+import { env } from "../../../convex/env";
 import {
 	type ModelId,
 	getActualModelName,
 	getProviderFromModelId,
-} from "../../src/lib/ai/schemas.js";
-import { env } from "../env.js";
+} from "./schemas";
 
 // Type for user API keys (matching getDecryptedApiKeys return type)
 type UserApiKeys = {

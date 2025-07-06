@@ -11,6 +11,11 @@
  */
 
 import {
+	LIGHTFAST_TOOLS,
+	type LightfastToolSet,
+	validateToolName,
+} from "@lightfast/ai/tools";
+import {
 	type ModelMessage,
 	convertToModelMessages,
 	smoothStream,
@@ -22,23 +27,18 @@ import {
 	type LightfastUIMessage,
 	convertDbMessagesToUIMessages,
 } from "../src/hooks/convertDbMessagesToUIMessages";
-import type { ModelId } from "../src/lib/ai/schemas";
 import {
+	type ModelId,
+	createAIClient,
 	getModelById,
 	getModelConfig,
 	getModelStreamingDelay,
 	getProviderFromModelId,
 	isThinkingMode,
-} from "../src/lib/ai/schemas";
-import {
-	LIGHTFAST_TOOLS,
-	type LightfastToolSet,
-	validateToolName,
-} from "@lightfast/ai/tools";
+} from "../src/lib/ai";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
-import { createAIClient } from "./lib/ai_client";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {

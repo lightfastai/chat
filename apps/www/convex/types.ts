@@ -1,5 +1,5 @@
-import type { Infer } from "convex/values";
 import type { LightfastToolName } from "@lightfast/ai/tools";
+import type { Infer } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import type {
 	errorPartValidator,

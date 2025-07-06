@@ -4,8 +4,7 @@ import { Brain, Eye, FileText, GitBranch, Wrench } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ModelConfig, ModelId } from "@/lib/ai";
-import { getModelCapabilities } from "@/lib/ai";
-import { getVisibleModels } from "@/lib/ai/schemas";
+import { getModelCapabilities, getVisibleModels } from "@/lib/ai";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
 	DropdownMenu,
