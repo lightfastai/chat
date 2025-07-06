@@ -3,21 +3,21 @@ import { internal } from "../../../_generated/api.js";
 import type { Id } from "../../../_generated/dataModel.js";
 import type { ActionCtx } from "../../../_generated/server.js";
 import type {
-	AddToolCallArgs,
-	AddToolInputStartArgs,
-	AddToolResultArgs,
+  AddToolCallArgs,
+  AddToolInputStartArgs,
+  AddToolResultArgs,
 } from "../../../types.js";
 import type {
-	addErrorPartArgsValidator,
-	addFilePartArgsValidator,
-	addRawPartArgsValidator,
-	addReasoningPartArgsValidator,
-	addSourceDocumentPartArgsValidator,
-	addSourceUrlPartArgsValidator,
-	addTextPartArgsValidator,
-	addToolCallPartArgsValidator,
-	addToolInputStartPartArgsValidator,
-	addToolResultPartArgsValidator,
+  addErrorPartArgsValidator,
+  addFilePartArgsValidator,
+  addRawPartArgsValidator,
+  addReasoningPartArgsValidator,
+  addSourceDocumentPartArgsValidator,
+  addSourceUrlPartArgsValidator,
+  addTextPartArgsValidator,
+  addToolCallPartArgsValidator,
+  addToolInputStartPartArgsValidator,
+  addToolResultPartArgsValidator,
 } from "../../../validators.js";
 
 /**
