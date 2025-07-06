@@ -52,7 +52,7 @@ export function ActiveMenuItem({
 		// If current URL has server ID and href has server ID, compare them
 		// This handles the case where user navigates to clientId URL but sidebar shows server ID
 		return currentUrlId === hrefId;
-	}, [pathname, href, threadId]);
+	}, [pathname, href, threadId, currentUrlId]);
 
 	// Get platform-specific tooltip for new chat
 	const displayTooltip = useMemo(() => {

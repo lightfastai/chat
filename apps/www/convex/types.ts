@@ -102,19 +102,13 @@ export function isFilePart(part: DbMessagePart): part is DbFilePart {
 export function isWebSearchToolCall(
 	part: DbMessagePart,
 ): part is TypedToolCallPart<"web_search_1_0_0"> {
-	return (
-		isToolCallPart(part) &&
-		part.args.toolName === "web_search_1_0_0"
-	);
+	return isToolCallPart(part) && part.args.toolName === "web_search_1_0_0";
 }
 
 export function isWebSearchToolResult(
 	part: DbMessagePart,
 ): part is TypedToolResultPart<"web_search_1_0_0"> {
-	return (
-		isToolResultPart(part) &&
-		part.args.toolName === "web_search_1_0_0"
-	);
+	return isToolResultPart(part) && part.args.toolName === "web_search_1_0_0";
 }
 
 // Version-specific helper functions
@@ -129,7 +123,6 @@ export function isWebSearchV1ToolResult(
 ): part is TypedToolResultPart<"web_search_1_0_0"> {
 	return isToolResultPart(part) && part.args.toolName === "web_search_1_0_0";
 }
-
 
 // Generic helper to check if tool name is any version of web search
 export function isWebSearchTool(toolName: string): boolean {

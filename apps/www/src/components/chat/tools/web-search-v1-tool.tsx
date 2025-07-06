@@ -1,31 +1,31 @@
 "use client";
 
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
 } from "@lightfast/ui/components/ui/accordion";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import {
-  AlertCircle,
-  ExternalLink,
-  Globe,
-  Loader2,
-  Sparkles,
+	AlertCircle,
+	ExternalLink,
+	Globe,
+	Loader2,
+	Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { memo } from "react";
 import type {
-  DbErrorPart,
-  DbToolCallPart,
-  DbToolInputStartPart,
-  DbToolResultPart,
+	DbErrorPart,
+	DbToolCallPart,
+	DbToolInputStartPart,
+	DbToolResultPart,
 } from "../../../../convex/types";
 import {
-  type LightfastToolInput,
-  type LightfastToolOutput,
-  getToolMetadata,
+	type LightfastToolInput,
+	type LightfastToolOutput,
+	getToolMetadata,
 } from "../../../lib/ai/tools";
 
 // Type-safe input/output types for web_search_1_0_0
@@ -133,9 +133,7 @@ export const WebSearchV1Tool = memo(function WebSearchV1Tool({
 							)}
 							<div className="text-left flex-1">
 								<div className="font-medium text-xs lowercase text-muted-foreground">
-									{state === "input-available"
-										? `searching...`
-										: searchQuery}
+									{state === "input-available" ? "searching..." : searchQuery}
 								</div>
 								{/* {searchQuery && (
 									<p className="text-xs text-muted-foreground mt-1">

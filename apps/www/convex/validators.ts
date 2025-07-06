@@ -58,7 +58,6 @@ const webSearchV1OutputValidator = v.object({
 	autopromptString: v.optional(v.string()),
 });
 
-
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
 // 'submitted' - Message sent to API, awaiting response stream start
 // 'streaming' - Response actively streaming from API

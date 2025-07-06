@@ -95,7 +95,7 @@ export function useCreateThreadWithFirstMessages() {
 			parts: [], // Empty parts, will be filled during streaming
 			role: "assistant",
 			modelId,
-			model: modelId.split("/")[0] as any, // Extract provider from modelId
+			model: modelId.split("/")[0] as "anthropic" | "openai" | "openrouter", // Extract provider from modelId
 			timestamp: now + 1,
 			status: "submitted", // Shows thinking indicator
 		};

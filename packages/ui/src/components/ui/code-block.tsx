@@ -146,7 +146,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 		return () => {
 			isMounted = false;
 		};
-	}, [code, language, theme, normalizedLanguage]);
+	}, [code, theme, normalizedLanguage]);
 
 	return (
 		<div className={cn("relative group my-4 w-full", className)}>

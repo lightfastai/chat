@@ -1,8 +1,9 @@
 import { useMemo, useRef } from "react";
 import type { DbMessagePart } from "../../convex/types";
 import {
-  type LightfastUIMessage, convertUIPartToDbPart,
-  getPartKey
+	type LightfastUIMessage,
+	convertUIPartToDbPart,
+	getPartKey,
 } from "./convertDbMessagesToUIMessages";
 
 interface PartCacheEntry {

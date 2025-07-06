@@ -182,7 +182,9 @@ export function validateAttachmentsForModel(
 				reason,
 			});
 
-			suggestedModels.forEach((model) => suggestedModelSet.add(model));
+			for (const model of suggestedModels) {
+				suggestedModelSet.add(model);
+			}
 		}
 	}
 

@@ -12,20 +12,13 @@ export function SidebarHoverExpand() {
 	if (state === "expanded") return null;
 
 	return (
-		<div
-			className="absolute left-0 right-0 bottom-0 top-0 group/expand cursor-pointer z-10"
+		<button
+			type="button"
+			className="absolute left-0 right-0 bottom-0 top-0 group/expand cursor-pointer z-10 bg-transparent border-none"
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 			onClick={() => setOpen(true)}
-			role="button"
 			aria-label="Expand sidebar"
-			tabIndex={0}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					setOpen(true);
-				}
-			}}
 		>
 			{/* Visible expand icon on hover */}
 			<div
@@ -39,6 +32,6 @@ export function SidebarHoverExpand() {
 			>
 				<ChevronRight className="w-4 h-4" />
 			</div>
-		</div>
+		</button>
 	);
 }

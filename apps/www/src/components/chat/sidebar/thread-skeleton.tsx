@@ -24,7 +24,8 @@ export function ThreadListSkeleton({ count = 8 }: { count?: number }) {
 	return (
 		<div className="space-y-0.5">
 			{Array.from({ length: count }, (_, i) => (
-				<ThreadSkeleton key={`skeleton-${i}`} />
+				// biome-ignore lint/suspicious/noArrayIndexKey: Skeleton items are static
+				<ThreadSkeleton key={`thread-skeleton-${i}`} />
 			))}
 		</div>
 	);

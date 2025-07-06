@@ -366,8 +366,14 @@ export function SimpleVirtualizedThreadsList({
 					// Show threads without virtualization while scroll element is being detected
 					// This prevents the "loading" state when threads are actually available
 					<div className="w-full">
-						{virtualItems.map((item, index) => (
-							<div key={index}>
+						{virtualItems.map((item) => (
+							<div
+								key={
+									item.type === "group"
+										? `group-${item.categoryName}`
+										: "load-more"
+								}
+							>
 								{item.type === "group" ? (
 									<ThreadGroup
 										categoryName={item.categoryName}

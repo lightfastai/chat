@@ -60,7 +60,7 @@ export function useChatTransport({
 				};
 			},
 		});
-	}, [authToken, defaultModel]);
+	}, [authToken]);
 
 	return transport;
 }

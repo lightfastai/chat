@@ -2,7 +2,12 @@
 import type { LightfastToolName, LightfastToolSchemas } from "@/lib/ai/tools";
 import type { UIMessage, UIMessagePart } from "ai";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import type { DbErrorPart, DbMessagePart, DbToolCallPart, DbToolResultPart } from "../../convex/types";
+import type {
+	DbErrorPart,
+	DbMessagePart,
+	DbToolCallPart,
+	DbToolResultPart,
+} from "../../convex/types";
 import type { ModelId } from "../lib/ai";
 
 export type LightfastUIMessageOptions = {
@@ -40,34 +45,41 @@ export type LightfastUIMessagePart = UIMessagePart<
 /**
  * Generate a stable key for a UI message part based on its content
  */
-export function getPartKey(part: LightfastUIMessagePart, index: number): string {
+export function getPartKey(
+	part: LightfastUIMessagePart,
+	index: number,
+): string {
 	// Handle text-based parts
 	if (part.type === "text" || part.type === "reasoning") {
 		return `${part.type}-${index}-${part.text}`;
 	}
-	
+
 	// Handle tool parts generically
-	if (part.type.startsWith("tool-") && "toolCallId" in part && "state" in part) {
+	if (
+		part.type.startsWith("tool-") &&
+		"toolCallId" in part &&
+		"state" in part
+	) {
 		return `${part.type}-${part.toolCallId}-${part.state}`;
 	}
-	
+
 	// Handle other known part types
 	if (part.type === "data-error") {
 		return `error-${index}`;
 	}
-	
+
 	if (part.type === "source-url" && "sourceId" in part) {
 		return `source-url-${part.sourceId}`;
 	}
-	
+
 	if (part.type === "source-document" && "sourceId" in part) {
 		return `source-doc-${part.sourceId}`;
 	}
-	
+
 	if (part.type === "file" && "url" in part) {
 		return `file-${index}-${part.url}`;
 	}
-	
+
 	// Fallback for unknown types
 	return `unknown-${index}`;
 }
@@ -81,7 +93,7 @@ function convertToolPartToDb(
 ): DbMessagePart | null {
 	// Extract the tool name from the part type
 	const toolName = part.type.replace(/^tool-/, "") as LightfastToolName;
-	
+
 	switch (part.state) {
 		case "input-streaming":
 		case "input-available":
@@ -126,7 +138,7 @@ export function convertUIPartToDbPart(
 			timestamp,
 		};
 	}
-	
+
 	if (part.type === "reasoning") {
 		return {
 			type: "reasoning",
@@ -134,12 +146,19 @@ export function convertUIPartToDbPart(
 			timestamp,
 		};
 	}
-	
+
 	// Handle tool parts generically
-	if (part.type.startsWith("tool-") && "toolCallId" in part && "state" in part) {
-		return convertToolPartToDb(part as Extract<LightfastUIMessagePart, { type: `tool-${string}` }>, timestamp);
+	if (
+		part.type.startsWith("tool-") &&
+		"toolCallId" in part &&
+		"state" in part
+	) {
+		return convertToolPartToDb(
+			part as Extract<LightfastUIMessagePart, { type: `tool-${string}` }>,
+			timestamp,
+		);
 	}
-	
+
 	// Other part types not supported in DB conversion
 	return null;
 }
@@ -246,11 +265,14 @@ export function convertDbMessagesToUIMessages(
 						// Raw parts are for debugging and shouldn't appear in UI
 						return null;
 
-					default:
+					default: {
 						// Handle any unknown part types
 						const exhaustiveCheck: never = part;
-						console.warn(`Unknown message part type: ${(exhaustiveCheck as DbMessagePart).type}`);
+						console.warn(
+							`Unknown message part type: ${(exhaustiveCheck as DbMessagePart).type}`,
+						);
 						return null;
+					}
 				}
 			})
 			.filter((part): part is LightfastUIMessagePart => part !== null),

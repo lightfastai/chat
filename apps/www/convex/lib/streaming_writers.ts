@@ -61,10 +61,10 @@ export class StreamingTextWriter {
 		this.buffer = [];
 
 		// Use the earliest timestamp from the batch
-		const batchTimestamp = Math.min(...chunks.map(chunk => chunk.timestamp));
+		const batchTimestamp = Math.min(...chunks.map((chunk) => chunk.timestamp));
 
 		// Concatenate all chunks into a single text part
-		const combinedText = chunks.map(chunk => chunk.text).join("");
+		const combinedText = chunks.map((chunk) => chunk.text).join("");
 
 		// Write as a single text part
 		await this.ctx.runMutation(internal.messages.addTextPart, {
@@ -154,10 +154,10 @@ export class StreamingReasoningWriter {
 		this.buffer = [];
 
 		// Use the earliest timestamp from the batch
-		const batchTimestamp = Math.min(...chunks.map(chunk => chunk.timestamp));
+		const batchTimestamp = Math.min(...chunks.map((chunk) => chunk.timestamp));
 
 		// Concatenate all chunks into a single reasoning part
-		const combinedText = chunks.map(chunk => chunk.text).join("");
+		const combinedText = chunks.map((chunk) => chunk.text).join("");
 
 		// Write as a single reasoning part
 		await this.ctx.runMutation(internal.messages.addReasoningPart, {
