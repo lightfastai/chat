@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { ALL_MODEL_IDS, ModelProviderSchema } from "../src/lib/ai/schemas.js";
-import { type LightfastToolName, TOOL_NAMES } from "../src/lib/ai/tools.js";
+import { type LightfastToolName, TOOL_NAMES } from "@lightfast/ai/tools";
 
 /**
  * Comprehensive validators for the chat application

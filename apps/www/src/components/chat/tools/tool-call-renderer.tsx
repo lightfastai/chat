@@ -7,7 +7,7 @@ import type {
 	DbToolInputStartPart,
 	DbToolResultPart,
 } from "../../../../convex/types";
-import { isLightfastToolName } from "../../../lib/ai/tools";
+import { isLightfastToolName } from "@lightfast/ai/tools";
 import { GenericToolDisplay } from "./generic-tool-display";
 import { WebSearchV1_1Tool } from "./web-search-v1-1-tool";
 import { WebSearchV1Tool } from "./web-search-v1-tool";

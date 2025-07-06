@@ -26,7 +26,7 @@ import {
 	type LightfastToolInput,
 	type LightfastToolOutput,
 	getToolMetadata,
-} from "../../../lib/ai/tools";
+} from "@lightfast/ai/tools";
 
 // Type-safe input/output types for web_search_1_0_0
 type WebSearchV1Input = LightfastToolInput<"web_search_1_0_0">;

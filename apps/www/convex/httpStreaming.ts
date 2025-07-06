@@ -34,7 +34,7 @@ import {
 	LIGHTFAST_TOOLS,
 	type LightfastToolSet,
 	validateToolName,
-} from "../src/lib/ai/tools";
+} from "@lightfast/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";

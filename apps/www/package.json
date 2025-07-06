@@ -22,6 +22,7 @@
 		"@auth/core": "^0.39.1",
 		"@convex-dev/auth": "^0.0.87",
 		"@hookform/resolvers": "^5.1.1",
+		"@lightfast/ai": "workspace:*",
 		"@lightfast/ui": "workspace:*",
 		"@mdx-js/react": "^3.1.0",
 		"@repo/utils": "workspace:*",

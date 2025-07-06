@@ -1,5 +1,5 @@
 "use client";
-import type { LightfastToolName, LightfastToolSchemas } from "@/lib/ai/tools";
+import type { LightfastToolName, LightfastToolSchemas } from "@lightfast/ai/tools";
 import type { UIMessage, UIMessagePart } from "ai";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type {
