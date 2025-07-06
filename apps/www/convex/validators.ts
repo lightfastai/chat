@@ -58,6 +58,41 @@ const webSearchV1OutputValidator = v.object({
 	autopromptString: v.optional(v.string()),
 });
 
+// Web Search v1.1.0 - Optimized search with content types and domain filtering
+const webSearchV1_1InputValidator = v.object({
+	query: v.string(),
+	useAutoprompt: v.boolean(),
+	numResults: v.number(),
+	contentType: v.union(
+		v.literal("highlights"),
+		v.literal("summary"),
+		v.literal("text"),
+	),
+	maxCharacters: v.number(),
+	summaryQuery: v.optional(v.string()),
+	includeDomains: v.optional(v.array(v.string())),
+	excludeDomains: v.optional(v.array(v.string())),
+});
+
+const webSearchV1_1OutputValidator = v.object({
+	results: v.array(
+		v.object({
+			title: v.string(),
+			url: v.string(),
+			content: v.string(),
+			contentType: v.union(
+				v.literal("highlights"),
+				v.literal("summary"),
+				v.literal("text"),
+			),
+			score: v.optional(v.number()),
+		}),
+	),
+	query: v.string(),
+	autopromptString: v.optional(v.string()),
+	tokensEstimate: v.number(),
+});
+
 // Chat status validator (follows Vercel AI SDK v5 ChatStatus enum)
 // 'submitted' - Message sent to API, awaiting response stream start
 // 'streaming' - Response actively streaming from API
@@ -351,14 +386,23 @@ export const addToolCallArgsValidator = v.union(
 		toolName: v.literal("web_search_1_0_0"),
 		input: webSearchV1InputValidator,
 	}),
+	// Web search v1.1.0 - Optimized search with content types
+	v.object({
+		toolName: v.literal("web_search_1_1_0"),
+		input: webSearchV1_1InputValidator,
+	}),
 	// Add more versioned tools here as they are defined
 );
 
 // Tool input start mutation args - discriminated by versioned tool name
 export const addToolInputStartArgsValidator = v.union(
-	// Web search tools
+	// Web search v1.0.0
 	v.object({
 		toolName: v.literal("web_search_1_0_0"),
+	}),
+	// Web search v1.1.0
+	v.object({
+		toolName: v.literal("web_search_1_1_0"),
 	}),
 	// Add more versioned tools here as they are defined
 );
@@ -370,6 +414,12 @@ export const addToolResultArgsValidator = v.union(
 		toolName: v.literal("web_search_1_0_0"),
 		input: webSearchV1InputValidator,
 		output: webSearchV1OutputValidator,
+	}),
+	// Web search v1.1.0 with v1.1 input/output schemas
+	v.object({
+		toolName: v.literal("web_search_1_1_0"),
+		input: webSearchV1_1InputValidator,
+		output: webSearchV1_1OutputValidator,
 	}),
 	// Add more versioned tools here as they are defined
 );

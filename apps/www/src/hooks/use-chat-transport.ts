@@ -24,7 +24,7 @@ interface UseChatTransportProps {
  */
 export function useChatTransport({
 	authToken,
-	defaultModel,
+	defaultModel: _defaultModel,
 }: UseChatTransportProps): ChatTransport<LightfastUIMessage> | undefined {
 	const transport = useMemo(() => {
 		// Return undefined if not authenticated - this prevents transport creation

@@ -11,29 +11,29 @@
  */
 
 import {
-  type ModelMessage,
-  convertToModelMessages,
-  smoothStream,
-  streamText,
+	type ModelMessage,
+	convertToModelMessages,
+	smoothStream,
+	streamText,
 } from "ai";
 import { stepCountIs } from "ai";
 import type { Infer } from "convex/values";
 import {
-  type LightfastUIMessage,
-  convertDbMessagesToUIMessages,
+	type LightfastUIMessage,
+	convertDbMessagesToUIMessages,
 } from "../src/hooks/convertDbMessagesToUIMessages";
 import type { ModelId } from "../src/lib/ai/schemas";
 import {
-  getModelById,
-  getModelConfig,
-  getModelStreamingDelay,
-  getProviderFromModelId,
-  isThinkingMode,
+	getModelById,
+	getModelConfig,
+	getModelStreamingDelay,
+	getProviderFromModelId,
+	isThinkingMode,
 } from "../src/lib/ai/schemas";
 import {
-  LIGHTFAST_TOOLS,
-  type LightfastToolSet,
-  validateToolName,
+	LIGHTFAST_TOOLS,
+	type LightfastToolSet,
+	validateToolName,
 } from "../src/lib/ai/tools";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -42,11 +42,11 @@ import { createAIClient } from "./lib/ai_client";
 import { getAuthenticatedUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
-  createHTTPErrorResponse,
-  extractErrorDetails,
-  formatErrorMessage,
-  handleStreamingSetupError,
-  logStreamingError,
+	createHTTPErrorResponse,
+	extractErrorDetails,
+	formatErrorMessage,
+	handleStreamingSetupError,
+	logStreamingError,
 } from "./lib/error_handling";
 import { UnifiedStreamingWriter } from "./lib/streaming_writers";
 import type { DbToolInputForName, DbToolOutputForName } from "./types";
@@ -247,10 +247,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 							const inputToolName = validateToolName(chunk.toolName);
 
 							// Type-safe handling based on specific tool version
-							if (
-								inputToolName === "web_search_1_0_0" ||
-								inputToolName === "web_search_1_0_0"
-							) {
+							if (inputToolName === "web_search_1_0_0") {
+								// Buffer this chunk instead of writing directly
+								writer.appendToolInputStart(chunk.id, {
+									toolName: inputToolName,
+								});
+							} else if (inputToolName === "web_search_1_1_0") {
 								// Buffer this chunk instead of writing directly
 								writer.appendToolInputStart(chunk.id, {
 									toolName: inputToolName,
@@ -276,6 +278,12 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 									toolName: "web_search_1_0_0" as const,
 									input: chunk.input as DbToolInputForName<"web_search_1_0_0">, // Runtime validation by Convex validator
 								});
+							} else if (callToolName === "web_search_1_1_0") {
+								// Buffer this chunk instead of writing directly
+								writer.appendToolCall(chunk.toolCallId, {
+									toolName: "web_search_1_1_0" as const,
+									input: chunk.input as DbToolInputForName<"web_search_1_1_0">, // Runtime validation by Convex validator
+								});
 							} else {
 								// Handle unknown tool versions
 								console.warn(`Unknown tool name: ${callToolName}`);
@@ -299,6 +307,14 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 									output:
 										chunk.output as DbToolOutputForName<"web_search_1_0_0">,
 								});
+							} else if (resultToolName === "web_search_1_1_0") {
+								// Buffer this chunk instead of writing directly
+								writer.appendToolResult(chunk.toolCallId, {
+									toolName: "web_search_1_1_0",
+									input: chunk.input as DbToolInputForName<"web_search_1_1_0">,
+									output:
+										chunk.output as DbToolOutputForName<"web_search_1_1_0">,
+								});
 							} else {
 								// Handle unknown tool versions
 								console.warn(`Unknown tool name: ${resultToolName}`);
@@ -307,6 +323,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						}
 
 						case "source":
+							console.log("source chunk", chunk);
 							// Buffer source chunks for batch writing
 							if (chunk.sourceType === "url") {
 								writer.appendSourceUrl(
@@ -404,7 +421,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 			if (model.features.functionCalling && options?.webSearchEnabled) {
 				generationOptions.tools = LIGHTFAST_TOOLS;
 				generationOptions.stopWhen = stepCountIs(5);
-				generationOptions.activeTools = ["web_search_1_0_0"] as const;
+				generationOptions.activeTools = ["web_search_1_1_0"] as const;
 			}
 
 			// Stream the text and return UI message stream response

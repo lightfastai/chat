@@ -9,6 +9,7 @@ import type {
 } from "../../../../convex/types";
 import { isLightfastToolName } from "../../../lib/ai/tools";
 import { GenericToolDisplay } from "./generic-tool-display";
+import { WebSearchV1_1Tool } from "./web-search-v1-1-tool";
 import { WebSearchV1Tool } from "./web-search-v1-tool";
 
 export interface ToolCallRendererProps {
@@ -27,6 +28,8 @@ export const ToolCallRenderer = memo(function ToolCallRenderer({
 		switch (toolName) {
 			case "web_search_1_0_0":
 				return <WebSearchV1Tool toolCall={toolCall} error={error} />;
+			case "web_search_1_1_0":
+				return <WebSearchV1_1Tool toolCall={toolCall} error={error} />;
 			// Add more tool renderers here as tools are added to the system
 			// case "calculator_1_0_0":
 			//   return <CalculatorTool toolCall={toolCall} error={error} />;

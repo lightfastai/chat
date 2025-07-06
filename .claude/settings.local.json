@@ -92,7 +92,8 @@
       "Bash(git stash:*)",
       "Bash(pnpm -w run build:www)",
       "WebFetch(domain:ai-sdk.dev)",
-      "Bash(SKIP_ENV_VALIDATION=true pnpm run build:www)"
+      "Bash(SKIP_ENV_VALIDATION=true pnpm run build:www)",
+      "WebFetch(domain:docs.exa.ai)"
     ],
     "deny": []
   }
