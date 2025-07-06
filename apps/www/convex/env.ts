@@ -22,7 +22,6 @@ export const env = createEnv({
 			.describe("JWT private key for API key encryption"),
 		ENCRYPTION_KEY: z
 			.string()
-			.optional()
 			.describe("Fallback encryption key if JWT_PRIVATE_KEY is not available"),
 		CONVEX_SITE_URL: z
 			.string()
