@@ -1,27 +1,9 @@
 import { useMemo, useRef } from "react";
 import type { DbMessagePart } from "../../convex/types";
 import {
-  type LightfastUIMessage,
-  type LightfastUIMessagePart,
-  convertUIPartToDbPart,
+  type LightfastUIMessage, convertUIPartToDbPart,
+  getPartKey
 } from "./convertDbMessagesToUIMessages";
-
-/**
- * Generate a stable key for a UI message part based on its content
- */
-function getPartKey(part: LightfastUIMessagePart, index: number): string {
-	switch (part.type) {
-		case "text":
-		case "reasoning":
-			// For text/reasoning, use type + content hash
-			return `${part.type}-${index}-${part.text}`;
-		case "tool-web_search_1_0_0":
-			// For tools, use type + toolCallId + state
-			return `${part.type}-${part.toolCallId}-${part.state}`;
-		default:
-			return `unknown-${index}`;
-	}
-}
 
 interface PartCacheEntry {
 	key: string;

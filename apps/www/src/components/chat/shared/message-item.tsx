@@ -205,7 +205,12 @@ export function MessageItem({
 							return (
 								<div key={`${message._id}-tool-${toolCallId}`}>
 									<ToolCallRenderer
-										toolCall={toolState.latestPart as (DbToolCallPart | DbToolInputStartPart | DbToolResultPart)}
+										toolCall={
+											toolState.latestPart as
+												| DbToolCallPart
+												| DbToolInputStartPart
+												| DbToolResultPart
+										}
 										error={errorPart}
 									/>
 								</div>

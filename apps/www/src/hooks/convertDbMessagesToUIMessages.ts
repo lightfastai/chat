@@ -38,6 +38,23 @@ export type LightfastUIMessagePart = UIMessagePart<
 >;
 
 /**
+ * Generate a stable key for a UI message part based on its content
+ */
+export function getPartKey(part: LightfastUIMessagePart, index: number): string {
+	switch (part.type) {
+		case "text":
+		case "reasoning":
+			// For text/reasoning, use type + content hash
+			return `${part.type}-${index}-${part.text}`;
+		case "tool-web_search_1_0_0":
+			// For tools, use type + toolCallId + state
+			return `${part.type}-${part.toolCallId}-${part.state}`;
+		default:
+			return `unknown-${index}`;
+	}
+}
+
+/**
  * Convert a single UI message part to a DB message part with provided timestamp
  */
 export function convertUIPartToDbPart(
