@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 
 // Import proper encryption utilities
-import { decrypt, encrypt } from "./lib/encryption.js";
+import { decrypt, encrypt } from "./lib/encryption_service";
 
 // Import validators
 import {

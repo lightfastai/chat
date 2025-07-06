@@ -6,7 +6,8 @@
 	"exports": {
 		"./debounced-writer/base": "./src/debounced-writer/base.ts",
 		"./debounced-writer/string-writer": "./src/debounced-writer/string-writer.ts",
-		"./debounced-writer/types": "./src/debounced-writer/types.ts"
+		"./debounced-writer/types": "./src/debounced-writer/types.ts",
+		"./encryption": "./src/encryption/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
