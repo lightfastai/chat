@@ -3,7 +3,7 @@
 import { Button } from "@lightfast/ui/components/ui/button";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { ChevronDown } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useStickToBottom } from "use-stick-to-bottom";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
@@ -22,10 +22,8 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
-	const [isStreaming, setIsStreaming] = useState(false);
-
 	// Use the hook approach of use-stick-to-bottom
-	const { scrollRef, contentRef, isAtBottom, scrollToBottom, state } =
+	const { scrollRef, contentRef, isAtBottom, scrollToBottom } =
 		useStickToBottom({
 			resize: "smooth",
 			initial: "instant",
@@ -41,13 +39,6 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 		[scrollRef],
 	);
 
-	// Track streaming state
-	useEffect(() => {
-		const hasStreamingMessage = dbMessages?.some(
-			(msg) => msg.status === "streaming",
-		);
-		setIsStreaming(hasStreamingMessage || false);
-	}, [dbMessages]);
 
 	// Find the streaming message from uiMessages
 	let streamingVercelMessage: LightfastUIMessage | undefined;
@@ -107,11 +98,11 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 							type="button"
 							onClick={() => scrollToBottom()}
 							variant="secondary"
-							size="sm"
-							className="shadow-lg hover:shadow-xl transition-all duration-200"
+							size="icon"
+							className="h-8 w-8 shadow-lg hover:shadow-xl transition-all duration-200"
 							aria-label="Scroll to bottom"
 						>
-							<ChevronDown className="h-4 w-4" />
+							<ChevronDown className="w-4 h-4" />
 						</Button>
 					</div>
 				)}
@@ -183,23 +174,12 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 					<Button
 						type="button"
 						onClick={() => scrollToBottom()}
-						variant={isStreaming && state?.escapedFromLock ? "default" : "secondary"}
-						size="sm"
-						className={`shadow-lg hover:shadow-xl transition-all duration-200 ${
-							isStreaming && state?.escapedFromLock
-								? "bg-orange-500 hover:bg-orange-600 text-white animate-pulse"
-								: ""
-						}`}
-						aria-label={
-							isStreaming && state?.escapedFromLock
-								? "Resume auto-scroll"
-								: "Scroll to bottom"
-						}
+						variant="secondary"
+						size="icon"
+						className="h-8 w-8 shadow-lg hover:shadow-xl transition-all duration-200"
+						aria-label="Scroll to bottom"
 					>
-						<ChevronDown className="h-4 w-4" />
-						{isStreaming && state?.escapedFromLock && (
-							<span className="ml-1">Resume</span>
-						)}
+						<ChevronDown className="w-4 h-4" />
 					</Button>
 				</div>
 			)}
