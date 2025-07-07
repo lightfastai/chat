@@ -1,7 +1,8 @@
 "use client";
 
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useStickToBottom } from "use-stick-to-bottom";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
 import { useProcessedMessages } from "../../hooks/use-processed-messages";
@@ -20,71 +21,36 @@ interface ChatMessagesProps {
 
 export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
-	const viewportRef = useRef<HTMLDivElement | null>(null);
-	const contentRef = useRef<HTMLDivElement>(null);
-	const [isAtBottom, setIsAtBottom] = useState(true);
 
-	// Find viewport and set up scroll monitoring
+	// Use the hook approach of use-stick-to-bottom
+	const { scrollRef, contentRef, isAtBottom, scrollToBottom } =
+		useStickToBottom({
+			resize: "smooth",
+			initial: "instant",
+		});
+
+	// Connect refs to ScrollArea viewport - this is the key fix
 	useEffect(() => {
 		if (scrollAreaRef.current) {
-			const viewport = scrollAreaRef.current.querySelector(
-				"[data-radix-scroll-area-viewport]",
-			);
-			if (viewport instanceof HTMLDivElement) {
-				viewportRef.current = viewport;
-
-				// Check if at bottom
-				const checkIfAtBottom = () => {
-					if (viewport) {
-						const { scrollTop, scrollHeight, clientHeight } = viewport;
-						const isBottom =
-							Math.abs(scrollHeight - clientHeight - scrollTop) < 10;
-						setIsAtBottom(isBottom);
-					}
-				};
-
-				// Initial check
-				checkIfAtBottom();
-
-				// Listen for scroll events
-				viewport.addEventListener("scroll", checkIfAtBottom);
-
-				return () => {
-					viewport.removeEventListener("scroll", checkIfAtBottom);
-				};
+			// Try both possible selectors for the viewport
+			let viewport = scrollAreaRef.current.querySelector(
+				'[data-radix-scroll-area-viewport]',
+			) as HTMLDivElement;
+			
+			if (!viewport) {
+				viewport = scrollAreaRef.current.querySelector(
+					'.scroll-area-viewport',
+				) as HTMLDivElement;
+			}
+			
+			if (viewport) {
+				// This is the crucial part - properly connect use-stick-to-bottom to the ScrollArea viewport
+				if (scrollRef) {
+					(scrollRef as React.MutableRefObject<HTMLElement | null>).current = viewport;
+				}
 			}
 		}
-	}, []);
-
-	// Auto-scroll to bottom when new messages arrive (only if already at bottom)
-	useEffect(() => {
-		if (
-			isAtBottom &&
-			viewportRef.current &&
-			dbMessages &&
-			dbMessages.length > 0
-		) {
-			const viewport = viewportRef.current;
-			setTimeout(() => {
-				viewport.scrollTo({
-					top: viewport.scrollHeight,
-					behavior: "smooth",
-				});
-			}, 50);
-		}
-	}, [dbMessages, isAtBottom]);
-
-	// Scroll to bottom function
-	const scrollToBottom = useCallback(() => {
-		if (viewportRef.current) {
-			const viewport = viewportRef.current;
-			viewport.scrollTo({
-				top: viewport.scrollHeight,
-				behavior: "smooth",
-			});
-			setIsAtBottom(true);
-		}
-	}, []);
+	}, [scrollRef]);
 
 	// Find the streaming message from uiMessages
 	let streamingVercelMessage: LightfastUIMessage | undefined;
@@ -118,6 +84,29 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 						</div>
 					</div>
 				</ScrollArea>
+				{!isAtBottom && (
+					<button
+						type="button"
+						onClick={() => scrollToBottom()}
+						className="absolute bottom-20 left-1/2 -translate-x-1/2 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 z-10"
+						aria-label="Scroll to bottom"
+					>
+						<svg
+							className="w-4 h-4"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M19 14l-7 7m0 0l-7-7m7 7V3"
+							/>
+						</svg>
+					</button>
+				)}
 			</div>
 		);
 	}
@@ -161,7 +150,7 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 			{!isAtBottom && dbMessages.length > 0 && (
 				<button
 					type="button"
-					onClick={scrollToBottom}
+					onClick={() => scrollToBottom()}
 					className="absolute bottom-20 left-1/2 -translate-x-1/2 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 z-10"
 					aria-label="Scroll to bottom"
 				>
