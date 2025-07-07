@@ -50,6 +50,12 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 		accessAllowed ? { shareId } : "skip",
 	);
 
+	// Process messages to merge consecutive message parts (same as normal chat)
+	// Must be called before any conditional returns to satisfy React hooks rules
+	const processedMessagesMap = useProcessedMessages(
+		sharedData?.messages || null,
+	);
+
 	// Log access attempt on component mount
 	useEffect(() => {
 		if (accessAllowed === null) {
@@ -86,10 +92,9 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 	}
 
 	const { thread, messages, owner } = sharedData;
-
-	// Process messages to merge consecutive message parts (same as normal chat)
-	const processedMessagesMap = useProcessedMessages(messages);
-	const processedMessages = messages ? Array.from(processedMessagesMap.values()) : [];
+	const processedMessages = messages
+		? Array.from(processedMessagesMap.values())
+		: [];
 
 	return (
 		<div className="flex flex-col h-screen">
