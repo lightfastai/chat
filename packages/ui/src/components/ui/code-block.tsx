@@ -153,7 +153,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 	return (
 		<div className={cn("relative group my-4 w-full", className)}>
 			{/* Header with language and controls */}
-			<div className="flex items-center justify-between px-3 py-2 bg-muted/50 border border-border rounded-t-md">
+			<div className="flex items-center justify-between px-3 py-2 border border-b-0 border-border rounded-t-md">
 				<span className="text-xs text-muted-foreground font-mono">
 					{language || "text"}
 				</span>
