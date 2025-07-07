@@ -1,4 +1,3 @@
-import { getTimezoneFromRequest } from "@/lib/ip-timezone";
 import {
 	convexAuthNextjsMiddleware,
 	createRouteMatcher,
@@ -7,7 +6,7 @@ import {
 import { NextResponse } from "next/server";
 
 const isSignInPage = createRouteMatcher(["/signin"]);
-const isProtectedRoute = createRouteMatcher(["/chat(.*)", "/settings(.*)"]);
+const isProtectedRoute = createRouteMatcher(["/chat(.*)"]);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 	const { pathname } = request.nextUrl;
@@ -58,25 +57,6 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 		if (!clientId || clientId.length < 10) {
 			// Return 404 for invalid thread IDs
 			return new NextResponse(null, { status: 404 });
-		}
-	}
-
-	// Add IP-based timezone estimate to headers
-	const timezoneEstimate = getTimezoneFromRequest(request);
-	if (timezoneEstimate) {
-		response.headers.set("x-user-timezone", timezoneEstimate);
-
-		// Debug logging in development
-		if (process.env.NODE_ENV === "development") {
-			console.log("[Middleware] Detected timezone:", timezoneEstimate);
-			console.log(
-				"[Middleware] Country:",
-				request.headers.get("x-vercel-ip-country"),
-			);
-			console.log(
-				"[Middleware] Region:",
-				request.headers.get("x-vercel-ip-country-region"),
-			);
 		}
 	}
 
