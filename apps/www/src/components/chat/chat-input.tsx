@@ -3,7 +3,6 @@
 import { useFileDrop } from "@/hooks/use-file-drop";
 import {
 	getIncompatibilityMessage,
-	getModelCapabilities,
 	validateAttachmentsForModel,
 } from "@/lib/ai/capabilities";
 import { preprocessUserMessage } from "@/lib/message-preprocessing";
@@ -11,19 +10,8 @@ import {
 	DEFAULT_MODEL_ID,
 	type ModelId,
 	getModelConfig,
-	getVisibleModels,
 } from "@lightfast/ai/providers";
 import { Button } from "@lightfast/ui/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuPortal,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
-	DropdownMenuTrigger,
-} from "@lightfast/ui/components/ui/dropdown-menu";
 import { ScrollArea, ScrollBar } from "@lightfast/ui/components/ui/scroll-area";
 import { Textarea } from "@lightfast/ui/components/ui/textarea";
 import {
@@ -34,16 +22,11 @@ import {
 import { useMutation } from "convex/react";
 import {
 	ArrowUp,
-	Brain,
-	ChevronDown,
-	Eye,
 	FileIcon,
-	FileText,
 	Globe,
 	Image,
 	Loader2,
 	Paperclip,
-	Wrench,
 	X,
 } from "lucide-react";
 import {
@@ -61,6 +44,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessageOptions } from "../../hooks/convertDbMessagesToUIMessages";
 import { useKeyboardShortcutsContext } from "../providers/keyboard-shortcuts-provider";
+import { UnifiedModelSelector } from "./unified-model-selector";
 
 interface ChatInputProps {
 	onSendMessage: (options: LightfastUIMessageOptions) => Promise<void> | void;
@@ -82,22 +66,6 @@ interface FileAttachment {
 	type: string;
 	url?: string;
 }
-
-// Icon component mapper for capability icons
-const CapabilityIcon = ({
-	iconName,
-	className,
-}: { iconName: string; className?: string }) => {
-	const iconMap = {
-		Eye,
-		FileText,
-		Wrench,
-		Brain,
-	} as const;
-
-	const IconComponent = iconMap[iconName as keyof typeof iconMap];
-	return IconComponent ? <IconComponent className={className} /> : null;
-};
 
 const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 	(
@@ -171,32 +139,10 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 		);
 
 		// Memoize expensive computations
-		const allModels = useMemo(() => getVisibleModels(), []);
 		const selectedModel = useMemo(
 			() => getModelConfig(selectedModelId as ModelId),
 			[selectedModelId],
 		);
-
-		// Memoize models grouping
-		const modelsByProvider = useMemo(() => {
-			return allModels.reduce(
-				(acc, model) => {
-					if (!acc[model.provider]) {
-						acc[model.provider] = [];
-					}
-					acc[model.provider].push(model);
-					return acc;
-				},
-				{} as Record<string, typeof allModels>,
-			);
-		}, [allModels]);
-
-		// Provider display names
-		const providerNames: Record<string, string> = {
-			openai: "OpenAI",
-			anthropic: "Anthropic",
-			openrouter: "OpenRouter",
-		};
 
 		// Memoize textarea height adjustment
 		const adjustTextareaHeight = useCallback(() => {
@@ -462,51 +408,15 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 			[setMessage],
 		);
 
-		const [dropdownOpen, setDropdownOpen] = useState(false);
-
 		const handleModelChange = useCallback((value: ModelId) => {
 			setSelectedModelId(value);
 			// Persist to sessionStorage to maintain selection across navigation
 			if (typeof window !== "undefined") {
 				sessionStorage.setItem("selectedModelId", value);
 			}
-			setDropdownOpen(false);
 			// Focus the chat input after model selection
 			textareaRef.current?.focus();
 		}, []);
-
-		const toggleModelSelector = useCallback(() => {
-			setDropdownOpen((prev) => !prev);
-		}, []);
-
-		// Register model selector toggle with keyboard shortcuts context
-		// Only register when textarea is focused
-		useEffect(() => {
-			const textarea = textareaRef.current;
-			if (!textarea) return;
-
-			const handleFocus = () => {
-				keyboardShortcuts.registerModelSelectorToggle(toggleModelSelector);
-			};
-
-			const handleBlur = () => {
-				keyboardShortcuts.unregisterModelSelectorToggle();
-			};
-
-			textarea.addEventListener("focus", handleFocus);
-			textarea.addEventListener("blur", handleBlur);
-
-			// If already focused, register immediately
-			if (document.activeElement === textarea) {
-				keyboardShortcuts.registerModelSelectorToggle(toggleModelSelector);
-			}
-
-			return () => {
-				textarea.removeEventListener("focus", handleFocus);
-				textarea.removeEventListener("blur", handleBlur);
-				keyboardShortcuts.unregisterModelSelectorToggle();
-			};
-		}, [keyboardShortcuts, toggleModelSelector]);
 
 		const handleWebSearchToggle = useCallback(() => {
 			setWebSearchEnabled((prev) => {
@@ -640,75 +550,11 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
 									<div className="flex items-center gap-2">
 										{/* Model selector */}
-										<DropdownMenu
-											modal={false}
-											open={dropdownOpen}
-											onOpenChange={setDropdownOpen}
-										>
-											<DropdownMenuTrigger asChild>
-												<Button
-													variant="outline"
-													size="sm"
-													className="text-xs justify-between font-normal"
-												>
-													<span className="truncate">
-														{selectedModel?.displayName}
-													</span>
-													<ChevronDown className="h-3 w-3 opacity-50" />
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end" className="w-52">
-												{Object.entries(modelsByProvider).map(
-													([provider, models]) => (
-														<DropdownMenuSub key={provider}>
-															<DropdownMenuSubTrigger>
-																<span>
-																	{providerNames[provider] || provider}
-																</span>
-															</DropdownMenuSubTrigger>
-															<DropdownMenuPortal>
-																<DropdownMenuSubContent className="w-72">
-																	{models.map((model) => {
-																		const capabilities = getModelCapabilities(
-																			model.id as ModelId,
-																		);
-																		return (
-																			<DropdownMenuItem
-																				key={model.id}
-																				onClick={() =>
-																					handleModelChange(model.id as ModelId)
-																				}
-																				className="flex flex-col items-start py-3"
-																			>
-																				<div className="flex items-center justify-between w-full">
-																					<span className="font-medium">
-																						{model.displayName}
-																					</span>
-																					{capabilities.length > 0 && (
-																						<div className="flex items-center gap-1">
-																							{capabilities.map((cap) => (
-																								<CapabilityIcon
-																									key={cap.key}
-																									iconName={cap.icon}
-																									className="h-3 w-3"
-																								/>
-																							))}
-																						</div>
-																					)}
-																				</div>
-																				<span className="text-xs text-muted-foreground">
-																					{model.description}
-																				</span>
-																			</DropdownMenuItem>
-																		);
-																	})}
-																</DropdownMenuSubContent>
-															</DropdownMenuPortal>
-														</DropdownMenuSub>
-													),
-												)}
-											</DropdownMenuContent>
-										</DropdownMenu>
+										<UnifiedModelSelector
+											value={selectedModelId}
+											onValueChange={handleModelChange}
+											disabled={disabled}
+										/>
 
 										{/* Send button */}
 										<Tooltip>
@@ -737,7 +583,6 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 										<div className="flex gap-2 p-3">
 											{attachments.map((attachment) => {
 												const isImage = attachment.type.startsWith("image/");
-												const isPdf = attachment.type === "application/pdf";
 
 												return (
 													<div
@@ -746,8 +591,6 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 													>
 														{isImage ? (
 															<Image className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-														) : isPdf ? (
-															<FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 														) : (
 															<FileIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 														)}
