@@ -1,9 +1,9 @@
-import { Suspense } from "react";
 import { LandingChatInput } from "@/components/landing/landing-chat-input";
 import { siteConfig, siteMetadata } from "@/lib/site-config";
 import { SiteFooter } from "@lightfast/ui/components/site-footer";
 import { SiteHeader } from "@lightfast/ui/components/site-header";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
 	title: {

@@ -35,7 +35,7 @@ export function getVisibleModels(): ModelConfig[] {
 }
 
 // Default model ID
-export const DEFAULT_MODEL_ID: ModelId = "gpt-4o-mini";
+export const DEFAULT_MODEL_ID: ModelId = "gpt-4.1-nano";
 
 // Display name utility
 export function getModelDisplayName(modelId: string): string {

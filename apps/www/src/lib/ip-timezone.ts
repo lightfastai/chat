@@ -81,7 +81,7 @@ const countryToTimezone: Record<string, string> = {
 const usRegionToTimezone: Record<string, string> = {
 	// Eastern Time
 	NY: "America/New_York",
-	FL: "America/New_York", 
+	FL: "America/New_York",
 	PA: "America/New_York",
 	OH: "America/New_York",
 	GA: "America/New_York",
@@ -136,7 +136,7 @@ export function getTimezoneFromRequest(request: NextRequest): string | null {
 			request.headers.get("x-vercel-ip-country") ||
 			request.headers.get("cf-ipcountry") ||
 			request.headers.get("x-country-code");
-			
+
 		// For US, check region for more accurate timezone
 		if (country === "US") {
 			const region = request.headers.get("x-vercel-ip-country-region");
