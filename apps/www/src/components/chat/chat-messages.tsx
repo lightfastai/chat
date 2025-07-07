@@ -1,7 +1,7 @@
 "use client";
 
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
-import { useEffect, useRef, useState } from "react";
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
+import { useCallback, useEffect, useState } from "react";
 import { useStickToBottom } from "use-stick-to-bottom";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
@@ -20,7 +20,6 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
-	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const [isStreaming, setIsStreaming] = useState(false);
 
 	// Use the hook approach of use-stick-to-bottom
@@ -30,29 +29,15 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 			initial: "instant",
 		});
 
-	// Connect refs to ScrollArea viewport
-	useEffect(() => {
-		if (scrollAreaRef.current) {
-			// Try both possible selectors for the viewport
-			let viewport = scrollAreaRef.current.querySelector(
-				"[data-radix-scroll-area-viewport]",
-			) as HTMLDivElement;
-
-			if (!viewport) {
-				viewport = scrollAreaRef.current.querySelector(
-					".scroll-area-viewport",
-				) as HTMLDivElement;
-			}
-
-			if (viewport) {
-				// Connect use-stick-to-bottom to the ScrollArea viewport
-				if (scrollRef) {
-					(scrollRef as React.MutableRefObject<HTMLElement | null>).current =
-						viewport;
-				}
-			}
-		}
-	}, [scrollRef]);
+	// Create a callback ref that properly calls the library's ref callback
+	const viewportRef = useCallback(
+		(node: HTMLDivElement | null) => {
+			// The scrollRef from useStickToBottom is a callback ref function
+			// that sets up event listeners when called with the scroll element
+			scrollRef(node);
+		},
+		[scrollRef],
+	);
 
 	// Track streaming state
 	useEffect(() => {
@@ -87,13 +72,33 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	if (!dbMessages || dbMessages.length === 0) {
 		return (
 			<div className="relative flex-1 min-h-0">
-				<ScrollArea className="h-full" ref={scrollAreaRef}>
-					<div ref={contentRef} className="p-2 md:p-4 pb-24">
-						<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-							{/* Empty state */}
+				<ScrollAreaPrimitive.Root
+					data-slot="scroll-area"
+					className="relative h-full"
+				>
+					<ScrollAreaPrimitive.Viewport
+						ref={viewportRef}
+						data-slot="scroll-area-viewport"
+						className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+					>
+						<div ref={contentRef} className="p-2 md:p-4 pb-24">
+							<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+								{/* Empty state */}
+							</div>
 						</div>
-					</div>
-				</ScrollArea>
+					</ScrollAreaPrimitive.Viewport>
+					<ScrollAreaPrimitive.Scrollbar
+						data-slot="scroll-area-scrollbar"
+						orientation="vertical"
+						className="flex touch-none p-px transition-colors select-none h-full w-2.5 border-l border-l-transparent"
+					>
+						<ScrollAreaPrimitive.Thumb
+							data-slot="scroll-area-thumb"
+							className="bg-border relative flex-1 rounded-full"
+						/>
+					</ScrollAreaPrimitive.Scrollbar>
+					<ScrollAreaPrimitive.Corner />
+				</ScrollAreaPrimitive.Root>
 				{!isAtBottom && (
 					<button
 						type="button"
@@ -123,38 +128,61 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 
 	return (
 		<div className="relative flex-1 min-h-0">
-			<ScrollArea className="h-full" ref={scrollAreaRef}>
-				<div ref={contentRef} className="p-2 md:p-4 pb-24">
-					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-						{dbMessages.map((message) => {
-							// For streaming messages, use memoized Vercel data directly
-							if (
-								message.status === "streaming" &&
-								streamingVercelMessage &&
-								streamingVercelMessage.metadata?.dbId === message._id &&
-								streamingMessageParts
-							) {
-								const streamingMessage = {
-									...message,
-									parts: streamingMessageParts,
-								};
+			<ScrollAreaPrimitive.Root
+				data-slot="scroll-area"
+				className="relative h-full"
+			>
+				<ScrollAreaPrimitive.Viewport
+					ref={viewportRef}
+					data-slot="scroll-area-viewport"
+					className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+				>
+					<div ref={contentRef} className="p-2 md:p-4 pb-24">
+						<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+							{dbMessages.map((message) => {
+								// For streaming messages, use memoized Vercel data directly
+								if (
+									message.status === "streaming" &&
+									streamingVercelMessage &&
+									streamingVercelMessage.metadata?.dbId === message._id &&
+									streamingMessageParts
+								) {
+									const streamingMessage = {
+										...message,
+										parts: streamingMessageParts,
+									};
+									return (
+										<MessageDisplay
+											key={message._id}
+											message={streamingMessage}
+										/>
+									);
+								}
+
+								const processedMessage =
+									processedMessages.get(message._id) || message;
 								return (
 									<MessageDisplay
 										key={message._id}
-										message={streamingMessage}
+										message={processedMessage}
 									/>
 								);
-							}
-
-							const processedMessage =
-								processedMessages.get(message._id) || message;
-							return (
-								<MessageDisplay key={message._id} message={processedMessage} />
-							);
-						})}
+							})}
+						</div>
 					</div>
-				</div>
-			</ScrollArea>
+				</ScrollAreaPrimitive.Viewport>
+				<ScrollAreaPrimitive.Scrollbar
+					data-slot="scroll-area-scrollbar"
+					orientation="vertical"
+					className="flex touch-none p-px transition-colors select-none h-full w-2.5 border-l border-l-transparent"
+				>
+					<ScrollAreaPrimitive.Thumb
+						data-slot="scroll-area-thumb"
+						className="bg-border relative flex-1 rounded-full"
+					/>
+				</ScrollAreaPrimitive.Scrollbar>
+				<ScrollAreaPrimitive.Corner />
+			</ScrollAreaPrimitive.Root>
 
 			{/* Enhanced scroll to bottom button - shows when user has manually scrolled */}
 			{!isAtBottom && dbMessages.length > 0 && (
