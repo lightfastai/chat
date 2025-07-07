@@ -1,10 +1,7 @@
 import { SettingsContent } from "@/components/settings/settings-content";
-import { getAuthToken } from "@/lib/auth";
 import { siteConfig } from "@/lib/site-config";
-import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { api } from "../../../../convex/_generated/api";
 
 export const metadata: Metadata = {
 	title: "Settings",
@@ -24,45 +21,16 @@ export const metadata: Metadata = {
 	},
 };
 
-export default async function SettingsPage() {
+export default function SettingsPage() {
 	return (
 		<div className="h-full overflow-y-auto overscroll-contain">
 			<div className="container max-w-4xl mx-auto p-6 pb-20">
 				<Suspense fallback={<SettingsSkeleton />}>
-					<SettingsPageWithData />
+					<SettingsContent />
 				</Suspense>
 			</div>
 		</div>
 	);
-}
-
-async function SettingsPageWithData() {
-	try {
-		// Get authentication token for server-side requests
-		const token = await getAuthToken();
-
-		// Middleware ensures authentication, so token should exist
-		if (!token) {
-			return <SettingUnauthenticated />;
-		}
-
-		// Preload both user data and settings for instant tab switching
-		const [preloadedUser, preloadedUserSettings] = await Promise.all([
-			preloadQuery(api.users.current, {}, { token }),
-			preloadQuery(api.userSettings.getUserSettings, {}, { token }),
-		]);
-
-		// Pass preloaded data to unified settings component
-		return (
-			<SettingsContent
-				preloadedUser={preloadedUser}
-				preloadedUserSettings={preloadedUserSettings}
-			/>
-		);
-	} catch (error) {
-		console.error("Error loading settings:", error);
-		return <SettingsError />;
-	}
 }
 
 // Helper for skeleton row
@@ -110,35 +78,6 @@ function SettingsSkeleton() {
 					<SkeletonRow controlWidth="w-[22rem]" />
 					<SkeletonRow controlWidth="w-[22rem]" />
 				</div>
-			</div>
-		</div>
-	);
-}
-
-// Error state
-function SettingsError() {
-	return (
-		<div className="space-y-4 text-center">
-			<h2 className="text-2xl font-bold tracking-tight">Error</h2>
-			<div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive sm:p-6">
-				<p className="font-medium">Unable to load settings</p>
-				<p className="text-sm">
-					Something went wrong. Please try refreshing the page.
-				</p>
-			</div>
-		</div>
-	);
-}
-
-function SettingUnauthenticated() {
-	return (
-		<div className="space-y-4 text-center">
-			<h2 className="text-2xl font-bold tracking-tight">
-				You are not logged in
-			</h2>
-			<div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive sm:p-6">
-				<p className="font-medium">Please sign in to continue</p>
-				<p className="text-sm">You need to be logged in to access this page.</p>
 			</div>
 		</div>
 	);

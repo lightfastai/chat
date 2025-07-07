@@ -1,8 +1,8 @@
 import { getTimezoneFromRequest } from "@/lib/ip-timezone";
 import {
-  convexAuthNextjsMiddleware,
-  createRouteMatcher,
-  nextjsMiddlewareRedirect,
+	convexAuthNextjsMiddleware,
+	createRouteMatcher,
+	nextjsMiddlewareRedirect,
 } from "@convex-dev/auth/nextjs/server";
 import { NextResponse } from "next/server";
 

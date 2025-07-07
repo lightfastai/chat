@@ -6,8 +6,8 @@ import { ArrowUp } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-// Force static generation of this page
-export const dynamic = 'force-static';
+// Note: This page is dynamic due to middleware authentication checks
+// The middleware needs to check auth state to redirect authenticated users to /chat
 
 export const metadata: Metadata = {
 	title: {
@@ -95,7 +95,10 @@ function LandingPage() {
 						<Link href="/chat" className="block">
 							<div className="w-full border border-muted/30 rounded-xl overflow-hidden flex flex-col transition-all bg-transparent dark:bg-input/10 hover:border-muted/50 cursor-pointer">
 								<div className="flex-1">
-									<div className="w-full resize-none border-0 p-3 bg-transparent dark:bg-input/10 text-sm text-muted-foreground" style={{lineHeight: "24px", minHeight: "72px"}}>
+									<div
+										className="w-full resize-none border-0 p-3 bg-transparent dark:bg-input/10 text-sm text-muted-foreground"
+										style={{ lineHeight: "24px", minHeight: "72px" }}
+									>
 										Ask anything...
 									</div>
 								</div>

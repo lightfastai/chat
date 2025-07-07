@@ -1,22 +1,13 @@
 "use client";
 
-import { usePreloadedQuery } from "convex/react";
-import type { Preloaded } from "convex/react";
-import type { api } from "../../../convex/_generated/api";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { ApiKeysSection } from "./api-keys-section";
 import { ProfileSection } from "./profile-section";
 
-interface SettingsContentProps {
-	preloadedUser: Preloaded<typeof api.users.current>;
-	preloadedUserSettings: Preloaded<typeof api.userSettings.getUserSettings>;
-}
-
-export function SettingsContent({
-	preloadedUser,
-	preloadedUserSettings,
-}: SettingsContentProps) {
-	const user = usePreloadedQuery(preloadedUser);
-	const userSettings = usePreloadedQuery(preloadedUserSettings);
+export function SettingsContent() {
+	const user = useQuery(api.users.current);
+	const userSettings = useQuery(api.userSettings.getUserSettings);
 
 	if (!user) {
 		return null;
@@ -25,7 +16,7 @@ export function SettingsContent({
 	return (
 		<div className="space-y-8 sm:space-y-12">
 			<ProfileSection user={user} />
-			<ApiKeysSection userSettings={userSettings} />
+			<ApiKeysSection userSettings={userSettings || null} />
 		</div>
 	);
 }
