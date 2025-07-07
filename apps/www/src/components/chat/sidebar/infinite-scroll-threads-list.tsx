@@ -10,12 +10,7 @@ import {
 } from "@lightfast/ui/components/ui/sidebar";
 import { Skeleton } from "@lightfast/ui/components/ui/skeleton";
 import { getDateGroupOrder, groupByDate } from "@repo/utils/time";
-import {
-	type Preloaded,
-	useMutation,
-	usePaginatedQuery,
-	useQuery,
-} from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
@@ -27,7 +22,6 @@ import { ThreadItem } from "./thread-item";
 type PaginationArgs = FunctionArgs<typeof api.threads.listForInfiniteScroll>;
 
 interface InfiniteScrollThreadsListProps {
-	preloadedThreads: Preloaded<typeof api.threads.list>; // Initial threads data
 	className?: string;
 }
 
@@ -89,7 +83,6 @@ function LoadingGroup() {
 }
 
 export function InfiniteScrollThreadsList({
-	preloadedThreads: _preloadedThreads, // Kept for backward compatibility but not used
 	className,
 }: InfiniteScrollThreadsListProps) {
 	const togglePinned = useMutation(

@@ -1,8 +1,8 @@
 import { SidebarProvider } from "@lightfast/ui/components/ui/sidebar";
-import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { ShareButtonWrapper } from "./share-button-wrapper";
-import { ServerSidebar } from "./sidebar/server-sidebar";
+import { ServerSidebarImplementation } from "./sidebar/server-sidebar-implementation";
+import { SidebarSkeleton } from "./sidebar/sidebar-skeleton";
 import { TokenUsageHeaderWrapper } from "./token-usage-header-wrapper";
 
 interface ChatLayoutProps {
@@ -10,16 +10,13 @@ interface ChatLayoutProps {
 }
 
 // Main layout component - server component with PPR
-export async function ChatLayout({ children }: ChatLayoutProps) {
-	// Read sidebar state from cookies on server
-	const cookieStore = await cookies();
-	const sidebarState = cookieStore.get("sidebar_state")?.value;
-	const sidebarOpen = sidebarState === "true";
-
+export function ChatLayout({ children }: ChatLayoutProps) {
 	return (
-		<SidebarProvider defaultOpen={sidebarOpen}>
+		<SidebarProvider defaultOpen={true}>
 			<div className="flex h-screen w-full">
-				<ServerSidebar />
+				<Suspense fallback={<SidebarSkeleton />}>
+					<ServerSidebarImplementation />
+				</Suspense>
 				<div className="flex border-l border-muted/30 flex-col w-full">
 					{/* Responsive header - fixed header on small screens, floating on large */}
 					<header className="shrink-0 xl:absolute xl:top-0 xl:right-0 xl:z-10 w-full xl:w-auto border-b xl:border-0 border-muted/30">
