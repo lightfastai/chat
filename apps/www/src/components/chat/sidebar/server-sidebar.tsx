@@ -1,9 +1,9 @@
 import { Icons } from "@lightfast/ui/components/ui/icons";
 import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarHeader,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
 } from "@lightfast/ui/components/ui/sidebar";
 import { preloadQuery } from "convex/nextjs";
 import Link from "next/link";
