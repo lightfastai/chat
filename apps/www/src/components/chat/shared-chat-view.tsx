@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
+import { processMessageParts } from "@/hooks/use-processed-messages";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useMutation, useQuery } from "convex/react";
@@ -86,6 +87,16 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 
 	const { thread, messages, owner } = sharedData;
 
+	// Process messages to merge consecutive message parts (same as normal chat)
+	const processedMessages = useMemo(() => {
+		if (!messages) return [];
+
+		return messages.map((message) => ({
+			...message,
+			parts: processMessageParts(message.parts || []),
+		}));
+	}, [messages]);
+
 	return (
 		<div className="flex flex-col h-screen">
 			{/* Simplified Header */}
@@ -108,7 +119,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 								here.
 							</AlertDescription>
 						</Alert>
-						{messages.map((message) => {
+						{processedMessages.map((message) => {
 							return (
 								<MessageItem
 									key={message._id}

@@ -6,7 +6,7 @@ import { isReasoningPart, isTextPart } from "../../convex/types";
 /**
  * Process message parts: sort by timestamp, then merge consecutive parts of same type
  */
-function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
+export function processMessageParts(parts: DbMessagePart[]): DbMessagePart[] {
 	if (!parts || parts.length === 0) return [];
 
 	// Step 1: Sort all parts by timestamp
