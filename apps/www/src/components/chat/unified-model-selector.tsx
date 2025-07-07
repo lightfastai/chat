@@ -149,8 +149,8 @@ export function UnifiedModelSelector({
 								className="w-full h-12 pl-10 pr-3 text-sm bg-transparent border-0 outline-none focus:ring-0 placeholder:text-muted-foreground"
 							/>
 						</div>
-						<ScrollArea className="flex-1">
-							<div className="p-1">
+						<ScrollArea className="flex-1 overflow-y-auto">
+							<div className="p-2 space-y-1">
 								{sortedModels.map((model) => (
 									<button
 										type="button"
@@ -159,7 +159,7 @@ export function UnifiedModelSelector({
 										onMouseEnter={() => setHoveredModel(model.id)}
 										onMouseLeave={() => setHoveredModel(null)}
 										className={cn(
-											"w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors text-left",
+											"w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md transition-colors text-left",
 											"hover:bg-accent hover:text-accent-foreground",
 											model.id === value && "bg-accent text-accent-foreground",
 										)}
@@ -167,8 +167,8 @@ export function UnifiedModelSelector({
 										<Image
 											src={providerIcons[model.provider]}
 											alt=""
-											width={16}
-											height={16}
+											width={14}
+											height={14}
 											className="opacity-70 shrink-0"
 										/>
 										<span className="truncate">{model.displayName}</span>
@@ -180,7 +180,7 @@ export function UnifiedModelSelector({
 									</button>
 								))}
 								{sortedModels.length === 0 && (
-									<div className="text-center py-8 text-sm text-muted-foreground">
+									<div className="text-center py-8 text-xs text-muted-foreground">
 										No models found
 									</div>
 								)}
