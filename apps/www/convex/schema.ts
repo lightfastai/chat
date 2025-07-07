@@ -102,7 +102,7 @@ export default defineSchema({
 		shareId: shareIdValidator,
 		accessedAt: v.number(),
 		ipHash: v.optional(ipHashValidator), // Deprecated: Previously used for rate limiting
-		userAgent: userAgentValidator,
+		userAgent: v.optional(userAgentValidator), // Deprecated: Previously used for logging
 		success: v.boolean(), // Whether the access was successful
 	})
 		.index("by_share_id", ["shareId"])

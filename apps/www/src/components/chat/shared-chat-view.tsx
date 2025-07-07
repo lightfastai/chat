@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useMutation, useQuery } from "convex/react";
 import { AlertCircle, Info, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { MessageItem } from "./shared";
 
 interface SharedChatViewProps {
@@ -13,15 +13,6 @@ interface SharedChatViewProps {
 }
 
 export function SharedChatView({ shareId }: SharedChatViewProps) {
-	// Client info for basic logging
-	const clientInfo = useMemo(() => {
-		if (typeof window === "undefined") return undefined;
-
-		return {
-			userAgent: navigator.userAgent.substring(0, 100), // Limit length
-		};
-	}, []);
-
 	const logAccess = useMutation(api.share.logShareAccess);
 	const [accessAllowed, setAccessAllowed] = useState<boolean | null>(null);
 
@@ -33,7 +24,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 	// Log access attempt on component mount
 	useEffect(() => {
 		if (accessAllowed === null) {
-			logAccess({ shareId, clientInfo })
+			logAccess({ shareId })
 				.then((result) => {
 					setAccessAllowed(result.allowed);
 				})
@@ -41,7 +32,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 					setAccessAllowed(false);
 				});
 		}
-	}, [shareId, clientInfo, logAccess, accessAllowed]);
+	}, [shareId, logAccess, accessAllowed]);
 
 	// Show loading while checking access or loading data
 	if (accessAllowed === null || (accessAllowed && sharedData === undefined)) {

@@ -5,7 +5,6 @@ import { mutation, query } from "./_generated/server";
 import {
 	shareIdValidator,
 	shareSettingsValidator,
-	userAgentValidator,
 } from "./validators";
 
 export const shareThread = mutation({
@@ -136,11 +135,6 @@ export const updateShareSettings = mutation({
 export const logShareAccess = mutation({
 	args: {
 		shareId: shareIdValidator,
-		clientInfo: v.optional(
-			v.object({
-				userAgent: userAgentValidator,
-			}),
-		),
 	},
 	returns: v.object({ allowed: v.boolean() }),
 	handler: async (ctx, args) => {
@@ -158,7 +152,6 @@ export const logShareAccess = mutation({
 		await ctx.db.insert("shareAccess", {
 			shareId: args.shareId,
 			accessedAt: now,
-			userAgent: args.clientInfo?.userAgent,
 			success,
 		});
 
