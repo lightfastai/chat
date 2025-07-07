@@ -5,8 +5,30 @@ import { defineTool } from "../types";
 export const webSearchV1_1 = defineTool({
 	name: "web_search_1_1_0" as const,
 	displayName: "Web Search v1.1",
-	description:
-		"Search the web with optimized content retrieval using highlights and summaries (v1.1.0)",
+	description: `Advanced web search with optimized content retrieval (v1.1.0).
+
+USAGE GUIDELINES:
+• First assess if your internal knowledge can answer the query adequately
+• Use web search primarily for: recent events, time-sensitive info, current prices/availability, or when explicitly asked
+• For complex topics requiring comprehensive research, use an iterative approach
+
+ITERATIVE SEARCH PATTERN (when needed):
+1. Initial Search: Start with a broad query to understand the topic landscape
+2. Follow-up Searches: Based on gaps in the initial results, search for:
+   - More specific examples or implementations
+   - Recent updates or changes
+   - Technical details or best practices
+   - Alternative perspectives or approaches
+3. Synthesis: After gathering sufficient information, provide a comprehensive answer with clear source attribution
+
+SEARCH STRATEGIES:
+• Use "highlights" for quick fact-finding and overview
+• Use "summary" for in-depth understanding of complex topics
+• Use "text" when you need exact quotes or detailed technical information
+• Adjust numResults based on topic complexity (3-5 for simple queries, 7-10 for research)
+• Use domain filters to focus on authoritative sources when appropriate
+
+IMPORTANT: Avoid over-searching. Most queries need only 1-2 searches. Only use multiple searches for genuinely complex research tasks.`,
 	inputSchema: z.object({
 		query: z.string().describe("The search query"),
 		useAutoprompt: z

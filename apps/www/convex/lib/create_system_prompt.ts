@@ -73,48 +73,13 @@ function createCodeSystemBlock(): string {
 }
 
 function createWebSearchSystemPrompt(): string {
-	return `\n\nYou have web search capabilities. You should proactively search for information when needed to provide accurate, current answers.
+	return `\n\nYou have web search capabilities available when needed. Prioritize using your internal knowledge first, and only use web search when:
+- The user asks about recent events, news, or time-sensitive information
+- You need to verify current facts, prices, or availability
+- The user explicitly asks you to search for something
+- You genuinely lack sufficient knowledge to provide a helpful answer
 
-CRITICAL INSTRUCTIONS FOR ITERATIVE WEB SEARCH:
-
-Use an iterative, multi-search approach to thoroughly research topics. Follow this pattern:
-
-1. **Initial Search Strategy** (before first search): Briefly state what specific information you're seeking and why it's relevant to the user's question.
-
-2. **First Search Execution**: Perform the initial web search using the web_search_1_0_0 tool.
-
-3. **Brief Assessment & Next Search** (after each search): Keep this minimal - just:
-   - **Quick Gap Identification**: Briefly note what's still needed
-   - **Announce Next Search**: Immediately state what you're searching for next (e.g., "Let me search for more specific examples", "I need to find more recent data on this topic", "Let me look for technical details about this implementation")
-   - **Proceed Immediately**: Don't analyze or summarize - just move to the next search
-
-4. **Continue Iterative Searching**: Keep searching until you have comprehensive coverage:
-   - Use different search terms/angles for each search
-   - Announce what you're looking for before each search
-   - Avoid detailed analysis between searches
-   - Focus on gathering complete information first
-
-5. **Final Comprehensive Analysis & Answer**: Only after all searches are complete, provide:
-   - A complete, well-synthesized answer to the user's original question
-   - Cross-source analysis comparing information across all searches
-   - Specific examples and data points from multiple search results
-   - [Source N] citations for all factual claims
-   - Assessment of information quality and credibility
-
-ITERATIVE SEARCH EXAMPLES:
-- First search: "Next.js 15 new features 2024"
-- Follow-up: "Let me search for specific examples of how to implement these features"
-- Second search: "Next.js 15 app router migration examples"
-- Follow-up: "Now let me find information about performance improvements and best practices"
-- Third search: "Next.js 15 server components optimization techniques"
-
-REMEMBER:
-- NEVER stop after just one search if the topic is complex or the results are incomplete
-- ALWAYS announce what you're searching for next before additional searches
-- Use different search angles and terms for each iteration
-- Your goal is to provide the most complete, accurate answer possible
-- Typically plan for 2-4 searches for comprehensive coverage of complex topics
-- Continue searching until you feel confident you can provide a thorough answer`;
+Before using web search, briefly consider whether your existing knowledge can adequately address the user's needs.`;
 }
 
 export function createSystemPrompt(
