@@ -71,7 +71,7 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	if (!dbMessages || dbMessages.length === 0) {
 		return (
 			<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
-				<div ref={contentRef} className="p-2 md:p-4 pb-16">
+				<div ref={contentRef} className="p-2 md:p-4 pb-24">
 					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 						{/* Empty state */}
 					</div>
@@ -105,7 +105,7 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 
 	return (
 		<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
-			<div ref={contentRef} className="p-2 md:p-4 pb-16">
+			<div ref={contentRef} className="p-2 md:p-4 pb-24">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 					{dbMessages.map((message) => {
 						// For streaming messages, use memoized Vercel data directly
