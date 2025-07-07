@@ -12,14 +12,14 @@ import {
 	ipHashValidator,
 	messageMetadataValidator,
 	messagePartsValidator,
+	messagesDeprecatedValidator,
 	messageStatusValidator,
 	mimeTypeValidator,
-	modelIdValidator,
-	modelProviderValidator,
 	roleValidator,
 	shareIdValidator,
 	shareSettingsValidator,
 	storageIdValidator,
+	threadDeprecatedValidator,
 	threadMetadataValidator,
 	titleValidator,
 	userAgentValidator,
@@ -64,10 +64,7 @@ export default defineSchema({
 		shareSettings: shareSettingsValidator,
 		metadata: v.optional(threadMetadataValidator),
 		// @deprecated fields - Do not use in new code
-		createdAt: v.optional(v.number()), // @deprecated: use _creationTime instead
-		isTitleGenerating: v.optional(v.boolean()), // @deprecated: Still used by backend/UI but will be migrated
-		lastMessageAt: v.optional(v.number()), // @deprecated: threads are sorted by _creationTime only
-		isGenerating: v.optional(v.boolean()), // @deprecated: generation status tracked in messages
+		...threadDeprecatedValidator.fields,
 	})
 		.index("by_user", ["userId"])
 		.index("by_client_id", ["clientId"])
@@ -83,14 +80,8 @@ export default defineSchema({
 		attachments: v.optional(v.array(v.id("files"))),
 		// New metadata structure
 		metadata: v.optional(messageMetadataValidator),
-		// @deprecated fields
-		messageType: v.optional(roleValidator), // Deprecated - use role instead
-		modelId: v.optional(modelIdValidator),
-		usedUserApiKey: v.optional(v.boolean()), // Track if user's own API key was used
-		thinkingStartedAt: v.optional(v.number()),
-		thinkingCompletedAt: v.optional(v.number()),
-		model: v.optional(modelProviderValidator),
-		timestamp: v.optional(v.number()),
+		// @deprecated fields - Do not use in new code
+		...messagesDeprecatedValidator.fields,
 	}).index("by_thread", ["threadId"]),
 
 	feedback: defineTable({

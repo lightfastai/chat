@@ -644,6 +644,90 @@ export const addFilePartArgsValidator = v.object({
 	timestamp: v.number(),
 });
 
+// ===== Deprecated Field Validators =====
+// These validators contain deprecated fields that are being phased out
+// DO NOT use these fields in new code - they exist only for schema migration
+
+// Deprecated chunk ID validator (format: chunk_<timestamp>_<random>)
+const chunkIdValidator = v.string();
+
+// Deprecated stream chunk validator
+const streamChunkValidator = v.object({
+	// Support both old "id" field and new "chunkId" field for backward compatibility
+	chunkId: v.optional(chunkIdValidator),
+	id: v.optional(chunkIdValidator), // Legacy field from before PR #195
+	content: v.string(),
+	timestamp: v.number(),
+	sequence: v.optional(v.number()), // Legacy field from before PR #195
+	isThinking: v.optional(v.boolean()),
+});
+
+// Thread deprecated fields validator
+export const threadDeprecatedValidator = v.object({
+	// @deprecated: use _creationTime instead
+	createdAt: v.optional(v.number()),
+	// @deprecated: Still used by backend/UI but will be migrated
+	isTitleGenerating: v.optional(v.boolean()),
+	// @deprecated: threads are sorted by _creationTime only
+	lastMessageAt: v.optional(v.number()),
+	// @deprecated: generation status tracked in messages
+	isGenerating: v.optional(v.boolean()),
+	// @deprecated: usage tracking moved to message level
+	usage: v.optional(
+		v.object({
+			inputTokens: v.optional(v.number()),
+			outputTokens: v.optional(v.number()),
+			totalTokens: v.optional(v.number()),
+		}),
+	),
+});
+
+// Messages deprecated fields validator
+export const messagesDeprecatedValidator = v.object({
+	// @deprecated: use role instead
+	messageType: v.optional(roleValidator),
+	// @deprecated: use metadata.model instead
+	modelId: v.optional(modelIdValidator),
+	// @deprecated: use metadata.usedUserApiKey instead
+	usedUserApiKey: v.optional(v.boolean()),
+	// @deprecated: use metadata.thinkingStartedAt instead
+	thinkingStartedAt: v.optional(v.number()),
+	// @deprecated: use metadata.thinkingCompletedAt instead
+	thinkingCompletedAt: v.optional(v.number()),
+	// @deprecated: use metadata.model instead
+	model: v.optional(modelProviderValidator),
+	// @deprecated: use _creationTime instead
+	timestamp: v.optional(v.number()),
+	// @deprecated: use parts array instead
+	body: v.optional(v.string()),
+	// @deprecated: use status instead
+	isStreaming: v.optional(v.boolean()),
+	// @deprecated: streaming handled differently in V2
+	streamId: v.optional(v.string()),
+	// @deprecated: use status instead
+	isComplete: v.optional(v.boolean()),
+	// @deprecated: not used in V2
+	streamVersion: v.optional(v.number()),
+	// @deprecated: use parts array instead
+	thinkingContent: v.optional(v.string()),
+	// @deprecated: use status instead
+	isThinking: v.optional(v.boolean()),
+	// @deprecated: use parts array instead
+	hasThinkingContent: v.optional(v.boolean()),
+	// @deprecated: use metadata.usage instead
+	usage: v.optional(
+		v.object({
+			inputTokens: v.optional(v.number()),
+			outputTokens: v.optional(v.number()),
+			totalTokens: v.optional(v.number()),
+		}),
+	),
+	// @deprecated: streaming chunks replaced by parts array
+	streamChunks: v.optional(v.array(streamChunkValidator)),
+	// @deprecated: chunk tracking not used in V2
+	lastChunkId: v.optional(chunkIdValidator),
+});
+
 // ===== Validation Functions =====
 // Title validation
 
