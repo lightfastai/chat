@@ -24,7 +24,7 @@ import {
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { cn } from "@lightfast/ui/lib/utils";
 import { ChevronDown } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface UnifiedModelSelectorProps {
 	value: ModelId;
@@ -60,9 +60,6 @@ export function UnifiedModelSelector({
 }: UnifiedModelSelectorProps) {
 	const [open, setOpen] = useState(false);
 	const [hoveredModel, setHoveredModel] = useState<ModelId | null>(null);
-	const [search, setSearch] = useState("");
-	const commandRef = useRef<HTMLDivElement>(null);
-	const inputRef = useRef<HTMLInputElement>(null);
 
 	// Get all visible models
 	const allModels = useMemo(() => {
@@ -75,17 +72,14 @@ export function UnifiedModelSelector({
 		}));
 	}, []);
 
-	// Filter and sort models with selected one first
-	const filteredModels = useMemo(() => {
-		const filtered = allModels.filter((model) =>
-			model.displayName.toLowerCase().includes(search.toLowerCase()),
-		);
-		return [...filtered].sort((a, b) => {
+	// Sort models with selected one first
+	const sortedModels = useMemo(() => {
+		return [...allModels].sort((a, b) => {
 			if (a.id === value) return -1;
 			if (b.id === value) return 1;
 			return 0;
 		});
-	}, [allModels, value, search]);
+	}, [allModels, value]);
 
 	// Get the model to show details for (hovered or selected)
 	const detailModel = useMemo(() => {
@@ -93,22 +87,16 @@ export function UnifiedModelSelector({
 		return allModels.find((m) => m.id === modelId) || null;
 	}, [hoveredModel, value, allModels]);
 
-	// Reset search and focus when opening
+	// Reset hover when opening
 	useEffect(() => {
 		if (open) {
-			setSearch("");
 			setHoveredModel(null);
-			// Focus the input after a short delay to ensure popover is rendered
-			// Using requestAnimationFrame for more reliable timing
-			requestAnimationFrame(() => {
-				inputRef.current?.focus();
-			});
 		}
 	}, [open]);
 
 	const handleSelect = useCallback(
-		(modelId: ModelId) => {
-			onValueChange(modelId);
+		(modelId: string) => {
+			onValueChange(modelId as ModelId);
 			setOpen(false);
 		},
 		[onValueChange],
@@ -155,86 +143,49 @@ export function UnifiedModelSelector({
 					<ChevronDown className="h-3 w-3 opacity-50" />
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent
-				align="end"
-				className="w-[600px] p-0"
-				onOpenAutoFocus={(e) => {
-					// Prevent popover from auto-focusing, we'll handle it manually
-					e.preventDefault();
-					// Focus the search input immediately
-					inputRef.current?.focus();
-				}}
-			>
+			<PopoverContent align="end" className="w-[600px] p-0">
 				<div className="flex h-[400px]">
 					{/* Model list */}
 					<div className="flex-1 border-r">
-						<Command
-							ref={commandRef}
-							value={hoveredModel || ""}
-							onValueChange={(modelId) => {
-								if (modelId) {
-									setHoveredModel(modelId as ModelId);
-								}
-							}}
-							filter={(value, search) => {
-								const model = allModels.find((m) => m.id === value);
-								if (!model) return 0;
-								return model.displayName
-									.toLowerCase()
-									.includes(search.toLowerCase())
-									? 1
-									: 0;
-							}}
-							className="h-full border-0"
-							onKeyDown={(e) => {
-								// Handle "/" key only when not typing in the input
-								if (e.key === "/" && e.target !== inputRef.current) {
-									e.preventDefault();
-									inputRef.current?.focus();
-								}
-							}}
-						>
+						<Command className="h-full border-0">
 							<CommandInput
-								ref={inputRef}
 								placeholder="Search models..."
 								className="text-xs"
-								value={search}
-								onValueChange={setSearch}
+								autoFocus
 							/>
-							<CommandList className="max-h-[340px]">
+							<CommandList>
 								<CommandEmpty className="text-xs text-muted-foreground py-8">
 									No models found
 								</CommandEmpty>
-								<ScrollArea className="max-h-[320px]">
-									{filteredModels.map((model) => (
-										<CommandItem
-											key={model.id}
-											value={model.id}
-											onSelect={() => handleSelect(model.id)}
-											className={cn(
-												"flex items-center gap-3 px-2.5 py-2.5 text-xs cursor-pointer",
-												model.id === value &&
-													"bg-accent text-accent-foreground",
-											)}
-										>
-											{(() => {
-												const iconName = PROVIDER_ICONS[
-													model.provider
-												] as keyof typeof Icons;
-												const IconComponent = Icons[iconName];
-												return IconComponent ? (
-													<IconComponent className="w-4 h-4 shrink-0" />
-												) : null;
-											})()}
-											<span className="truncate">{model.displayName}</span>
-											{model.id === value && (
-												<span className="ml-auto text-xs text-muted-foreground">
-													Selected
-												</span>
-											)}
-										</CommandItem>
-									))}
-								</ScrollArea>
+								{sortedModels.map((model) => (
+									<CommandItem
+										key={model.id}
+										value={model.id}
+										keywords={[model.displayName, model.provider]}
+										onSelect={handleSelect}
+										onMouseEnter={() => setHoveredModel(model.id)}
+										className={cn(
+											"flex items-center gap-3 px-2.5 py-2.5 text-xs cursor-pointer",
+											model.id === value && "bg-accent text-accent-foreground",
+										)}
+									>
+										{(() => {
+											const iconName = PROVIDER_ICONS[
+												model.provider
+											] as keyof typeof Icons;
+											const IconComponent = Icons[iconName];
+											return IconComponent ? (
+												<IconComponent className="w-4 h-4 shrink-0" />
+											) : null;
+										})()}
+										<span className="truncate">{model.displayName}</span>
+										{model.id === value && (
+											<span className="ml-auto text-xs text-muted-foreground">
+												Selected
+											</span>
+										)}
+									</CommandItem>
+								))}
 							</CommandList>
 						</Command>
 					</div>
