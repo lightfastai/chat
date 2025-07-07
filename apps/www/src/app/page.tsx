@@ -1,13 +1,9 @@
+import { Suspense } from "react";
+import { LandingChatInput } from "@/components/landing/landing-chat-input";
 import { siteConfig, siteMetadata } from "@/lib/site-config";
 import { SiteFooter } from "@lightfast/ui/components/site-footer";
 import { SiteHeader } from "@lightfast/ui/components/site-header";
-import { Button } from "@lightfast/ui/components/ui/button";
-import { ArrowUp } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
-
-// Note: This page is dynamic due to middleware authentication checks
-// The middleware needs to check auth state to redirect authenticated users to /chat
 
 export const metadata: Metadata = {
 	title: {
@@ -90,29 +86,11 @@ function LandingPage() {
 						</h1>
 					</div>
 
-					{/* Static chat input preview - links to /chat */}
+					{/* Chat input preview */}
 					<div className="w-full">
-						<Link href="/chat" className="block">
-							<div className="w-full border border-muted/30 rounded-xl overflow-hidden flex flex-col transition-all bg-transparent dark:bg-input/10 hover:border-muted/50 cursor-pointer">
-								<div className="flex-1">
-									<div
-										className="w-full resize-none border-0 p-3 bg-transparent dark:bg-input/10 text-sm text-muted-foreground"
-										style={{ lineHeight: "24px", minHeight: "72px" }}
-									>
-										Ask anything...
-									</div>
-								</div>
-								<div className="flex items-center justify-end p-2 bg-transparent dark:bg-input/10">
-									<Button
-										variant="default"
-										size="icon"
-										className="h-8 w-8 p-0 rounded-full pointer-events-none"
-									>
-										<ArrowUp className="w-4 h-4" />
-									</Button>
-								</div>
-							</div>
-						</Link>
+						<Suspense fallback={<div>Loading...</div>}>
+							<LandingChatInput />
+						</Suspense>
 					</div>
 				</div>
 			</main>
