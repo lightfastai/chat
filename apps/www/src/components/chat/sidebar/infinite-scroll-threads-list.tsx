@@ -45,7 +45,7 @@ function groupThreadsByDate(threads: Thread[]) {
 	};
 
 	for (const thread of threads) {
-		const threadDate = new Date(thread.lastMessageAt);
+		const threadDate = new Date(thread.lastMessageAt || thread._creationTime);
 
 		if (threadDate >= today) {
 			groups.Today.push(thread);
