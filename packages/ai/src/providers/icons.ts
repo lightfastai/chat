@@ -2,12 +2,12 @@ import type { ModelProvider } from "./schemas";
 
 /**
  * Provider icon mappings for UI display
- * Maps each AI provider to their respective icon file path
+ * Maps each AI provider to their respective icon component name
  */
 export const PROVIDER_ICONS: Record<ModelProvider, string> = {
-  openai: "/openai-logo.svg",
-  anthropic: "/anthropic-logo.svg",
-  openrouter: "/openrouter-logo.svg",
+  openai: "openai",
+  anthropic: "anthropic",
+  openrouter: "openrouter",
 } as const;
 
 /**

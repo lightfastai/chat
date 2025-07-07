@@ -8,6 +8,7 @@ import {
 } from "@lightfast/ai/providers";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
+import { Icons } from "@lightfast/ui/components/ui/icons";
 import {
 	Popover,
 	PopoverContent,
@@ -16,7 +17,6 @@ import {
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { cn } from "@lightfast/ui/lib/utils";
 import { ChevronDown, Search } from "lucide-react";
-import Image from "next/image";
 import { useCallback, useMemo, useState } from "react";
 
 interface UnifiedModelSelectorProps {
@@ -114,13 +114,15 @@ export function UnifiedModelSelector({
 					disabled={disabled}
 				>
 					<div className="flex items-center gap-2">
-						<Image
-							src={PROVIDER_ICONS[selectedModel?.provider || "openai"]}
-							alt=""
-							width={16}
-							height={16}
-							className="shrink-0 brightness-0 invert"
-						/>
+						{(() => {
+							const iconName = PROVIDER_ICONS[
+								selectedModel?.provider || "openai"
+							] as keyof typeof Icons;
+							const IconComponent = Icons[iconName];
+							return IconComponent ? (
+								<IconComponent className="w-4 h-4 shrink-0" />
+							) : null;
+						})()}
 						<span className="truncate text-xs">
 							{selectedModel?.displayName}
 						</span>
@@ -161,13 +163,15 @@ export function UnifiedModelSelector({
 											model.id === value && "bg-accent text-accent-foreground",
 										)}
 									>
-										<Image
-											src={PROVIDER_ICONS[model.provider]}
-											alt=""
-											width={16}
-											height={16}
-											className="shrink-0 brightness-0 invert"
-										/>
+										{(() => {
+											const iconName = PROVIDER_ICONS[
+												model.provider
+											] as keyof typeof Icons;
+											const IconComponent = Icons[iconName];
+											return IconComponent ? (
+												<IconComponent className="w-4 h-4 shrink-0" />
+											) : null;
+										})()}
 										<span className="truncate">{model.displayName}</span>
 										{model.id === value && (
 											<span className="ml-auto text-xs text-muted-foreground">
@@ -190,13 +194,15 @@ export function UnifiedModelSelector({
 						{detailModel ? (
 							<div className="space-y-3">
 								<div className="flex items-start gap-2">
-									<Image
-										src={PROVIDER_ICONS[detailModel.provider]}
-										alt=""
-										width={24}
-										height={24}
-										className="shrink-0 mt-0.5 brightness-0 invert"
-									/>
+									{(() => {
+										const iconName = PROVIDER_ICONS[
+											detailModel.provider
+										] as keyof typeof Icons;
+										const IconComponent = Icons[iconName];
+										return IconComponent ? (
+											<IconComponent className="w-6 h-6 shrink-0 mt-0.5" />
+										) : null;
+									})()}
 									<div className="flex-1 min-w-0">
 										<h4 className="font-medium truncate">
 											{detailModel.displayName}
