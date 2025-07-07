@@ -74,3 +74,13 @@ export const getModelById = getModelConfig;
 
 // Re-export validation functions
 export { validateApiKey } from "./schemas";
+
+// Re-export provider icons and utilities
+export {
+	PROVIDER_ICONS,
+	PROVIDER_DISPLAY_NAMES,
+	PROVIDER_COLORS,
+	getProviderIcon,
+	getProviderDisplayName,
+	getProviderColor,
+} from "./icons";

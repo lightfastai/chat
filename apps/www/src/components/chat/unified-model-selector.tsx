@@ -2,6 +2,7 @@
 
 import {
 	type ModelId,
+	PROVIDER_ICONS,
 	getModelConfig,
 	getVisibleModels,
 } from "@lightfast/ai/providers";
@@ -24,12 +25,6 @@ interface UnifiedModelSelectorProps {
 	disabled?: boolean;
 	className?: string;
 }
-
-const providerIcons: Record<string, string> = {
-	openai: "/openai-logo.svg",
-	anthropic: "/anthropic-logo.svg",
-	openrouter: "/openrouter-logo.svg",
-};
 
 const featureBadges = {
 	vision: {
@@ -120,13 +115,15 @@ export function UnifiedModelSelector({
 				>
 					<div className="flex items-center gap-2">
 						<Image
-							src={providerIcons[selectedModel?.provider || "openai"]}
+							src={PROVIDER_ICONS[selectedModel?.provider || "openai"]}
 							alt=""
-							width={14}
-							height={14}
-							className="opacity-70 dark:invert"
+							width={16}
+							height={16}
+							className="shrink-0 brightness-0 invert"
 						/>
-						<span className="truncate">{selectedModel?.displayName}</span>
+						<span className="truncate text-xs">
+							{selectedModel?.displayName}
+						</span>
 					</div>
 					<ChevronDown className="h-3 w-3 opacity-50" />
 				</Button>
@@ -159,17 +156,17 @@ export function UnifiedModelSelector({
 										onMouseEnter={() => setHoveredModel(model.id)}
 										onMouseLeave={() => setHoveredModel(null)}
 										className={cn(
-											"w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-md transition-colors text-left",
+											"w-full flex items-center gap-3 px-2.5 py-2.5 text-xs rounded-md transition-colors text-left",
 											"hover:bg-accent hover:text-accent-foreground",
 											model.id === value && "bg-accent text-accent-foreground",
 										)}
 									>
 										<Image
-											src={providerIcons[model.provider]}
+											src={PROVIDER_ICONS[model.provider]}
 											alt=""
-											width={14}
-											height={14}
-											className="opacity-70 shrink-0 dark:invert"
+											width={16}
+											height={16}
+											className="shrink-0 brightness-0 invert"
 										/>
 										<span className="truncate">{model.displayName}</span>
 										{model.id === value && (
@@ -194,11 +191,11 @@ export function UnifiedModelSelector({
 							<div className="space-y-3">
 								<div className="flex items-start gap-2">
 									<Image
-										src={providerIcons[detailModel.provider]}
+										src={PROVIDER_ICONS[detailModel.provider]}
 										alt=""
-										width={20}
-										height={20}
-										className="opacity-70 mt-0.5 dark:invert"
+										width={24}
+										height={24}
+										className="shrink-0 mt-0.5 brightness-0 invert"
 									/>
 									<div className="flex-1 min-w-0">
 										<h4 className="font-medium truncate">
@@ -210,11 +207,18 @@ export function UnifiedModelSelector({
 									</div>
 								</div>
 
-								{detailModel.description && (
-									<p className="text-xs text-muted-foreground leading-relaxed">
-										{detailModel.description}
+								<div className="h-8 flex items-start">
+									<p
+										className="text-xs text-muted-foreground leading-tight overflow-hidden"
+										style={{
+											display: "-webkit-box",
+											WebkitLineClamp: 2,
+											WebkitBoxOrient: "vertical",
+										}}
+									>
+										{detailModel.description || "No description available"}
 									</p>
-								)}
+								</div>
 
 								<div className="space-y-2">
 									<p className="text-xs font-medium text-muted-foreground">

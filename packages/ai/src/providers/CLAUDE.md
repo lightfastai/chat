@@ -77,6 +77,31 @@ OpenRouter shows prices per 1M tokens. Divide by 1000 for our format:
 - **Thinking**: Only Claude 3.7+, Claude 4, and o3-mini
 - **PDF Support**: Only Anthropic models
 
+## Provider Icons
+
+The package provides centralized provider icon mappings:
+
+```typescript
+import { PROVIDER_ICONS, getProviderIcon } from "@lightfast/ai/providers";
+
+// Get icon path
+const iconPath = PROVIDER_ICONS.openai; // "/openai-logo.svg"
+
+// Or use helper function
+const iconPath = getProviderIcon("anthropic"); // "/anthropic-logo.svg"
+```
+
+Available icons:
+- `openai` → `/openai-logo.svg`
+- `anthropic` → `/anthropic-logo.svg`
+- `openrouter` → `/openrouter-logo.svg`
+
+Additional utilities:
+- `PROVIDER_DISPLAY_NAMES` - Human-readable names
+- `PROVIDER_COLORS` - Brand colors for theming
+- `getProviderDisplayName()` - Get display name by provider ID
+- `getProviderColor()` - Get brand color by provider ID
+
 ## Important Notes
 
 - The `name` field must match the exact API model name
