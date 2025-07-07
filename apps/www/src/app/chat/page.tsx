@@ -1,6 +1,8 @@
+import { getServerGreeting, getServerTimezone } from "@/lib/server-timezone";
 import { siteConfig } from "@/lib/site-config";
 import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 import { api } from "../../../convex/_generated/api";
 import { ChatInterface } from "../../components/chat/chat-interface";
@@ -42,9 +44,25 @@ async function ChatPageWithPreloadedData() {
 		// Get authentication token for server-side requests
 		const token = await getAuthToken();
 
-		// If no authentication token, render regular chat interface
+		// Get timezone from cookies (server-side)
+		const serverTimezone = await getServerTimezone();
+
+		// Get IP estimate from middleware
+		const headersList = await headers();
+		const ipEstimate = headersList.get("x-user-timezone") || undefined;
+
+		// Calculate server-side greeting to avoid client-side bounce
+		const serverGreeting = await getServerGreeting(ipEstimate);
+
+		// If no authentication token, render regular chat interface with timezone data
 		if (!token) {
-			return <ChatInterface />;
+			return (
+				<ChatInterface
+					serverTimezone={serverTimezone}
+					ipEstimate={ipEstimate}
+					serverGreeting={serverGreeting}
+				/>
+			);
 		}
 
 		// Preload user data and settings for PPR - this will be cached and streamed instantly
@@ -53,18 +71,33 @@ async function ChatPageWithPreloadedData() {
 			preloadQuery(api.userSettings.getUserSettings, {}, { token }),
 		]);
 
-		// Pass preloaded user data and settings to chat interface
+		// Pass preloaded user data, settings, and timezone data to chat interface
 		return (
 			<ChatInterface
 				preloadedUser={preloadedUser}
 				preloadedUserSettings={preloadedUserSettings}
+				serverTimezone={serverTimezone}
+				ipEstimate={ipEstimate}
+				serverGreeting={serverGreeting}
 			/>
 		);
 	} catch (error) {
 		// Log error but still render - don't break the UI
 		console.warn("Server-side user preload failed:", error);
 
-		// Fallback to regular chat interface
-		return <ChatInterface />;
+		// Get timezone data for fallback case
+		const serverTimezone = await getServerTimezone();
+		const headersList = await headers();
+		const ipEstimate = headersList.get("x-user-timezone") || undefined;
+		const serverGreeting = await getServerGreeting(ipEstimate);
+
+		// Fallback to regular chat interface with timezone data
+		return (
+			<ChatInterface
+				serverTimezone={serverTimezone}
+				ipEstimate={ipEstimate}
+				serverGreeting={serverGreeting}
+			/>
+		);
 	}
 }

@@ -7,9 +7,7 @@
   "exports": {
     "./config": "./biome.json"
   },
-  "files": [
-    "biome.json"
-  ],
+  "files": ["biome.json"],
   "dependencies": {
     "@biomejs/biome": "1.9.4"
   }

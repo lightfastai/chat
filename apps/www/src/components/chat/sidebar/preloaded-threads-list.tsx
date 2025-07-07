@@ -8,11 +8,11 @@ import {
 	SidebarMenu,
 } from "@lightfast/ui/components/ui/sidebar";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
-import { SimpleVirtualizedThreadsList } from "./simple-virtualized-threads-list";
+import { InfiniteScrollThreadsList } from "./infinite-scroll-threads-list";
 import { ThreadItem } from "./thread-item";
 import { ThreadsErrorBoundary } from "./threads-error-boundary";
 
@@ -87,7 +87,7 @@ export function PreloadedThreadsList({
 	if (USE_VIRTUALIZED_THREADS) {
 		return (
 			<ThreadsErrorBoundary>
-				<SimpleVirtualizedThreadsList
+				<InfiniteScrollThreadsList
 					preloadedThreads={preloadedThreads}
 					className="h-[calc(100vh-280px)] w-full"
 				/>
@@ -97,9 +97,37 @@ export function PreloadedThreadsList({
 
 	// Fallback to original implementation
 	const togglePinned = useMutation(api.threads.togglePinned);
+	const scrollAreaRef = useRef<HTMLDivElement>(null);
+	const prevThreadsRef = useRef<Thread[]>([]);
 
 	// Use preloaded data with reactivity - this provides instant loading with real-time updates
 	const threads = usePreloadedQuery(preloadedThreads);
+
+	// Scroll to top when a new thread is added at the beginning
+	useEffect(() => {
+		if (
+			threads.length > 0 &&
+			prevThreadsRef.current.length > 0 &&
+			scrollAreaRef.current
+		) {
+			// Check if a new thread was added at the beginning (most recent position)
+			const firstThread = threads[0];
+			const wasFirstThreadNew = !prevThreadsRef.current.some(
+				(thread) => thread._id === firstThread._id,
+			);
+
+			if (wasFirstThreadNew) {
+				// A new thread was added at the top, find the scroll viewport and scroll to top
+				const viewport = scrollAreaRef.current.querySelector(
+					'[data-slot="scroll-area-viewport"]',
+				);
+				if (viewport) {
+					viewport.scrollTo({ top: 0, behavior: "smooth" });
+				}
+			}
+		}
+		prevThreadsRef.current = threads;
+	}, [threads]);
 
 	const { pinned, unpinned } = separatePinnedThreads(threads);
 	const groupedThreads = groupThreadsByDate(unpinned);
@@ -143,12 +171,14 @@ export function PreloadedThreadsList({
 	);
 
 	return (
-		<ScrollArea className="h-[calc(100vh-280px)] w-full">
+		<ScrollArea ref={scrollAreaRef} className="h-[calc(100vh-280px)] w-full">
 			<div className="w-full max-w-full min-w-0 overflow-hidden">
 				{threads.length === 0 ? (
 					<div className="px-3 py-8 text-center text-muted-foreground">
-						<p className="text-xs">No conversations yet</p>
-						<p className="text-xs mt-1 opacity-75">Start a new chat to begin</p>
+						<p className="group-data-[collapsible=icon]:hidden text-xs">No conversations yet</p>
+						<p className="group-data-[collapsible=icon]:hidden text-xs mt-1 opacity-75">
+							Start a new chat to begin
+						</p>
 					</div>
 				) : (
 					<>

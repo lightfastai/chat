@@ -26,6 +26,9 @@
   },
   "javascript": {
     "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2,
       "jsxQuoteStyle": "double",
       "quoteProperties": "asNeeded",
       "semicolons": "asNeeded",
@@ -33,6 +36,13 @@
       "bracketSameLine": false,
       "bracketSpacing": true,
       "quoteStyle": "double"
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2
     }
   },
   "files": {
@@ -49,7 +59,13 @@
       ".env*",
       "worktrees/**",
       "tmp_repo/**",
-      "tmp_context/**"
+      "tmp_context/**",
+      "**/.turbo/**",
+      "**/.vercel/**",
+      "**/coverage/**",
+      "**/.contentlayer/**",
+      "**/out/**",
+      "**/.cache/**"
     ]
   }
 }

@@ -1,5 +1,5 @@
 import { siteConfig } from "@/src/lib/site-config";
-import { Icons } from "@repo/ui/components/ui/icons";
+import { Icons } from "@lightfast/ui/components/ui/icons";
 import Link from "next/link";
 
 export function SiteHeader() {

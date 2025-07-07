@@ -122,18 +122,18 @@ export function PromptSuggestions({ onSelectPrompt }: PromptSuggestionsProps) {
 						))}
 					</div>
 					{/* <div className="flex justify-start mt-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								setSelectedCategory(null);
-								setVisiblePrompts(0);
-							}}
-							className="text-xs text-muted-foreground hover:text-foreground px-4"
-						>
-							Back to categories
-						</Button>
-					</div> */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedCategory(null);
+                setVisiblePrompts(0);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground px-4"
+            >
+              Back to categories
+            </Button>
+          </div> */}
 				</div>
 			)}
 		</div>

@@ -1,5 +1,5 @@
 import { siteConfig } from "@/src/lib/site-config";
-import { Icons } from "@repo/ui/components/ui/icons";
+import { Icons } from "@lightfast/ui/components/ui/icons";
 import type { PageTree } from "fumadocs-core/server";
 import type { DocsLayoutProps } from "fumadocs-ui/layouts/docs";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
