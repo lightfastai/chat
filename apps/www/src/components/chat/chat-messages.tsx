@@ -1,8 +1,7 @@
 "use client";
 
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
-import { useEffect, useRef } from "react";
-import { useStickToBottom } from "use-stick-to-bottom";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
 import { useProcessedMessages } from "../../hooks/use-processed-messages";
@@ -22,29 +21,70 @@ interface ChatMessagesProps {
 export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const viewportRef = useRef<HTMLDivElement | null>(null);
+	const contentRef = useRef<HTMLDivElement>(null);
+	const [isAtBottom, setIsAtBottom] = useState(true);
 
-	// Use the hook approach of use-stick-to-bottom
-	const { scrollRef, contentRef, isAtBottom, scrollToBottom } =
-		useStickToBottom({
-			resize: "smooth",
-			initial: "instant",
-		});
-
-	// Connect refs to ScrollArea viewport
+	// Find viewport and set up scroll monitoring
 	useEffect(() => {
 		if (scrollAreaRef.current) {
 			const viewport = scrollAreaRef.current.querySelector(
-				'[data-slot="scroll-area-viewport"]',
+				"[data-radix-scroll-area-viewport]",
 			);
 			if (viewport instanceof HTMLDivElement) {
 				viewportRef.current = viewport;
-				// Connect use-stick-to-bottom to the ScrollArea viewport
-				if (scrollRef) {
-					Object.assign(scrollRef, { current: viewport });
-				}
+
+				// Check if at bottom
+				const checkIfAtBottom = () => {
+					if (viewport) {
+						const { scrollTop, scrollHeight, clientHeight } = viewport;
+						const isBottom =
+							Math.abs(scrollHeight - clientHeight - scrollTop) < 10;
+						setIsAtBottom(isBottom);
+					}
+				};
+
+				// Initial check
+				checkIfAtBottom();
+
+				// Listen for scroll events
+				viewport.addEventListener("scroll", checkIfAtBottom);
+
+				return () => {
+					viewport.removeEventListener("scroll", checkIfAtBottom);
+				};
 			}
 		}
-	}, [scrollRef]);
+	}, []);
+
+	// Auto-scroll to bottom when new messages arrive (only if already at bottom)
+	useEffect(() => {
+		if (
+			isAtBottom &&
+			viewportRef.current &&
+			dbMessages &&
+			dbMessages.length > 0
+		) {
+			const viewport = viewportRef.current;
+			setTimeout(() => {
+				viewport.scrollTo({
+					top: viewport.scrollHeight,
+					behavior: "smooth",
+				});
+			}, 50);
+		}
+	}, [dbMessages, isAtBottom]);
+
+	// Scroll to bottom function
+	const scrollToBottom = useCallback(() => {
+		if (viewportRef.current) {
+			const viewport = viewportRef.current;
+			viewport.scrollTo({
+				top: viewport.scrollHeight,
+				behavior: "smooth",
+			});
+			setIsAtBottom(true);
+		}
+	}, []);
 
 	// Find the streaming message from uiMessages
 	let streamingVercelMessage: LightfastUIMessage | undefined;
@@ -70,79 +110,63 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	// Handle empty state
 	if (!dbMessages || dbMessages.length === 0) {
 		return (
-			<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
-				<div ref={contentRef} className="p-2 md:p-4 pb-24">
-					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-						{/* Empty state */}
+			<div className="relative flex-1 min-h-0">
+				<ScrollArea className="h-full" ref={scrollAreaRef}>
+					<div ref={contentRef} className="p-2 md:p-4 pb-24">
+						<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+							{/* Empty state */}
+						</div>
 					</div>
-				</div>
-				{!isAtBottom && (
-					<button
-						type="button"
-						onClick={() => scrollToBottom()}
-						className="absolute bottom-6 left-1/2 -translate-x-1/2 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
-						aria-label="Scroll to bottom"
-					>
-						<svg
-							className="w-5 h-5"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-							aria-hidden="true"
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth={2}
-								d="M19 14l-7 7m0 0l-7-7m7 7V3"
-							/>
-						</svg>
-					</button>
-				)}
-			</ScrollArea>
+				</ScrollArea>
+			</div>
 		);
 	}
 
 	return (
-		<ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
-			<div ref={contentRef} className="p-2 md:p-4 pb-24">
-				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-					{dbMessages.map((message) => {
-						// For streaming messages, use memoized Vercel data directly
-						if (
-							message.status === "streaming" &&
-							streamingVercelMessage &&
-							streamingVercelMessage.metadata?.dbId === message._id &&
-							streamingMessageParts
-						) {
-							const streamingMessage = {
-								...message,
-								parts: streamingMessageParts,
-							};
-							return (
-								<MessageDisplay key={message._id} message={streamingMessage} />
-							);
-						}
+		<div className="relative flex-1 min-h-0">
+			<ScrollArea className="h-full" ref={scrollAreaRef}>
+				<div ref={contentRef} className="p-2 md:p-4 pb-24">
+					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+						{dbMessages.map((message) => {
+							// For streaming messages, use memoized Vercel data directly
+							if (
+								message.status === "streaming" &&
+								streamingVercelMessage &&
+								streamingVercelMessage.metadata?.dbId === message._id &&
+								streamingMessageParts
+							) {
+								const streamingMessage = {
+									...message,
+									parts: streamingMessageParts,
+								};
+								return (
+									<MessageDisplay
+										key={message._id}
+										message={streamingMessage}
+									/>
+								);
+							}
 
-						const processedMessage =
-							processedMessages.get(message._id) || message;
-						return (
-							<MessageDisplay key={message._id} message={processedMessage} />
-						);
-					})}
+							const processedMessage =
+								processedMessages.get(message._id) || message;
+							return (
+								<MessageDisplay key={message._id} message={processedMessage} />
+							);
+						})}
+					</div>
 				</div>
-			</div>
+			</ScrollArea>
 
 			{/* Scroll to bottom button */}
 			{!isAtBottom && dbMessages.length > 0 && (
 				<button
 					type="button"
-					onClick={() => scrollToBottom()}
-					className="absolute bottom-6 left-1/2 -translate-x-1/2 p-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+					onClick={scrollToBottom}
+					className="absolute bottom-20 left-1/2 -translate-x-1/2 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 z-10"
 					aria-label="Scroll to bottom"
 				>
 					<svg
-						className="w-5 h-5"
+						className="w-4 h-4"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -157,6 +181,6 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 					</svg>
 				</button>
 			)}
-		</ScrollArea>
+		</div>
 	);
 }
