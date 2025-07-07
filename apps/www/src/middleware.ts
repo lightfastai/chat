@@ -42,12 +42,18 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 	const timezoneEstimate = getTimezoneFromRequest(request);
 	if (timezoneEstimate) {
 		response.headers.set("x-user-timezone", timezoneEstimate);
-		
+
 		// Debug logging in development
 		if (process.env.NODE_ENV === "development") {
 			console.log("[Middleware] Detected timezone:", timezoneEstimate);
-			console.log("[Middleware] Country:", request.headers.get("x-vercel-ip-country"));
-			console.log("[Middleware] Region:", request.headers.get("x-vercel-ip-country-region"));
+			console.log(
+				"[Middleware] Country:",
+				request.headers.get("x-vercel-ip-country"),
+			);
+			console.log(
+				"[Middleware] Region:",
+				request.headers.get("x-vercel-ip-country-region"),
+			);
 		}
 	}
 

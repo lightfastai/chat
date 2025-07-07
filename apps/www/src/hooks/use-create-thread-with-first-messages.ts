@@ -59,10 +59,40 @@ export function useCreateThreadWithFirstMessages() {
 			},
 		};
 
-		// Get current threads list
-		const existingThreads = localStore.getQuery(api.threads.list, {}) || [];
+		// Update the new queries used by infinite scroll sidebar
+		// Since new threads are unpinned by default, we need to update the paginated query
+		// Check the first page of results (which is where new threads appear)
+		const paginatedResult = localStore.getQuery(
+			api.threads.listForInfiniteScroll,
+			{ paginationOpts: { numItems: 5, cursor: null } },
+		);
 
-		// Update local store - add to beginning of list
+		if (paginatedResult && "page" in paginatedResult) {
+			// Add the new thread to the beginning of the first page
+			localStore.setQuery(
+				api.threads.listForInfiniteScroll,
+				{ paginationOpts: { numItems: 5, cursor: null } },
+				{
+					...paginatedResult,
+					page: [optimisticThread, ...paginatedResult.page],
+				}
+			);
+		} else {
+			// If no paginated results were found, create an initial page
+			// This happens when the sidebar hasn't loaded yet
+			localStore.setQuery(
+				api.threads.listForInfiniteScroll,
+				{ paginationOpts: { numItems: 5, cursor: null } },
+				{
+					page: [optimisticThread],
+					isDone: false,
+					continueCursor: "",
+				}
+			);
+		}
+
+		// Also update the old list query for backward compatibility (if still used elsewhere)
+		const existingThreads = localStore.getQuery(api.threads.list, {}) || [];
 		localStore.setQuery(api.threads.list, {}, [
 			optimisticThread,
 			...existingThreads,

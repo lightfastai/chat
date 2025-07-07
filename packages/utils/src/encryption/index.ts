@@ -10,7 +10,7 @@ export interface EncryptionOptions {
 
 /**
  * AES-GCM encryption utility class
- * 
+ *
  * Provides secure encryption/decryption for sensitive data like API keys.
  * Uses a configurable encryption key and secure random IVs.
  */
@@ -57,7 +57,7 @@ export class EncryptionService {
 
 	/**
 	 * Encrypt sensitive data using AES-GCM
-	 * 
+	 *
 	 * @param plaintext - The data to encrypt
 	 * @returns Base64-encoded encrypted data with IV prepended
 	 */
@@ -83,7 +83,7 @@ export class EncryptionService {
 
 	/**
 	 * Decrypt sensitive data using AES-GCM
-	 * 
+	 *
 	 * @param encryptedData - Base64-encoded encrypted data with IV prepended
 	 * @returns The decrypted plaintext
 	 */
@@ -120,7 +120,7 @@ export class EncryptionService {
 
 /**
  * Factory function to create an encryption service with default options
- * 
+ *
  * @param encryptionKey - The encryption key to use
  * @param options - Optional configuration
  * @returns A new EncryptionService instance

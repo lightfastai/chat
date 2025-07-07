@@ -14,22 +14,22 @@ import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
 import type { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 import {
-  addErrorPartArgsValidator,
-  addFilePartArgsValidator,
-  addRawPartArgsValidator,
-  addReasoningPartArgsValidator,
-  addSourceDocumentPartArgsValidator,
-  addSourceUrlPartArgsValidator,
-  addTextPartArgsValidator,
-  addToolCallPartArgsValidator,
-  addToolInputStartPartArgsValidator,
-  addToolResultPartArgsValidator,
-  clientIdValidator,
-  messageStatusValidator,
-  modelIdValidator,
-  modelProviderValidator,
-  textPartValidator,
-  tokenUsageValidator,
+	addErrorPartArgsValidator,
+	addFilePartArgsValidator,
+	addRawPartArgsValidator,
+	addReasoningPartArgsValidator,
+	addSourceDocumentPartArgsValidator,
+	addSourceUrlPartArgsValidator,
+	addTextPartArgsValidator,
+	addToolCallPartArgsValidator,
+	addToolInputStartPartArgsValidator,
+	addToolResultPartArgsValidator,
+	clientIdValidator,
+	messageStatusValidator,
+	modelIdValidator,
+	modelProviderValidator,
+	textPartValidator,
+	tokenUsageValidator,
 } from "./validators.js";
 
 // ===== QUERIES =====

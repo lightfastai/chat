@@ -175,7 +175,9 @@ export function PreloadedThreadsList({
 			<div className="w-full max-w-full min-w-0 overflow-hidden">
 				{threads.length === 0 ? (
 					<div className="px-3 py-8 text-center text-muted-foreground">
-						<p className="group-data-[collapsible=icon]:hidden text-xs">No conversations yet</p>
+						<p className="group-data-[collapsible=icon]:hidden text-xs">
+							No conversations yet
+						</p>
 						<p className="group-data-[collapsible=icon]:hidden text-xs mt-1 opacity-75">
 							Start a new chat to begin
 						</p>

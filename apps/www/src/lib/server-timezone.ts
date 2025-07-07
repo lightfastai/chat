@@ -83,7 +83,7 @@ export async function getServerGreeting(fallbackTimezone?: string): Promise<{
 }> {
 	// Try to get timezone from cookies first
 	const cookieTimezone = await getServerTimezone();
-	
+
 	// Debug logging in development
 	if (process.env.NODE_ENV === "development") {
 		console.log("[Server Greeting] Cookie timezone:", cookieTimezone);
@@ -93,7 +93,12 @@ export async function getServerGreeting(fallbackTimezone?: string): Promise<{
 	if (cookieTimezone && isValidServerTimezone(cookieTimezone.timezone)) {
 		const greeting = calculateGreetingForTimezone(cookieTimezone.timezone);
 		if (process.env.NODE_ENV === "development") {
-			console.log("[Server Greeting] Using cookie timezone:", cookieTimezone.timezone, "→", greeting);
+			console.log(
+				"[Server Greeting] Using cookie timezone:",
+				cookieTimezone.timezone,
+				"→",
+				greeting,
+			);
 		}
 		return {
 			greeting,
@@ -106,7 +111,12 @@ export async function getServerGreeting(fallbackTimezone?: string): Promise<{
 	if (fallbackTimezone && isValidServerTimezone(fallbackTimezone)) {
 		const greeting = calculateGreetingForTimezone(fallbackTimezone);
 		if (process.env.NODE_ENV === "development") {
-			console.log("[Server Greeting] Using IP timezone:", fallbackTimezone, "→", greeting);
+			console.log(
+				"[Server Greeting] Using IP timezone:",
+				fallbackTimezone,
+				"→",
+				greeting,
+			);
 		}
 		return {
 			greeting,

@@ -124,7 +124,76 @@ export function InfiniteScrollThreadsList({
 	preloadedThreads: _preloadedThreads, // Kept for backward compatibility but not used
 	className,
 }: InfiniteScrollThreadsListProps) {
-	const togglePinned = useMutation(api.threads.togglePinned);
+	const togglePinned = useMutation(
+		api.threads.togglePinned,
+	).withOptimisticUpdate((localStore, args) => {
+		const { threadId } = args;
+
+		// Get the current pinned threads
+		const pinnedThreads = localStore.getQuery(api.threads.listPinned, {}) || [];
+
+		// Find the thread in either pinned or unpinned lists
+		const pinnedThread = pinnedThreads.find((t) => t._id === threadId);
+
+		// Search in paginated results for unpinned threads
+		// We need to check the first page where new threads are added
+		const paginatedResult = localStore.getQuery(
+			api.threads.listForInfiniteScroll,
+			{ paginationOpts: { numItems: 5, cursor: null } },
+		);
+		let unpinnedThread: Thread | undefined;
+
+		if (paginatedResult && "page" in paginatedResult) {
+			unpinnedThread = paginatedResult.page.find((t) => t._id === threadId);
+		}
+
+		const threadToToggle = pinnedThread || unpinnedThread;
+		if (!threadToToggle) return;
+
+		// Toggle the pinned state
+		const updatedThread = { ...threadToToggle, pinned: !threadToToggle.pinned };
+
+		if (threadToToggle.pinned) {
+			// Thread was pinned, now unpinning
+			// Remove from pinned list
+			localStore.setQuery(
+				api.threads.listPinned,
+				{},
+				pinnedThreads.filter((t) => t._id !== threadId),
+			);
+
+			// Add to unpinned list (first page)
+			if (paginatedResult && "page" in paginatedResult) {
+				localStore.setQuery(
+					api.threads.listForInfiniteScroll,
+					{ paginationOpts: { numItems: 5, cursor: null } },
+					{
+						...paginatedResult,
+						page: [updatedThread, ...paginatedResult.page],
+					}
+				);
+			}
+		} else {
+			// Thread was unpinned, now pinning
+			// Add to pinned list
+			localStore.setQuery(api.threads.listPinned, {}, [
+				updatedThread,
+				...pinnedThreads,
+			]);
+
+			// Remove from unpinned list
+			if (paginatedResult && "page" in paginatedResult) {
+				localStore.setQuery(
+					api.threads.listForInfiniteScroll,
+					{ paginationOpts: { numItems: 5, cursor: null } },
+					{
+						...paginatedResult,
+						page: paginatedResult.page.filter((t) => t._id !== threadId),
+					}
+				);
+			}
+		}
+	});
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -167,11 +236,7 @@ export function InfiniteScrollThreadsList({
 		const observer = new IntersectionObserver(
 			async (entries) => {
 				const [entry] = entries;
-				if (
-					entry.isIntersecting &&
-					status === "CanLoadMore" &&
-					!isLoading
-				) {
+				if (entry.isIntersecting && status === "CanLoadMore" && !isLoading) {
 					await loadMore(5); // Load 5 more items
 				}
 			},
@@ -199,8 +264,12 @@ export function InfiniteScrollThreadsList({
 		return (
 			<div className={className}>
 				<div className="px-3 py-8 text-center text-muted-foreground">
-					<p className="group-data-[collapsible=icon]:hidden text-xs">No conversations yet</p>
-					<p className="group-data-[collapsible=icon]:hidden text-xs mt-1 opacity-75">Start a new chat to begin</p>
+					<p className="group-data-[collapsible=icon]:hidden text-xs">
+						No conversations yet
+					</p>
+					<p className="group-data-[collapsible=icon]:hidden text-xs mt-1 opacity-75">
+						Start a new chat to begin
+					</p>
 				</div>
 			</div>
 		);

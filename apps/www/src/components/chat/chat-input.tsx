@@ -2,59 +2,59 @@
 
 import { useFileDrop } from "@/hooks/use-file-drop";
 import {
-  getIncompatibilityMessage,
-  getModelCapabilities,
-  validateAttachmentsForModel,
+	getIncompatibilityMessage,
+	getModelCapabilities,
+	validateAttachmentsForModel,
 } from "@/lib/ai/capabilities";
 import { preprocessUserMessage } from "@/lib/message-preprocessing";
 import {
-  DEFAULT_MODEL_ID,
-  type ModelId,
-  getModelConfig,
-  getVisibleModels,
+	DEFAULT_MODEL_ID,
+	type ModelId,
+	getModelConfig,
+	getVisibleModels,
 } from "@lightfast/ai/providers";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuPortal,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuPortal,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
 import { ScrollArea, ScrollBar } from "@lightfast/ui/components/ui/scroll-area";
 import { Textarea } from "@lightfast/ui/components/ui/textarea";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
 } from "@lightfast/ui/components/ui/tooltip";
 import { useMutation } from "convex/react";
 import {
-  ArrowUp,
-  Brain,
-  ChevronDown,
-  Eye,
-  FileIcon,
-  FileText,
-  Globe,
-  Image,
-  Loader2,
-  Paperclip,
-  Wrench,
-  X,
+	ArrowUp,
+	Brain,
+	ChevronDown,
+	Eye,
+	FileIcon,
+	FileText,
+	Globe,
+	Image,
+	Loader2,
+	Paperclip,
+	Wrench,
+	X,
 } from "lucide-react";
 import {
-  forwardRef,
-  memo,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
+	forwardRef,
+	memo,
+	useCallback,
+	useEffect,
+	useImperativeHandle,
+	useMemo,
+	useRef,
+	useState,
 } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";

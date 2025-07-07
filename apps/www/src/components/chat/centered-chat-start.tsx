@@ -2,8 +2,8 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useTimeGreeting } from "@/hooks/use-time-greeting";
-import type { ModelId } from "@lightfast/ai/providers";
 import type { TimezoneData } from "@/lib/timezone-cookies";
+import type { ModelId } from "@lightfast/ai/providers";
 import type { Preloaded } from "convex/react";
 import { usePreloadedQuery } from "convex/react";
 import { ZapIcon } from "lucide-react";

@@ -25,11 +25,11 @@ function calculateGreeting(timezone: string): string {
 
 		if (hour < 12) {
 			return "Good morning";
-		} else if (hour < 17) {
-			return "Good afternoon";
-		} else {
-			return "Good evening";
 		}
+		if (hour < 17) {
+			return "Good afternoon";
+		}
+		return "Good evening";
 	} catch (error) {
 		console.warn("Timezone calculation failed:", error);
 		// Fallback to simple greeting
