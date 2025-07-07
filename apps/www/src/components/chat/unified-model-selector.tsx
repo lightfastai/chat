@@ -153,8 +153,8 @@ export function UnifiedModelSelector({
 								className="text-xs"
 								autoFocus
 							/>
-							<ScrollArea className="flex-1">
-								<CommandList className="max-h-none">
+							<CommandList>
+								<ScrollArea className="h-[340px]">
 									<CommandEmpty className="text-xs text-muted-foreground py-8">
 										No models found
 									</CommandEmpty>
@@ -188,14 +188,14 @@ export function UnifiedModelSelector({
 											)}
 										</CommandItem>
 									))}
-								</CommandList>
-							</ScrollArea>
+								</ScrollArea>
+							</CommandList>
 						</Command>
 					</div>
 
 					{/* Model details panel */}
-					<ScrollArea className="w-[250px]">
-						<div className="p-4 bg-muted/30 h-full">
+					<div className="w-[250px] bg-muted/30">
+						<div className="p-4 h-full">
 							{detailModel ? (
 								<div className="space-y-3">
 									<div className="flex items-start gap-2">
@@ -269,7 +269,7 @@ export function UnifiedModelSelector({
 								</div>
 							)}
 						</div>
-					</ScrollArea>
+					</div>
 				</div>
 			</PopoverContent>
 		</Popover>
