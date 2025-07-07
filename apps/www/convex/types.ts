@@ -33,7 +33,14 @@ import type {
 	userApiKeysValidator,
 } from "./validators";
 
+export type DbThread = Doc<"threads">;
 export type DbMessage = Doc<"messages">;
+export type DbUser = Doc<"users">;
+export type DbFile = Doc<"files">;
+export type DbFeedback = Doc<"feedback">;
+export type DbUserSettings = Doc<"userSettings">;
+export type DbShareAccess = Doc<"shareAccess">;
+
 export type DbMessagePart = Infer<typeof messagePartValidator>;
 export type DbTextPart = Infer<typeof textPartValidator>;
 export type DbToolCallPart = Infer<typeof toolCallPartValidator>;

@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../../convex/_generated/dataModel";
+import type { DbMessage, DbThread } from "../../convex/types";
 
 /**
  * Hook for creating threads with optimistic updates
@@ -31,14 +32,12 @@ export function useCreateThreadWithFirstMessages() {
 
 		// Create optimistic thread
 		const now = Date.now();
-		const optimisticThread: Doc<"threads"> = {
+		const optimisticThread: DbThread = {
 			_id: optimisticThreadId,
 			_creationTime: now,
 			clientId: clientThreadId,
 			title: "",
 			userId: currentUser._id,
-			createdAt: now,
-			isTitleGenerating: true,
 			pinned: undefined, // Match backend behavior - undefined means unpinned
 			branchedFrom: undefined,
 			isPublic: false,
@@ -57,7 +56,6 @@ export function useCreateThreadWithFirstMessages() {
 					messageCount: 0,
 				},
 			},
-			lastMessageAt: now, // Add this for proper date grouping in UI
 		};
 
 		// Update the new queries used by infinite scroll sidebar
@@ -105,11 +103,11 @@ export function useCreateThreadWithFirstMessages() {
 		localStore.setQuery(
 			api.threads.getByClientId,
 			{ clientId: clientThreadId },
-			optimisticThread as Doc<"threads">,
+			optimisticThread,
 		);
 
 		// Create optimistic user message
-		const optimisticUserMessage: Doc<"messages"> = {
+		const optimisticUserMessage: DbMessage = {
 			_id: crypto.randomUUID() as Id<"messages">,
 			_creationTime: now,
 			threadId: optimisticThreadId,
@@ -121,7 +119,7 @@ export function useCreateThreadWithFirstMessages() {
 		};
 
 		// Create optimistic assistant message placeholder
-		const optimisticAssistantMessage: Doc<"messages"> = {
+		const optimisticAssistantMessage: DbMessage = {
 			_id: crypto.randomUUID() as Id<"messages">,
 			_creationTime: now + 1, // Slightly after user message
 			threadId: optimisticThreadId,

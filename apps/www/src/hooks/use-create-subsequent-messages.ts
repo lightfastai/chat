@@ -2,7 +2,8 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../../convex/_generated/dataModel";
+import type { DbMessage } from "../../convex/types";
 
 /**
  * Hook for creating messages in existing threads with optimistic updates
@@ -65,7 +66,7 @@ export function useCreateSubsequentMessages() {
 		const now = Date.now();
 
 		// Create optimistic user message
-		const optimisticUserMessage: Doc<"messages"> = {
+		const optimisticUserMessage: DbMessage = {
 			_id: crypto.randomUUID() as Id<"messages">,
 			_creationTime: now,
 			threadId,
@@ -77,7 +78,7 @@ export function useCreateSubsequentMessages() {
 		};
 
 		// Create optimistic assistant message placeholder
-		const optimisticAssistantMessage: Doc<"messages"> = {
+		const optimisticAssistantMessage: DbMessage = {
 			_id: crypto.randomUUID() as Id<"messages">,
 			_creationTime: now + 1, // Slightly after user message
 			threadId,
@@ -103,48 +104,8 @@ export function useCreateSubsequentMessages() {
 			[...existingMessages, optimisticUserMessage, optimisticAssistantMessage],
 		);
 
-		// Update the thread's lastMessageAt to move it to the top
-		// This helps with date grouping in the UI
-		if (thread) {
-			const updatedThread = { ...thread, lastMessageAt: now };
-
-			// Update in pinned threads if it's pinned
-			if (thread.pinned) {
-				const pinnedThreads =
-					localStore.getQuery(api.threads.listPinned, {}) || [];
-				const updatedPinned = pinnedThreads.map((t) =>
-					t._id === threadId ? updatedThread : t,
-				);
-				localStore.setQuery(api.threads.listPinned, {}, updatedPinned);
-			} else {
-				// Update in paginated results if it's unpinned
-				const paginatedResult = localStore.getQuery(
-					api.threads.listForInfiniteScroll,
-					{ paginationOpts: { numItems: 5, cursor: null } },
-				);
-
-				if (paginatedResult && "page" in paginatedResult) {
-					const updatedPage = paginatedResult.page.map((t) =>
-						t._id === threadId ? updatedThread : t,
-					);
-					localStore.setQuery(
-						api.threads.listForInfiniteScroll,
-						{ paginationOpts: { numItems: 5, cursor: null } },
-						{
-							...paginatedResult,
-							page: updatedPage,
-						},
-					);
-				}
-			}
-
-			// Also update the old list query for backward compatibility
-			const threadsList = localStore.getQuery(api.threads.list, {}) || [];
-			const updatedList = threadsList.map((t) =>
-				t._id === threadId ? updatedThread : t,
-			);
-			localStore.setQuery(api.threads.list, {}, updatedList);
-		}
+		// Note: We no longer update lastMessageAt since threads are sorted by _creationTime only
+		// The thread order in the sidebar won't change when new messages are added
 
 		return {
 			userMessageId: optimisticUserMessage._id,

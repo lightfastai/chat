@@ -7,7 +7,8 @@
 		"./debounced-writer/base": "./src/debounced-writer/base.ts",
 		"./debounced-writer/string-writer": "./src/debounced-writer/string-writer.ts",
 		"./debounced-writer/types": "./src/debounced-writer/types.ts",
-		"./encryption": "./src/encryption/index.ts"
+		"./encryption": "./src/encryption/index.ts",
+		"./time": "./src/time.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",

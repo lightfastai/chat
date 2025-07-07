@@ -9,6 +9,7 @@ import {
 	SidebarMenuItem,
 } from "@lightfast/ui/components/ui/sidebar";
 import { Skeleton } from "@lightfast/ui/components/ui/skeleton";
+import { getDateGroupOrder, groupByDate } from "@repo/utils/time";
 import {
 	type Preloaded,
 	useMutation,
@@ -19,50 +20,15 @@ import type { FunctionArgs } from "convex/server";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
-import type { Doc, Id } from "../../../../convex/_generated/dataModel";
+import type { Id } from "../../../../convex/_generated/dataModel";
+import type { DbThread } from "../../../../convex/types";
 import { ThreadItem } from "./thread-item";
 
-type Thread = Doc<"threads">;
 type PaginationArgs = FunctionArgs<typeof api.threads.listForInfiniteScroll>;
 
 interface InfiniteScrollThreadsListProps {
 	preloadedThreads: Preloaded<typeof api.threads.list>; // Initial threads data
 	className?: string;
-}
-
-// Group threads by date
-function groupThreadsByDate(threads: Thread[]) {
-	const now = new Date();
-	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-	const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-	const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-	const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-	const groups: Record<string, Thread[]> = {
-		Today: [],
-		Yesterday: [],
-		"This Week": [],
-		"This Month": [],
-		Older: [],
-	};
-
-	for (const thread of threads) {
-		const threadDate = new Date(thread.lastMessageAt || thread._creationTime);
-
-		if (threadDate >= today) {
-			groups.Today.push(thread);
-		} else if (threadDate >= yesterday) {
-			groups.Yesterday.push(thread);
-		} else if (threadDate >= weekAgo) {
-			groups["This Week"].push(thread);
-		} else if (threadDate >= monthAgo) {
-			groups["This Month"].push(thread);
-		} else {
-			groups.Older.push(thread);
-		}
-	}
-
-	return groups;
 }
 
 // Component to render a group of threads
@@ -72,7 +38,7 @@ function ThreadGroup({
 	onPinToggle,
 }: {
 	categoryName: string;
-	threads: Thread[];
+	threads: DbThread[];
 	onPinToggle: (threadId: Id<"threads">) => void;
 }) {
 	return (
@@ -142,7 +108,7 @@ export function InfiniteScrollThreadsList({
 		const allPaginatedQueries = localStore.getAllQueries(
 			api.threads.listForInfiniteScroll,
 		);
-		let unpinnedThread: Thread | undefined;
+		let unpinnedThread: DbThread | undefined;
 		let foundInArgs: PaginationArgs | null = null;
 
 		// Check all paginated query results
@@ -232,9 +198,9 @@ export function InfiniteScrollThreadsList({
 		{ initialNumItems: 5 }, // Load 5 at a time
 	);
 
-	// Group unpinned threads by date (simple, no data mixing)
+	// Group unpinned threads by date using creation time only
 	const groupedThreads = useMemo(
-		() => groupThreadsByDate(unpinnedThreads),
+		() => groupByDate(unpinnedThreads, (thread) => thread._creationTime),
 		[unpinnedThreads],
 	);
 
@@ -308,22 +274,20 @@ export function InfiniteScrollThreadsList({
 				)}
 
 				{/* Regular threads grouped by date */}
-				{["Today", "Yesterday", "This Week", "This Month", "Older"].map(
-					(category) => {
-						const categoryThreads = groupedThreads[category];
-						if (categoryThreads && categoryThreads.length > 0) {
-							return (
-								<ThreadGroup
-									key={category}
-									categoryName={category}
-									threads={categoryThreads}
-									onPinToggle={handlePinToggle}
-								/>
-							);
-						}
-						return null;
-					},
-				)}
+				{getDateGroupOrder().map((category) => {
+					const categoryThreads = groupedThreads[category];
+					if (categoryThreads && categoryThreads.length > 0) {
+						return (
+							<ThreadGroup
+								key={category}
+								categoryName={category}
+								threads={categoryThreads}
+								onPinToggle={handlePinToggle}
+							/>
+						);
+					}
+					return null;
+				})}
 
 				{/* Loading skeletons when actively loading */}
 				{isLoading && <LoadingGroup />}

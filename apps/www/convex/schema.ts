@@ -63,11 +63,11 @@ export default defineSchema({
 		sharedAt: v.optional(v.number()), // Timestamp when first shared
 		shareSettings: shareSettingsValidator,
 		metadata: v.optional(threadMetadataValidator),
-		// @deprecated fields
-		createdAt: v.optional(v.number()),
-		isTitleGenerating: v.optional(v.boolean()),
-		lastMessageAt: v.optional(v.number()),
-		isGenerating: v.optional(v.boolean()),
+		// @deprecated fields - Do not use in new code
+		createdAt: v.optional(v.number()), // @deprecated: use _creationTime instead
+		isTitleGenerating: v.optional(v.boolean()), // @deprecated: Still used by backend/UI but will be migrated
+		lastMessageAt: v.optional(v.number()), // @deprecated: threads are sorted by _creationTime only
+		isGenerating: v.optional(v.boolean()), // @deprecated: generation status tracked in messages
 	})
 		.index("by_user", ["userId"])
 		.index("by_client_id", ["clientId"])
