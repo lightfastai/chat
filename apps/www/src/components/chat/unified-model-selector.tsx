@@ -26,9 +26,9 @@ interface UnifiedModelSelectorProps {
 }
 
 const providerIcons: Record<string, string> = {
-	openai: "/favicon.png",
-	anthropic: "/favicon.png",
-	openrouter: "/favicon.png",
+	openai: "/openai-logo.svg",
+	anthropic: "/anthropic-logo.svg",
+	openrouter: "/openrouter-logo.svg",
 };
 
 const featureBadges = {
@@ -124,7 +124,7 @@ export function UnifiedModelSelector({
 							alt=""
 							width={14}
 							height={14}
-							className="opacity-70"
+							className="opacity-70 dark:invert"
 						/>
 						<span className="truncate">{selectedModel?.displayName}</span>
 					</div>
@@ -169,7 +169,7 @@ export function UnifiedModelSelector({
 											alt=""
 											width={14}
 											height={14}
-											className="opacity-70 shrink-0"
+											className="opacity-70 shrink-0 dark:invert"
 										/>
 										<span className="truncate">{model.displayName}</span>
 										{model.id === value && (
@@ -198,7 +198,7 @@ export function UnifiedModelSelector({
 										alt=""
 										width={20}
 										height={20}
-										className="opacity-70 mt-0.5"
+										className="opacity-70 mt-0.5 dark:invert"
 									/>
 									<div className="flex-1 min-w-0">
 										<h4 className="font-medium truncate">
