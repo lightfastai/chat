@@ -1,7 +1,5 @@
 "use client";
 
-import type { TimezoneData } from "@/lib/timezone-cookies";
-import type { Preloaded } from "convex/react";
 import { useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
@@ -12,25 +10,7 @@ import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
 
-interface ChatInterfaceProps {
-	preloadedUser?: Preloaded<typeof api.users.current>;
-	preloadedUserSettings?: Preloaded<typeof api.userSettings.getUserSettings>;
-	serverTimezone?: TimezoneData | null;
-	ipEstimate?: string;
-	serverGreeting?: {
-		greeting: string;
-		timezone: string;
-		source: "cookie" | "ip" | "fallback";
-	};
-}
-
-export function ChatInterface({
-	preloadedUser,
-	preloadedUserSettings,
-	serverTimezone,
-	ipEstimate,
-	serverGreeting,
-}: ChatInterfaceProps) {
+export function ChatInterface() {
 	const pathname = usePathname();
 
 	const pathInfo = useMemo(() => {
@@ -63,7 +43,6 @@ export function ChatInterface({
 
 	const { messages, sendMessage, defaultModel } = useChat({
 		initialMessages: convertDbMessagesToUIMessages(dbMessages || []),
-		preloadedUserSettings,
 		clientId: currentClientId,
 	});
 
@@ -73,11 +52,7 @@ export function ChatInterface({
 			<CenteredChatStart
 				onSendMessage={sendMessage}
 				dbMessages={dbMessages}
-				preloadedUser={preloadedUser}
 				defaultModel={defaultModel}
-				serverTimezone={serverTimezone}
-				ipEstimate={ipEstimate}
-				serverGreeting={serverGreeting}
 			/>
 		);
 	}

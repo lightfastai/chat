@@ -38,6 +38,23 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 	// Add prefetch headers for chat routes to improve performance
 	const response = NextResponse.next();
 
+	// Validate chat thread routes
+	const chatThreadMatch = pathname.match(/^\/chat\/(.+)$/);
+	if (chatThreadMatch) {
+		const clientId = chatThreadMatch[1];
+
+		// Reserved routes that should not be treated as thread IDs
+		const reservedRoutes = ["settings", "new"];
+		const isReservedRoute =
+			reservedRoutes.includes(clientId) || clientId.startsWith("settings/");
+
+		// Validate clientId format - basic check to prevent obvious invalid IDs
+		if (!clientId || clientId.length < 10 || isReservedRoute) {
+			// Return 404 for invalid thread IDs
+			return new NextResponse(null, { status: 404 });
+		}
+	}
+
 	// Add IP-based timezone estimate to headers
 	const timezoneEstimate = getTimezoneFromRequest(request);
 	if (timezoneEstimate) {
