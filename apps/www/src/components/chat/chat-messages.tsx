@@ -8,7 +8,6 @@ import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessag
 import { useProcessedMessages } from "../../hooks/use-processed-messages";
 import { useStreamingMessageParts } from "../../hooks/use-streaming-message-parts";
 import { MessageDisplay } from "./message-display";
-import { ScrollButton } from "./scroll-button";
 
 interface ChatMessagesProps {
 	dbMessages: Doc<"messages">[] | null | undefined;
