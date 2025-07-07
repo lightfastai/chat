@@ -45,6 +45,7 @@ const getHighlighter = async (): Promise<Highlighter> => {
 				"php",
 				"ruby",
 				"xml",
+				"haskell",
 				"plaintext",
 			],
 		});
@@ -96,6 +97,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 			md: "markdown",
 			"c++": "cpp",
 			rs: "rust",
+			hs: "haskell",
 		};
 		return langMap[lang.toLowerCase()] || lang.toLowerCase();
 	};
