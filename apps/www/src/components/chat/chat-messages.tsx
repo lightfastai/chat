@@ -45,11 +45,21 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 		streamingVercelMessage,
 	);
 
+	// Custom scrollbar styles matching shadcn ScrollArea
+	const scrollbarStyles = {
+		scrollbarWidth: "thin",
+		scrollbarColor: "hsl(var(--border)) transparent",
+	} as React.CSSProperties;
+
+	const scrollbarClassName =
+		"[&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full";
+
 	// Handle empty state
 	if (!dbMessages || dbMessages.length === 0) {
 		return (
 			<StickToBottom
-				className="flex-1 min-h-0"
+				className={`flex-1 min-h-0 ${scrollbarClassName}`}
+				style={scrollbarStyles}
 				resize="smooth"
 				initial="instant"
 				role="log"
@@ -65,7 +75,8 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 
 	return (
 		<StickToBottom
-			className="flex-1 min-h-0"
+			className={`flex-1 min-h-0 ${scrollbarClassName}`}
+			style={scrollbarStyles}
 			resize="smooth"
 			initial="instant"
 			role="log"
