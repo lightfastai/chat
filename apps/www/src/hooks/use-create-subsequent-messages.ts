@@ -27,10 +27,31 @@ export function useCreateSubsequentMessages() {
 		// First try to get thread by ID
 		let thread = localStore.getQuery(api.threads.get, { threadId });
 
-		// If not found, we need to find it from the threads list
+		// If not found, we need to find it from the various thread lists
 		if (!thread) {
-			const threadsList = localStore.getQuery(api.threads.list, {}) || [];
-			thread = threadsList.find((t) => t._id === threadId);
+			// Check pinned threads
+			const pinnedThreads =
+				localStore.getQuery(api.threads.listPinned, {}) || [];
+			thread = pinnedThreads.find((t) => t._id === threadId);
+
+			// If still not found, check unpinned threads (paginated)
+			if (!thread) {
+				// Check the first page of unpinned threads
+				const paginatedResult = localStore.getQuery(
+					api.threads.listForInfiniteScroll,
+					{ paginationOpts: { numItems: 5, cursor: null } },
+				);
+
+				if (paginatedResult && "page" in paginatedResult) {
+					thread = paginatedResult.page.find((t) => t._id === threadId);
+				}
+			}
+
+			// Also check the old list query for backward compatibility
+			if (!thread) {
+				const threadsList = localStore.getQuery(api.threads.list, {}) || [];
+				thread = threadsList.find((t) => t._id === threadId);
+			}
 		}
 
 		if (!thread?.clientId) {
@@ -79,14 +100,11 @@ export function useCreateSubsequentMessages() {
 			[...existingMessages, optimisticUserMessage, optimisticAssistantMessage],
 		);
 
-		// Update the thread in local store to show it's generating
-		// We already have the thread from above, so just use it
-		const currentThread = thread;
-
-		if (currentThread) {
-			// No need to update lastMessageAt since threads are sorted by _creationTime
-			// The thread ordering won't change when adding messages
-		}
+		// Since threads are sorted by _creationTime and we can't change that in optimistic updates,
+		// we can't reorder the thread to the top. The thread will stay in its current position
+		// until the user refreshes or navigates away and back.
+		// This is a limitation of the current implementation where threads don't have
+		// an updatable lastMessageAt field.
 
 		return {
 			userMessageId: optimisticUserMessage._id,

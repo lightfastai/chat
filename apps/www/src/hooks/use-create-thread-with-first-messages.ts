@@ -75,7 +75,7 @@ export function useCreateThreadWithFirstMessages() {
 				{
 					...paginatedResult,
 					page: [optimisticThread, ...paginatedResult.page],
-				}
+				},
 			);
 		} else {
 			// If no paginated results were found, create an initial page
@@ -87,7 +87,7 @@ export function useCreateThreadWithFirstMessages() {
 					page: [optimisticThread],
 					isDone: false,
 					continueCursor: "",
-				}
+				},
 			);
 		}
 

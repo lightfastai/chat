@@ -170,7 +170,7 @@ export function InfiniteScrollThreadsList({
 					{
 						...paginatedResult,
 						page: [updatedThread, ...paginatedResult.page],
-					}
+					},
 				);
 			}
 		} else {
@@ -189,7 +189,7 @@ export function InfiniteScrollThreadsList({
 					{
 						...paginatedResult,
 						page: paginatedResult.page.filter((t) => t._id !== threadId),
-					}
+					},
 				);
 			}
 		}
