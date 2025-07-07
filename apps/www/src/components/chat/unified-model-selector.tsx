@@ -17,7 +17,7 @@ import {
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { cn } from "@lightfast/ui/lib/utils";
 import { ChevronDown, Search } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface UnifiedModelSelectorProps {
 	value: ModelId;
@@ -54,6 +54,9 @@ export function UnifiedModelSelector({
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [hoveredModel, setHoveredModel] = useState<ModelId | null>(null);
+	const [selectedIndex, setSelectedIndex] = useState(0);
+	const searchInputRef = useRef<HTMLInputElement>(null);
+	const triggerRef = useRef<HTMLButtonElement>(null);
 
 	// Get all visible models
 	const allModels = useMemo(() => {
@@ -98,9 +101,86 @@ export function UnifiedModelSelector({
 			onValueChange(modelId);
 			setOpen(false);
 			setSearch("");
+			setSelectedIndex(0);
 		},
 		[onValueChange],
 	);
+
+	// Reset selected index when search changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: we want to reset when search changes
+	useEffect(() => {
+		setSelectedIndex(0);
+	}, [search]);
+
+	// Focus search input when popover opens
+	useEffect(() => {
+		if (open && searchInputRef.current) {
+			searchInputRef.current.focus();
+		}
+	}, [open]);
+
+	// Keyboard navigation
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (!open) return;
+
+			switch (e.key) {
+				case "ArrowDown":
+					e.preventDefault();
+					setSelectedIndex((prev) =>
+						prev < sortedModels.length - 1 ? prev + 1 : 0,
+					);
+					break;
+				case "ArrowUp":
+					e.preventDefault();
+					setSelectedIndex((prev) =>
+						prev > 0 ? prev - 1 : sortedModels.length - 1,
+					);
+					break;
+				case "Enter":
+					e.preventDefault();
+					if (sortedModels[selectedIndex]) {
+						handleSelect(sortedModels[selectedIndex].id);
+					}
+					break;
+				case "Escape":
+					e.preventDefault();
+					setOpen(false);
+					setSearch("");
+					setSelectedIndex(0);
+					triggerRef.current?.focus();
+					break;
+				case "/":
+					// Only prevent default if not already focused on search input
+					if (document.activeElement !== searchInputRef.current) {
+						e.preventDefault();
+						searchInputRef.current?.focus();
+					}
+					break;
+			}
+		},
+		[open, sortedModels, selectedIndex, handleSelect],
+	);
+
+	// Global keyboard shortcut for Cmd/Ctrl + .
+	useEffect(() => {
+		const handleGlobalKeyDown = (e: KeyboardEvent) => {
+			if ((e.metaKey || e.ctrlKey) && e.key === ".") {
+				e.preventDefault();
+				setOpen(true);
+			}
+		};
+
+		document.addEventListener("keydown", handleGlobalKeyDown);
+		return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+	}, []);
+
+	// Update hovered model based on selected index
+	useEffect(() => {
+		if (sortedModels[selectedIndex]) {
+			setHoveredModel(sortedModels[selectedIndex].id);
+		}
+	}, [selectedIndex, sortedModels]);
 
 	const selectedModel = getModelConfig(value);
 
@@ -108,6 +188,7 @@ export function UnifiedModelSelector({
 		<Popover open={open} onOpenChange={setOpen} modal={false}>
 			<PopoverTrigger asChild>
 				<Button
+					ref={triggerRef}
 					variant="outline"
 					size="sm"
 					className={cn("justify-between", className)}
@@ -134,6 +215,7 @@ export function UnifiedModelSelector({
 				align="end"
 				className="w-[600px] p-0"
 				onOpenAutoFocus={(e) => e.preventDefault()}
+				onKeyDown={handleKeyDown}
 			>
 				<div className="flex h-[400px]">
 					{/* Model list */}
@@ -141,6 +223,7 @@ export function UnifiedModelSelector({
 						<div className="relative border-b">
 							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 							<input
+								ref={searchInputRef}
 								type="text"
 								placeholder="Search models..."
 								value={search}
@@ -150,17 +233,21 @@ export function UnifiedModelSelector({
 						</div>
 						<ScrollArea className="flex-1 overflow-y-auto">
 							<div className="p-2 space-y-1">
-								{sortedModels.map((model) => (
+								{sortedModels.map((model, index) => (
 									<button
 										type="button"
 										key={model.id}
 										onClick={() => handleSelect(model.id)}
-										onMouseEnter={() => setHoveredModel(model.id)}
+										onMouseEnter={() => {
+											setHoveredModel(model.id);
+											setSelectedIndex(index);
+										}}
 										onMouseLeave={() => setHoveredModel(null)}
 										className={cn(
 											"w-full flex items-center gap-3 px-2.5 py-2.5 text-xs rounded-md transition-colors text-left",
 											"hover:bg-accent hover:text-accent-foreground",
-											model.id === value && "bg-accent text-accent-foreground",
+											(model.id === value || index === selectedIndex) &&
+												"bg-accent text-accent-foreground",
 										)}
 									>
 										{(() => {
