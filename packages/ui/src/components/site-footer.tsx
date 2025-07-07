@@ -23,7 +23,7 @@ export function SiteFooter({
 	homeUrl,
 	links,
 }: SiteFooterProps) {
-	const currentYear = new Date().getFullYear();
+	const currentYear = 2025; // Static year for build-time generation
 	const companyName = siteName.split(" ")[0];
 
 	return (
