@@ -99,30 +99,11 @@ export function UnifiedModelSelector({
 			setSearch("");
 			setHoveredModel(null);
 			// Focus the input after a short delay to ensure popover is rendered
-			setTimeout(() => {
+			// Using requestAnimationFrame for more reliable timing
+			requestAnimationFrame(() => {
 				inputRef.current?.focus();
-			}, 10);
+			});
 		}
-	}, [open]);
-
-	// Handle slash key to focus input when selector is open
-	useEffect(() => {
-		if (!open) return;
-
-		const handleKeyDown = (e: KeyboardEvent) => {
-			// Only handle slash when the selector is open and not already focused on input
-			if (e.key === "/" && document.activeElement !== inputRef.current) {
-				e.preventDefault();
-				e.stopPropagation();
-				inputRef.current?.focus();
-			}
-		};
-
-		// Attach to document to override other handlers
-		document.addEventListener("keydown", handleKeyDown, { capture: true });
-		return () => {
-			document.removeEventListener("keydown", handleKeyDown, { capture: true });
-		};
 	}, [open]);
 
 	const handleSelect = useCallback(
@@ -180,6 +161,8 @@ export function UnifiedModelSelector({
 				onOpenAutoFocus={(e) => {
 					// Prevent popover from auto-focusing, we'll handle it manually
 					e.preventDefault();
+					// Focus the search input immediately
+					inputRef.current?.focus();
 				}}
 			>
 				<div className="flex h-[400px]">
@@ -203,11 +186,20 @@ export function UnifiedModelSelector({
 									: 0;
 							}}
 							className="h-full border-0"
+							onKeyDown={(e) => {
+								// Handle "/" key only when not typing in the input
+								if (e.key === "/" && e.target !== inputRef.current) {
+									e.preventDefault();
+									inputRef.current?.focus();
+								}
+							}}
 						>
 							<CommandInput
 								ref={inputRef}
 								placeholder="Search models..."
 								className="text-xs"
+								value={search}
+								onValueChange={setSearch}
 							/>
 							<CommandList className="max-h-[340px]">
 								<CommandEmpty className="text-xs text-muted-foreground py-8">
