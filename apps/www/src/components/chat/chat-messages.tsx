@@ -3,7 +3,7 @@
 import { Button } from "@lightfast/ui/components/ui/button";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { ChevronDown } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useStickToBottom } from "use-stick-to-bottom";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
@@ -22,6 +22,9 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
+	// Track if initial content has loaded
+	const [isInitialLoad, setIsInitialLoad] = useState(true);
+
 	// Use the hook approach of use-stick-to-bottom
 	const { scrollRef, contentRef, isAtBottom, scrollToBottom } =
 		useStickToBottom({
@@ -39,6 +42,16 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 		[scrollRef],
 	);
 
+	// Handle initial load completion
+	useEffect(() => {
+		if (isInitialLoad && dbMessages && dbMessages.length > 0) {
+			// Small delay to ensure content is rendered and scroll happens
+			const timer = setTimeout(() => {
+				setIsInitialLoad(false);
+			}, 50);
+			return () => clearTimeout(timer);
+		}
+	}, [dbMessages, isInitialLoad]);
 
 	// Find the streaming message from uiMessages
 	let streamingVercelMessage: LightfastUIMessage | undefined;
@@ -72,7 +85,7 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 					<ScrollAreaPrimitive.Viewport
 						ref={viewportRef}
 						data-slot="scroll-area-viewport"
-						className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+						className={`focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1 ${isInitialLoad ? "chat-messages-initial" : "chat-messages-ready"}`}
 					>
 						<div ref={contentRef} className="p-2 md:p-4 pb-24">
 							<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
@@ -119,7 +132,7 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 				<ScrollAreaPrimitive.Viewport
 					ref={viewportRef}
 					data-slot="scroll-area-viewport"
-					className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+					className={`focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1 ${isInitialLoad && dbMessages && dbMessages.length > 0 ? "chat-messages-initial" : "chat-messages-ready"}`}
 				>
 					<div ref={contentRef} className="p-2 md:p-4 pb-24">
 						<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">

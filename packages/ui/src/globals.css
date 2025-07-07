@@ -207,3 +207,14 @@
 .animate-shimmer {
 	animation: shimmer 2s infinite;
 }
+
+/* Ensure chat messages viewport is ready for scroll-to-bottom */
+.chat-messages-initial {
+	/* Hide overflow momentarily to prevent scroll jump visibility */
+	overflow: hidden !important;
+}
+
+/* After initial scroll, restore normal overflow */
+.chat-messages-ready {
+	overflow: auto !important;
+}
