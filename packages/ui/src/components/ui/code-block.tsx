@@ -23,7 +23,7 @@ const getHighlighter = async (): Promise<Highlighter> => {
 
 	if (!highlighterPromise) {
 		highlighterPromise = createHighlighter({
-			themes: ["github-light", "github-dark"],
+			themes: ["light-plus", "dark-plus"],
 			langs: [
 				"javascript",
 				"typescript",
@@ -114,7 +114,7 @@ export function CodeBlock({ code, language = "", className }: CodeBlockProps) {
 
 				if (!isMounted) return;
 
-				const currentTheme = theme === "dark" ? "github-dark" : "github-light";
+				const currentTheme = theme === "dark" ? "dark-plus" : "light-plus";
 				const langToUse = normalizedLanguage || "plaintext";
 
 				try {
