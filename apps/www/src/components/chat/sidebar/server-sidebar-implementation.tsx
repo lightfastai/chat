@@ -12,10 +12,11 @@ import type { Preloaded } from "convex/react";
 import { MessageSquarePlus } from "lucide-react";
 import type { api } from "../../../../convex/_generated/api";
 import { ActiveMenuItem } from "./active-menu-item";
+import { InfiniteScrollThreadsList } from "./infinite-scroll-threads-list";
 import { PlatformSidebarTrigger } from "./platform-sidebar-trigger";
-import { PreloadedThreadsList } from "./preloaded-threads-list";
 import { SidebarHoverExpand } from "./sidebar-hover-expand";
 import { SidebarUserMenu } from "./sidebar-user-menu";
+import { ThreadsErrorBoundary } from "./threads-error-boundary";
 
 interface ServerSidebarImplementationProps {
 	preloadedThreads: Preloaded<typeof api.threads.list>;
@@ -53,7 +54,12 @@ export function ServerSidebarImplementation({
 
 				{/* Only the threads list is a client component - everything else stays server-rendered */}
 				<div className="w-full min-w-0 group-data-[collapsible=icon]:hidden">
-					<PreloadedThreadsList preloadedThreads={preloadedThreads} />
+					<ThreadsErrorBoundary>
+						<InfiniteScrollThreadsList
+							preloadedThreads={preloadedThreads}
+							className="h-[calc(100vh-280px)] w-full"
+						/>
+					</ThreadsErrorBoundary>
 				</div>
 
 				{/* Hover expand zone - fills the space between threads and user menu */}

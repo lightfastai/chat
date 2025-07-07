@@ -15,6 +15,7 @@ import {
 	usePaginatedQuery,
 	useQuery,
 } from "convex/react";
+import type { FunctionArgs } from "convex/server";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
@@ -22,6 +23,7 @@ import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { ThreadItem } from "./thread-item";
 
 type Thread = Doc<"threads">;
+type PaginationArgs = FunctionArgs<typeof api.threads.listForInfiniteScroll>;
 
 interface InfiniteScrollThreadsListProps {
 	preloadedThreads: Preloaded<typeof api.threads.list>; // Initial threads data
@@ -141,7 +143,7 @@ export function InfiniteScrollThreadsList({
 			api.threads.listForInfiniteScroll,
 		);
 		let unpinnedThread: Thread | undefined;
-		let foundInArgs: any = null;
+		let foundInArgs: PaginationArgs | null = null;
 
 		// Check all paginated query results
 		for (const queryData of allPaginatedQueries) {
@@ -174,14 +176,18 @@ export function InfiniteScrollThreadsList({
 			// Add to unpinned list - update all initial page queries
 			for (const queryData of allPaginatedQueries) {
 				const result = queryData.value;
-				if (queryData.args.paginationOpts?.cursor === null && result && "page" in result) {
+				if (
+					queryData.args.paginationOpts?.cursor === null &&
+					result &&
+					"page" in result
+				) {
 					localStore.setQuery(
 						api.threads.listForInfiniteScroll,
 						queryData.args,
 						{
 							...result,
 							page: [updatedThread, ...result.page],
-						}
+						},
 					);
 				}
 			}
@@ -200,14 +206,10 @@ export function InfiniteScrollThreadsList({
 					foundInArgs,
 				);
 				if (result && "page" in result) {
-					localStore.setQuery(
-						api.threads.listForInfiniteScroll,
-						foundInArgs,
-						{
-							...result,
-							page: result.page.filter((t) => t._id !== threadId),
-						},
-					);
+					localStore.setQuery(api.threads.listForInfiniteScroll, foundInArgs, {
+						...result,
+						page: result.page.filter((t) => t._id !== threadId),
+					});
 				}
 			}
 		}

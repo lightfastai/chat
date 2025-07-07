@@ -63,13 +63,19 @@ export function useCreateThreadWithFirstMessages() {
 		// Update the new queries used by infinite scroll sidebar
 		// For paginated queries, we need to check all stored queries since usePaginatedQuery
 		// internally adds paginationOpts with varying parameters
-		const allPaginatedQueries = localStore.getAllQueries(api.threads.listForInfiniteScroll);
-		
+		const allPaginatedQueries = localStore.getAllQueries(
+			api.threads.listForInfiniteScroll,
+		);
+
 		// Find the initial page query (cursor: null)
 		let foundInitialPage = false;
 		for (const queryData of allPaginatedQueries) {
 			const result = queryData.value;
-			if (queryData.args.paginationOpts?.cursor === null && result && "page" in result) {
+			if (
+				queryData.args.paginationOpts?.cursor === null &&
+				result &&
+				"page" in result
+			) {
 				// Update this query with the new thread at the beginning
 				localStore.setQuery(api.threads.listForInfiniteScroll, queryData.args, {
 					...result,
@@ -78,7 +84,7 @@ export function useCreateThreadWithFirstMessages() {
 				foundInitialPage = true;
 			}
 		}
-		
+
 		// If we didn't find any paginated query, we might need to create one
 		// This happens when the sidebar hasn't loaded yet or when no queries match
 		if (!foundInitialPage && allPaginatedQueries.length === 0) {
