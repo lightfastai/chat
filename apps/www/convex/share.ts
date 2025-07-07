@@ -3,7 +3,6 @@ import { v } from "convex/values";
 import { nanoid } from "nanoid";
 import { mutation, query } from "./_generated/server";
 import {
-	ipHashValidator,
 	shareIdValidator,
 	shareSettingsValidator,
 	userAgentValidator,
@@ -133,13 +132,12 @@ export const updateShareSettings = mutation({
 	},
 });
 
-// Mutation to log share access attempts and perform rate limiting
+// Mutation to log share access attempts
 export const logShareAccess = mutation({
 	args: {
 		shareId: shareIdValidator,
 		clientInfo: v.optional(
 			v.object({
-				ipHash: ipHashValidator,
 				userAgent: userAgentValidator,
 			}),
 		),
@@ -147,30 +145,6 @@ export const logShareAccess = mutation({
 	returns: v.object({ allowed: v.boolean() }),
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		const hourAgo = now - 60 * 60 * 1000; // 1 hour ago
-
-		// Rate limiting: Check access attempts from this IP in the last hour
-		if (args.clientInfo?.ipHash) {
-			const recentAttempts = await ctx.db
-				.query("shareAccess")
-				.withIndex("by_ip_time", (q) =>
-					q.eq("ipHash", args.clientInfo?.ipHash).gte("accessedAt", hourAgo),
-				)
-				.collect();
-
-			// Allow max 100 attempts per hour per IP
-			if (recentAttempts.length >= 100) {
-				// Log the rate limit violation
-				await ctx.db.insert("shareAccess", {
-					shareId: args.shareId,
-					accessedAt: now,
-					ipHash: args.clientInfo.ipHash,
-					userAgent: args.clientInfo.userAgent,
-					success: false,
-				});
-				return { allowed: false };
-			}
-		}
 
 		// Check if thread exists and is public
 		const thread = await ctx.db
@@ -184,7 +158,6 @@ export const logShareAccess = mutation({
 		await ctx.db.insert("shareAccess", {
 			shareId: args.shareId,
 			accessedAt: now,
-			ipHash: args.clientInfo?.ipHash,
 			userAgent: args.clientInfo?.userAgent,
 			success,
 		});

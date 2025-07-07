@@ -12,31 +12,12 @@ interface SharedChatViewProps {
 	shareId: string;
 }
 
-function hashString(str: string): string {
-	let hash = 0;
-	for (let i = 0; i < str.length; i++) {
-		const char = str.charCodeAt(i);
-		hash = (hash << 5) - hash + char;
-		hash = hash & hash; // Convert to 32bit integer
-	}
-	return Math.abs(hash).toString(36);
-}
-
 export function SharedChatView({ shareId }: SharedChatViewProps) {
-	// Create a simple client fingerprint for rate limiting
+	// Client info for basic logging
 	const clientInfo = useMemo(() => {
 		if (typeof window === "undefined") return undefined;
 
-		// Create a basic fingerprint without tracking personal info
-		const fingerprint = [
-			navigator.userAgent,
-			screen.width,
-			screen.height,
-			new Date().getTimezoneOffset(),
-		].join("|");
-
 		return {
-			ipHash: hashString(fingerprint), // Client-side hash, not real IP
 			userAgent: navigator.userAgent.substring(0, 100), // Limit length
 		};
 	}, []);
