@@ -152,39 +152,40 @@ export function UnifiedModelSelector({
 								className="text-xs"
 								autoFocus
 							/>
-							<CommandList className="max-h-[340px]">
+							<CommandList className="max-h-[240px] scroll-py-0">
 								<CommandEmpty className="text-xs text-muted-foreground py-8">
 									No models found
 								</CommandEmpty>
 								{sortedModels.map((model) => (
-										<CommandItem
-											key={model.id}
-											value={model.id}
-											keywords={[model.displayName, model.provider]}
-											onSelect={handleSelect}
-											onMouseEnter={() => setHoveredModel(model.id)}
-											className={cn(
-												"flex items-center gap-3 px-2.5 py-2.5 text-xs cursor-pointer",
-												model.id === value &&
-													"bg-accent text-accent-foreground",
-											)}
-										>
-											{(() => {
-												const iconName = PROVIDER_ICONS[
-													model.provider
-												] as keyof typeof Icons;
-												const IconComponent = Icons[iconName];
-												return IconComponent ? (
-													<IconComponent className="w-4 h-4 shrink-0" />
-												) : null;
-											})()}
-											<span className="truncate">{model.displayName}</span>
-											{model.id === value && (
-												<span className="ml-auto text-xs text-muted-foreground">
-													Selected
-												</span>
-											)}
-										</CommandItem>
+									<CommandItem
+										key={model.id}
+										value={model.id}
+										keywords={[model.displayName, model.provider]}
+										onSelect={handleSelect}
+										onMouseEnter={() => setHoveredModel(model.id)}
+										className={cn(
+											"flex items-center gap-1 px-2.5 py-1.5 text-xs cursor-pointer",
+											model.id === value && "bg-accent text-accent-foreground",
+										)}
+									>
+										{(() => {
+											const iconName = PROVIDER_ICONS[
+												model.provider
+											] as keyof typeof Icons;
+											const IconComponent = Icons[iconName];
+											return IconComponent ? (
+												<IconComponent className="w-4 h-4 shrink-0" />
+											) : null;
+										})()}
+										<span className="truncate text-xs">
+											{model.displayName}
+										</span>
+										{model.id === value && (
+											<span className="ml-auto text-xs text-muted-foreground">
+												Selected
+											</span>
+										)}
+									</CommandItem>
 								))}
 							</CommandList>
 						</Command>
