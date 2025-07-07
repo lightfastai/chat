@@ -21,7 +21,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@lightfast/ui/components/ui/popover";
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { cn } from "@lightfast/ui/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -153,12 +152,11 @@ export function UnifiedModelSelector({
 								className="text-xs"
 								autoFocus
 							/>
-							<CommandList>
-								<ScrollArea className="h-[340px]">
-									<CommandEmpty className="text-xs text-muted-foreground py-8">
-										No models found
-									</CommandEmpty>
-									{sortedModels.map((model) => (
+							<CommandList className="max-h-[340px]">
+								<CommandEmpty className="text-xs text-muted-foreground py-8">
+									No models found
+								</CommandEmpty>
+								{sortedModels.map((model) => (
 										<CommandItem
 											key={model.id}
 											value={model.id}
@@ -187,8 +185,7 @@ export function UnifiedModelSelector({
 												</span>
 											)}
 										</CommandItem>
-									))}
-								</ScrollArea>
+								))}
 							</CommandList>
 						</Command>
 					</div>
