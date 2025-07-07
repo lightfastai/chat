@@ -48,8 +48,14 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 		const isReservedRoute =
 			reservedRoutes.includes(clientId) || clientId.startsWith("settings/");
 
+		// Allow reserved routes to pass through to Next.js routing
+		if (isReservedRoute) {
+			// Let Next.js handle reserved routes like /chat/settings
+			return response;
+		}
+
 		// Validate clientId format - basic check to prevent obvious invalid IDs
-		if (!clientId || clientId.length < 10 || isReservedRoute) {
+		if (!clientId || clientId.length < 10) {
 			// Return 404 for invalid thread IDs
 			return new NextResponse(null, { status: 404 });
 		}
