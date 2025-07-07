@@ -39,7 +39,7 @@ export function useCreateThreadWithFirstMessages() {
 			userId: currentUser._id,
 			createdAt: now,
 			isTitleGenerating: true,
-			pinned: false,
+			pinned: undefined, // Match backend behavior - undefined means unpinned
 			branchedFrom: undefined,
 			isPublic: false,
 			shareId: undefined,
@@ -57,38 +57,35 @@ export function useCreateThreadWithFirstMessages() {
 					messageCount: 0,
 				},
 			},
+			lastMessageAt: now, // Add this for proper date grouping in UI
 		};
 
 		// Update the new queries used by infinite scroll sidebar
-		// Since new threads are unpinned by default, we need to update the paginated query
-		// Check the first page of results (which is where new threads appear)
-		const paginatedResult = localStore.getQuery(
-			api.threads.listForInfiniteScroll,
-			{ paginationOpts: { numItems: 5, cursor: null } },
-		);
-
-		if (paginatedResult && "page" in paginatedResult) {
-			// Add the new thread to the beginning of the first page
-			localStore.setQuery(
-				api.threads.listForInfiniteScroll,
-				{ paginationOpts: { numItems: 5, cursor: null } },
-				{
-					...paginatedResult,
-					page: [optimisticThread, ...paginatedResult.page],
-				},
-			);
-		} else {
-			// If no paginated results were found, create an initial page
-			// This happens when the sidebar hasn't loaded yet
-			localStore.setQuery(
-				api.threads.listForInfiniteScroll,
-				{ paginationOpts: { numItems: 5, cursor: null } },
-				{
-					page: [optimisticThread],
-					isDone: false,
-					continueCursor: "",
-				},
-			);
+		// For paginated queries, we need to check all stored queries since usePaginatedQuery
+		// internally adds paginationOpts with varying parameters
+		const allPaginatedQueries = localStore.getAllQueries(api.threads.listForInfiniteScroll);
+		
+		// Find the initial page query (cursor: null)
+		let foundInitialPage = false;
+		for (const queryData of allPaginatedQueries) {
+			const result = queryData.value;
+			if (queryData.args.paginationOpts?.cursor === null && result && "page" in result) {
+				// Update this query with the new thread at the beginning
+				localStore.setQuery(api.threads.listForInfiniteScroll, queryData.args, {
+					...result,
+					page: [optimisticThread, ...result.page],
+				});
+				foundInitialPage = true;
+			}
+		}
+		
+		// If we didn't find any paginated query, we might need to create one
+		// This happens when the sidebar hasn't loaded yet or when no queries match
+		if (!foundInitialPage && allPaginatedQueries.length === 0) {
+			// Since the component uses usePaginatedQuery with {}, it will internally
+			// create queries with paginationOpts. We can't predict the exact args,
+			// so we'll just update the regular list query for now
+			console.log("No paginated queries found for optimistic update");
 		}
 
 		// Also update the old list query for backward compatibility (if still used elsewhere)

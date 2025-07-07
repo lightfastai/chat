@@ -42,7 +42,7 @@ export const listForInfiniteScroll = query({
 		return await ctx.db
 			.query("threads")
 			.withIndex("by_user", (q) => q.eq("userId", userId))
-			.filter((q) => q.eq(q.field("pinned"), undefined)) // Exclude pinned threads
+			.filter((q) => q.eq(q.field("pinned"), undefined)) // Only show threads where pinned is undefined (not false)
 			.order("desc")
 			.paginate(args.paginationOpts);
 	},
@@ -58,7 +58,7 @@ export const listPaginated = query({
 			return await ctx.db
 				.query("threads")
 				.withIndex("by_user", (q) => q.eq("userId", userId))
-				.filter((q) => q.eq(q.field("pinned"), undefined)) // Exclude pinned threads
+				.filter((q) => q.eq(q.field("pinned"), undefined)) // Only show threads where pinned is undefined (not false)
 				.order("desc")
 				.paginate(args.paginationOpts);
 		} catch {
@@ -216,7 +216,7 @@ export const listPaginatedWithGrouping = query({
 			let query = ctx.db
 				.query("threads")
 				.withIndex("by_user", (q) => q.eq("userId", userId))
-				.filter((q) => q.eq(q.field("pinned"), undefined)) // Exclude pinned threads
+				.filter((q) => q.eq(q.field("pinned"), undefined)) // Only show threads where pinned is undefined (not false)
 				.order("desc");
 
 			// Skip the first N items only on the first paginated call (no cursor)

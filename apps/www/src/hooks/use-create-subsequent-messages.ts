@@ -36,14 +36,17 @@ export function useCreateSubsequentMessages() {
 
 			// If still not found, check unpinned threads (paginated)
 			if (!thread) {
-				// Check the first page of unpinned threads
-				const paginatedResult = localStore.getQuery(
+				// Check all paginated queries since usePaginatedQuery adds internal parameters
+				const allPaginatedQueries = localStore.getAllQueries(
 					api.threads.listForInfiniteScroll,
-					{ paginationOpts: { numItems: 5, cursor: null } },
 				);
 
-				if (paginatedResult && "page" in paginatedResult) {
-					thread = paginatedResult.page.find((t) => t._id === threadId);
+				for (const queryData of allPaginatedQueries) {
+					const result = queryData.value;
+					if (result && "page" in result) {
+						thread = result.page.find((t) => t._id === threadId);
+						if (thread) break;
+					}
 				}
 			}
 
@@ -100,11 +103,48 @@ export function useCreateSubsequentMessages() {
 			[...existingMessages, optimisticUserMessage, optimisticAssistantMessage],
 		);
 
-		// Since threads are sorted by _creationTime and we can't change that in optimistic updates,
-		// we can't reorder the thread to the top. The thread will stay in its current position
-		// until the user refreshes or navigates away and back.
-		// This is a limitation of the current implementation where threads don't have
-		// an updatable lastMessageAt field.
+		// Update the thread's lastMessageAt to move it to the top
+		// This helps with date grouping in the UI
+		if (thread) {
+			const updatedThread = { ...thread, lastMessageAt: now };
+
+			// Update in pinned threads if it's pinned
+			if (thread.pinned) {
+				const pinnedThreads =
+					localStore.getQuery(api.threads.listPinned, {}) || [];
+				const updatedPinned = pinnedThreads.map((t) =>
+					t._id === threadId ? updatedThread : t,
+				);
+				localStore.setQuery(api.threads.listPinned, {}, updatedPinned);
+			} else {
+				// Update in paginated results if it's unpinned
+				const paginatedResult = localStore.getQuery(
+					api.threads.listForInfiniteScroll,
+					{ paginationOpts: { numItems: 5, cursor: null } },
+				);
+
+				if (paginatedResult && "page" in paginatedResult) {
+					const updatedPage = paginatedResult.page.map((t) =>
+						t._id === threadId ? updatedThread : t,
+					);
+					localStore.setQuery(
+						api.threads.listForInfiniteScroll,
+						{ paginationOpts: { numItems: 5, cursor: null } },
+						{
+							...paginatedResult,
+							page: updatedPage,
+						},
+					);
+				}
+			}
+
+			// Also update the old list query for backward compatibility
+			const threadsList = localStore.getQuery(api.threads.list, {}) || [];
+			const updatedList = threadsList.map((t) =>
+				t._id === threadId ? updatedThread : t,
+			);
+			localStore.setQuery(api.threads.list, {}, updatedList);
+		}
 
 		return {
 			userMessageId: optimisticUserMessage._id,

@@ -136,15 +136,24 @@ export function InfiniteScrollThreadsList({
 		const pinnedThread = pinnedThreads.find((t) => t._id === threadId);
 
 		// Search in paginated results for unpinned threads
-		// We need to check the first page where new threads are added
-		const paginatedResult = localStore.getQuery(
+		// We need to check all paginated queries since usePaginatedQuery adds internal parameters
+		const allPaginatedQueries = localStore.getAllQueries(
 			api.threads.listForInfiniteScroll,
-			{ paginationOpts: { numItems: 5, cursor: null } },
 		);
 		let unpinnedThread: Thread | undefined;
+		let foundInArgs: any = null;
 
-		if (paginatedResult && "page" in paginatedResult) {
-			unpinnedThread = paginatedResult.page.find((t) => t._id === threadId);
+		// Check all paginated query results
+		for (const queryData of allPaginatedQueries) {
+			const result = queryData.value;
+			if (result && "page" in result) {
+				const found = result.page.find((t) => t._id === threadId);
+				if (found) {
+					unpinnedThread = found;
+					foundInArgs = queryData.args;
+					break;
+				}
+			}
 		}
 
 		const threadToToggle = pinnedThread || unpinnedThread;
@@ -162,16 +171,19 @@ export function InfiniteScrollThreadsList({
 				pinnedThreads.filter((t) => t._id !== threadId),
 			);
 
-			// Add to unpinned list (first page)
-			if (paginatedResult && "page" in paginatedResult) {
-				localStore.setQuery(
-					api.threads.listForInfiniteScroll,
-					{ paginationOpts: { numItems: 5, cursor: null } },
-					{
-						...paginatedResult,
-						page: [updatedThread, ...paginatedResult.page],
-					},
-				);
+			// Add to unpinned list - update all initial page queries
+			for (const queryData of allPaginatedQueries) {
+				const result = queryData.value;
+				if (queryData.args.paginationOpts?.cursor === null && result && "page" in result) {
+					localStore.setQuery(
+						api.threads.listForInfiniteScroll,
+						queryData.args,
+						{
+							...result,
+							page: [updatedThread, ...result.page],
+						}
+					);
+				}
 			}
 		} else {
 			// Thread was unpinned, now pinning
@@ -181,16 +193,22 @@ export function InfiniteScrollThreadsList({
 				...pinnedThreads,
 			]);
 
-			// Remove from unpinned list
-			if (paginatedResult && "page" in paginatedResult) {
-				localStore.setQuery(
+			// Remove from unpinned list - use the args where we found the thread
+			if (foundInArgs) {
+				const result = localStore.getQuery(
 					api.threads.listForInfiniteScroll,
-					{ paginationOpts: { numItems: 5, cursor: null } },
-					{
-						...paginatedResult,
-						page: paginatedResult.page.filter((t) => t._id !== threadId),
-					},
+					foundInArgs,
 				);
+				if (result && "page" in result) {
+					localStore.setQuery(
+						api.threads.listForInfiniteScroll,
+						foundInArgs,
+						{
+							...result,
+							page: result.page.filter((t) => t._id !== threadId),
+						},
+					);
+				}
 			}
 		}
 	});
