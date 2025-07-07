@@ -8,16 +8,22 @@ import {
 } from "@lightfast/ai/providers";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@lightfast/ui/components/ui/command";
 import { Icons } from "@lightfast/ui/components/ui/icons";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@lightfast/ui/components/ui/popover";
-import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { cn } from "@lightfast/ui/lib/utils";
-import { ChevronDown, Search } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface UnifiedModelSelectorProps {
 	value: ModelId;
@@ -52,11 +58,8 @@ export function UnifiedModelSelector({
 	className,
 }: UnifiedModelSelectorProps) {
 	const [open, setOpen] = useState(false);
-	const [search, setSearch] = useState("");
 	const [hoveredModel, setHoveredModel] = useState<ModelId | null>(null);
-	const [selectedIndex, setSelectedIndex] = useState(0);
-	const searchInputRef = useRef<HTMLInputElement>(null);
-	const triggerRef = useRef<HTMLButtonElement>(null);
+	const [search, setSearch] = useState("");
 
 	// Get all visible models
 	const allModels = useMemo(() => {
@@ -69,26 +72,17 @@ export function UnifiedModelSelector({
 		}));
 	}, []);
 
-	// Filter models based on search
+	// Filter and sort models with selected one first
 	const filteredModels = useMemo(() => {
-		if (!search.trim()) return allModels;
-
-		const searchLower = search.toLowerCase();
-		return allModels.filter(
-			(model) =>
-				model.displayName.toLowerCase().includes(searchLower) ||
-				model.provider.toLowerCase().includes(searchLower),
+		const filtered = allModels.filter((model) =>
+			model.displayName.toLowerCase().includes(search.toLowerCase()),
 		);
-	}, [allModels, search]);
-
-	// Sort models with selected one first
-	const sortedModels = useMemo(() => {
-		return [...filteredModels].sort((a, b) => {
+		return [...filtered].sort((a, b) => {
 			if (a.id === value) return -1;
 			if (b.id === value) return 1;
 			return 0;
 		});
-	}, [filteredModels, value]);
+	}, [allModels, value, search]);
 
 	// Get the model to show details for (hovered or selected)
 	const detailModel = useMemo(() => {
@@ -96,70 +90,20 @@ export function UnifiedModelSelector({
 		return allModels.find((m) => m.id === modelId) || null;
 	}, [hoveredModel, value, allModels]);
 
+	// Reset search when opening
+	useEffect(() => {
+		if (open) {
+			setSearch("");
+			setHoveredModel(null);
+		}
+	}, [open]);
+
 	const handleSelect = useCallback(
 		(modelId: ModelId) => {
 			onValueChange(modelId);
 			setOpen(false);
-			setSearch("");
-			setSelectedIndex(0);
 		},
 		[onValueChange],
-	);
-
-	// Reset selected index when search changes
-	// biome-ignore lint/correctness/useExhaustiveDependencies: we want to reset when search changes
-	useEffect(() => {
-		setSelectedIndex(0);
-	}, [search]);
-
-	// Focus search input when popover opens
-	useEffect(() => {
-		if (open && searchInputRef.current) {
-			searchInputRef.current.focus();
-		}
-	}, [open]);
-
-	// Keyboard navigation
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
-			if (!open) return;
-
-			switch (e.key) {
-				case "ArrowDown":
-					e.preventDefault();
-					setSelectedIndex((prev) =>
-						prev < sortedModels.length - 1 ? prev + 1 : 0,
-					);
-					break;
-				case "ArrowUp":
-					e.preventDefault();
-					setSelectedIndex((prev) =>
-						prev > 0 ? prev - 1 : sortedModels.length - 1,
-					);
-					break;
-				case "Enter":
-					e.preventDefault();
-					if (sortedModels[selectedIndex]) {
-						handleSelect(sortedModels[selectedIndex].id);
-					}
-					break;
-				case "Escape":
-					e.preventDefault();
-					setOpen(false);
-					setSearch("");
-					setSelectedIndex(0);
-					triggerRef.current?.focus();
-					break;
-				case "/":
-					// Only prevent default if not already focused on search input
-					if (document.activeElement !== searchInputRef.current) {
-						e.preventDefault();
-						searchInputRef.current?.focus();
-					}
-					break;
-			}
-		},
-		[open, sortedModels, selectedIndex, handleSelect],
 	);
 
 	// Global keyboard shortcut for Cmd/Ctrl + .
@@ -175,20 +119,12 @@ export function UnifiedModelSelector({
 		return () => document.removeEventListener("keydown", handleGlobalKeyDown);
 	}, []);
 
-	// Update hovered model based on selected index
-	useEffect(() => {
-		if (sortedModels[selectedIndex]) {
-			setHoveredModel(sortedModels[selectedIndex].id);
-		}
-	}, [selectedIndex, sortedModels]);
-
 	const selectedModel = getModelConfig(value);
 
 	return (
 		<Popover open={open} onOpenChange={setOpen} modal={false}>
 			<PopoverTrigger asChild>
 				<Button
-					ref={triggerRef}
 					variant="outline"
 					size="sm"
 					className={cn("justify-between", className)}
@@ -215,39 +151,44 @@ export function UnifiedModelSelector({
 				align="end"
 				className="w-[600px] p-0"
 				onOpenAutoFocus={(e) => e.preventDefault()}
-				onKeyDown={handleKeyDown}
 			>
 				<div className="flex h-[400px]">
 					{/* Model list */}
-					<div className="flex-1 border-r flex flex-col">
-						<div className="relative border-b">
-							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-							<input
-								ref={searchInputRef}
-								type="text"
+					<div className="flex-1 border-r">
+						<Command
+							value={hoveredModel || ""}
+							onValueChange={(modelId) => {
+								if (modelId) {
+									setHoveredModel(modelId as ModelId);
+								}
+							}}
+							filter={(value, search) => {
+								const model = allModels.find((m) => m.id === value);
+								if (!model) return 0;
+								return model.displayName
+									.toLowerCase()
+									.includes(search.toLowerCase())
+									? 1
+									: 0;
+							}}
+							className="h-full border-0"
+						>
+							<CommandInput
 								placeholder="Search models..."
-								value={search}
-								onChange={(e) => setSearch(e.target.value)}
-								className="w-full h-12 pl-10 pr-3 text-sm bg-transparent border-0 outline-none focus:ring-0 placeholder:text-muted-foreground"
+								className="text-xs"
 							/>
-						</div>
-						<ScrollArea className="flex-1 overflow-y-auto">
-							<div className="p-2 space-y-1">
-								{sortedModels.map((model, index) => (
-									<button
-										type="button"
+							<CommandList className="max-h-[340px]">
+								<CommandEmpty className="text-xs text-muted-foreground py-8">
+									No models found
+								</CommandEmpty>
+								{filteredModels.map((model) => (
+									<CommandItem
 										key={model.id}
-										onClick={() => handleSelect(model.id)}
-										onMouseEnter={() => {
-											setHoveredModel(model.id);
-											setSelectedIndex(index);
-										}}
-										onMouseLeave={() => setHoveredModel(null)}
+										value={model.id}
+										onSelect={() => handleSelect(model.id)}
 										className={cn(
-											"w-full flex items-center gap-3 px-2.5 py-2.5 text-xs rounded-md transition-colors text-left",
-											"hover:bg-accent hover:text-accent-foreground",
-											(model.id === value || index === selectedIndex) &&
-												"bg-accent text-accent-foreground",
+											"flex items-center gap-3 px-2.5 py-2.5 text-xs cursor-pointer",
+											model.id === value && "bg-accent text-accent-foreground",
 										)}
 									>
 										{(() => {
@@ -265,15 +206,10 @@ export function UnifiedModelSelector({
 												Selected
 											</span>
 										)}
-									</button>
+									</CommandItem>
 								))}
-								{sortedModels.length === 0 && (
-									<div className="text-center py-8 text-xs text-muted-foreground">
-										No models found
-									</div>
-								)}
-							</div>
-						</ScrollArea>
+							</CommandList>
+						</Command>
 					</div>
 
 					{/* Model details panel */}
