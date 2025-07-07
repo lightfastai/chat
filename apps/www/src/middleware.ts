@@ -1,8 +1,8 @@
 import { getTimezoneFromRequest } from "@/lib/ip-timezone";
 import {
-	convexAuthNextjsMiddleware,
-	createRouteMatcher,
-	nextjsMiddlewareRedirect,
+  convexAuthNextjsMiddleware,
+  createRouteMatcher,
+  nextjsMiddlewareRedirect,
 } from "@convex-dev/auth/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -72,16 +72,6 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 				request.headers.get("x-vercel-ip-country-region"),
 			);
 		}
-	}
-
-	if (isAuthenticated && pathname.startsWith("/chat")) {
-		// Add cache headers for better navigation performance
-		response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
-		// Add prefetch hints for common resources
-		response.headers.set(
-			"Link",
-			"</chat; rel=prefetch>, </chat/new; rel=prefetch>",
-		);
 	}
 
 	return response;
