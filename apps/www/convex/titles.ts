@@ -19,12 +19,6 @@ export const generateTitle = internalAction({
 	returns: v.null(),
 	handler: async (ctx, args) => {
 		try {
-			// Mark title as generating
-			await ctx.runMutation(internal.titles.setTitleGenerating, {
-				threadId: args.threadId,
-				isGenerating: true,
-			});
-
 			console.log(
 				"Generating title for message:",
 				args.firstMessage.text.substring(0, 100),
@@ -114,22 +108,6 @@ export const updateThreadTitle = internalMutation({
 
 		await ctx.db.patch(args.threadId, {
 			title: args.title,
-			isTitleGenerating: false,
-		});
-		return null;
-	},
-});
-
-// Internal mutation to set title generating status
-export const setTitleGenerating = internalMutation({
-	args: {
-		threadId: v.id("threads"),
-		isGenerating: v.boolean(),
-	},
-	returns: v.null(),
-	handler: async (ctx, args) => {
-		await ctx.db.patch(args.threadId, {
-			isTitleGenerating: args.isGenerating,
 		});
 		return null;
 	},

@@ -34,8 +34,6 @@ export const setupInitialData = mutation({
 		const threadId = await ctx.db.insert("threads", {
 			title: "Welcome to Lightfast Chat",
 			userId: testUserId,
-			createdAt: now,
-			isTitleGenerating: false,
 			metadata: {
 				usage: {
 					totalInputTokens: 0,

@@ -2,7 +2,12 @@
  * Time-related utility functions
  */
 
-export type DateGroup = "Today" | "Yesterday" | "This Week" | "This Month" | "Older";
+export type DateGroup =
+	| "Today"
+	| "Yesterday"
+	| "This Week"
+	| "This Month"
+	| "Older";
 
 export interface GroupedByDate<T> {
 	Today: T[];
@@ -38,7 +43,8 @@ export function groupByDate<T>(
 
 	for (const item of items) {
 		const dateValue = dateExtractor(item);
-		const itemDate = typeof dateValue === "number" ? new Date(dateValue) : dateValue;
+		const itemDate =
+			typeof dateValue === "number" ? new Date(dateValue) : dateValue;
 
 		if (itemDate >= today) {
 			groups.Today.push(item);

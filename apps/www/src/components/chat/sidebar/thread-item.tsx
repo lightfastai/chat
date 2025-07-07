@@ -15,7 +15,6 @@ interface ThreadItemProps {
 		_id: Id<"threads">;
 		clientId?: string;
 		title: string;
-		isTitleGenerating?: boolean;
 		pinned?: boolean;
 		branchedFrom?: {
 			threadId: Id<"threads">;
@@ -45,21 +44,14 @@ export function ThreadItem({ thread, onPinToggle }: ThreadItemProps) {
 				{thread.branchedFrom && (
 					<GitBranch className="h-3 w-3 flex-shrink-0 text-muted-foreground mr-1.5" />
 				)}
-				{!thread.title && thread.isTitleGenerating ? (
+				{!thread.title ? (
 					<div className="relative h-4 w-full flex-1 overflow-hidden rounded">
 						<div className="absolute inset-0 bg-gradient-to-r from-muted/50 via-muted to-muted/50 animate-shimmer" />
 						<div className="absolute inset-0 bg-muted/20 backdrop-blur-[2px]" />
 					</div>
 				) : (
-					<span
-						className={cn(
-							"font-medium truncate text-ellipsis overflow-hidden min-w-0 flex-1 text-xs",
-							thread.isTitleGenerating &&
-								"animate-pulse blur-[0.5px] opacity-70",
-						)}
-					>
-						{thread.title ||
-							(thread.isTitleGenerating ? "Generating title..." : "")}
+					<span className="font-medium truncate text-ellipsis overflow-hidden min-w-0 flex-1 text-xs">
+						{thread.title}
 					</span>
 				)}
 			</ActiveMenuItem>

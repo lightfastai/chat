@@ -155,14 +155,10 @@ export const createThreadWithFirstMessages = mutation({
 			};
 		}
 
-		const now = Date.now();
 		const threadId = await ctx.db.insert("threads", {
 			clientId: args.clientThreadId,
-			title: "",
+			title: "", // Empty title indicates it's being generated
 			userId: userId,
-			createdAt: now,
-			// @todo depcreate these...
-			isTitleGenerating: true, // Will be updated when first message is sent
 			// Initialize metadata with usage tracking
 			metadata: {
 				usage: {
