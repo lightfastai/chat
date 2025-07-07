@@ -7,7 +7,6 @@ import {
 } from "@lightfast/ai/providers";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
-import { Input } from "@lightfast/ui/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
@@ -139,19 +138,18 @@ export function UnifiedModelSelector({
 			>
 				<div className="flex h-[400px]">
 					{/* Model list */}
-					<div className="flex-1 border-r">
-						<div className="p-3 border-b">
-							<div className="relative">
-								<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-								<Input
-									placeholder="Search models..."
-									value={search}
-									onChange={(e) => setSearch(e.target.value)}
-									className="h-9 pl-8"
-								/>
-							</div>
+					<div className="flex-1 border-r flex flex-col">
+						<div className="relative border-b">
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<input
+								type="text"
+								placeholder="Search models..."
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								className="w-full h-12 pl-10 pr-3 text-sm bg-transparent border-0 outline-none focus:ring-0 placeholder:text-muted-foreground"
+							/>
 						</div>
-						<ScrollArea className="h-[340px]">
+						<ScrollArea className="flex-1">
 							<div className="p-1">
 								{sortedModels.map((model) => (
 									<button
