@@ -1,11 +1,7 @@
 import { siteConfig } from "@/lib/site-config";
-import { preloadQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
-import { api } from "../../../../convex/_generated/api";
 import { ChatInterface } from "../../../components/chat/chat-interface";
-import { getAuthToken } from "../../../lib/auth";
 
 export const metadata: Metadata = {
 	title: "Chat Thread",
@@ -30,7 +26,7 @@ interface ChatThreadPageProps {
 	}>;
 }
 
-// Server component for specific thread - optimized for SSR and instant navigation
+// Simple server component ready for PPR
 export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 	// Await params in Next.js 15
 	const { clientId } = await params;
@@ -44,37 +40,5 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 		notFound();
 	}
 
-	return (
-		<Suspense fallback={<ChatInterface />}>
-			<ChatThreadPageWithPreloadedData />
-		</Suspense>
-	);
-}
-
-// Server component that handles data preloading with PPR optimization
-async function ChatThreadPageWithPreloadedData() {
-	try {
-		// Get authentication token for server-side requests
-		const token = await getAuthToken();
-
-		// If no authentication token, render regular chat interface
-		if (!token) {
-			return <ChatInterface />;
-		}
-
-		// Preload user settings
-		const preloadedUserSettings = await preloadQuery(
-			api.userSettings.getUserSettings,
-			{},
-			{ token },
-		);
-
-		return <ChatInterface preloadedUserSettings={preloadedUserSettings} />;
-	} catch (error) {
-		// Log error but still render - don't break the UI
-		console.warn("Server-side chat data preload failed:", error);
-
-		// Fallback to regular chat interface
-		return <ChatInterface />;
-	}
+	return <ChatInterface />;
 }
