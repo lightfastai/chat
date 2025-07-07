@@ -1,25 +1,25 @@
 "use client";
 
 import {
-	type ModelId,
-	PROVIDER_ICONS,
-	getModelConfig,
-	getVisibleModels,
+  type ModelId,
+  PROVIDER_ICONS,
+  getModelConfig,
+  getVisibleModels,
 } from "@lightfast/ai/providers";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
-	Command,
-	CommandEmpty,
-	CommandInput,
-	CommandItem,
-	CommandList,
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
 } from "@lightfast/ui/components/ui/command";
 import { Icons } from "@lightfast/ui/components/ui/icons";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@lightfast/ui/components/ui/popover";
 import { cn } from "@lightfast/ui/lib/utils";
 import { ChevronDown } from "lucide-react";
@@ -142,18 +142,18 @@ export function UnifiedModelSelector({
 					<ChevronDown className="h-3 w-3 opacity-50" />
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent align="end" className="w-[600px] p-0">
-				<div className="flex h-[400px]">
+			<PopoverContent align="end" className="w-[500px] p-0">
+				<div className="flex h-[300px]">
 					{/* Model list */}
 					<div className="flex-1 border-r flex flex-col">
-						<Command className="flex flex-col h-full border-0">
+						<Command className="flex flex-col border-0">
 							<CommandInput
 								placeholder="Search models..."
 								className="text-xs"
 								autoFocus
 							/>
-							<CommandList className="max-h-[240px] scroll-py-0">
-								<CommandEmpty className="text-xs text-muted-foreground py-8">
+							<CommandList className="h-full">
+								<CommandEmpty className="text-xs text-muted-foreground p-2">
 									No models found
 								</CommandEmpty>
 								{sortedModels.map((model) => (
@@ -164,7 +164,7 @@ export function UnifiedModelSelector({
 										onSelect={handleSelect}
 										onMouseEnter={() => setHoveredModel(model.id)}
 										className={cn(
-											"flex items-center gap-1 px-2.5 py-1.5 text-xs cursor-pointer",
+											"flex items-center gap-3 px-2.5 py-2 text-xs cursor-pointer rounded-none",
 											model.id === value && "bg-accent text-accent-foreground",
 										)}
 									>
@@ -193,7 +193,7 @@ export function UnifiedModelSelector({
 
 					{/* Model details panel */}
 					<div className="w-[250px] bg-muted/30">
-						<div className="p-4 h-full">
+						<div className="p-4">
 							{detailModel ? (
 								<div className="space-y-3">
 									<div className="flex items-start gap-2">
