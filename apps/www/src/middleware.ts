@@ -1,3 +1,4 @@
+import { getTimezoneFromRequest } from "@/lib/ip-timezone";
 import {
 	convexAuthNextjsMiddleware,
 	createRouteMatcher,
@@ -36,6 +37,29 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 
 	// Add prefetch headers for chat routes to improve performance
 	const response = NextResponse.next();
+
+	// Add IP-based timezone estimate to headers
+	const timezoneEstimate = getTimezoneFromRequest(request);
+	if (timezoneEstimate) {
+		response.headers.set("x-user-timezone", timezoneEstimate);
+		
+		// Debug logging in development
+		if (process.env.NODE_ENV === "development") {
+			console.log("[Middleware] Detected timezone:", timezoneEstimate);
+			console.log("[Middleware] Country:", request.headers.get("x-vercel-ip-country"));
+			console.log("[Middleware] Region:", request.headers.get("x-vercel-ip-country-region"));
+		}
+	}
+
+	if (isAuthenticated && pathname.startsWith("/chat")) {
+		// Add cache headers for better navigation performance
+		response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+		// Add prefetch hints for common resources
+		response.headers.set(
+			"Link",
+			"</chat; rel=prefetch>, </chat/new; rel=prefetch>",
+		);
+	}
 
 	return response;
 });

@@ -110,7 +110,7 @@ Example `meta.json`:
 - `postcss.config.mjs` - PostCSS configuration for Tailwind
 
 ### UI Configuration
-- Uses `@repo/ui` for shared components
+- Uses `@lightfast/ui` for shared components
 - Custom site header and layout wrapper
 - Dark mode disabled by default (can be enabled in layout config)
 

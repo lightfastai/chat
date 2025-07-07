@@ -2,7 +2,6 @@ import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import {
 	Sidebar,
 	SidebarContent,
-	SidebarFooter,
 	SidebarGroup,
 	SidebarGroupContent,
 	SidebarGroupLabel,
@@ -10,6 +9,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarTrigger,
 } from "@lightfast/ui/components/ui/sidebar";
 import { MessageSquarePlus } from "lucide-react";
 
@@ -19,12 +19,8 @@ export function SidebarSkeleton() {
 		<Sidebar variant="inset" collapsible="icon" className="w-64 max-w-64">
 			<SidebarHeader className="p-0">
 				<SidebarGroup className="p-2">
-					{/* Platform sidebar trigger skeleton */}
-					<div className="flex items-center gap-3">
-						<div className="w-6 h-6 flex items-center justify-center">
-							<div className="w-full h-4 bg-muted animate-pulse rounded" />
-						</div>
-					</div>
+					{/* Platform sidebar trigger - no animations, match exact positioning */}
+					<SidebarTrigger className="h-8 w-8" />
 				</SidebarGroup>
 			</SidebarHeader>
 
@@ -33,7 +29,7 @@ export function SidebarSkeleton() {
 					<SidebarGroupContent>
 						<SidebarMenu>
 							<SidebarMenuItem>
-								{/* New Chat button skeleton - match ActiveMenuItem styling */}
+								{/* New Chat button - match exact styling */}
 								<SidebarMenuButton
 									size="default"
 									className="w-full max-w-full min-w-0 overflow-hidden"
@@ -105,28 +101,6 @@ export function SidebarSkeleton() {
 					<div className="w-full h-full bg-transparent" />
 				</div>
 			</SidebarContent>
-
-			<SidebarFooter className="p-0">
-				<SidebarGroup className="p-2">
-					<SidebarGroupContent>
-						<SidebarMenu>
-							<SidebarMenuItem className="overflow-visible">
-								{/* User dropdown skeleton - match SidebarUserMenu styling */}
-								<div className="w-full h-10 px-2 flex items-center justify-between bg-muted/50 animate-pulse rounded-md">
-									<div className="flex items-center gap-2">
-										{/* Avatar skeleton */}
-										<div className="w-8 h-8 bg-muted animate-pulse rounded-full" />
-										{/* Username skeleton */}
-										<div className="w-20 h-4 bg-muted animate-pulse rounded" />
-									</div>
-									{/* Chevron icon skeleton */}
-									<div className="w-4 h-4 bg-muted animate-pulse rounded" />
-								</div>
-							</SidebarMenuItem>
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
-			</SidebarFooter>
 		</Sidebar>
 	);
 }

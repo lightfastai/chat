@@ -1,9 +1,9 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("node:fs")
+const path = require("node:path")
 
 // Read the schemas file
-const schemasPath = path.join(__dirname, 'apps/www/src/lib/ai/schemas.ts');
-let content = fs.readFileSync(schemasPath, 'utf-8');
+const schemasPath = path.join(__dirname, "apps/www/src/lib/ai/schemas.ts")
+let content = fs.readFileSync(schemasPath, "utf-8")
 
 // Model delays based on our configuration
 const modelDelays = {
@@ -13,7 +13,7 @@ const modelDelays = {
   "gpt-4.1": 12,
   "gpt-4.1-mini": 18,
   "gpt-4.1-nano": 25,
-  "o3": 10,
+  o3: 10,
   "o3-mini": 22,
   "o4-mini": 20,
   "gpt-3.5-turbo": 18,
@@ -49,37 +49,40 @@ const modelDelays = {
   "anthropic/claude-3.5-sonnet": 15,
   "openai/gpt-4o": 15,
   "mistralai/mistral-large": 12,
-};
+}
 
 // Function to add streamingDelay to a model definition
 function addStreamingDelay(modelDef, modelId) {
-  const delay = modelDelays[modelId];
-  if (!delay) return modelDef;
+  const delay = modelDelays[modelId]
+  if (!delay) return modelDef
 
   // Check if streamingDelay already exists
-  if (modelDef.includes('streamingDelay:')) return modelDef;
+  if (modelDef.includes("streamingDelay:")) return modelDef
 
   // Find where to insert streamingDelay (before the closing })
-  const lines = modelDef.split('\n');
-  const lastLine = lines[lines.length - 1];
-  
+  const lines = modelDef.split("\n")
+  const lastLine = lines[lines.length - 1]
+
   // Insert streamingDelay before the last line
-  lines.splice(lines.length - 1, 0, `\t\tstreamingDelay: ${delay},`);
-  
-  return lines.join('\n');
+  lines.splice(lines.length - 1, 0, `\t\tstreamingDelay: ${delay},`)
+
+  return lines.join("\n")
 }
 
 // Process each model definition
-Object.keys(modelDelays).forEach(modelId => {
+Object.keys(modelDelays).forEach((modelId) => {
   // Create regex to find the model definition
-  const regex = new RegExp(`"${modelId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}": ModelConfigSchema\\.parse\\({[^}]+}\\)`, 'gs');
-  
+  const regex = new RegExp(
+    `"${modelId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}": ModelConfigSchema\\.parse\\({[^}]+}\\)`,
+    "gs",
+  )
+
   content = content.replace(regex, (match) => {
-    return addStreamingDelay(match, modelId);
-  });
-});
+    return addStreamingDelay(match, modelId)
+  })
+})
 
 // Write the updated content back
-fs.writeFileSync(schemasPath, content);
+fs.writeFileSync(schemasPath, content)
 
-console.log('Updated all model definitions with streamingDelay values');
+console.log("Updated all model definitions with streamingDelay values")
