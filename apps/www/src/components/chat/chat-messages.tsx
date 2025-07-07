@@ -1,7 +1,7 @@
 "use client";
 
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
-import { useRef, useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useStickToBottom } from "use-stick-to-bottom";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";

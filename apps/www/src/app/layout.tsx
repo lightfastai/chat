@@ -86,14 +86,7 @@ export default function RootLayout({
 	return (
 		<ConvexAuthNextjsServerProvider>
 			<html lang="en" suppressHydrationWarning>
-				<body
-					className={cn(
-						fonts,
-						"dark",
-						"flex min-h-screen flex-col",
-						"custom-scrollbar",
-					)}
-				>
+				<body className={cn(fonts, "dark", "flex min-h-screen flex-col")}>
 					<ConvexClientProvider>{children}</ConvexClientProvider>
 					<Toaster theme="dark" position="top-right" />
 					<Analytics />
