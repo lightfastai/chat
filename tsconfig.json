@@ -4,5 +4,14 @@
     "baseUrl": "."
   },
   "include": [],
-  "exclude": ["node_modules", "dist", "build", ".next", ".turbo", "worktrees", "tmp_repo", "tmp_context"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    ".next",
+    ".turbo",
+    "worktrees",
+    "tmp_repo",
+    "tmp_context"
+  ]
 }

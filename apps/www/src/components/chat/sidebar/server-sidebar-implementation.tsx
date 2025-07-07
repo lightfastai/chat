@@ -10,7 +10,6 @@ import {
 } from "@lightfast/ui/components/ui/sidebar";
 import type { Preloaded } from "convex/react";
 import { MessageSquarePlus } from "lucide-react";
-import { Suspense } from "react";
 import type { api } from "../../../../convex/_generated/api";
 import { ActiveMenuItem } from "./active-menu-item";
 import { PlatformSidebarTrigger } from "./platform-sidebar-trigger";
@@ -54,15 +53,7 @@ export function ServerSidebarImplementation({
 
 				{/* Only the threads list is a client component - everything else stays server-rendered */}
 				<div className="w-full min-w-0 group-data-[collapsible=icon]:hidden">
-					<Suspense
-						fallback={
-							<div className="px-3 py-8 text-center text-muted-foreground">
-								<p className="text-xs">Loading conversations...</p>
-							</div>
-						}
-					>
-						<PreloadedThreadsList preloadedThreads={preloadedThreads} />
-					</Suspense>
+					<PreloadedThreadsList preloadedThreads={preloadedThreads} />
 				</div>
 
 				{/* Hover expand zone - fills the space between threads and user menu */}

@@ -207,7 +207,7 @@ async function syncVar(
         const escapedValue = JSON.stringify(value)
         execSync(`npx convex env set ${varName} ${escapedValue}`, {
           stdio: ["inherit", "pipe", "pipe"],
-          encoding: "utf8"
+          encoding: "utf8",
         })
       }
       log.success(`Synced ${varName}`)

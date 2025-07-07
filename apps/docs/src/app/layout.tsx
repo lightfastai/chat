@@ -1,6 +1,6 @@
 import "./globals.css";
 import { docsMetadata, siteConfig } from "@/src/lib/site-config";
-import { fonts } from "@repo/ui/lib/fonts";
+import { fonts } from "@lightfast/ui/lib/fonts";
 import { RootProvider } from "fumadocs-ui/provider";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
