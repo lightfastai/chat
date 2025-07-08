@@ -3,10 +3,10 @@
 import { Check, Copy } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 import {
-  type BundledLanguage,
-  type BundledTheme,
-  type Highlighter,
-  createHighlighter,
+	type BundledLanguage,
+	type BundledTheme,
+	type Highlighter,
+	createHighlighter,
 } from "shiki";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
@@ -178,7 +178,7 @@ function CodeBlockComponent({
 				<span className="text-xs text-muted-foreground font-mono">
 					{language || "text"}
 				</span>
-				<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+				<div className="flex items-center gap-1">
 					{/* TODO: Re-enable wrap toggle once scroll mode is properly implemented */}
 					{/* <Button
             variant="ghost"
@@ -195,15 +195,15 @@ function CodeBlockComponent({
           </Button> */}
 					<Button
 						variant="ghost"
-						size="sm"
+						size="icon"
 						onClick={copyToClipboard}
-						className="h-6 w-6 p-0"
-						title="Copy to clipboard"
+						className="h-8 w-8"
+						aria-label="Copy to clipboard"
 					>
 						{copied ? (
-							<Check className="h-3 w-3" />
+							<Check className="h-4 w-4" />
 						) : (
-							<Copy className="h-3 w-3" />
+							<Copy className="h-4 w-4" />
 						)}
 					</Button>
 				</div>
@@ -214,7 +214,7 @@ function CodeBlockComponent({
 				<div className="w-full">
 					{highlightedCode ? (
 						<div
-							className="[&>pre]:!m-0 [&>pre]:!p-3 [&>pre]:!bg-transparent [&>pre]:!border-none [&>pre]:!rounded-none [&>pre]:text-sm [&>pre]:leading-relaxed [&>pre]:whitespace-pre-wrap [&>pre]:break-words [&>pre]:overflow-wrap-anywhere [&_code]:whitespace-pre-wrap [&_code]:break-words [&_code]:overflow-wrap-anywhere [&_code]:font-mono animate-in fade-in duration-150"
+							className="[&>pre]:!m-0 [&>pre]:!p-3 [&>pre]:!bg-transparent [&>pre]:!border-none [&>pre]:!rounded-none [&>pre]:text-xs [&>pre]:leading-relaxed [&>pre]:whitespace-pre-wrap [&>pre]:break-words [&>pre]:overflow-wrap-anywhere [&_code]:whitespace-pre-wrap [&_code]:break-words [&_code]:overflow-wrap-anywhere [&_code]:font-mono animate-in fade-in duration-150"
 							// biome-ignore lint/security/noDangerouslySetInnerHtml: Shiki output is safe
 							dangerouslySetInnerHTML={{ __html: highlightedCode }}
 						/>

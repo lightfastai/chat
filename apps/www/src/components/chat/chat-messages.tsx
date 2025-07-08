@@ -2,12 +2,15 @@
 
 import { Button } from "@lightfast/ui/components/ui/button";
 import { ChevronDown } from "lucide-react";
-import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
 import { useProcessedMessages } from "../../hooks/use-processed-messages";
 import { useStreamingMessageParts } from "../../hooks/use-streaming-message-parts";
 import { MessageDisplay } from "./message-display";
+import {
+	StickToBottomScrollArea,
+	useStickToBottomContext,
+} from "./stick-to-bottom";
 
 interface ChatMessagesProps {
 	dbMessages: Doc<"messages">[] | null | undefined;
@@ -29,7 +32,9 @@ function ScrollToBottomButton() {
 		<div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
 			<Button
 				type="button"
-				onClick={() => scrollToBottom()}
+				onClick={() => {
+					void scrollToBottom();
+				}}
 				variant="secondary"
 				size="icon"
 				className="h-8 w-8 shadow-lg hover:shadow-xl transition-all duration-200"
@@ -66,27 +71,29 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	// Handle empty state
 	if (!dbMessages || dbMessages.length === 0) {
 		return (
-			<StickToBottom
-				className="relative flex-1 min-h-0 overflow-hidden stick-to-bottom-container"
+			<StickToBottomScrollArea
+				className="relative flex-1 min-h-0"
 				resize="smooth"
-				initial={false}
+				initial="smooth"
 			>
-				<StickToBottom.Content className="p-2 md:p-4 pb-24">
+				<div className="p-2 md:p-4 pb-24">
 					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 						{/* Empty state */}
 					</div>
-				</StickToBottom.Content>
-			</StickToBottom>
+				</div>
+				{/* Scroll to bottom button */}
+				<ScrollToBottomButton />
+			</StickToBottomScrollArea>
 		);
 	}
 
 	return (
-		<StickToBottom
-			className="relative flex-1 min-h-0 overflow-hidden stick-to-bottom-container"
+		<StickToBottomScrollArea
+			className="relative flex-1 min-h-0"
 			resize="smooth"
-			initial={false}
+			initial="smooth"
 		>
-			<StickToBottom.Content className="p-2 md:p-4 pb-24">
+			<div className="p-2 md:p-4 pb-24">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 					{dbMessages.map((message) => {
 						// For streaming messages, use memoized Vercel data directly
@@ -112,10 +119,10 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 						);
 					})}
 				</div>
-			</StickToBottom.Content>
+			</div>
 
 			{/* Scroll to bottom button */}
 			<ScrollToBottomButton />
-		</StickToBottom>
+		</StickToBottomScrollArea>
 	);
 }
