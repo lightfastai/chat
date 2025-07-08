@@ -6,21 +6,22 @@ import { cn } from "../../lib/utils";
 import { Button } from "./button";
 
 // Type definitions for fine-grained Shiki
+type LanguageInput = any; // Shiki's language module type
 type HighlighterCore = {
 	codeToHtml: (
 		code: string,
 		options: { lang: string; theme: string },
 	) => string;
-	loadLanguage: (lang: any) => Promise<void>;
+	loadLanguage: (...langs: LanguageInput[]) => Promise<void>;
 	getLoadedLanguages: () => string[];
 };
 
-// Shared highlighter instance to avoid recreating it
+// Shared highlighter instance
 let sharedHighlighter: HighlighterCore | null = null;
 let highlighterPromise: Promise<HighlighterCore> | null = null;
 
-// Map of language names to their dynamic imports
-const languageImports: Record<string, () => Promise<any>> = {
+// Map of language names to their import functions
+const languageImports: Record<string, () => Promise<{ default: LanguageInput }>> = {
 	javascript: () => import("shiki/langs/javascript.mjs"),
 	typescript: () => import("shiki/langs/typescript.mjs"),
 	jsx: () => import("shiki/langs/jsx.mjs"),
@@ -51,7 +52,7 @@ const getHighlighter = async (): Promise<HighlighterCore> => {
 
 	if (!highlighterPromise) {
 		highlighterPromise = (async () => {
-			// Import only the core and JavaScript regex engine for smaller bundle
+			// Import only the core and the JavaScript regex engine (smaller than WASM)
 			const [
 				{ createHighlighterCore },
 				{ createJavaScriptRegexEngine },
@@ -65,8 +66,8 @@ const getHighlighter = async (): Promise<HighlighterCore> => {
 			// Create highlighter with minimal setup
 			const highlighter = await createHighlighterCore({
 				themes: [githubDarkTheme],
-				langs: [], // Start with no languages, load on-demand
-				engine: createJavaScriptRegexEngine(), // JS engine instead of WASM
+				langs: [], // Start with no languages loaded
+				engine: createJavaScriptRegexEngine(), // Use JS engine instead of WASM
 			});
 
 			return highlighter;
@@ -84,13 +85,15 @@ const ensureLanguageLoaded = async (
 ) => {
 	const loadedLangs = highlighter.getLoadedLanguages();
 
-	if (!loadedLangs.includes(language) && languageImports[language]) {
-		try {
-			const langModule = await languageImports[language]();
-			await highlighter.loadLanguage(langModule.default);
-		} catch (error) {
-			console.warn(`Failed to load language: ${language}`, error);
-			throw error;
+	if (!loadedLangs.includes(language)) {
+		const langImport = languageImports[language];
+		if (langImport) {
+			try {
+				const langModule = await langImport();
+				await highlighter.loadLanguage(langModule.default);
+			} catch (error) {
+				console.warn(`Failed to load language: ${language}`, error);
+			}
 		}
 	}
 };
@@ -159,7 +162,6 @@ function CodeBlockComponent({
 
 				if (!isMounted) return;
 
-				const currentTheme = "github-dark";
 				const langToUse = normalizedLanguage || "text";
 
 				// Handle plaintext/text specially
@@ -171,22 +173,22 @@ function CodeBlockComponent({
 						.replace(/"/g, "&quot;")
 						.replace(/'/g, "&#39;");
 
-					const html = `<pre class="shiki ${currentTheme}"><code>${escapedCode}</code></pre>`;
+					const html = `<pre class="shiki github-dark"><code>${escapedCode}</code></pre>`;
 					if (isMounted) {
 						setHighlightedCode(html);
 					}
 					return;
 				}
 
+				// Load the language on-demand
+				await ensureLanguageLoaded(highlighter, langToUse);
+
+				if (!isMounted) return;
+
 				try {
-					// Load the language on-demand
-					await ensureLanguageLoaded(highlighter, langToUse);
-
-					if (!isMounted) return;
-
 					const highlighted = highlighter.codeToHtml(code, {
 						lang: langToUse,
-						theme: currentTheme,
+						theme: "github-dark",
 					});
 					if (isMounted) {
 						setHighlightedCode(highlighted);
@@ -200,7 +202,7 @@ function CodeBlockComponent({
 						.replace(/"/g, "&quot;")
 						.replace(/'/g, "&#39;");
 
-					const html = `<pre class="shiki ${currentTheme}"><code>${escapedCode}</code></pre>`;
+					const html = `<pre class="shiki github-dark"><code>${escapedCode}</code></pre>`;
 					if (isMounted) {
 						setHighlightedCode(html);
 					}

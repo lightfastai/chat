@@ -2,22 +2,47 @@
 
 import type { Doc } from "@/convex/_generated/dataModel";
 import {
-	type DbMessagePart,
-	type DbToolCallPart,
-	type DbToolInputStartPart,
-	type DbToolResultPart,
-	isErrorPart,
-	isReasoningPart,
-	isTextPart,
-	isToolCallPart,
-	isToolInputStartPart,
-	isToolResultPart,
+  type DbMessagePart,
+  type DbToolCallPart,
+  type DbToolInputStartPart,
+  type DbToolResultPart,
+  isErrorPart,
+  isReasoningPart,
+  isTextPart,
+  isToolCallPart,
+  isToolInputStartPart,
+  isToolResultPart,
 } from "@/convex/types";
-import { Markdown } from "@lightfast/ui/components/ui/markdown";
+
+// Export a dynamic version of the Markdown component
+// This allows apps to import either the regular or dynamic version
+// export const MarkdownDynamic = dynamic(
+// 	() =>
+// 		import("@lightfast/ui/components/ui/markdown").then((mod) => ({
+// 			default: mod.Markdown,
+// 		})),
+// 	{
+// 		// @todo rework to look more like claude...
+// 		loading: () => (
+// 			<div className="animate-pulse">
+// 				<div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+// 				<div className="h-4 bg-muted rounded w-full mb-2"></div>
+// 				<div className="h-4 bg-muted rounded w-5/6"></div>
+// 			</div>
+// 		),
+// 		// Keep SSR for better SEO and initial render
+// 		ssr: true,
+// 	},
+// );
+
+// Re-export the type for convenience
+export type { MarkdownProps } from "@lightfast/ui/components/ui/markdown";
+
 import type React from "react";
 import { ToolCallRenderer } from "../tools/tool-call-renderer";
 import { MessageLayout } from "./message-layout";
 import { StreamingReasoningDisplay } from "./streaming-reasoning-display";
+import { Markdown } from "@lightfast/ui/components/ui/markdown";
 
 export interface MessageItemProps {
 	message: Doc<"messages">;
@@ -168,7 +193,9 @@ export function MessageItem({
 							return (
 								<div key={`${message._id}-text-${index}`}>
 									{message.role === "assistant" ? (
-										<Markdown className="text-sm">{part.text}</Markdown>
+										<Markdown className="text-sm">
+											{part.text}
+										</Markdown>
 									) : (
 										<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
 											{part.text}
