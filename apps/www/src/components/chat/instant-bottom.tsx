@@ -31,10 +31,13 @@ export function useStickToBottomContext() {
 
 // Custom hook to handle instant bottom positioning
 function useInstantBottom(scrollRef: React.RefObject<HTMLElement>) {
+	const hasScrolledToBottom = React.useRef(false);
+
 	React.useLayoutEffect(() => {
-		if (scrollRef.current) {
-			// Force scroll to bottom immediately
+		if (scrollRef.current && !hasScrolledToBottom.current) {
+			// Force scroll to bottom immediately, but only once
 			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+			hasScrolledToBottom.current = true;
 		}
 	});
 }
@@ -62,7 +65,11 @@ export function InstantBottom({
 		});
 
 	// Combine refs
-	React.useImperativeHandle(scrollRef, () => internalScrollRef.current as HTMLElement, []);
+	React.useImperativeHandle(
+		scrollRef,
+		() => internalScrollRef.current as HTMLElement,
+		[],
+	);
 
 	const contextValue = React.useMemo(
 		() => ({ isAtBottom, scrollToBottom }),
@@ -92,4 +99,3 @@ export function InstantBottom({
 		</StickToBottomContext.Provider>
 	);
 }
-
