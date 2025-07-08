@@ -149,51 +149,6 @@
 	animation: fade-in 0.3s ease-out;
 }
 
-/* Smooth scroll for chat messages */
-.chat-messages::-webkit-scrollbar {
-	width: 4px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-	background: #f1f1f1;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-	background: #c1c1c1;
-	border-radius: 2px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb:hover {
-	background: #a1a1a1;
-}
-
-/* Scrollbar for chat input */
-.chat-input-scroll::-webkit-scrollbar {
-	width: 6px;
-}
-
-.chat-input-scroll::-webkit-scrollbar-track {
-	background: transparent;
-}
-
-.chat-input-scroll::-webkit-scrollbar-thumb {
-	background: hsl(var(--border));
-	border-radius: 3px;
-}
-
-.chat-input-scroll::-webkit-scrollbar-thumb:hover {
-	background: hsl(var(--border) / 0.8);
-}
-
-/* Dark mode scrollbar for chat input */
-.dark .chat-input-scroll::-webkit-scrollbar-thumb {
-	background: hsl(var(--border));
-}
-
-.dark .chat-input-scroll::-webkit-scrollbar-thumb:hover {
-	background: hsl(var(--border) / 0.8);
-}
-
 /* Shimmer animation for loading states */
 @keyframes shimmer {
 	0% {
@@ -208,13 +163,28 @@
 	animation: shimmer 2s infinite;
 }
 
-/* Ensure chat messages viewport is ready for scroll-to-bottom */
-.chat-messages-initial {
-	/* Hide overflow momentarily to prevent scroll jump visibility */
-	overflow: hidden !important;
+/* Custom scrollbar styles for StickToBottom component */
+.stick-to-bottom-container {
+	scrollbar-width: thin;
+	scrollbar-color: rgb(var(--border)) transparent;
 }
 
-/* After initial scroll, restore normal overflow */
-.chat-messages-ready {
-	overflow: auto !important;
+.stick-to-bottom-container::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+.stick-to-bottom-container::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.stick-to-bottom-container::-webkit-scrollbar-thumb {
+	background-color: rgb(var(--border));
+	border-radius: 9999px;
+	border: 2px solid transparent;
+	background-clip: padding-box;
+}
+
+.stick-to-bottom-container::-webkit-scrollbar-thumb:hover {
+	background-color: rgb(var(--border) / 0.8);
 }
