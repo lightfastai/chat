@@ -267,13 +267,15 @@ export function MessageItem({
 	const shouldDisableActions =
 		message.status === "streaming" || message.status === "submitted";
 
+	// For assistant messages, either show actions or a placeholder to prevent layout shift
 	const messageActions =
-		!isReadOnly &&
-		showActions &&
-		message.role === "assistant" &&
-		!shouldDisableActions
-			? actions
-			: undefined;
+		!isReadOnly && showActions && message.role === "assistant" ? (
+			shouldDisableActions ? (
+				<div className="h-[36px]" /> // Placeholder with same height as actions
+			) : (
+				actions
+			)
+		) : undefined;
 
 	return (
 		<MessageLayout

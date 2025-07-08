@@ -1,13 +1,14 @@
 "use client";
 
 import {
-	VirtuosoMessageList,
-	VirtuosoMessageListLicense,
-	type VirtuosoMessageListMethods,
-	type VirtuosoMessageListProps,
+  VirtuosoMessageList,
+  VirtuosoMessageListLicense,
+  type VirtuosoMessageListMethods,
+  type VirtuosoMessageListProps,
 } from "@virtuoso.dev/message-list";
 import { useEffect, useMemo, useRef } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import type { DbMessage } from "../../../convex/types";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
 import { useProcessedMessages } from "../../hooks/use-processed-messages";
 import { useStreamingMessageParts } from "../../hooks/use-streaming-message-parts";
@@ -23,23 +24,45 @@ interface ChatMessagesProps {
 	};
 }
 
-interface MessageData {
-	key: string;
-	message: Doc<"messages">;
-	isStreaming: boolean;
-}
+// Memoized component to prevent unnecessary re-renders during streaming
+const ItemContent: VirtuosoMessageListProps<DbMessage, null>["ItemContent"] = ({
+	data,
+}) => {
+	return (
+		<div className="px-2 md:px-4">
+			<div className="max-w-3xl mx-auto pb-4 sm:pb-6">
+				<MessageDisplay message={data} />
+			</div>
+		</div>
+	);
+};
 
-const ItemContent: VirtuosoMessageListProps<MessageData, null>["ItemContent"] =
-	({ data }) => {
-		return <MessageDisplay message={data.message} />;
-	};
+// Memoized compute key function for stable message identification
+const computeItemKey = ({ data }: { data: DbMessage }) => data._id;
 
+/**
+ * VirtuosoMessageList integration with three-phase message handling:
+ *
+ * 1. IMMEDIATE DB MESSAGE APPEND: New DB messages appear instantly via virtuoso.data.append()
+ * 2. STREAMING OVERLAY: Live streaming content overlaid via virtuoso.data.map()
+ * 3. SEAMLESS REPLACEMENT: Final processed message via virtuoso.data.map() when streaming completes
+ *
+ * Key integration patterns:
+ * - virtuoso.data.append(newMessages, scrollBehavior) for new DB messages
+ * - virtuoso.data.map(mapper, "smooth") for live streaming updates
+ * - virtuoso.data.map(mapper, "auto") for final replacement with merged parts
+ * - Smart scroll behavior: smooth when user is at bottom, auto otherwise
+ * - Efficient caching via useProcessedMessages and useStreamingMessageParts
+ *
+ * This ensures optimal UX with immediate message visibility, fast streaming updates,
+ * and efficient final state with merged consecutive text/reasoning parts.
+ */
 export function ChatMessagesVirtuoso({
 	dbMessages,
 	uiMessages,
 	emptyState,
 }: ChatMessagesProps) {
-	const virtuoso = useRef<VirtuosoMessageListMethods<MessageData>>(null);
+	const virtuoso = useRef<VirtuosoMessageListMethods<DbMessage>>(null);
 
 	// Use the updated hook that finds the streaming message
 	const { streamingMessage, streamingMessageParts } = useStreamingMessageParts(
@@ -50,118 +73,132 @@ export function ChatMessagesVirtuoso({
 	// Use the custom hook for efficient message processing
 	const processedMessages = useProcessedMessages(dbMessages);
 
-	// Convert messages to Virtuoso format
-	const messages = useMemo(() => {
-		if (!dbMessages || dbMessages.length === 0) return [];
+	// Track previous message count for detecting new messages
+	const previousMessageCount = useRef(0);
+	const currentStreamingId = useRef<string | null>(null);
+	const isInitialized = useRef(false);
 
-		return dbMessages.map((message) => {
-			// For streaming messages, use memoized Vercel data directly
-			if (
-				message.status === "streaming" &&
-				streamingMessage &&
-				streamingMessage.metadata?.dbId === message._id &&
-				streamingMessageParts
-			) {
-				// Use memoized streaming data without reprocessing
-				const streamingMessageData = {
-					...message,
-					parts: streamingMessageParts,
-				};
-				return {
-					key: message._id,
-					message: streamingMessageData,
-					isStreaming: true,
-				};
+	// Effect: Handle initial load and new DB messages with virtuoso.data.append()
+	useEffect(() => {
+		if (!dbMessages || !virtuoso.current) return;
+
+		const currentCount = dbMessages.length;
+
+		// Initial load: populate all existing messages
+		if (!isInitialized.current && currentCount > 0) {
+			const allDisplayMessages = dbMessages.map((dbMessage) => {
+				const processedMessage = processedMessages.get(dbMessage._id);
+				return processedMessage || dbMessage;
+			});
+
+			// Replace initial empty data with all messages
+			virtuoso.current.data.append(allDisplayMessages, () => ({
+				index: "LAST",
+				align: "end",
+				behavior: "auto",
+			}));
+
+			isInitialized.current = true;
+			previousMessageCount.current = currentCount;
+			return;
+		}
+
+		// 1. IMMEDIATE DB MESSAGE APPEND: New messages detected
+		if (currentCount > previousMessageCount.current) {
+			const newMessages = dbMessages.slice(previousMessageCount.current);
+
+			// Convert new messages to display format
+			const newDisplayMessages = newMessages.map((dbMessage) => {
+				const processedMessage = processedMessages.get(dbMessage._id);
+				return processedMessage || dbMessage;
+			});
+
+			// Append new messages with smooth scroll behavior
+			virtuoso.current.data.append(
+				newDisplayMessages,
+				({ scrollInProgress, atBottom }) => ({
+					index: "LAST",
+					align: "start",
+					behavior: atBottom || scrollInProgress ? "smooth" : "auto",
+				}),
+			);
+		}
+
+		previousMessageCount.current = currentCount;
+	}, [dbMessages, processedMessages]);
+
+	// Effect: Handle streaming content updates with virtuoso.data.map()
+	useEffect(() => {
+		if (!virtuoso.current || !streamingMessage || !streamingMessageParts) {
+			// Clear streaming tracking when no active streaming
+			currentStreamingId.current = null;
+			return;
+		}
+
+		const streamingDbId = streamingMessage.metadata?.dbId;
+		if (!streamingDbId) return;
+
+		// 2. STREAMING OVERLAY: Update existing message with live streaming content
+		virtuoso.current.data.map((message) => {
+			return message._id === streamingDbId
+				? {
+						...message,
+						parts: streamingMessageParts, // Live streaming content
+					}
+				: message;
+		}, "smooth");
+
+		currentStreamingId.current = streamingDbId;
+	}, [streamingMessage, streamingMessageParts]);
+
+	// Effect: Handle streaming completion with seamless replacement
+	useEffect(() => {
+		if (!virtuoso.current || !currentStreamingId.current) return;
+
+		// 3. SEAMLESS REPLACEMENT: When streaming completes, replace with processed message
+		const streamingId = currentStreamingId.current;
+		const dbMessage = dbMessages?.find((msg) => msg._id === streamingId);
+
+		if (dbMessage && dbMessage.status !== "streaming") {
+			// Streaming completed - replace with processed message
+			const processedMessage = processedMessages.get(streamingId);
+
+			if (processedMessage) {
+				virtuoso.current.data.map((message) => {
+					return message._id === streamingId ? processedMessage : message;
+				}, "auto"); // No animation for final replacement
 			}
 
-			// Use pre-processed message from cache
-			const processedMessage = processedMessages.get(message._id) || message;
-			return {
-				key: message._id,
-				message: processedMessage,
-				isStreaming: false,
-			};
-		});
-	}, [dbMessages, processedMessages, streamingMessage, streamingMessageParts]);
-
-	// Update message list data when messages change
-	useEffect(() => {
-		if (virtuoso.current && messages.length > 0) {
-			// Replace all messages to handle updates
-			virtuoso.current.data.replace(messages);
+			currentStreamingId.current = null;
 		}
-	}, [messages]);
+	}, [dbMessages, processedMessages]);
 
-	// Handle new messages (especially for streaming)
-	useEffect(() => {
-		if (!virtuoso.current || !streamingMessage || !streamingMessageParts) return;
-
-		// Find if we have a streaming message in our list
-		const streamingIndex = messages.findIndex(
-			(msg) => msg.isStreaming && msg.message._id === streamingMessage.metadata?.dbId
-		);
-
-		if (streamingIndex !== -1) {
-			// Update the streaming message with smooth scrolling
-			virtuoso.current.data.map((item, index) => {
-				if (index === streamingIndex && item.isStreaming) {
-					return {
-						...item,
-						message: {
-							...item.message,
-							parts: streamingMessageParts,
-						},
-					};
-				}
-				return item;
-			}, "smooth");
-		}
-	}, [streamingMessage, streamingMessageParts, messages]);
+	// Initial data for VirtuosoMessageList (empty on first load to use imperative methods)
+	const initialMessages: DbMessage[] = useMemo(() => {
+		// Always start empty - all updates go through imperative virtuoso.data methods
+		return [];
+	}, []); // Empty dependency array - only run once on mount
 
 	// Handle empty state
 	if (!dbMessages || dbMessages.length === 0) {
-		return (
-			<div className="flex-1 min-h-0 overflow-hidden">
-				<div className="p-2 md:p-4 pb-16 h-full">
-					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
-						{/* Empty state */}
-						{emptyState && (
-							<div className="flex flex-col items-center justify-center h-full text-center">
-								{emptyState.icon && (
-									<div className="mb-4">{emptyState.icon}</div>
-								)}
-								{emptyState.title && (
-									<h3 className="text-lg font-semibold">{emptyState.title}</h3>
-								)}
-								{emptyState.description && (
-									<p className="text-sm text-muted-foreground mt-2">
-										{emptyState.description}
-									</p>
-								)}
-							</div>
-						)}
-					</div>
-				</div>
-			</div>
-		);
+		return <div className="flex-1 min-h-0" />;
 	}
 
 	return (
 		<div className="flex-1 min-h-0 flex flex-col">
 			<VirtuosoMessageListLicense licenseKey="">
-				<VirtuosoMessageList<MessageData, null>
+				<VirtuosoMessageList<DbMessage, null>
 					ref={virtuoso}
 					style={{ flex: 1 }}
-					initialData={messages}
-					computeItemKey={({ data }) => data.key}
+					computeItemKey={computeItemKey}
 					ItemContent={ItemContent}
+					initialData={initialMessages}
 					initialLocation={{
-						index: messages.length > 0 ? messages.length - 1 : 0,
+						index: "LAST",
 						align: "end",
+						behavior: "auto",
 					}}
-					increaseViewportBy={200}
-					shortSizeAlign="bottom"
-					className="px-2 md:px-4"
+					increaseViewportBy={500}
 				/>
 			</VirtuosoMessageListLicense>
 		</div>

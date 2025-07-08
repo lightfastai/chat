@@ -1,7 +1,8 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import type { Doc } from "../../convex/_generated/dataModel";
 import type { DbMessagePart } from "../../convex/types";
 import { isReasoningPart, isTextPart } from "../../convex/types";
+import { useCacheMap } from "./use-cache-map";
 
 /**
  * Process message parts: sort by timestamp, then merge consecutive parts of same type
@@ -59,18 +60,16 @@ export function useProcessedMessages(
 	dbMessages: Doc<"messages">[] | null | undefined,
 ): Map<string, Doc<"messages">> {
 	// Cache for processed messages - persists across renders
-	const processedMessagesCache = useRef<Map<string, Doc<"messages">>>(
-		new Map(),
-	);
-	const messageStatusCache = useRef<Map<string, string>>(new Map());
+	const processedMessagesCache = useCacheMap<string, Doc<"messages">>();
+	const messageStatusCache = useCacheMap<string, string>();
 
 	// Process messages efficiently - only process new or status-changed messages
 	return useMemo(() => {
 		if (!dbMessages || dbMessages.length === 0) {
 			// Clear cache if no messages
-			processedMessagesCache.current.clear();
-			messageStatusCache.current.clear();
-			return processedMessagesCache.current;
+			processedMessagesCache.clear();
+			messageStatusCache.clear();
+			return processedMessagesCache.getCache();
 		}
 
 		// Track current message IDs for cleanup
@@ -79,14 +78,9 @@ export function useProcessedMessages(
 		for (const message of dbMessages) {
 			currentMessageIds.add(message._id);
 
-			// Skip streaming messages - they'll be handled separately
-			if (message.status === "streaming") {
-				continue;
-			}
-
 			// Check if we've already processed this message with the same status
-			const cachedStatus = messageStatusCache.current.get(message._id);
-			const cached = processedMessagesCache.current.get(message._id);
+			const cachedStatus = messageStatusCache.get(message._id);
+			const cached = processedMessagesCache.get(message._id);
 
 			// Only process if new message or status changed from streaming to complete
 			if (!cached || cachedStatus !== message.status) {
@@ -95,27 +89,16 @@ export function useProcessedMessages(
 					...message,
 					parts: processMessageParts(message.parts || []),
 				};
-				processedMessagesCache.current.set(message._id, processed);
-				messageStatusCache.current.set(
-					message._id,
-					message.status || "complete",
-				);
+				processedMessagesCache.set(message._id, processed);
+				messageStatusCache.set(message._id, message.status || "complete");
 			}
 		}
 
 		// Clean up messages that no longer exist
-		const keysToRemove: string[] = [];
-		processedMessagesCache.current.forEach((_, key) => {
-			if (!currentMessageIds.has(key)) {
-				keysToRemove.push(key);
-			}
-		});
-		for (const key of keysToRemove) {
-			processedMessagesCache.current.delete(key);
-			messageStatusCache.current.delete(key);
-		}
+		processedMessagesCache.cleanup(currentMessageIds);
+		messageStatusCache.cleanup(currentMessageIds);
 
 		// Return the cache directly - stable reference
-		return processedMessagesCache.current;
-	}, [dbMessages]);
+		return processedMessagesCache.getCache();
+	}, [dbMessages, processedMessagesCache, messageStatusCache]);
 }

@@ -6,6 +6,7 @@ import { cn } from "../../lib/utils";
 import { Button } from "./button";
 
 // Type definitions for fine-grained Shiki
+// biome-ignore lint/suspicious/noExplicitAny: Shiki's language module type is complex and not exported
 type LanguageInput = any; // Shiki's language module type
 type HighlighterCore = {
 	codeToHtml: (

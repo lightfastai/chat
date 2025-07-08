@@ -6,6 +6,7 @@ import {
 	convertUIPartToDbPart,
 	getPartKey,
 } from "./convertDbMessagesToUIMessages";
+import { useCacheMap } from "./use-cache-map";
 
 interface PartCacheEntry {
 	key: string;
@@ -26,7 +27,7 @@ export function useStreamingMessageParts(
 	streamingMessageParts: DbMessagePart[] | null;
 } {
 	// Cache for converted parts - persists across renders
-	const partsCache = useRef<Map<string, PartCacheEntry>>(new Map());
+	const partsCache = useCacheMap<string, PartCacheEntry>();
 	const baseTimestamp = useRef<number>(Date.now());
 
 	// Find the streaming message from uiMessages
@@ -63,7 +64,7 @@ export function useStreamingMessageParts(
 			currentKeys.add(key);
 
 			// Check if we have a cached version
-			const cached = partsCache.current.get(key);
+			const cached = partsCache.get(key);
 			if (cached) {
 				// Reuse cached part - no new conversion needed
 				convertedParts.push(cached.part);
@@ -74,7 +75,7 @@ export function useStreamingMessageParts(
 
 				if (convertedPart) {
 					// Cache the converted part
-					partsCache.current.set(key, {
+					partsCache.set(key, {
 						key,
 						part: convertedPart,
 						timestamp,
@@ -85,18 +86,10 @@ export function useStreamingMessageParts(
 		});
 
 		// Clean up cache - remove parts that are no longer present
-		const keysToRemove: string[] = [];
-		partsCache.current.forEach((_, key) => {
-			if (!currentKeys.has(key)) {
-				keysToRemove.push(key);
-			}
-		});
-		for (const key of keysToRemove) {
-			partsCache.current.delete(key);
-		}
+		partsCache.cleanup(currentKeys);
 
 		return convertedParts;
-	}, [streamingMessage]);
+	}, [streamingMessage, partsCache]);
 
 	return {
 		streamingMessage,
