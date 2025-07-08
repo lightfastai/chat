@@ -3,9 +3,8 @@
 import { api } from "@/convex/_generated/api";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { AlertCircle, Info, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { MessageItem } from "./shared";
 
 interface SharedChatViewProps {
@@ -13,29 +12,15 @@ interface SharedChatViewProps {
 }
 
 export function SharedChatView({ shareId }: SharedChatViewProps) {
-	const logAccess = useMutation(api.share.logShareAccess);
-	const [accessAllowed, setAccessAllowed] = useState<boolean | null>(null);
-
+	// Check if thread exists and is public without logging
+	const threadCheck = useQuery(api.share.checkThreadAccess, { shareId });
 	const sharedData = useQuery(
 		api.share.getSharedThread,
-		accessAllowed ? { shareId } : "skip",
+		threadCheck?.allowed ? { shareId } : "skip",
 	);
 
-	// Log access attempt on component mount
-	useEffect(() => {
-		if (accessAllowed === null) {
-			logAccess({ shareId })
-				.then((result) => {
-					setAccessAllowed(result.allowed);
-				})
-				.catch(() => {
-					setAccessAllowed(false);
-				});
-		}
-	}, [shareId, logAccess, accessAllowed]);
-
 	// Show loading while checking access or loading data
-	if (accessAllowed === null || (accessAllowed && sharedData === undefined)) {
+	if (threadCheck === undefined || (threadCheck?.allowed && sharedData === undefined)) {
 		return (
 			<div className="flex items-center justify-center h-screen">
 				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -44,7 +29,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 	}
 
 	// Show error if access not allowed or data not found
-	if (!accessAllowed || !sharedData) {
+	if (!threadCheck?.allowed || !sharedData) {
 		return (
 			<div className="flex flex-col items-center justify-center h-screen gap-4">
 				<AlertCircle className="h-12 w-12 text-muted-foreground" />

@@ -159,6 +159,23 @@ export const logShareAccess = mutation({
 	},
 });
 
+// Privacy-focused query to check thread access without logging
+export const checkThreadAccess = query({
+	args: {
+		shareId: shareIdValidator,
+	},
+	returns: v.object({ allowed: v.boolean() }),
+	handler: async (ctx, args) => {
+		// Check if thread exists and is public
+		const thread = await ctx.db
+			.query("threads")
+			.withIndex("by_share_id", (q) => q.eq("shareId", args.shareId))
+			.first();
+
+		return { allowed: !!thread?.isPublic };
+	},
+});
+
 export const getSharedThread = query({
 	args: {
 		shareId: shareIdValidator,
