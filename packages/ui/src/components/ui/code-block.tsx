@@ -228,7 +228,7 @@ function CodeBlockComponent({
 							dangerouslySetInnerHTML={{ __html: highlightedCode }}
 						/>
 					) : (
-						<pre className="m-0 p-3 bg-transparent border-none rounded-none text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
+						<pre className="m-0 p-3 bg-transparent border-none rounded-none text-xs leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
 							<code className="whitespace-pre-wrap break-words overflow-wrap-anywhere font-mono text-foreground/80">
 								{code}
 							</code>

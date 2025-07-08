@@ -42,6 +42,10 @@ export function StickToBottomScrollArea({
 		useStickToBottom({
 			initial,
 			resize,
+			// Add spring animation config for smoother scrolling
+			damping: 0.5,
+			stiffness: 0.08,
+			mass: 1,
 		});
 
 	const contextValue = React.useMemo(
