@@ -9,7 +9,6 @@ import { useChat } from "../../hooks/use-chat";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessagesVirtuoso as ChatMessages } from "./chat-messages-virtuoso";
-import { MarkdownPrefetch } from "./shared/markdown-prefetch";
 
 export function ChatInterface() {
 	const pathname = usePathname();
@@ -60,7 +59,6 @@ export function ChatInterface() {
 
 	return (
 		<div className="flex flex-col h-full">
-			<MarkdownPrefetch />
 			<ChatMessages dbMessages={dbMessages} uiMessages={messages} />
 			<ChatInput
 				onSendMessage={sendMessage}

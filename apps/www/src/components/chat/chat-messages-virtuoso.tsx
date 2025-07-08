@@ -8,20 +8,15 @@ import {
 } from "@virtuoso.dev/message-list";
 import { useEffect, useMemo, useRef } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
-import type { DbMessage } from "../../../convex/types";
+import type { DbMessage, DbMessagePart } from "../../../convex/types";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
+import { convertUIPartToDbPart } from "../../hooks/convertDbMessagesToUIMessages";
 import { useProcessedMessages } from "../../hooks/use-processed-messages";
-import { useStreamingMessageParts } from "../../hooks/use-streaming-message-parts";
 import { MessageDisplay } from "./message-display";
 
 interface ChatMessagesProps {
 	dbMessages: Doc<"messages">[] | null | undefined;
 	uiMessages: LightfastUIMessage[];
-	emptyState?: {
-		icon?: React.ReactNode;
-		title?: string;
-		description?: string;
-	};
 }
 
 // Memoized component to prevent unnecessary re-renders during streaming
@@ -60,15 +55,8 @@ const computeItemKey = ({ data }: { data: DbMessage }) => data._id;
 export function ChatMessagesVirtuoso({
 	dbMessages,
 	uiMessages,
-	emptyState,
 }: ChatMessagesProps) {
 	const virtuoso = useRef<VirtuosoMessageListMethods<DbMessage>>(null);
-
-	// Use the updated hook that finds the streaming message
-	const { streamingMessage, streamingMessageParts } = useStreamingMessageParts(
-		dbMessages,
-		uiMessages,
-	);
 
 	// Use the custom hook for efficient message processing
 	const processedMessages = useProcessedMessages(dbMessages);
@@ -127,29 +115,51 @@ export function ChatMessagesVirtuoso({
 		previousMessageCount.current = currentCount;
 	}, [dbMessages, processedMessages]);
 
-	// Effect: Handle streaming content updates with virtuoso.data.map()
+	// Effect: Handle streaming content updates directly from uiMessages
 	useEffect(() => {
-		if (!virtuoso.current || !streamingMessage || !streamingMessageParts) {
+		if (!virtuoso.current || !dbMessages || uiMessages.length === 0) {
 			// Clear streaming tracking when no active streaming
 			currentStreamingId.current = null;
 			return;
 		}
 
-		const streamingDbId = streamingMessage.metadata?.dbId;
-		if (!streamingDbId) return;
+		// Find streaming UI message that matches a DB message
+		const lastUiMessage = uiMessages[uiMessages.length - 1];
+		const streamingDbId = lastUiMessage?.metadata?.dbId;
+
+		if (!streamingDbId) {
+			currentStreamingId.current = null;
+			return;
+		}
+
+		// Check if this message is actually streaming in the DB
+		const dbMessage = dbMessages.find((msg) => msg._id === streamingDbId);
+		if (!dbMessage || dbMessage.status !== "streaming") {
+			currentStreamingId.current = null;
+			return;
+		}
+
+		// Convert UI parts to DB parts for the streaming message
+		const streamingParts: DbMessagePart[] = [];
+		lastUiMessage.parts.forEach((part, index) => {
+			const dbPart = convertUIPartToDbPart(part, Date.now() + index);
+			if (dbPart) {
+				streamingParts.push(dbPart);
+			}
+		});
 
 		// 2. STREAMING OVERLAY: Update existing message with live streaming content
 		virtuoso.current.data.map((message) => {
 			return message._id === streamingDbId
 				? {
 						...message,
-						parts: streamingMessageParts, // Live streaming content
+						parts: streamingParts, // Live streaming content from UI
 					}
 				: message;
 		}, "smooth");
 
 		currentStreamingId.current = streamingDbId;
-	}, [streamingMessage, streamingMessageParts]);
+	}, [dbMessages, uiMessages]);
 
 	// Effect: Handle streaming completion with seamless replacement
 	useEffect(() => {
