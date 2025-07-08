@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
+import { useProcessedMessages } from "@/hooks/use-processed-messages";
 import { Alert, AlertDescription } from "@lightfast/ui/components/ui/alert";
 import { ScrollArea } from "@lightfast/ui/components/ui/scroll-area";
 import { useMutation, useQuery } from "convex/react";
@@ -19,6 +20,12 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 	const sharedData = useQuery(
 		api.share.getSharedThread,
 		accessAllowed ? { shareId } : "skip",
+	);
+
+	// Process messages to merge consecutive message parts (same as normal chat)
+	// Must be called before any conditional returns to satisfy React hooks rules
+	const processedMessagesMap = useProcessedMessages(
+		sharedData?.messages || null,
 	);
 
 	// Log access attempt on component mount
@@ -57,6 +64,9 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 	}
 
 	const { thread, messages, owner } = sharedData;
+	const processedMessages = messages
+		? Array.from(processedMessagesMap.values())
+		: [];
 
 	return (
 		<div className="flex flex-col h-screen">
@@ -80,7 +90,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 								here.
 							</AlertDescription>
 						</Alert>
-						{messages.map((message) => {
+						{processedMessages.map((message) => {
 							return (
 								<MessageItem
 									key={message._id}
