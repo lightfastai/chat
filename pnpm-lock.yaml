@@ -18,7 +18,16 @@ catalogs:
     ai:
       specifier: 5.0.0-beta.5
       version: 5.0.0-beta.5
+    typescript:
+      specifier: ^5.8.3
+      version: 5.8.3
+    zod:
+      specifier: ^3.25.58
+      version: 3.25.67
   tailwind4:
+    '@tailwindcss/postcss':
+      specifier: ^4.1.10
+      version: 4.1.10
     tailwindcss:
       specifier: ^4.1.10
       version: 4.1.10

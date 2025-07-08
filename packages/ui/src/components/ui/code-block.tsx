@@ -21,7 +21,10 @@ let sharedHighlighter: HighlighterCore | null = null;
 let highlighterPromise: Promise<HighlighterCore> | null = null;
 
 // Map of language names to their import functions
-const languageImports: Record<string, () => Promise<{ default: LanguageInput }>> = {
+const languageImports: Record<
+	string,
+	() => Promise<{ default: LanguageInput }>
+> = {
 	javascript: () => import("shiki/langs/javascript.mjs"),
 	typescript: () => import("shiki/langs/typescript.mjs"),
 	jsx: () => import("shiki/langs/jsx.mjs"),
