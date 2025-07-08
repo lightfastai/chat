@@ -34,7 +34,7 @@ export function useStickToBottomContext() {
 export function StickToBottomScrollArea({
 	children,
 	className,
-	initial = false,
+	initial = true,
 	resize = "smooth",
 	style,
 }: StickToBottomScrollAreaProps) {

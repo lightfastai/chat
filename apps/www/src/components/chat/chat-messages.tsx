@@ -74,7 +74,7 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 			<StickToBottomScrollArea
 				className="relative flex-1 min-h-0"
 				resize="smooth"
-				initial="smooth"
+				initial={true}
 			>
 				<div className="p-2 md:p-4 pb-24">
 					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
@@ -91,7 +91,7 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 		<StickToBottomScrollArea
 			className="relative flex-1 min-h-0"
 			resize="smooth"
-			initial="smooth"
+			initial={true}
 		>
 			<div className="p-2 md:p-4 pb-24">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
