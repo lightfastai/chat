@@ -1,0 +1,709 @@
+---
+title: API Reference
+description: Complete API reference for Lightfast Chat
+---
+
+# API Reference
+
+This reference documents all available APIs in Lightfast Chat, including Convex functions, REST endpoints, and client utilities.
+
+## Convex API
+
+### Authentication
+
+#### `auth.getUserIdentity`
+
+Get the current authenticated user.
+
+```typescript
+// convex/auth.ts
+export const getUserIdentity = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    
+    return {
+      userId: identity.subject,
+      email: identity.email,
+      name: identity.name,
+      pictureUrl: identity.pictureUrl,
+    }
+  },
+})
+
+// Usage
+const user = useQuery(api.auth.getUserIdentity)
+```
+
+#### `auth.signOut`
+
+Sign out the current user.
+
+```typescript
+// convex/auth.ts
+export const signOut = mutation({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Not authenticated")
+    
+    // Clear user session
+    await ctx.db.delete(identity.sessionId)
+  },
+})
+
+// Usage
+const signOut = useMutation(api.auth.signOut)
+await signOut()
+```
+
+### Conversations
+
+#### `conversations.create`
+
+Create a new conversation.
+
+```typescript
+// convex/conversations.ts
+export const create = mutation({
+  args: {
+    title: v.optional(v.string()),
+    model: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Not authenticated")
+    
+    const conversationId = await ctx.db.insert("conversations", {
+      userId: identity.subject,
+      title: args.title ?? "New Chat",
+      model: args.model,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    
+    return conversationId
+  },
+})
+
+// Usage
+const createConversation = useMutation(api.conversations.create)
+const id = await createConversation({ model: "claude-3-5-sonnet" })
+```
+
+#### `conversations.list`
+
+List user's conversations.
+
+```typescript
+// convex/conversations.ts
+export const list = query({
+  args: {
+    limit: v.optional(v.number()),
+    cursor: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return { conversations: [], nextCursor: null }
+    
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .order("desc")
+      .take(args.limit ?? 20)
+    
+    return {
+      conversations,
+      nextCursor: conversations.length === args.limit ? 
+        conversations[conversations.length - 1]._id : null,
+    }
+  },
+})
+
+// Usage
+const { conversations } = useQuery(api.conversations.list, { limit: 10 })
+```
+
+#### `conversations.get`
+
+Get a single conversation.
+
+```typescript
+// convex/conversations.ts
+export const get = query({
+  args: { id: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.id)
+    if (!conversation) throw new Error("Conversation not found")
+    
+    // Check access
+    const identity = await ctx.auth.getUserIdentity()
+    if (conversation.userId !== identity?.subject && !conversation.isPublic) {
+      throw new Error("Access denied")
+    }
+    
+    return conversation
+  },
+})
+
+// Usage
+const conversation = useQuery(api.conversations.get, { id: conversationId })
+```
+
+#### `conversations.update`
+
+Update conversation details.
+
+```typescript
+// convex/conversations.ts
+export const update = mutation({
+  args: {
+    id: v.id("conversations"),
+    title: v.optional(v.string()),
+    isPublic: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...updates } = args
+    
+    await ctx.db.patch(id, {
+      ...updates,
+      updatedAt: Date.now(),
+    })
+  },
+})
+
+// Usage
+const updateConversation = useMutation(api.conversations.update)
+await updateConversation({ 
+  id: conversationId, 
+  title: "Updated Title" 
+})
+```
+
+#### `conversations.delete`
+
+Delete a conversation.
+
+```typescript
+// convex/conversations.ts
+export const delete = mutation({
+  args: { id: v.id("conversations") },
+  handler: async (ctx, args) => {
+    // Delete all messages first
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) => 
+        q.eq("conversationId", args.id)
+      )
+      .collect()
+    
+    for (const message of messages) {
+      await ctx.db.delete(message._id)
+    }
+    
+    // Delete conversation
+    await ctx.db.delete(args.id)
+  },
+})
+
+// Usage
+const deleteConversation = useMutation(api.conversations.delete)
+await deleteConversation({ id: conversationId })
+```
+
+### Messages
+
+#### `messages.send`
+
+Send a new message.
+
+```typescript
+// convex/messages.ts
+export const send = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    content: v.string(),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    attachments: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const messageId = await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      content: args.content,
+      role: args.role,
+      attachments: args.attachments ?? [],
+      createdAt: Date.now(),
+    })
+    
+    // Update conversation
+    await ctx.db.patch(args.conversationId, {
+      lastMessageAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+    
+    // Trigger AI response if user message
+    if (args.role === "user") {
+      await ctx.scheduler.runAfter(0, api.ai.generateResponse, {
+        conversationId: args.conversationId,
+        messageId,
+      })
+    }
+    
+    return messageId
+  },
+})
+
+// Usage
+const sendMessage = useMutation(api.messages.send)
+await sendMessage({
+  conversationId,
+  content: "Hello!",
+  role: "user",
+})
+```
+
+#### `messages.list`
+
+List messages in a conversation.
+
+```typescript
+// convex/messages.ts
+export const list = query({
+  args: {
+    conversationId: v.id("conversations"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) => 
+        q.eq("conversationId", args.conversationId)
+      )
+      .order("asc")
+      .take(args.limit ?? 100)
+    
+    return messages
+  },
+})
+
+// Usage
+const messages = useQuery(api.messages.list, { 
+  conversationId,
+  limit: 50 
+})
+```
+
+#### `messages.stream`
+
+Stream AI response updates.
+
+```typescript
+// convex/messages.ts
+export const stream = mutation({
+  args: {
+    messageId: v.id("messages"),
+    content: v.string(),
+    isComplete: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      content: args.content,
+      isStreaming: !args.isComplete,
+      updatedAt: Date.now(),
+    })
+  },
+})
+
+// Usage in action
+export const streamResponse = action({
+  args: { messageId: v.id("messages"), model: v.string() },
+  handler: async (ctx, args) => {
+    const stream = await generateAIResponse(args.model)
+    
+    let content = ""
+    for await (const chunk of stream) {
+      content += chunk
+      await ctx.runMutation(api.messages.stream, {
+        messageId: args.messageId,
+        content,
+        isComplete: false,
+      })
+    }
+    
+    await ctx.runMutation(api.messages.stream, {
+      messageId: args.messageId,
+      content,
+      isComplete: true,
+    })
+  },
+})
+```
+
+### Files
+
+#### `files.generateUploadUrl`
+
+Generate a secure upload URL.
+
+```typescript
+// convex/files.ts
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Not authenticated")
+    
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
+// Usage
+const generateUploadUrl = useMutation(api.files.generateUploadUrl)
+const uploadUrl = await generateUploadUrl()
+
+// Upload file
+const response = await fetch(uploadUrl, {
+  method: "POST",
+  body: file,
+})
+const { storageId } = await response.json()
+```
+
+#### `files.getUrl`
+
+Get a file's public URL.
+
+```typescript
+// convex/files.ts
+export const getUrl = query({
+  args: { storageId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId)
+  },
+})
+
+// Usage
+const fileUrl = useQuery(api.files.getUrl, { 
+  storageId: file.storageId 
+})
+```
+
+### AI Integration
+
+#### `ai.generateResponse`
+
+Generate AI response for a conversation.
+
+```typescript
+// convex/ai.ts
+export const generateResponse = action({
+  args: {
+    conversationId: v.id("conversations"),
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    // Get conversation context
+    const messages = await ctx.runQuery(api.messages.list, {
+      conversationId: args.conversationId,
+    })
+    
+    // Get model settings
+    const conversation = await ctx.runQuery(api.conversations.get, {
+      id: args.conversationId,
+    })
+    
+    // Generate response
+    const response = await generateAIResponse({
+      model: conversation.model,
+      messages: messages.map(m => ({
+        role: m.role,
+        content: m.content,
+      })),
+    })
+    
+    // Create assistant message
+    await ctx.runMutation(api.messages.send, {
+      conversationId: args.conversationId,
+      content: response,
+      role: "assistant",
+    })
+  },
+})
+```
+
+## REST API
+
+### Health Check
+
+```typescript
+// app/api/health/route.ts
+export async function GET() {
+  return Response.json({
+    status: "healthy",
+    timestamp: Date.now(),
+  })
+}
+```
+
+### Webhooks
+
+```typescript
+// app/api/webhooks/[provider]/route.ts
+export async function POST(
+  req: Request,
+  { params }: { params: { provider: string } }
+) {
+  const body = await req.json()
+  
+  switch (params.provider) {
+    case "stripe":
+      // Handle Stripe webhook
+      break
+    case "github":
+      // Handle GitHub webhook
+      break
+    default:
+      return new Response("Unknown provider", { status: 400 })
+  }
+  
+  return new Response("OK")
+}
+```
+
+## Client Utilities
+
+### Hooks
+
+#### `useChat`
+
+Complete chat functionality hook.
+
+```typescript
+// lib/hooks/use-chat.ts
+export function useChat(conversationId: string) {
+  const messages = useQuery(api.messages.list, { conversationId })
+  const sendMessage = useMutation(api.messages.send)
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const send = useCallback(async (content: string) => {
+    setIsLoading(true)
+    try {
+      await sendMessage({
+        conversationId,
+        content,
+        role: "user",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [conversationId, sendMessage])
+  
+  return {
+    messages,
+    send,
+    isLoading,
+  }
+}
+
+// Usage
+const { messages, send, isLoading } = useChat(conversationId)
+```
+
+#### `useDebounce`
+
+Debounce values.
+
+```typescript
+// lib/hooks/use-debounce.ts
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+    
+    return () => clearTimeout(handler)
+  }, [value, delay])
+  
+  return debouncedValue
+}
+
+// Usage
+const debouncedSearch = useDebounce(searchTerm, 300)
+```
+
+### Utilities
+
+#### `cn`
+
+Class name utility.
+
+```typescript
+// lib/utils.ts
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+// Usage
+<div className={cn(
+  "base-class",
+  isActive && "active-class",
+  className
+)} />
+```
+
+#### `formatDate`
+
+Date formatting utilities.
+
+```typescript
+// lib/format.ts
+export function formatDate(date: Date | number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date)
+}
+
+export function formatRelativeTime(date: Date | number): string {
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+  const diff = Date.now() - new Date(date).getTime()
+  
+  if (diff < 60000) return "just now"
+  if (diff < 3600000) return rtf.format(-Math.floor(diff / 60000), "minute")
+  if (diff < 86400000) return rtf.format(-Math.floor(diff / 3600000), "hour")
+  return rtf.format(-Math.floor(diff / 86400000), "day")
+}
+```
+
+## Error Codes
+
+### Convex Errors
+
+| Code | Description | Resolution |
+|------|-------------|------------|
+| `UNAUTHORIZED` | User not authenticated | Sign in required |
+| `FORBIDDEN` | Access denied | Check permissions |
+| `NOT_FOUND` | Resource not found | Verify ID exists |
+| `RATE_LIMITED` | Too many requests | Wait and retry |
+| `INVALID_INPUT` | Bad request data | Check parameters |
+
+### HTTP Status Codes
+
+| Status | Meaning | Common Causes |
+|--------|---------|---------------|
+| `200` | Success | Request completed |
+| `400` | Bad Request | Invalid parameters |
+| `401` | Unauthorized | Missing auth |
+| `403` | Forbidden | No permission |
+| `404` | Not Found | Wrong endpoint |
+| `429` | Rate Limited | Too many requests |
+| `500` | Server Error | Internal issue |
+
+## Rate Limits
+
+### API Limits
+
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| Messages | 20 | 1 minute |
+| File uploads | 10 | 5 minutes |
+| AI generation | 5 | 1 minute |
+| Conversation creation | 10 | 1 hour |
+
+### File Limits
+
+| Type | Max Size | Allowed Formats |
+|------|----------|-----------------|
+| Images | 10MB | JPG, PNG, GIF, WebP |
+| Documents | 25MB | PDF, TXT, MD |
+| Total per message | 50MB | All combined |
+
+## WebSocket Events
+
+### Subscription Events
+
+```typescript
+// Real-time message updates
+const messages = useQuery(api.messages.list, { conversationId })
+// Automatically subscribes to changes
+
+// Custom subscription
+export const watchConversation = query({
+  args: { id: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.id)
+    
+    // This query re-runs when conversation changes
+    return conversation
+  },
+})
+```
+
+### Event Types
+
+| Event | Description | Payload |
+|-------|-------------|---------|
+| `message.created` | New message | `{ messageId, conversationId }` |
+| `message.updated` | Message edited | `{ messageId, changes }` |
+| `conversation.updated` | Conversation changed | `{ conversationId, changes }` |
+| `user.typing` | User typing indicator | `{ userId, conversationId }` |
+
+## SDK Examples
+
+### JavaScript/TypeScript
+
+```typescript
+import { ConvexClient } from "convex/browser"
+import { api } from "./convex/_generated/api"
+
+const client = new ConvexClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+
+// Query
+const messages = await client.query(api.messages.list, {
+  conversationId: "..." 
+})
+
+// Mutation
+const messageId = await client.mutation(api.messages.send, {
+  conversationId: "...",
+  content: "Hello",
+  role: "user",
+})
+
+// Action
+await client.action(api.ai.generateResponse, {
+  conversationId: "...",
+  messageId: "...",
+})
+```
+
+### Python (Coming Soon)
+
+```python
+from convex import ConvexClient
+
+client = ConvexClient(url="https://...")
+
+# Query
+messages = client.query("messages:list", {
+    "conversationId": "..."
+})
+
+# Mutation
+message_id = client.mutation("messages:send", {
+    "conversationId": "...",
+    "content": "Hello",
+    "role": "user"
+})
+```
+
+## Next Steps
+
+- Explore [Model Configuration](/docs/models)
+- Review [Configuration Reference](/docs/configuration-reference)
+- Learn about [Self-Hosting APIs](/docs/self-hosting#api-configuration)

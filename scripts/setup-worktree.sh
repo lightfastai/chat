@@ -27,7 +27,7 @@ show_usage() {
     echo "Creates a new worktree for feature development with automated setup:"
     echo "  - Creates worktree at worktrees/<feature_name>"
     echo "  - Creates branch <username>/<feature_name>"
-    echo "  - Installs dependencies with bun"
+    echo "  - Installs dependencies with pnpm"
     echo "  - Sets up Convex configuration"
     echo "  - Syncs environment variables"
     echo ""
@@ -79,10 +79,10 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
-# Ensure main branch is up to date
-log_info "Ensuring main branch is up to date..."
-git checkout main
-git pull origin main
+# Ensure staging branch is up to date
+log_info "Ensuring staging branch is up to date..."
+git checkout staging
+git pull origin staging
 
 # Create worktrees directory if it doesn't exist
 mkdir -p "$WORKTREE_DIR"
@@ -107,12 +107,12 @@ log_success "Worktree created at $WORKTREE_PATH"
 # Change to worktree directory for setup
 cd "$WORKTREE_PATH"
 
-log_info "Installing dependencies with bun..."
-if command -v bun > /dev/null 2>&1; then
-    bun install
+log_info "Installing dependencies with pnpm..."
+if command -v pnpm > /dev/null 2>&1; then
+    pnpm install
     log_success "Dependencies installed"
 else
-    log_error "bun not found. Please install bun first."
+    log_error "pnpm not found. Please install pnpm first."
     exit 1
 fi
 
@@ -129,13 +129,13 @@ fi
 # Set up Convex if npx convex is available
 log_info "Setting up Convex configuration..."
 if command -v npx > /dev/null 2>&1; then
-    # Check if convex.json exists in project root
-    if [ -f "$PROJECT_ROOT/convex.json" ]; then
+    # Check if convex directory exists in apps/www
+    if [ -d "$WORKTREE_PATH/apps/www/convex" ]; then
         log_info "Convex configuration found, syncing environment variables..."
         
-        # Run the environment sync script
+        # Run the environment sync script (auto-detects .env.local location)
         if [ -f "$PROJECT_ROOT/scripts/sync-env.ts" ]; then
-            cd "$PROJECT_ROOT" && bun env:sync
+            cd "$WORKTREE_PATH" && pnpm run env:sync
             log_success "Environment variables synced to Convex"
         elif [ -f "$PROJECT_ROOT/scripts/sync-env.sh" ]; then
             bash "$PROJECT_ROOT/scripts/sync-env.sh"
@@ -155,8 +155,8 @@ log_info ""
 log_info "Next steps:"
 log_info "1. cd $WORKTREE_PATH"
 log_info "2. Start development servers:"
-log_info "   - Run 'bun dev:all' for concurrent Next.js + Convex development"
-log_info "   - Or run 'bun dev' and 'bun convex:dev' in separate terminals"
+log_info "   - Run 'pnpm run dev:www' for concurrent Next.js + Convex development"
+log_info "   - Or run 'pnpm run dev:next' and 'pnpm run convex:dev' in separate terminals"
 log_info "3. Make your changes and commit"
 log_info "4. Push with: git push -u origin $BRANCH_NAME"
 log_info ""

@@ -20,7 +20,7 @@ This development workflow integrates:
 - **Git Worktrees**: Feature development with `jeevanpillay/<feature_name>` branches (MANDATORY for all work)
 - **Vercel-First Testing**: All application testing on Vercel preview deployments (NO local dev servers)
 - **Context Preservation**: GitHub comments + local context files to survive session interruptions
-- **Turborepo + Bun**: Lightning-fast builds with intelligent caching
+- **Turborepo + pnpm**: Lightning-fast builds with intelligent caching
 
 **Current Context**: June 2025
 
@@ -32,8 +32,8 @@ Claude Code operates in two distinct modes based on your development setup:
 Use this mode when you want Claude to handle the full development lifecycle:
 - **Claude Responsibilities**:
   - Makes code changes
-  - Runs `bun run build` iteratively to fix errors
-  - Runs `bun run lint` and `bun run format`
+  - Runs `pnpm run build` iteratively to fix errors
+  - Runs `pnpm run lint` and `pnpm run format`
   - Commits and pushes changes automatically
   - Provides Vercel preview URL for testing
 - **User Responsibilities**:
@@ -42,14 +42,14 @@ Use this mode when you want Claude to handle the full development lifecycle:
 - **When to Use**: Production-ready development, team collaboration, CI/CD workflows
 
 ### 🔧 Local Dev Mode
-Use this mode when you're already running `bun dev:all` locally:
+Use this mode when you're already running `pnpm run dev` locally:
 - **Claude Responsibilities**:
   - Acts as code generator only
   - Makes code changes
   - Asks user to test locally after changes
   - Does NOT commit or push automatically
 - **User Responsibilities**:
-  - Runs `bun dev:all` before starting
+  - Runs `pnpm run dev` before starting
   - Tests changes locally in real-time
   - Decides when to commit and push
 - **When to Use**: Rapid prototyping, debugging, exploratory development
@@ -57,7 +57,159 @@ Use this mode when you're already running `bun dev:all` locally:
 ### Setting Development Mode
 At the start of your session, tell Claude which mode to use:
 - "Use Vercel Build Mode" (default if not specified)
-- "Use Local Dev Mode - I'm running bun dev:all"
+- "Use Local Dev Mode - I'm running pnpm run dev"
+
+### Build Configuration Context System
+
+**YOU MUST** create and check build configuration context files to ensure the correct development mode is enforced:
+
+```bash
+# Create build configuration context file
+mkdir -p tmp_context
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+
+# Set development mode (choose one)
+echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"    # For Vercel Build Mode
+echo "LOCAL_DEV_MODE" > "$BUILD_CONFIG_FILE"       # For Local Dev Mode
+
+# Check build configuration before running any build commands
+if [ -f "$BUILD_CONFIG_FILE" ]; then
+  BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+  echo "📋 Current build mode: $BUILD_MODE"
+else
+  echo "⚠️  No build config found, defaulting to VERCEL_BUILD_MODE"
+  echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"
+  BUILD_MODE="VERCEL_BUILD_MODE"
+fi
+```
+
+#### Build Command Guards
+
+**CRITICAL**: You MUST check the build configuration before running any build commands:
+
+```bash
+# Function to check if builds should run
+should_run_build() {
+  local BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+  if [ -f "$BUILD_CONFIG_FILE" ]; then
+    local BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+    if [ "$BUILD_MODE" = "LOCAL_DEV_MODE" ]; then
+      echo "🚫 Skipping build - Local Dev Mode detected"
+      echo "💡 User is running pnpm run dev locally for real-time testing"
+      return 1  # Don't run build
+    fi
+  fi
+  return 0  # Run build
+}
+
+# Example usage before any build command
+if should_run_build; then
+  SKIP_ENV_VALIDATION=true pnpm run build
+else
+  echo "✅ Build skipped due to Local Dev Mode configuration"
+fi
+```
+
+#### Mode-Specific Behavior
+
+**Vercel Build Mode** (`VERCEL_BUILD_MODE`):
+- ✅ Runs `pnpm run build` for validation
+- ✅ Runs `pnpm run lint` and `pnpm run format`
+- ✅ Commits and pushes automatically
+- ✅ Provides Vercel preview URLs
+
+**Local Dev Mode** (`LOCAL_DEV_MODE`):
+- 🚫 **NEVER** runs `pnpm run build`
+- ✅ Runs `pnpm run lint` and `pnpm run format`
+- 🚫 Does NOT commit or push automatically
+- ✅ Asks user to test locally
+
+## 🚀 Parallel Task Execution with Claude Code Subagents
+
+**YOU MUST** analyze complex tasks and use parallel Claude Code subagents when appropriate.
+
+### When to Use Parallel Subagents
+
+Use parallel execution when the task involves:
+1. **Multiple independent components** - Changes across different apps or packages
+2. **Research and implementation** - Simultaneous investigation and coding
+3. **Multi-file operations** - Updates to many files that don't depend on each other
+4. **Different technology domains** - Frontend, backend, and infrastructure tasks
+
+### Task Analysis Process
+
+When receiving a complex request, follow this process:
+
+```markdown
+1. **Analyze the request** - Break down into subtasks
+2. **Identify dependencies** - Determine which tasks can run in parallel
+3. **Launch parallel agents** - Use multiple Task invocations in a single message
+4. **Coordinate results** - Synthesize findings from all agents
+```
+
+### Example: Parallel Subagent Usage
+
+```markdown
+User: "Add authentication to the chat app with GitHub OAuth, update the docs, and create tests"
+
+Claude's Analysis:
+- Task 1: Implement GitHub OAuth (backend + frontend)
+- Task 2: Update documentation
+- Task 3: Create test suite
+
+These tasks are independent and can be parallelized.
+```
+
+### Implementation Pattern
+
+**YOU MUST** launch parallel agents in a single message for maximum efficiency:
+
+```markdown
+# Launching parallel agents (in a single tool use block):
+1. Task: "Implement GitHub OAuth"
+   - Search for existing auth patterns
+   - Implement OAuth flow
+   - Update UI components
+
+2. Task: "Update authentication docs"
+   - Create auth setup guide
+   - Document configuration
+   - Add troubleshooting section
+
+3. Task: "Create auth test suite"
+   - Write unit tests
+   - Create integration tests
+   - Add E2E test scenarios
+```
+
+### Best Practices for Parallel Execution
+
+1. **Clear task boundaries** - Each agent should have a well-defined scope
+2. **Minimize overlap** - Avoid agents working on the same files
+3. **Coordinate through context** - Use context files to track overall progress
+4. **Synthesize results** - Combine findings into a coherent solution
+5. **Handle conflicts** - If agents suggest conflicting changes, resolve intelligently
+
+### Anti-patterns to Avoid
+
+❌ **Sequential agents** - Don't launch agents one after another
+❌ **Overlapping work** - Don't have multiple agents editing the same files
+❌ **Vague instructions** - Each agent needs specific, actionable tasks
+❌ **No coordination** - Always synthesize results from parallel agents
+
+### Example Workflow
+
+```bash
+# User request: "Migrate the app to use new API endpoints and update all tests"
+
+# Claude's approach:
+# 1. Analyze: This involves API migration + test updates (can be parallel)
+# 2. Launch parallel agents:
+#    - Agent 1: Find and update all API calls
+#    - Agent 2: Update test mocks and assertions
+# 3. Coordinate: Ensure all endpoints are covered and tests pass
+# 4. Report: Summarize changes and any remaining work
+```
 
 ## 🚨 CRITICAL: Context Preservation
 
@@ -139,6 +291,7 @@ EOF
 
 # 4. Create PR that links back to research issue
 gh pr create --repo lightfastai/chat \
+  --base staging \
   --title "feat: add smooth text streaming for better UX" \
   --body "Implements Phase 1 findings from #$RESEARCH_ISSUE
 
@@ -254,13 +407,13 @@ echo "Created issue #$ISSUE_NUM and added to project"
 cd worktrees/<feature_name>
 
 # Manual setup (if script unavailable)
-git checkout main && git pull origin main
+git checkout staging && git pull origin staging
 mkdir -p worktrees
 git worktree add worktrees/<feature_name> -b jeevanpillay/<feature_name>
 cd worktrees/<feature_name>
-bun install
-cp ../../.env.local .env.local
-bun run env:sync
+pnpm install
+# .env.local should already be in root directory
+pnpm run env:sync  # Run from root with .env.local in root
 ```
 
 ### Step 4: Development Cycle
@@ -269,8 +422,11 @@ bun run env:sync
 
 #### 🚀 Vercel Build Mode (Default)
 ```bash
-# 1. Set up context tracking
+# 1. Set up build configuration and context tracking
 mkdir -p tmp_context
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"
+
 CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 cat > "$CONTEXT_FILE" << EOF
 # Claude Code Context - $(basename $(pwd))
@@ -279,6 +435,7 @@ PR Number: #<pr_number>
 Issue: #<issue_number>
 Branch: jeevanpillay/<feature_name>
 Development Mode: Vercel Build Mode
+Build Config: VERCEL_BUILD_MODE
 
 ## Todo State
 - [ ] Task 1
@@ -294,10 +451,26 @@ EOF
 # 2. Claude makes code changes
 # ... implement features ...
 
-# 3. Claude runs validation (iteratively fixing errors)
-SKIP_ENV_VALIDATION=true bun run build  # MUST pass
-bun run lint                             # MUST pass
-bun run format                          # MUST pass
+# 3. Claude runs validation with build configuration check
+should_run_build() {
+  local BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+  if [ -f "$BUILD_CONFIG_FILE" ]; then
+    local BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+    if [ "$BUILD_MODE" = "LOCAL_DEV_MODE" ]; then
+      echo "🚫 Skipping build - Local Dev Mode detected"
+      return 1
+    fi
+  fi
+  return 0
+}
+
+if should_run_build; then
+  SKIP_ENV_VALIDATION=true pnpm run build  # MUST pass
+else
+  echo "✅ Build skipped due to Local Dev Mode configuration"
+fi
+pnpm run lint                             # MUST pass
+pnpm run format                          # MUST pass
 
 # 4. Claude updates context and posts comments
 gh pr comment <pr_number> --body "🔧 Progress: <what_was_done>"
@@ -318,17 +491,21 @@ echo "🔗 Test on Vercel: https://<project>-<pr-number>-<org>.vercel.app"
 
 #### 🔧 Local Dev Mode
 ```bash
-# 1. User ensures dev server is running
-# Terminal 1: bun dev:all
+# 1. User ensures dev servers are running
+# Terminal 1: pnpm run dev:www (runs both Next.js and Convex)
 
-# 2. Set up context tracking
+# 2. Set up build configuration and context tracking
 mkdir -p tmp_context
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+echo "LOCAL_DEV_MODE" > "$BUILD_CONFIG_FILE"
+
 CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
 cat > "$CONTEXT_FILE" << EOF
 # Claude Code Context - $(basename $(pwd))
 Last Updated: $(date)
 Branch: jeevanpillay/<feature_name>
 Development Mode: Local Dev Mode
+Build Config: LOCAL_DEV_MODE
 
 ## Todo State
 - [ ] Task 1
@@ -338,23 +515,46 @@ Development Mode: Local Dev Mode
 Working on: <current_task>
 
 ## Session Notes
-User is running bun dev:all locally
+User is running pnpm run dev:www locally (concurrent Next.js + Convex)
+Build commands are disabled in this mode for faster iteration
 <notes>
 EOF
 
 # 3. Claude makes code changes
 # ... implement features ...
 
-# 4. Claude asks user to test
+# 4. Claude runs linting only (NO BUILD)
+should_run_build() {
+  local BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+  if [ -f "$BUILD_CONFIG_FILE" ]; then
+    local BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+    if [ "$BUILD_MODE" = "LOCAL_DEV_MODE" ]; then
+      echo "🚫 Skipping build - Local Dev Mode detected"
+      echo "💡 User is running pnpm run dev locally for real-time testing"
+      return 1
+    fi
+  fi
+  return 0
+}
+
+if should_run_build; then
+  SKIP_ENV_VALIDATION=true pnpm run build
+else
+  echo "✅ Build skipped due to Local Dev Mode configuration"
+fi
+pnpm run lint     # Still run linting
+pnpm run format   # Still run formatting
+
+# 5. Claude asks user to test
 echo "✅ Changes complete. Please test locally at http://localhost:3000"
 echo "📝 What to test:"
 echo "   - <specific feature 1>"
 echo "   - <specific feature 2>"
 
-# 5. User tests and reports results
+# 6. User tests and reports results
 # Claude waits for feedback before proceeding
 
-# 6. When ready, user handles commit/push manually
+# 7. When ready, user handles commit/push manually
 ```
 
 ### Step 5: PR Creation & Testing
@@ -362,6 +562,7 @@ echo "   - <specific feature 2>"
 ```bash
 # Create PR and add to project
 PR_URL=$(gh pr create --repo lightfastai/chat \
+  --base staging \
   --title "feat: <feature_name>" \
   --body "Closes #<issue_number>")
 PR_NUM=$(echo $PR_URL | grep -oE "[0-9]+$")
@@ -374,20 +575,32 @@ gh pr view $PR_NUM --json statusCheckRollup
 
 ### Step 6: PR Merge & Cleanup
 
-**CRITICAL**: Remove worktree BEFORE merging to prevent errors:
-```bash
-# Remove worktree first
-git worktree remove worktrees/<feature_name>
-cd /path/to/main/repo
+**CRITICAL**: Always merge from the main repo directory to prevent git conflicts:
 
-# Merge PR
+```bash
+# Method 1: Merge from main repo (RECOMMENDED)
+cd /path/to/main/repo  # Navigate to main repo root, NOT the worktree
 gh pr merge <pr_number> --squash --delete-branch
 
-# Sync main branch
-git checkout main
-git pull origin main
+# Method 2: If admin privileges needed (when branch protection rules are active)
+cd /path/to/main/repo
+gh pr merge <pr_number> --squash --delete-branch --admin
+
+# Clean up after successful merge
+git worktree remove worktrees/<feature_name>  # Remove the worktree
+git branch -D jeevanpillay/<feature_name>     # Delete local branch (if not auto-deleted)
+
+# Sync staging branch
+git checkout staging
+git pull origin staging
 git log --oneline -5  # Verify merge
 ```
+
+**Common Issues & Solutions:**
+- **"already checked out" error**: You're trying to merge from within the worktree. Always `cd` to main repo first
+- **"branch protection" error**: Use `--admin` flag if you have admin privileges
+- **"auto-merge not allowed" error**: Repository doesn't support auto-merge, use manual merge instead
+- **Worktree removal fails**: The branch is still checked out. Merge first, then remove worktree
 
 ## Tech Stack & Standards
 
@@ -398,13 +611,13 @@ git log --oneline -5  # Verify merge
 - **shadcn/ui** components (New York style)
 - **Tailwind CSS v4.x**
 - **TypeScript** strict mode
-- **Bun v1.2.10** runtime and package manager
+- **pnpm v9.x** package manager
 - **Turborepo** for optimized builds
 
 ### Code Standards
 - 2-space indentation, 80-character line width
 - Double quotes for JSX and strings
-- **YOU MUST** use Biome commands: `bun run lint`, `bun run format`
+- **YOU MUST** use Biome commands: `pnpm run lint`, `pnpm run format`
 - Follow shadcn/ui patterns for components
 
 ### Branch Naming
@@ -446,15 +659,38 @@ export function TabsComponent() {
 
 ### Quality Gates (MUST pass before commit)
 ```bash
-# Build validation
-SKIP_ENV_VALIDATION=true bun run build
+# Check build configuration first
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+if [ -f "$BUILD_CONFIG_FILE" ]; then
+  BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+  echo "📋 Current build mode: $BUILD_MODE"
+else
+  echo "⚠️  No build config found, defaulting to VERCEL_BUILD_MODE"
+  mkdir -p tmp_context
+  echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"
+  BUILD_MODE="VERCEL_BUILD_MODE"
+fi
 
-# Code quality
-bun run lint
-bun run format
+# Build validation (only in Vercel Build Mode)
+if [ "$BUILD_MODE" = "VERCEL_BUILD_MODE" ]; then
+  # From root
+  pnpm run build:www
+  # OR from apps/www
+  cd apps/www && SKIP_ENV_VALIDATION=true pnpm run build
+else
+  echo "🚫 Build skipped - Local Dev Mode detected"
+  echo "💡 User is running pnpm run dev locally for real-time testing"
+fi
 
-# Environment sync
-bun run env:sync
+# Code quality (always run)
+pnpm run lint
+pnpm run format
+
+# Environment sync (from root with .env.local in root)
+pnpm run env:sync
+
+# Convex development (from root)
+pnpm run convex:dev
 ```
 
 ### Context Management
@@ -462,6 +698,16 @@ bun run env:sync
 # Set context file
 mkdir -p tmp_context
 CONTEXT_FILE="./tmp_context/claude-context-$(basename $(pwd)).md"
+
+# Set build configuration
+BUILD_CONFIG_FILE="./tmp_context/build-config.txt"
+echo "VERCEL_BUILD_MODE" > "$BUILD_CONFIG_FILE"    # or "LOCAL_DEV_MODE"
+
+# Check current build mode
+if [ -f "$BUILD_CONFIG_FILE" ]; then
+  BUILD_MODE=$(cat "$BUILD_CONFIG_FILE")
+  echo "📋 Current build mode: $BUILD_MODE"
+fi
 
 # View context
 cat "$CONTEXT_FILE"
@@ -477,7 +723,7 @@ gh issue create --repo lightfastai/chat
 gh project item-add 2 --owner lightfastai --url <issue_url>
 
 # Create and link PR
-gh pr create --repo lightfastai/chat
+gh pr create --repo lightfastai/chat --base staging
 gh project item-add 2 --owner lightfastai --url <pr_url>
 
 # Monitor deployment
@@ -487,50 +733,137 @@ gh pr view <pr_number> --json statusCheckRollup
 ## Troubleshooting
 
 ### Common Issues
-1. **Build failures**: Use `SKIP_ENV_VALIDATION=true bun run build`
+1. **Build failures**: Use `SKIP_ENV_VALIDATION=true pnpm run build`
 2. **Merge conflicts**: Remove worktree first: `git worktree remove worktrees/<feature_name>`
 3. **Context loss**: Check `./tmp_context/claude-context-*.md` files
 4. **Deployment issues**: Monitor with `gh pr view <pr_number>`
 
+### PR Merge Issues
+1. **"already checked out" error**: 
+   ```bash
+   # Fix: Always merge from main repo directory
+   cd /path/to/main/repo  # NOT from worktree
+   gh pr merge <pr_number> --squash --delete-branch
+   ```
+
+2. **"branch policy prohibits merge" error**:
+   ```bash
+   # Fix: Use admin privileges if available
+   gh pr merge <pr_number> --squash --delete-branch --admin
+   ```
+
+3. **"auto-merge not allowed" error**:
+   ```bash
+   # Fix: Repository doesn't support auto-merge, remove --auto flag
+   gh pr merge <pr_number> --squash --delete-branch
+   ```
+
+4. **"Cannot delete branch" error**:
+   ```bash
+   # Fix: Remove worktree first, then delete branch
+   git worktree remove worktrees/<feature_name>
+   git branch -D jeevanpillay/<feature_name>
+   ```
+
+5. **Git state conflicts**:
+   ```bash
+   # Fix: Clean up git state
+   git checkout staging  # Switch to main branch
+   git worktree remove worktrees/<feature_name>  # Remove worktree
+   git pull origin staging  # Sync latest changes
+   ```
+
 ### Quality Gate Failures
 - **TypeScript errors**: Fix type issues before commit
-- **Lint errors**: Run `bun run lint` to auto-fix
+- **Lint errors**: Run `pnpm run lint` to auto-fix
 - **Build errors**: Check imports and environment variables
 
-## Project Structure
+## Monorepo Structure
+
+### Overview
+This is a Turborepo monorepo with the following structure:
 ```
-├── src/
-│   ├── app/            # Next.js App Router pages
-│   ├── components/     # React components (ui/, chat/, auth/)
-│   └── lib/           # Utilities
-├── convex/            # Backend functions
-├── scripts/           # Development scripts
-├── worktrees/         # Feature development (git worktrees)
-└── CLAUDE.md         # This file
+├── apps/                    # Applications
+│   ├── www/                # Main chat application
+│   │   ├── src/           # Source code
+│   │   │   ├── app/       # Next.js App Router pages
+│   │   │   ├── components/# React components (chat/, auth/, etc)
+│   │   │   └── lib/       # App-specific utilities
+│   │   ├── convex/        # Backend functions & database
+│   │   └── public/        # Static assets
+│   └── docs/              # Documentation site (Fumadocs)
+│       ├── app/           # Next.js app directory
+│       ├── content/       # MDX documentation files
+│       └── components/    # Docs-specific components
+├── packages/              # Shared packages
+│   └── ui/               # Shared UI component library
+│       ├── src/
+│       │   ├── components/ # All shadcn/ui components
+│       │   ├── lib/       # Shared utilities (cn, etc)
+│       │   └── hooks/     # Shared React hooks
+│       └── globals.css    # Shared Tailwind styles
+├── scripts/              # Development & deployment scripts
+├── worktrees/           # Git worktrees for features
+├── turbo.json          # Turborepo configuration
+├── components.json     # shadcn/ui configuration
+├── tailwind.config.ts  # Root Tailwind configuration
+└── CLAUDE.md          # This file
+```
+
+### Monorepo Commands
+```bash
+# Development
+pnpm run dev             # Run all apps in dev mode
+pnpm run dev:www        # Run www app (Next.js + Convex concurrently)
+pnpm run dev:docs       # Run only docs app
+pnpm run convex:dev     # Run Convex dev server (from root, executes in apps/www)
+
+# Building
+pnpm run build          # Build all apps
+pnpm run build:www      # Build only www app
+pnpm run build:docs     # Build only docs app
+
+# UI Components
+pnpm run ui:add <component>  # Add new shadcn component
+pnpm run ui:diff            # Check for component updates
+
+# Environment Management
+pnpm run env:sync       # Sync environment variables to Convex (run from root with .env.local in root)
+pnpm run env:check      # Check environment variables in Convex
+
+# Quality
+pnpm run lint           # Lint all packages
+pnpm run format         # Format all packages
+pnpm run typecheck      # Type check all packages
 ```
 
 ## Environment Variables
 - `ANTHROPIC_API_KEY` - Claude Sonnet 4 (required)
 - `OPENAI_API_KEY` - GPT models (required)
+- `OPENROUTER_API_KEY` - OpenRouter API key (required)
+- `EXA_API_KEY` - Exa API key for web search (required)
 - `NEXT_PUBLIC_CONVEX_URL` - Backend URL (required)
-- `AUTH_GITHUB_ID` - GitHub OAuth client ID (required)
-- `AUTH_GITHUB_SECRET` - GitHub OAuth client secret (required)
-- `JWT_PRIVATE_KEY` - JWT private key for API key encryption (required)
-- `JWKS` - JWT verification keys (required)
+- `JWT_PRIVATE_KEY` - JWT private key for auth (required)
+- `JWKS` - JWT public keys for verification (required)
+- `DOCS_URL` - Documentation deployment URL (optional)
+- Optional: `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `SITE_URL`
 
 ## Key Reminders
 
 1. **WORKTREES ARE MANDATORY** - ANY code change requires a worktree, no exceptions
-2. **NO LOCAL DEV SERVERS** - Test only on Vercel previews
+2. **BUILD CONFIGURATION IS CRITICAL** - Always set and check `./tmp_context/build-config.txt` to prevent builds in Local Dev Mode
 3. **CONTEXT IS CRITICAL** - Always use context files and GitHub comments
-4. **QUALITY GATES FIRST** - Build/lint must pass before commit
+4. **QUALITY GATES FIRST** - Build/lint must pass before commit (build only in Vercel Build Mode)
 5. **WORKTREE CLEANUP** - Remove before merging to prevent errors
 6. **USE TEMPLATES** - Always use issue templates with file references
-7. **BIOME NOT ESLINT** - Use `bun run lint`, not ESLint commands
+7. **BIOME NOT ESLINT** - Use `pnpm run lint`, not ESLint commands
+8. **RESPECT DEV MODE** - Never run builds when user is in Local Dev Mode
 
 ## Technology-Specific Documentation
 
-For detailed guidelines on specific technologies used in this project, refer to:
+For detailed guidelines on specific technologies and packages used in this project, refer to:
 
-- **Convex**: See `convex/CLAUDE.md` for Convex-specific patterns, server rendering, optimistic updates, and API guidelines
-- **Additional technology docs**: May be found in their respective directories
+- **Apps Directory**: See `apps/CLAUDE.md` for app-specific patterns, deployment, and configuration
+- **Packages Directory**: See `packages/CLAUDE.md` for shared package guidelines and UI component usage
+- **Convex**: See `apps/www/convex/CLAUDE.md` for Convex-specific patterns, server rendering, optimistic updates, and API guidelines
+- **UI Components**: See `packages/ui/README.md` for shadcn/ui component documentation

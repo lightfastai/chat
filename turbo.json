@@ -2,7 +2,8 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "lint": {
       "cache": false
@@ -10,8 +11,15 @@
     "format": {
       "cache": false
     },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "cache": false
+    },
     "dev": {
       "persistent": true,
+      "cache": false
+    },
+    "clean": {
       "cache": false
     },
     "convex:dev": {
@@ -45,7 +53,15 @@
     "OPENROUTER_API_KEY",
     "NEXT_PUBLIC_CONVEX_URL",
     "NEXT_PUBLIC_VERCEL_ENV",
-    "SITE_URL"
+    "NEXT_PUBLIC_POSTHOG_KEY",
+    "NEXT_PUBLIC_POSTHOG_HOST",
+    "SITE_URL",
+    "DOCS_URL",
+    "SENTRY_ORG",
+    "SENTRY_PROJECT",
+    "SENTRY_AUTH_TOKEN",
+    "NEXT_PUBLIC_SENTRY_DSN",
+    "NEXT_PUBLIC_SENTRY_ENVIRONMENT"
   ],
   "globalPassThroughEnv": [
     "NODE_ENV",

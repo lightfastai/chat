@@ -1,0 +1,22 @@
+{
+	"name": "@repo/utils",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./debounced-writer/base": "./src/debounced-writer/base.ts",
+		"./debounced-writer/string-writer": "./src/debounced-writer/string-writer.ts",
+		"./debounced-writer/types": "./src/debounced-writer/types.ts",
+		"./encryption": "./src/encryption/index.ts",
+		"./time": "./src/time.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check .",
+		"format": "biome format --write ."
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.6",
+		"typescript": "catalog:default"
+	}
+}

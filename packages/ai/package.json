@@ -1,0 +1,26 @@
+{
+	"name": "@lightfast/ai",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./tools": "./src/tools/index.ts",
+		"./providers": "./src/providers/index.ts",
+		"./client": "./src/client/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"lint": "biome lint . --write",
+		"format": "biome format . --write"
+	},
+	"dependencies": {
+		"ai": "catalog:default",
+		"exa-js": "^1.8.17",
+		"zod": "catalog:default"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"typescript": "catalog:default"
+	}
+}
