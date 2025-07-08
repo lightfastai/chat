@@ -8,7 +8,7 @@ import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUI
 import { useChat } from "../../hooks/use-chat";
 import { CenteredChatStart } from "./centered-chat-start";
 import { ChatInput } from "./chat-input";
-import { ChatMessages } from "./chat-messages";
+import { ChatMessagesVirtuoso as ChatMessages } from "./chat-messages-virtuoso";
 import { MarkdownPrefetch } from "./shared/markdown-prefetch";
 
 export function ChatInterface() {

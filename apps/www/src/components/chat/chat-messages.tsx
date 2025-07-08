@@ -18,30 +18,14 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
-	// Find the streaming message from uiMessages
-	let streamingVercelMessage: LightfastUIMessage | undefined;
-	if (dbMessages && dbMessages.length > 0 && uiMessages.length > 0) {
-		// The last message in uiMessages should be the streaming one
-		const lastVercelMessage = uiMessages[
-			uiMessages.length - 1
-		] as LightfastUIMessage;
-		// Check if there's a matching database message that's streaming
-		const matchingDbMessage = dbMessages.find(
-			(msg) =>
-				msg._id === lastVercelMessage.metadata?.dbId &&
-				msg.status === "streaming",
-		);
-		if (matchingDbMessage) {
-			streamingVercelMessage = lastVercelMessage;
-		}
-	}
-
 	// Use the custom hook for efficient message processing
 	const processedMessages = useProcessedMessages(dbMessages);
 
 	// Use efficient streaming message parts conversion with caching
-	const streamingMessageParts = useStreamingMessageParts(
-		streamingVercelMessage,
+	// This also finds the streaming message from uiMessages
+	const { streamingMessage, streamingMessageParts } = useStreamingMessageParts(
+		dbMessages,
+		uiMessages,
 	);
 
 	// Handle empty state
@@ -65,8 +49,8 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 						// For streaming messages, use memoized Vercel data directly
 						if (
 							message.status === "streaming" &&
-							streamingVercelMessage &&
-							streamingVercelMessage.metadata?.dbId === message._id &&
+							streamingMessage &&
+							streamingMessage.metadata?.dbId === message._id &&
 							streamingMessageParts
 						) {
 							// Use memoized streaming data without reprocessing

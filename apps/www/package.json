@@ -33,6 +33,7 @@
 		"@types/mdx": "^2.0.13",
 		"@vercel/analytics": "^1.5.0",
 		"@vercel/speed-insights": "^1.2.0",
+		"@virtuoso.dev/message-list": "^1.12.3",
 		"ai": "catalog:",
 		"convex": "^1.24.8",
 		"convex-helpers": "^0.1.93",
