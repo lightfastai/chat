@@ -1,10 +1,10 @@
 "use client";
 
 import {
-	VirtuosoMessageList,
-	VirtuosoMessageListLicense,
-	type VirtuosoMessageListMethods,
-	type VirtuosoMessageListProps,
+  VirtuosoMessageList,
+  VirtuosoMessageListLicense,
+  type VirtuosoMessageListMethods,
+  type VirtuosoMessageListProps,
 } from "@virtuoso.dev/message-list";
 import { useEffect, useRef } from "react";
 import type { Doc } from "../../../convex/_generated/dataModel";
@@ -39,20 +39,26 @@ export function ChatMessagesVirtuoso({
 }: ChatMessagesProps) {
 	const virtuoso = useRef<VirtuosoMessageListMethods<DbMessage>>(null);
 	const processedMessages = useProcessedMessages(dbMessages);
-	const previousMessageCount = useRef(0);
+	const appendedMessageIds = useRef<Set<string>>(new Set());
 
 	// Watch for new DB messages and append them
 	useEffect(() => {
 		if (!dbMessages || !virtuoso.current) return;
 
-		const currentCount = dbMessages.length;
+		// Find messages that haven't been appended yet
+		const messagesToAppend = dbMessages.filter(
+			(msg) => !appendedMessageIds.current.has(msg._id),
+		);
 
-		if (currentCount > previousMessageCount.current) {
-			const newMessages = dbMessages.slice(previousMessageCount.current);
+		if (messagesToAppend.length > 0) {
+			console.log(`Appending ${messagesToAppend.length} new messages`);
 
 			// Append new messages
 			virtuoso.current.data.append(
-				newMessages.map((msg) => {
+				messagesToAppend.map((msg) => {
+					// Mark as appended
+					appendedMessageIds.current.add(msg._id);
+
 					// Use processed version for completed messages
 					if (msg.status !== "streaming") {
 						return processedMessages.get(msg._id) || msg;
@@ -66,8 +72,6 @@ export function ChatMessagesVirtuoso({
 				}),
 			);
 		}
-
-		previousMessageCount.current = currentCount;
 	}, [dbMessages, processedMessages]);
 
 	// Handle streaming updates from uiMessages
@@ -79,6 +83,14 @@ export function ChatMessagesVirtuoso({
 
 		if (!streamingDbId) return;
 
+		// Check if this message has been appended to the list
+		if (!appendedMessageIds.current.has(streamingDbId)) {
+			console.log(
+				`Streaming message ${streamingDbId} not in list yet, skipping update`,
+			);
+			return;
+		}
+
 		// Convert UI parts to DB parts
 		const streamingParts: DbMessagePart[] = [];
 		lastUiMessage.parts.forEach((part, index) => {
@@ -88,9 +100,15 @@ export function ChatMessagesVirtuoso({
 			}
 		});
 
+		console.log(
+			`Updating streaming message ${streamingDbId} with ${streamingParts.length} parts`,
+		);
+
 		// Update the message with streaming content
+		let updated = false;
 		virtuoso.current.data.map((message) => {
 			if (message._id === streamingDbId) {
+				updated = true;
 				return {
 					...message,
 					parts: streamingParts,
@@ -98,7 +116,32 @@ export function ChatMessagesVirtuoso({
 			}
 			return message;
 		}, "smooth");
+
+		if (!updated) {
+			console.warn(
+				`Failed to update streaming message ${streamingDbId} - not found in list`,
+			);
+		}
 	}, [uiMessages]);
+
+	// Clean up tracking when messages are removed
+	useEffect(() => {
+		if (!dbMessages) return;
+
+		const currentIds = new Set(dbMessages.map((msg) => msg._id));
+		const toRemove: string[] = [];
+
+		appendedMessageIds.current.forEach((id) => {
+			if (!currentIds.has(id)) {
+				toRemove.push(id);
+			}
+		});
+
+		toRemove.forEach((id) => {
+			appendedMessageIds.current.delete(id);
+			console.log(`Removed ${id} from tracking`);
+		});
+	}, [dbMessages]);
 
 	if (!dbMessages || dbMessages.length === 0) {
 		return <div className="flex-1 min-h-0" />;
