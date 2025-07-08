@@ -6,10 +6,7 @@ import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
 import { useProcessedMessages } from "../../hooks/use-processed-messages";
 import { useStreamingMessageParts } from "../../hooks/use-streaming-message-parts";
-import {
-	StickToBottomScrollArea,
-	useStickToBottomContext,
-} from "./stick-to-bottom";
+import { InstantBottom, useStickToBottomContext } from "./instant-bottom";
 import { MessageDisplay } from "./message-display";
 
 interface ChatMessagesProps {
@@ -71,7 +68,7 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	// Handle empty state
 	if (!dbMessages || dbMessages.length === 0) {
 		return (
-			<StickToBottomScrollArea className="relative flex-1 min-h-0" resize="smooth">
+			<InstantBottom className="relative flex-1 min-h-0" resize="smooth">
 				<div className="p-2 md:p-4 pb-24">
 					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 						{/* Empty state */}
@@ -79,12 +76,12 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 				</div>
 				{/* Scroll to bottom button */}
 				<ScrollToBottomButton />
-			</StickToBottomScrollArea>
+			</InstantBottom>
 		);
 	}
 
 	return (
-		<StickToBottomScrollArea className="relative flex-1 min-h-0" resize="smooth">
+		<InstantBottom className="relative flex-1 min-h-0" resize="smooth">
 			<div className="p-2 md:p-4 pb-24">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 					{dbMessages.map((message) => {
@@ -115,6 +112,6 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 
 			{/* Scroll to bottom button */}
 			<ScrollToBottomButton />
-		</StickToBottomScrollArea>
+		</InstantBottom>
 	);
 }
