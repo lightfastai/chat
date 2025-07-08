@@ -2,14 +2,16 @@
 
 import { Check, Copy } from "lucide-react";
 import { memo, useEffect, useState } from "react";
-import {
-	type BundledLanguage,
-	type BundledTheme,
-	type Highlighter,
-	createHighlighter,
-} from "shiki";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
+
+// Type definition for lazy-loaded Shiki highlighter
+type Highlighter = {
+	codeToHtml: (
+		code: string,
+		options: { lang: string; theme: string },
+	) => string;
+};
 
 // Shared highlighter instance to avoid recreating it
 let sharedHighlighter: Highlighter | null = null;
@@ -21,32 +23,39 @@ const getHighlighter = async (): Promise<Highlighter> => {
 	}
 
 	if (!highlighterPromise) {
-		highlighterPromise = createHighlighter({
-			themes: ["github-dark-default"],
-			langs: [
-				"javascript",
-				"typescript",
-				"jsx",
-				"tsx",
-				"python",
-				"bash",
-				"json",
-				"markdown",
-				"css",
-				"html",
-				"yaml",
-				"sql",
-				"rust",
-				"go",
-				"java",
-				"cpp",
-				"c",
-				"php",
-				"ruby",
-				"xml",
-				"haskell",
-			],
-		});
+		highlighterPromise = (async () => {
+			// Dynamically import Shiki only when needed
+			const { createHighlighter } = await import("shiki");
+
+			const highlighter = await createHighlighter({
+				themes: ["github-dark-default"],
+				langs: [
+					"javascript",
+					"typescript",
+					"jsx",
+					"tsx",
+					"python",
+					"bash",
+					"json",
+					"markdown",
+					"css",
+					"html",
+					"yaml",
+					"sql",
+					"rust",
+					"go",
+					"java",
+					"cpp",
+					"c",
+					"php",
+					"ruby",
+					"xml",
+					"haskell",
+				],
+			});
+
+			return highlighter;
+		})();
 	}
 
 	sharedHighlighter = await highlighterPromise;
@@ -138,8 +147,8 @@ function CodeBlockComponent({
 
 				try {
 					const highlighted = highlighter.codeToHtml(code, {
-						lang: langToUse as BundledLanguage,
-						theme: currentTheme as BundledTheme,
+						lang: langToUse,
+						theme: currentTheme,
 					});
 					if (isMounted) {
 						setHighlightedCode(highlighted);
