@@ -2,11 +2,11 @@
 
 import { Button } from "@lightfast/ui/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import type { LightfastUIMessage } from "../../hooks/convertDbMessagesToUIMessages";
 import { useProcessedMessages } from "../../hooks/use-processed-messages";
 import { useStreamingMessageParts } from "../../hooks/use-streaming-message-parts";
-import { InstantBottom, useStickToBottomContext } from "./instant-bottom";
 import { MessageDisplay } from "./message-display";
 
 interface ChatMessagesProps {
@@ -68,21 +68,29 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 	// Handle empty state
 	if (!dbMessages || dbMessages.length === 0) {
 		return (
-			<InstantBottom className="relative flex-1 min-h-0" resize="smooth">
-				<div className="p-2 md:p-4 pb-24">
+			<StickToBottom
+				className="relative flex-1 min-h-0"
+				initial="instant"
+				resize="smooth"
+			>
+				<StickToBottom.Content className="p-2 md:p-4 pb-24">
 					<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 						{/* Empty state */}
 					</div>
-				</div>
+				</StickToBottom.Content>
 				{/* Scroll to bottom button */}
 				<ScrollToBottomButton />
-			</InstantBottom>
+			</StickToBottom>
 		);
 	}
 
 	return (
-		<InstantBottom className="relative flex-1 min-h-0" resize="smooth">
-			<div className="p-2 md:p-4 pb-24">
+		<StickToBottom
+			className="relative flex-1 min-h-0"
+			initial="instant"
+			resize="smooth"
+		>
+			<StickToBottom.Content className="p-2 md:p-4 pb-24">
 				<div className="space-y-4 sm:space-y-6 max-w-3xl mx-auto">
 					{dbMessages.map((message) => {
 						// For streaming messages, use memoized Vercel data directly
@@ -108,10 +116,10 @@ export function ChatMessages({ dbMessages, uiMessages }: ChatMessagesProps) {
 						);
 					})}
 				</div>
-			</div>
+			</StickToBottom.Content>
 
 			{/* Scroll to bottom button */}
 			<ScrollToBottomButton />
-		</InstantBottom>
+		</StickToBottom>
 	);
 }

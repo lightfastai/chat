@@ -5,53 +5,68 @@ import { memo, useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
 
-// Type definition for lazy-loaded Shiki highlighter
-type Highlighter = {
+// Type definitions for fine-grained Shiki
+type HighlighterCore = {
 	codeToHtml: (
 		code: string,
 		options: { lang: string; theme: string },
 	) => string;
+	loadLanguage: (lang: any) => Promise<void>;
+	getLoadedLanguages: () => string[];
 };
 
 // Shared highlighter instance to avoid recreating it
-let sharedHighlighter: Highlighter | null = null;
-let highlighterPromise: Promise<Highlighter> | null = null;
+let sharedHighlighter: HighlighterCore | null = null;
+let highlighterPromise: Promise<HighlighterCore> | null = null;
 
-const getHighlighter = async (): Promise<Highlighter> => {
+// Map of language names to their dynamic imports
+const languageImports: Record<string, () => Promise<any>> = {
+	javascript: () => import("shiki/langs/javascript.mjs"),
+	typescript: () => import("shiki/langs/typescript.mjs"),
+	jsx: () => import("shiki/langs/jsx.mjs"),
+	tsx: () => import("shiki/langs/tsx.mjs"),
+	python: () => import("shiki/langs/python.mjs"),
+	bash: () => import("shiki/langs/bash.mjs"),
+	json: () => import("shiki/langs/json.mjs"),
+	markdown: () => import("shiki/langs/markdown.mjs"),
+	css: () => import("shiki/langs/css.mjs"),
+	html: () => import("shiki/langs/html.mjs"),
+	yaml: () => import("shiki/langs/yaml.mjs"),
+	sql: () => import("shiki/langs/sql.mjs"),
+	rust: () => import("shiki/langs/rust.mjs"),
+	go: () => import("shiki/langs/go.mjs"),
+	java: () => import("shiki/langs/java.mjs"),
+	cpp: () => import("shiki/langs/cpp.mjs"),
+	c: () => import("shiki/langs/c.mjs"),
+	php: () => import("shiki/langs/php.mjs"),
+	ruby: () => import("shiki/langs/ruby.mjs"),
+	xml: () => import("shiki/langs/xml.mjs"),
+	haskell: () => import("shiki/langs/haskell.mjs"),
+};
+
+const getHighlighter = async (): Promise<HighlighterCore> => {
 	if (sharedHighlighter) {
 		return sharedHighlighter;
 	}
 
 	if (!highlighterPromise) {
 		highlighterPromise = (async () => {
-			// Dynamically import Shiki only when needed
-			const { createHighlighter } = await import("shiki");
+			// Import only the core and JavaScript regex engine for smaller bundle
+			const [
+				{ createHighlighterCore },
+				{ createJavaScriptRegexEngine },
+				githubDarkTheme,
+			] = await Promise.all([
+				import("shiki/core"),
+				import("shiki/engine/javascript"),
+				import("shiki/themes/github-dark.mjs"),
+			]);
 
-			const highlighter = await createHighlighter({
-				themes: ["github-dark-default"],
-				langs: [
-					"javascript",
-					"typescript",
-					"jsx",
-					"tsx",
-					"python",
-					"bash",
-					"json",
-					"markdown",
-					"css",
-					"html",
-					"yaml",
-					"sql",
-					"rust",
-					"go",
-					"java",
-					"cpp",
-					"c",
-					"php",
-					"ruby",
-					"xml",
-					"haskell",
-				],
+			// Create highlighter with minimal setup
+			const highlighter = await createHighlighterCore({
+				themes: [githubDarkTheme],
+				langs: [], // Start with no languages, load on-demand
+				engine: createJavaScriptRegexEngine(), // JS engine instead of WASM
 			});
 
 			return highlighter;
@@ -60,6 +75,24 @@ const getHighlighter = async (): Promise<Highlighter> => {
 
 	sharedHighlighter = await highlighterPromise;
 	return sharedHighlighter;
+};
+
+// Load a language on-demand if not already loaded
+const ensureLanguageLoaded = async (
+	highlighter: HighlighterCore,
+	language: string,
+) => {
+	const loadedLangs = highlighter.getLoadedLanguages();
+
+	if (!loadedLangs.includes(language) && languageImports[language]) {
+		try {
+			const langModule = await languageImports[language]();
+			await highlighter.loadLanguage(langModule.default);
+		} catch (error) {
+			console.warn(`Failed to load language: ${language}`, error);
+			throw error;
+		}
+	}
 };
 
 interface CodeBlockProps {
@@ -126,7 +159,7 @@ function CodeBlockComponent({
 
 				if (!isMounted) return;
 
-				const currentTheme = "github-dark-default";
+				const currentTheme = "github-dark";
 				const langToUse = normalizedLanguage || "text";
 
 				// Handle plaintext/text specially
@@ -146,6 +179,11 @@ function CodeBlockComponent({
 				}
 
 				try {
+					// Load the language on-demand
+					await ensureLanguageLoaded(highlighter, langToUse);
+
+					if (!isMounted) return;
+
 					const highlighted = highlighter.codeToHtml(code, {
 						lang: langToUse,
 						theme: currentTheme,
