@@ -9,9 +9,9 @@ export default async function AuthLoadingPage({
 	searchParams: Promise<{ provider?: string; redirectTo?: string }>;
 }) {
 	const params = await searchParams;
-	// If no provider is specified, redirect to signin
+	// If no provider is specified, redirect to sign-in
 	if (!params.provider) {
-		redirect("/signin");
+		redirect("/sign-in");
 	}
 
 	return (

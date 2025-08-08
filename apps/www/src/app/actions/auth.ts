@@ -33,7 +33,7 @@ export async function signInAction(formData: FormData) {
 	} catch (error) {
 		if (error instanceof z.ZodError) {
 			redirect(
-				`/signin?error=${encodeURIComponent("Invalid sign in parameters")}`,
+				`/sign-in?error=${encodeURIComponent("Invalid sign in parameters")}`,
 			);
 		}
 
@@ -44,7 +44,7 @@ export async function signInAction(formData: FormData) {
 
 		console.error("Sign in error:", error);
 		redirect(
-			`/signin?error=${encodeURIComponent("Failed to sign in. Please try again.")}`,
+			`/sign-in?error=${encodeURIComponent("Failed to sign in. Please try again.")}`,
 		);
 	}
 }

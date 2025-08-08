@@ -16,6 +16,10 @@ export const env = createEnv({
 		EXA_API_KEY: z.string().min(1).describe("Exa API key for web search"),
 
 		// Authentication & Encryption
+		CLERK_JWT_ISSUER_DOMAIN: z
+			.string()
+			.min(1)
+			.describe("Clerk JWT issuer domain for authentication"),
 		JWT_PRIVATE_KEY: z
 			.string()
 			.min(1)

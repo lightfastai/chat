@@ -5,12 +5,11 @@ const isPublicRoute = createRouteMatcher([
 	"/",
 	"/sign-in(.*)",
 	"/sign-up(.*)",
-	"/signin(.*)", // Keep old route for backward compatibility
 	"/api/health",
 	"/api/webhooks(.*)",
 ]);
 
-const isSignInPage = createRouteMatcher(["/sign-in", "/signin"]);
+const isSignInPage = createRouteMatcher(["/sign-in"]);
 
 export default clerkMiddleware(async (auth, req) => {
 	const { pathname } = req.nextUrl;

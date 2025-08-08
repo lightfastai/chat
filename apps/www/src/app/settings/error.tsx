@@ -46,7 +46,7 @@ export default function SettingsError({
 		},
 		isAuthError && {
 			label: "Sign in",
-			href: "/signin",
+			href: "/sign-in",
 		},
 	].filter(Boolean) as ErrorBoundaryAction[];
 
