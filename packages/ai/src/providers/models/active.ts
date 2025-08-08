@@ -406,7 +406,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: true,
 		},
 		streamingDelay: 10,
-		active: false, // Beta model
+		active: false, // Disabled - Beta model
 	}),
 	"x-ai/grok-3-mini-beta": ModelConfigSchema.parse({
 		id: "x-ai/grok-3-mini-beta",
@@ -425,6 +425,7 @@ export const ACTIVE_MODELS = {
 			pdfSupport: true,
 		},
 		streamingDelay: 20,
+		active: false, // Disabled
 	}),
 	"google/gemini-2.5-pro-preview": ModelConfigSchema.parse({
 		id: "google/gemini-2.5-pro-preview",
@@ -462,5 +463,6 @@ export const ACTIVE_MODELS = {
 			pdfSupport: false,
 		},
 		streamingDelay: 15,
+		active: false, // Disabled
 	}),
 } as const;
