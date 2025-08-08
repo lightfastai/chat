@@ -46,11 +46,14 @@ export default defineSchema({
 
 	userSettings: defineTable({
 		userId: v.id("users"),
+		clerkUserId: v.string(), // Clerk user ID for direct user identification (required)
 		apiKeys: userApiKeysValidator,
 		preferences: userPreferencesValidator,
 		createdAt: v.number(),
 		updatedAt: v.number(),
-	}).index("by_user", ["userId"]),
+	})
+		.index("by_user", ["userId"])
+		.index("by_clerk_user", ["clerkUserId"]),
 
 	threads: defineTable({
 		clientId: v.optional(clientIdValidator), // Client-generated ID for instant navigation

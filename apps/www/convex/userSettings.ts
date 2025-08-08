@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { getAuthenticatedUserId } from "./lib/auth";
+import { getAuthenticatedClerkUserId, getAuthenticatedUserId } from "./lib/auth";
 
 // Import proper encryption utilities
 import { decrypt, encrypt } from "./lib/services/encryption";
@@ -48,6 +48,7 @@ export const updateApiKeys = mutation({
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, { openaiKey, anthropicKey, openrouterKey }) => {
 		const userId = await getAuthenticatedUserId(ctx);
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		const existingSettings = await ctx.db
 			.query("userSettings")
@@ -94,6 +95,7 @@ export const updateApiKeys = mutation({
 			// Create new settings
 			await ctx.db.insert("userSettings", {
 				userId,
+				clerkUserId,
 				apiKeys,
 				createdAt: now,
 				updatedAt: now,
@@ -113,6 +115,7 @@ export const updatePreferences = mutation({
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, { defaultModel, preferredProvider }) => {
 		const userId = await getAuthenticatedUserId(ctx);
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		const existingSettings = await ctx.db
 			.query("userSettings")
@@ -135,6 +138,7 @@ export const updatePreferences = mutation({
 			// Create new settings
 			await ctx.db.insert("userSettings", {
 				userId,
+				clerkUserId,
 				preferences,
 				createdAt: now,
 				updatedAt: now,
@@ -180,7 +184,7 @@ export const removeApiKey = mutation({
 
 // Internal function to get decrypted API keys (for use in other Convex functions)
 export const getDecryptedApiKeys = internalMutation({
-	args: { userId: v.id("users") },
+	args: { clerkUserId: v.string() },
 	returns: v.union(
 		v.null(),
 		v.object({
@@ -189,10 +193,10 @@ export const getDecryptedApiKeys = internalMutation({
 			openrouter: v.optional(openrouterApiKeyValidator),
 		}),
 	),
-	handler: async (ctx, { userId }) => {
+	handler: async (ctx, { clerkUserId }) => {
 		const settings = await ctx.db
 			.query("userSettings")
-			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.withIndex("by_clerk_user", (q) => q.eq("clerkUserId", clerkUserId))
 			.first();
 
 		if (!settings?.apiKeys) {

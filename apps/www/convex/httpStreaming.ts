@@ -40,7 +40,7 @@ import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 import { createAIClient } from "./lib/ai/client";
 import { MessagePartWriter } from "./lib/ai/writer/message_part_writer";
-import { getAuthenticatedUserId } from "./lib/auth";
+import { getAuthenticatedClerkUserId } from "./lib/auth";
 import { createSystemPrompt } from "./lib/create_system_prompt";
 import {
 	createHTTPErrorResponse,
@@ -116,8 +116,8 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		}
 
 		// run auth check
-		const userId = await getAuthenticatedUserId(ctx);
-		if (!userId) {
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
+		if (!clerkUserId) {
 			return new Response("Unauthorized", {
 				status: 401,
 				headers: corsHeaders(),
@@ -134,6 +134,17 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				"Thread not found. Ensure thread is created before streaming.",
 				{
 					status: 404,
+					headers: corsHeaders(),
+				},
+			);
+		}
+
+		// Verify thread ownership - user can only stream responses for their own threads
+		if (thread.clerkUserId !== clerkUserId) {
+			return new Response(
+				"Forbidden. You can only stream responses for your own threads.",
+				{
+					status: 403,
 					headers: corsHeaders(),
 				},
 			);
@@ -170,7 +181,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		// Type safety is ensured by the return type of getDecryptedApiKeys
 		const userApiKeys = await ctx.runMutation(
 			internal.userSettings.getDecryptedApiKeys,
-			{ userId: thread.userId },
+			{ clerkUserId: clerkUserId },
 		);
 
 		// Convert UIMessages to ModelMessages for the AI SDK
