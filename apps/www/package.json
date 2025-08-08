@@ -21,7 +21,6 @@
 		"@ai-sdk/react": "catalog:",
 		"@auth/core": "^0.39.1",
 		"@convex-dev/auth": "^0.0.87",
-		"@convex-dev/migrations": "^0.2.9",
 		"@hookform/resolvers": "^5.1.1",
 		"@lightfast/ai": "workspace:*",
 		"@lightfast/ui": "workspace:*",
