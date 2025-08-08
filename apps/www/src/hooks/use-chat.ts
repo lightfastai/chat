@@ -2,11 +2,11 @@
 
 import { nanoid } from "@/lib/nanoid";
 import { useChat as useVercelChat } from "@ai-sdk/react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuth } from "@clerk/nextjs";
 import { DEFAULT_MODEL_ID } from "@lightfast/ai/providers";
 import type { Preloaded } from "convex/react";
 import { useConvexAuth, usePreloadedQuery, useQuery } from "convex/react";
-import { useCallback } from "react";
+import React, { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
 import type {
 	LightfastUIMessage,
@@ -31,12 +31,35 @@ export function useChat({
 	preloadedUserSettings,
 	clientId,
 }: UseChatProps) {
-	const authToken = useAuthToken();
+	// Check authentication status (recommended by Convex docs)
+	const { isAuthenticated } = useConvexAuth();
+	
+	// Get token for HTTP requests (only when needed)
+	const { getToken } = useAuth();
+	const [authToken, setAuthToken] = React.useState<string | null>(null);
+	
+	// Get Clerk auth token for Convex HTTP requests
+	React.useEffect(() => {
+		async function fetchToken() {
+			if (!isAuthenticated) {
+				setAuthToken(null);
+				return;
+			}
+			
+			try {
+				const token = await getToken({ template: "convex" });
+				setAuthToken(token);
+			} catch (error) {
+				console.error("Failed to get auth token:", error);
+				setAuthToken(null);
+			}
+		}
+		
+		fetchToken();
+	}, [getToken, isAuthenticated]);
+	
 	const createThreadOptimistic = useCreateThreadWithFirstMessages();
 	const createMessageOptimistic = useCreateSubsequentMessages();
-	
-	// Check authentication status
-	const { isAuthenticated } = useConvexAuth();
 
 	// Query thread if we have a clientId and are authenticated
 	const thread = useQuery(
