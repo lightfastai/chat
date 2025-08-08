@@ -9,9 +9,9 @@
  */
 
 import type {
-	ApiFromModules,
-	FilterApi,
-	FunctionReference,
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
 } from "convex/server";
 import type * as auth from "../auth.js";
 import type * as env from "../env.js";
@@ -29,6 +29,7 @@ import type * as lib_error_handling from "../lib/error_handling.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_services_encryption from "../lib/services/encryption.js";
 import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
 import type * as setup from "../setup.js";
 import type * as share from "../share.js";
 import type * as threads from "../threads.js";
@@ -47,36 +48,37 @@ import type * as validators from "../validators.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
-	auth: typeof auth;
-	env: typeof env;
-	feedback: typeof feedback;
-	files: typeof files;
-	http: typeof http;
-	httpStreaming: typeof httpStreaming;
-	"lib/ai/client": typeof lib_ai_client;
-	"lib/ai/writer/message_part_writer": typeof lib_ai_writer_message_part_writer;
-	"lib/auth": typeof lib_auth;
-	"lib/capability_guards": typeof lib_capability_guards;
-	"lib/create_system_prompt": typeof lib_create_system_prompt;
-	"lib/database": typeof lib_database;
-	"lib/error_handling": typeof lib_error_handling;
-	"lib/errors": typeof lib_errors;
-	"lib/services/encryption": typeof lib_services_encryption;
-	messages: typeof messages;
-	setup: typeof setup;
-	share: typeof share;
-	threads: typeof threads;
-	titles: typeof titles;
-	types: typeof types;
-	userSettings: typeof userSettings;
-	users: typeof users;
-	validators: typeof validators;
+  auth: typeof auth;
+  env: typeof env;
+  feedback: typeof feedback;
+  files: typeof files;
+  http: typeof http;
+  httpStreaming: typeof httpStreaming;
+  "lib/ai/client": typeof lib_ai_client;
+  "lib/ai/writer/message_part_writer": typeof lib_ai_writer_message_part_writer;
+  "lib/auth": typeof lib_auth;
+  "lib/capability_guards": typeof lib_capability_guards;
+  "lib/create_system_prompt": typeof lib_create_system_prompt;
+  "lib/database": typeof lib_database;
+  "lib/error_handling": typeof lib_error_handling;
+  "lib/errors": typeof lib_errors;
+  "lib/services/encryption": typeof lib_services_encryption;
+  messages: typeof messages;
+  migrations: typeof migrations;
+  setup: typeof setup;
+  share: typeof share;
+  threads: typeof threads;
+  titles: typeof titles;
+  types: typeof types;
+  userSettings: typeof userSettings;
+  users: typeof users;
+  validators: typeof validators;
 }>;
 export declare const api: FilterApi<
-	typeof fullApi,
-	FunctionReference<any, "public">
+  typeof fullApi,
+  FunctionReference<any, "public">
 >;
 export declare const internal: FilterApi<
-	typeof fullApi,
-	FunctionReference<any, "internal">
+  typeof fullApi,
+  FunctionReference<any, "internal">
 >;

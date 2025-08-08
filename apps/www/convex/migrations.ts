@@ -4,7 +4,6 @@
 
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
-import { internal } from "./_generated/api";
 import type { DbMessagePart } from "./types";
 
 /**
@@ -14,19 +13,23 @@ import type { DbMessagePart } from "./types";
 export const migrateMessagesToParts = internalMutation({
   args: {
     batchSize: v.optional(v.number()),
+    cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const batchSize = args.batchSize ?? 100;
     
-    // Get messages without parts but with legacy fields
-    const messages = await ctx.db
+    // Get ALL messages to find ones that need migration
+    // We can't filter directly in the query, so we need to paginate through all
+    const allMessages = await ctx.db
       .query("messages")
-      .take(batchSize);
+      .paginate({ numItems: batchSize, cursor: args.cursor ?? null });
     
     let migrated = 0;
     let skipped = 0;
+    const messagesToMigrate = [];
     
-    for (const message of messages) {
+    // First pass: identify messages that need migration
+    for (const message of allMessages.page) {
       // Skip if already has parts
       if (message.parts && message.parts.length > 0) {
         skipped++;
@@ -38,6 +41,12 @@ export const migrateMessagesToParts = internalMutation({
         skipped++;
         continue;
       }
+      
+      messagesToMigrate.push(message);
+    }
+    
+    // Second pass: migrate the identified messages
+    for (const message of messagesToMigrate) {
       
       // Build parts array from legacy fields
       const parts: DbMessagePart[] = [];
@@ -74,7 +83,8 @@ export const migrateMessagesToParts = internalMutation({
     return {
       migrated,
       skipped,
-      hasMore: messages.length === batchSize,
+      continueCursor: allMessages.continueCursor,
+      isDone: allMessages.isDone,
     };
   },
 });
@@ -121,59 +131,26 @@ export const countLegacyMessages = internalQuery({
 });
 
 /**
- * Run the full migration in batches
- * Run with: npx convex run migrations:runFullMigration
- */
-export const runFullMigration = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    let totalMigrated = 0;
-    let totalSkipped = 0;
-    let iterations = 0;
-    const maxIterations = 100; // Safety limit
-    
-    while (iterations < maxIterations) {
-      const result = await ctx.scheduler.runAfter(0, internal.migrations.migrateMessagesToParts, {
-        batchSize: 100,
-      });
-      
-      totalMigrated += result.migrated;
-      totalSkipped += result.skipped;
-      iterations++;
-      
-      if (!result.hasMore || result.migrated === 0) {
-        break;
-      }
-    }
-    
-    return {
-      totalMigrated,
-      totalSkipped,
-      iterations,
-    };
-  },
-});
-
-/**
  * Clean up legacy fields after migration
  * Run with: npx convex run migrations:cleanupLegacyFields
  */
 export const cleanupLegacyFields = internalMutation({
   args: {
     batchSize: v.optional(v.number()),
+    cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const batchSize = args.batchSize ?? 100;
     
-    // Get messages that have parts (successfully migrated)
-    const messages = await ctx.db
+    // Get messages using pagination
+    const allMessages = await ctx.db
       .query("messages")
-      .take(batchSize);
+      .paginate({ numItems: batchSize, cursor: args.cursor ?? null });
     
     let cleaned = 0;
     let skipped = 0;
     
-    for (const message of messages) {
+    for (const message of allMessages.page) {
       // Only clean if has parts and has legacy fields
       if (!message.parts || message.parts.length === 0) {
         skipped++;
@@ -206,7 +183,8 @@ export const cleanupLegacyFields = internalMutation({
     return {
       cleaned,
       skipped,
-      hasMore: messages.length === batchSize,
+      continueCursor: allMessages.continueCursor,
+      isDone: allMessages.isDone,
     };
   },
 });
