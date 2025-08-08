@@ -1,11 +1,7 @@
 "use client";
 
 import { useAuthActions } from "@/hooks/use-auth";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@lightfast/ui/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@lightfast/ui/components/ui/avatar";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
 	DropdownMenu,
@@ -41,7 +37,10 @@ export function UserDropdown({
 }: UserDropdownProps) {
 	const { signOut } = useAuthActions();
 	const { isAuthenticated } = useConvexAuth();
-	const currentUser = useQuery(api.users.current, isAuthenticated ? {} : "skip");
+	const currentUser = useQuery(
+		api.users.current,
+		isAuthenticated ? {} : "skip",
+	);
 	const router = useRouter();
 
 	const handleSignOut = async () => {
@@ -58,7 +57,11 @@ export function UserDropdown({
 		}
 	};
 
-	const displayName = currentUser?.name || currentUser?.email || "User";
+	// Debug: Log currentUser data
+	console.log("UserDropdown - currentUser data:", currentUser);
+	console.log("UserDropdown - isAuthenticated:", isAuthenticated);
+
+	const displayName = currentUser?.email || "User";
 	const displayEmail = currentUser?.email || "No email";
 
 	return (
@@ -66,13 +69,6 @@ export function UserDropdown({
 			<DropdownMenuTrigger asChild>
 				<Button variant="ghost" className={cn("gap-2 h-10", className)}>
 					<Avatar className="w-6 h-6">
-						{currentUser?.image && (
-							<AvatarImage
-								src={currentUser.image}
-								alt={displayName}
-								className="object-cover"
-							/>
-						)}
 						<AvatarFallback className="text-xs">
 							<User className="w-3 h-3" />
 						</AvatarFallback>

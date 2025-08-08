@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { getAuthenticatedClerkUserId, getAuthenticatedUserId } from "./lib/auth";
+import { getAuthenticatedClerkUserId } from "./lib/auth";
 
 // Import proper encryption utilities
 import { decrypt, encrypt } from "./lib/services/encryption";
@@ -18,16 +19,16 @@ import {
 export const getUserSettings = query({
 	args: {},
 	handler: async (ctx) => {
-		let userId;
+		let clerkUserId;
 		try {
-			userId = await getAuthenticatedUserId(ctx);
+			clerkUserId = await getAuthenticatedClerkUserId(ctx);
 		} catch {
 			return null;
 		}
 
 		const settings = await ctx.db
 			.query("userSettings")
-			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.withIndex("by_clerk_user", (q) => q.eq("clerkUserId", clerkUserId))
 			.first();
 
 		if (!settings) {
@@ -47,12 +48,11 @@ export const updateApiKeys = mutation({
 	},
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, { openaiKey, anthropicKey, openrouterKey }) => {
-		const userId = await getAuthenticatedUserId(ctx);
 		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		const existingSettings = await ctx.db
 			.query("userSettings")
-			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.withIndex("by_clerk_user", (q) => q.eq("clerkUserId", clerkUserId))
 			.first();
 
 		const now = Date.now();
@@ -86,17 +86,16 @@ export const updateApiKeys = mutation({
 		}
 
 		if (existingSettings) {
-			// Update existing settings and populate clerkUserId if missing (migration)
+			// Update existing settings
 			await ctx.db.patch(existingSettings._id, {
 				apiKeys,
-				clerkUserId: existingSettings.clerkUserId || clerkUserId, // Populate clerkUserId for legacy records
 				updatedAt: now,
 			});
 		} else {
 			// Create new settings with clerkUserId
 			await ctx.db.insert("userSettings", {
-				userId,
-				clerkUserId: clerkUserId, // Include clerkUserId for new records
+				userId: "" as Id<"users">, // Placeholder for migration
+				clerkUserId: clerkUserId,
 				apiKeys,
 				createdAt: now,
 				updatedAt: now,
@@ -115,12 +114,11 @@ export const updatePreferences = mutation({
 	},
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, { defaultModel, preferredProvider }) => {
-		const userId = await getAuthenticatedUserId(ctx);
 		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		const existingSettings = await ctx.db
 			.query("userSettings")
-			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.withIndex("by_clerk_user", (q) => q.eq("clerkUserId", clerkUserId))
 			.first();
 
 		const now = Date.now();
@@ -130,17 +128,16 @@ export const updatePreferences = mutation({
 		};
 
 		if (existingSettings) {
-			// Update existing settings and populate clerkUserId if missing (migration)
+			// Update existing settings
 			await ctx.db.patch(existingSettings._id, {
 				preferences,
-				clerkUserId: existingSettings.clerkUserId || clerkUserId, // Populate clerkUserId for legacy records
 				updatedAt: now,
 			});
 		} else {
 			// Create new settings with clerkUserId
 			await ctx.db.insert("userSettings", {
-				userId,
-				clerkUserId: clerkUserId, // Include clerkUserId for new records
+				userId: "" as Id<"users">, // Placeholder for migration
+				clerkUserId: clerkUserId,
 				preferences,
 				createdAt: now,
 				updatedAt: now,
@@ -159,11 +156,11 @@ export const removeApiKey = mutation({
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, args) => {
 		const provider = args.provider;
-		const userId = await getAuthenticatedUserId(ctx);
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		const existingSettings = await ctx.db
 			.query("userSettings")
-			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.withIndex("by_clerk_user", (q) => q.eq("clerkUserId", clerkUserId))
 			.first();
 
 		if (!existingSettings) {
@@ -197,7 +194,7 @@ export const getDecryptedApiKeys = internalMutation({
 	),
 	handler: async (ctx, { clerkUserId }) => {
 		// Try to find settings by Clerk user ID first
-		let settings = await ctx.db
+		const settings = await ctx.db
 			.query("userSettings")
 			.withIndex("by_clerk_user", (q) => q.eq("clerkUserId", clerkUserId))
 			.first();

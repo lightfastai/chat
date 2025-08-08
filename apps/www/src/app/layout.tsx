@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@lightfast/ui/globals.css";
 import { ConvexClientProvider } from "@/components/providers/convex-provider";
+import { env } from "@/env";
 import { siteConfig, siteMetadata } from "@/lib/site-config";
 import { ClerkProvider } from "@clerk/nextjs";
 import { fonts } from "@lightfast/ui/lib/fonts";
@@ -8,7 +9,6 @@ import { cn } from "@lightfast/ui/lib/utils";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "sonner";
-import { env } from "@/env";
 
 export const metadata: Metadata = {
 	title: {
@@ -85,7 +85,13 @@ export default function RootLayout({
 	children,
 }: { children: React.ReactNode }) {
 	return (
-		<ClerkProvider publishableKey={env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+		<ClerkProvider
+			publishableKey={env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+			afterSignInUrl="/chat"
+			afterSignUpUrl="/chat"
+			signInUrl="/sign-in"
+			signUpUrl="/sign-up"
+		>
 			<html lang="en" suppressHydrationWarning>
 				<body className={cn(fonts, "dark", "flex min-h-screen flex-col")}>
 					<ConvexClientProvider>{children}</ConvexClientProvider>

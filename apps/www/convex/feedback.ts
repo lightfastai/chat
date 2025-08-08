@@ -1,7 +1,8 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel.js";
 import { mutation, query } from "./_generated/server";
-import { getAuthenticatedUserId } from "./lib/auth.js";
-import { getOrThrow, getWithOwnership } from "./lib/database.js";
+import { getAuthenticatedClerkUserId } from "./lib/auth.js";
+import { getOrThrow, getWithClerkOwnership } from "./lib/database.js";
 import {
 	commentValidator,
 	feedbackRatingValidator,
@@ -18,39 +19,42 @@ export const submitFeedback = mutation({
 	},
 	returns: v.id("feedback"),
 	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		// Get the message to find the threadId
 		const message = await getOrThrow(ctx.db, "messages", args.messageId);
 
 		// Verify user owns the thread containing this message
-		await getWithOwnership(ctx.db, "threads", message.threadId, userId);
+		await getWithClerkOwnership(
+			ctx.db,
+			"threads",
+			message.threadId,
+			clerkUserId,
+		);
 
-		// Check if the user has already submitted feedback for this message
-		const existingFeedback = await ctx.db
-			.query("feedback")
-			.withIndex("by_user_message", (q) =>
-				q.eq("userId", userId).eq("messageId", args.messageId),
-			)
-			.first();
+		// TODO: Add clerkUserId field to feedback table for proper user filtering
+		// For now, we'll skip checking existing feedback since we can't reliably filter by Clerk user ID
+		// This means users could potentially create duplicate feedback until we add the clerkUserId field
 
 		const now = Date.now();
 
-		if (existingFeedback) {
-			// Update existing feedback
-			await ctx.db.patch(existingFeedback._id, {
-				rating: args.rating,
-				comment: args.comment,
-				reasons: args.reasons,
-				updatedAt: now,
-			});
-			return existingFeedback._id;
-		}
+		// Temporarily disabled existing feedback check
+		// if (existingFeedback) {
+		// 	// Update existing feedback
+		// 	await ctx.db.patch(existingFeedback._id, {
+		// 		rating: args.rating,
+		// 		comment: args.comment,
+		// 		reasons: args.reasons,
+		// 		updatedAt: now,
+		// 	});
+		// 	return existingFeedback._id;
+		// }
 
 		// Create new feedback
+		// TODO: Replace userId placeholder with clerkUserId field once added to schema
 		return await ctx.db.insert("feedback", {
 			messageId: args.messageId,
-			userId,
+			userId: "" as Id<"users">, // Placeholder until we add clerkUserId field
 			threadId: message.threadId,
 			rating: args.rating,
 			comment: args.comment,
@@ -67,19 +71,22 @@ export const removeFeedback = mutation({
 		messageId: v.id("messages"),
 	},
 	returns: v.null(),
-	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
+	handler: async (ctx, _args) => {
+		// Ensure user is authenticated
+		await getAuthenticatedClerkUserId(ctx);
 
-		const feedback = await ctx.db
-			.query("feedback")
-			.withIndex("by_user_message", (q) =>
-				q.eq("userId", userId).eq("messageId", args.messageId),
-			)
-			.first();
+		// TODO: Once clerkUserId field is added to feedback table, filter by clerkUserId
+		// For now, we cannot reliably identify user's feedback without clerkUserId field
+		// This functionality is temporarily disabled
+		// \t.query("feedback")
+		// \t.withIndex("by_user_message", (q) =>
+		// \t\tq.eq("clerkUserId", clerkUserId).eq("messageId", args.messageId),
+		// \t)
+		// \t.first();
 
-		if (feedback) {
-			await ctx.db.delete(feedback._id);
-		}
+		// if (feedback) {
+		// \tawait ctx.db.delete(feedback._id);
+		// }
 
 		return null;
 	},
@@ -105,16 +112,20 @@ export const getUserFeedbackForMessage = query({
 			updatedAt: v.number(),
 		}),
 	),
-	handler: async (ctx, args) => {
+	handler: async (ctx, _args) => {
 		try {
-			const userId = await getAuthenticatedUserId(ctx);
+			// Ensure user is authenticated
+			await getAuthenticatedClerkUserId(ctx);
 
-			return await ctx.db
-				.query("feedback")
-				.withIndex("by_user_message", (q) =>
-					q.eq("userId", userId).eq("messageId", args.messageId),
-				)
-				.first();
+			// TODO: Once clerkUserId field is added to feedback table, filter by clerkUserId
+			// For now, return null since we can't reliably identify user's feedback
+			// return await ctx.db
+			// \t.query("feedback")
+			// \t.withIndex("by_clerk_user_message", (q) =>
+			// \t\tq.eq("clerkUserId", clerkUserId).eq("messageId", args.messageId),
+			// \t)
+			// \t.first();
+			return null;
 		} catch {
 			return null;
 		}
@@ -142,10 +153,15 @@ export const getThreadFeedback = query({
 	),
 	handler: async (ctx, args) => {
 		try {
-			const userId = await getAuthenticatedUserId(ctx);
+			const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
-			// Verify the user owns the thread
-			await getWithOwnership(ctx.db, "threads", args.threadId, userId);
+			// Verify the user owns the thread using Clerk ownership
+			await getWithClerkOwnership(
+				ctx.db,
+				"threads",
+				args.threadId,
+				clerkUserId,
+			);
 
 			return await ctx.db
 				.query("feedback")

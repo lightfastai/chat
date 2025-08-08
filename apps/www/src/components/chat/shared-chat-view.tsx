@@ -44,7 +44,7 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 		);
 	}
 
-	const { thread, messages, owner } = sharedData;
+	const { thread, messages } = sharedData;
 
 	return (
 		<div className="flex flex-col h-screen">
@@ -61,11 +61,10 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 						<Alert className="mb-6">
 							<Info className="h-4 w-4" />
 							<AlertDescription className="text-xs">
-								This is a copy of a chat between Lightfast and{" "}
-								{owner?.name || "a user"}. Content may include unverified or
-								unsafe content that do not represent the views of Lightfast.
-								Shared snapshot may contain attachments and data not displayed
-								here.
+								This is a copy of a chat between Lightfast and {"a user"}.
+								Content may include unverified or unsafe content that do not
+								represent the views of Lightfast. Shared snapshot may contain
+								attachments and data not displayed here.
 							</AlertDescription>
 						</Alert>
 						{messages.map((message) => {

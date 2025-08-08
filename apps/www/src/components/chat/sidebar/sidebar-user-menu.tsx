@@ -1,13 +1,9 @@
 "use client";
 
+import { useAuthActions } from "@/hooks/use-auth";
 import { usePlatformShortcuts } from "@/hooks/use-platform-shortcuts";
 import { siteConfig } from "@/lib/site-config";
-import { useAuthActions } from "@/hooks/use-auth";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@lightfast/ui/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@lightfast/ui/components/ui/avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -37,7 +33,10 @@ export function SidebarUserMenu() {
 	const { signOut } = useAuthActions();
 	const router = useRouter();
 	const { isAuthenticated } = useConvexAuth();
-	const currentUser = useQuery(api.users.current, isAuthenticated ? {} : "skip");
+	const currentUser = useQuery(
+		api.users.current,
+		isAuthenticated ? {} : "skip",
+	);
 	const { state } = useSidebar();
 	const [open, setOpen] = useState(false);
 	const { getShortcut } = usePlatformShortcuts();
@@ -51,10 +50,10 @@ export function SidebarUserMenu() {
 
 	const handleSignOut = async () => {
 		await signOut();
-		router.push("/sign-in");
+		router.push("/");
 	};
 
-	const displayName = currentUser?.name || currentUser?.email || "User";
+	const displayName = currentUser?.email || "User";
 	const displayEmail = currentUser?.email || "No email";
 	const settingsShortcut = getShortcut("openSettings");
 
@@ -69,13 +68,6 @@ export function SidebarUserMenu() {
 					<div className="h-8 flex items-center w-full overflow-visible">
 						<div className="w-8 h-8 flex-shrink-0 overflow-visible">
 							<Avatar className="w-8 h-8 !rounded-md">
-								{currentUser?.image && (
-									<AvatarImage
-										src={currentUser.image}
-										alt={displayName}
-										className="object-cover w-8 h-8 !rounded-md"
-									/>
-								)}
 								<AvatarFallback className="text-xs !rounded-md">
 									<User className="w-4 h-4" />
 								</AvatarFallback>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { DbMessage, DbThread } from "../../convex/types";
@@ -11,8 +11,6 @@ import type { DbMessage, DbThread } from "../../convex/types";
  * Makes thread creation feel instant in the UI
  */
 export function useCreateThreadWithFirstMessages() {
-	// Get the current user to use in optimistic updates
-	const currentUser = useQuery(api.users.current);
 	// Get the Clerk user for the clerkUserId field
 	const { user: clerkUser } = useUser();
 
@@ -23,10 +21,12 @@ export function useCreateThreadWithFirstMessages() {
 
 		// If we don't have a user ID yet, we can't create an optimistic thread
 		// This shouldn't happen in practice as the user should be authenticated
-		if (!currentUser?._id || !clerkUser?.id) {
-			console.error("No user ID found");
+		if (!clerkUser?.id) {
+			console.error("No user ID found - user must be authenticated");
 			return;
 		}
+
+		const clerkUserId = clerkUser.id;
 
 		// Create optimistic thread with a temporary ID that looks like a real thread ID,
 		// Convex automatically generates a real ID for the thread when it's created
@@ -40,8 +40,8 @@ export function useCreateThreadWithFirstMessages() {
 			_creationTime: now,
 			clientId: clientThreadId,
 			title: "",
-			userId: currentUser._id,
-			clerkUserId: clerkUser.id, // Use the actual Clerk user ID
+			userId: undefined as any, // Optional field for backward compatibility
+			clerkUserId: clerkUserId, // Use the Clerk user ID or "anonymous"
 			pinned: undefined, // Match backend behavior - undefined means unpinned
 			branchedFrom: undefined,
 			isPublic: false,

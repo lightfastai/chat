@@ -1,9 +1,9 @@
-import { Info } from "lucide-react";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "@lightfast/ui/components/ui/popover";
+import { Info } from "lucide-react";
 
 export function ChatBadge() {
 	return (
@@ -16,12 +16,9 @@ export function ChatBadge() {
 					</button>
 				</PopoverTrigger>
 				<PopoverContent side="right" className="w-80">
-					<p className="text-sm">
-						Lightfast Chat is currently in beta
-					</p>
+					<p className="text-sm">Lightfast Chat is currently in beta</p>
 				</PopoverContent>
 			</Popover>
 		</div>
 	);
 }
-

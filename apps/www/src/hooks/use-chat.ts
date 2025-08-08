@@ -33,11 +33,11 @@ export function useChat({
 }: UseChatProps) {
 	// Check authentication status (recommended by Convex docs)
 	const { isAuthenticated } = useConvexAuth();
-	
+
 	// Get token for HTTP requests (only when needed)
 	const { getToken } = useAuth();
 	const [authToken, setAuthToken] = React.useState<string | null>(null);
-	
+
 	// Get Clerk auth token for Convex HTTP requests
 	React.useEffect(() => {
 		async function fetchToken() {
@@ -45,7 +45,7 @@ export function useChat({
 				setAuthToken(null);
 				return;
 			}
-			
+
 			try {
 				const token = await getToken({ template: "convex" });
 				setAuthToken(token);
@@ -54,10 +54,10 @@ export function useChat({
 				setAuthToken(null);
 			}
 		}
-		
+
 		fetchToken();
 	}, [getToken, isAuthenticated]);
-	
+
 	const createThreadOptimistic = useCreateThreadWithFirstMessages();
 	const createMessageOptimistic = useCreateSubsequentMessages();
 

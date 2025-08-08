@@ -37,7 +37,9 @@ export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
 	// Skip query for new chats, optimistic IDs, or when not authenticated
 	const usage = useQuery(
 		api.messages.getThreadUsage,
-		threadId === "new" || isOptimisticThreadId || !isAuthenticated ? "skip" : { threadId },
+		threadId === "new" || isOptimisticThreadId || !isAuthenticated
+			? "skip"
+			: { threadId },
 	);
 
 	// For new chats, show nothing

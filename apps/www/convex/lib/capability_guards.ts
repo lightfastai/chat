@@ -18,7 +18,8 @@ type FileWithUrl = {
 	fileName: string;
 	fileType: string;
 	fileSize: number;
-	uploadedBy: Id<"users">;
+	uploadedBy?: Id<"users">;
+	clerkUploadedBy?: string;
 	uploadedAt: number;
 	metadata?: {
 		extracted?: boolean;

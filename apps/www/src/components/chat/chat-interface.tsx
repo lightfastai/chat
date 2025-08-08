@@ -6,9 +6,9 @@ import { useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
 import { convertDbMessagesToUIMessages } from "../../hooks/convertDbMessagesToUIMessages";
 import { useChat } from "../../hooks/use-chat";
-import { SimpleChatStart } from "./simple-chat-start";
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
+import { SimpleChatStart } from "./simple-chat-start";
 
 export function ChatInterface() {
 	const pathname = usePathname();

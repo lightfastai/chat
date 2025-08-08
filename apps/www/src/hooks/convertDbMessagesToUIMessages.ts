@@ -183,102 +183,105 @@ export function convertDbMessagesToUIMessages(
 	return dbMessages.map((msg) => {
 		// Convert parts array to UI format
 		const parts: LightfastUIMessagePart[] = (msg.parts || [])
-				.map((part: DbMessagePart): LightfastUIMessagePart | null => {
-					switch (part.type) {
-						case "text":
-							return {
-								type: "text",
-								text: part.text,
-							};
+			.map((part: DbMessagePart): LightfastUIMessagePart | null => {
+				switch (part.type) {
+					case "text":
+						return {
+							type: "text",
+							text: part.text,
+						};
 
-						case "reasoning":
-							return {
-								type: "reasoning",
-								text: part.text,
-							};
+					case "reasoning":
+						return {
+							type: "reasoning",
+							text: part.text,
+						};
 
-						case "error":
-							return {
-								type: "data-error",
-								data: {
-									errorMessage: part.errorMessage,
-									errorDetails: part.errorDetails,
-									timestamp: part.timestamp,
-								},
-							};
+					case "error":
+						return {
+							type: "data-error",
+							data: {
+								errorMessage: part.errorMessage,
+								errorDetails: part.errorDetails,
+								timestamp: part.timestamp,
+							},
+						};
 
-						case "tool-call":
-							// Map to the AI SDK's tool part format with proper type
-							// The type assertion is safe because we validate tool names in the database
-							return {
-								type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
-									? `tool-${T}`
-									: never,
-								toolCallId: part.toolCallId,
-								state: "input-available" as const,
-								input: part.args.input,
-							};
+					case "tool-call":
+						// Map to the AI SDK's tool part format with proper type
+						// The type assertion is safe because we validate tool names in the database
+						return {
+							type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
+								? `tool-${T}`
+								: never,
+							toolCallId: part.toolCallId,
+							state: "input-available" as const,
+							input: part.args.input,
+						};
 
-						case "tool-input-start":
-							return null; // Skip input-start parts for UI
+					case "tool-input-start":
+						return null; // Skip input-start parts for UI
 
-						case "tool-result":
-							// Map to the AI SDK's tool part format with output
-							// The type assertion is safe because we validate tool names in the database
-							return {
-								type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
-									? `tool-${T}`
-									: never,
-								toolCallId: part.toolCallId,
-								state: "output-available" as const,
-								input: part.args.input,
-								output: part.args.output,
-							};
+					case "tool-result":
+						// Map to the AI SDK's tool part format with output
+						// The type assertion is safe because we validate tool names in the database
+						return {
+							type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
+								? `tool-${T}`
+								: never,
+							toolCallId: part.toolCallId,
+							state: "output-available" as const,
+							input: part.args.input,
+							output: part.args.output,
+						};
 
-						case "source-url":
-							return {
-								type: "source-url",
-								sourceId: part.sourceId,
-								url: part.url,
-								title: part.title,
-							};
+					case "source-url":
+						return {
+							type: "source-url",
+							sourceId: part.sourceId,
+							url: part.url,
+							title: part.title,
+						};
 
-						case "source-document":
-							return {
-								type: "source-document",
-								sourceId: part.sourceId,
-								mediaType: part.mediaType,
-								title: part.title,
-								filename: part.filename,
-							};
+					case "source-document":
+						return {
+							type: "source-document",
+							sourceId: part.sourceId,
+							mediaType: part.mediaType,
+							title: part.title,
+							filename: part.filename,
+						};
 
-						case "file":
-							return {
-								type: "file",
-								mediaType: part.mediaType,
-								filename: part.filename,
-								url: part.url,
-							};
+					case "file":
+						return {
+							type: "file",
+							mediaType: part.mediaType,
+							filename: part.filename,
+							url: part.url,
+						};
 
-						case "raw":
-							// Raw parts are for debugging and shouldn't appear in UI
-							return null;
+					case "raw":
+						// Raw parts are for debugging and shouldn't appear in UI
+						return null;
 
-						default: {
-							// Handle any unknown part types
-							const exhaustiveCheck: never = part;
-							console.warn(
-								`Unknown message part type: ${(exhaustiveCheck as DbMessagePart).type}`,
-							);
-							return null;
-						}
+					default: {
+						// Handle any unknown part types
+						const exhaustiveCheck: never = part;
+						console.warn(
+							`Unknown message part type: ${(exhaustiveCheck as DbMessagePart).type}`,
+						);
+						return null;
 					}
-				})
-				.filter((part): part is LightfastUIMessagePart => part !== null);
+				}
+			})
+			.filter((part): part is LightfastUIMessagePart => part !== null);
 
 		return {
 			id: msg._id,
-			role: (msg.role || "assistant") === "user" ? ("user" as const) : ("assistant" as const),
+			role:
+				(msg.role || "assistant") === "user"
+					? ("user" as const)
+					: ("assistant" as const),
 			createdAt: new Date(msg._creationTime || msg.timestamp || Date.now()),
 			parts,
 		};

@@ -14,7 +14,12 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
-import { type Preloaded, useConvexAuth, usePreloadedQuery, useQuery } from "convex/react";
+import {
+	type Preloaded,
+	useConvexAuth,
+	usePreloadedQuery,
+	useQuery,
+} from "convex/react";
 import { Activity, MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
@@ -57,7 +62,10 @@ export function TokenUsageDialog({
 		preloadedUsage ??
 		useQuery(
 			api.messages.getThreadUsage,
-			threadId === "new" || isOptimisticThreadId || !isAuthenticated || preloadedUsage
+			threadId === "new" ||
+				isOptimisticThreadId ||
+				!isAuthenticated ||
+				preloadedUsage
 				? "skip"
 				: { threadId },
 		);

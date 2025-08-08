@@ -14,7 +14,10 @@ type FileWithUrl = Doc<"files"> & { url: string | null };
 
 export function AttachmentPreview({ attachmentIds }: AttachmentPreviewProps) {
 	const { isAuthenticated } = useConvexAuth();
-	const files = useQuery(api.files.getFiles, isAuthenticated ? { fileIds: attachmentIds } : "skip");
+	const files = useQuery(
+		api.files.getFiles,
+		isAuthenticated ? { fileIds: attachmentIds } : "skip",
+	);
 
 	if (!files || files.length === 0) return null;
 

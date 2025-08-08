@@ -39,11 +39,13 @@ export function ShareButtonWrapper() {
 
 	// Check authentication status
 	const { isAuthenticated } = useConvexAuth();
-	
+
 	// Get thread by clientId if needed (skip for settings, if preloaded, or if not authenticated)
 	const threadByClientId = useQuery(
 		api.threads.getByClientId,
-		clientId && !isSettingsPage && !preloadedThread && isAuthenticated ? { clientId } : "skip",
+		clientId && !isSettingsPage && !preloadedThread && isAuthenticated
+			? { clientId }
+			: "skip",
 	);
 
 	// Determine the actual Convex thread ID
@@ -61,7 +63,9 @@ export function ShareButtonWrapper() {
 	// Query messages by clientId if we have one (skip for new chat)
 	const messagesByClientId = useQuery(
 		api.messages.listByClientId,
-		clientId && !preloadedMessagesData && !isNewChat && isAuthenticated ? { clientId } : "skip",
+		clientId && !preloadedMessagesData && !isNewChat && isAuthenticated
+			? { clientId }
+			: "skip",
 	);
 
 	// Don't show share button on settings page

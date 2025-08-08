@@ -5,7 +5,7 @@ import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
 import { cn } from "@lightfast/ui/lib/utils";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import {
 	CheckIcon,
 	ClipboardIcon,
@@ -34,21 +34,16 @@ export function MessageActions({
 	const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
 	const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 	const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 });
-	const { isAuthenticated } = useConvexAuth();
 
 	// Notify parent when dropdown state changes
 	React.useEffect(() => {
 		onDropdownStateChange?.(isDropdownOpen);
 	}, [isDropdownOpen, onDropdownStateChange]);
 
-	// For Convex messages, we always have a valid ID
-	const feedback = useQuery(
-		api.feedback.getUserFeedbackForMessage,
-		isAuthenticated ? { messageId: message._id } : "skip",
-	);
+	// TODO: Re-enable feedback once clerkUserId field is added to feedback table
+	// For now, feedback functionality is temporarily disabled
 
 	const submitFeedback = useMutation(api.feedback.submitFeedback);
-	const removeFeedback = useMutation(api.feedback.removeFeedback);
 	// const branchThread = useMutation(
 	// 	api.threads.branchFromMessage,
 	// ).withOptimisticUpdate((localStore, args) => {
@@ -196,16 +191,14 @@ export function MessageActions({
 			return;
 		}
 
-		if (feedback?.rating === rating) {
-			await removeFeedback({ messageId: message._id });
-		} else {
-			await submitFeedback({
-				messageId: message._id,
-				rating: "thumbs_up",
-				comment: feedback?.comment,
-				reasons: feedback?.reasons,
-			});
-		}
+		// TODO: Re-enable feedback toggling once clerkUserId field is added to feedback table
+		// For now, just submit new feedback
+		await submitFeedback({
+			messageId: message._id,
+			rating: "thumbs_up",
+			comment: undefined,
+			reasons: undefined,
+		});
 	};
 
 	const handleCopy = () => {
@@ -268,11 +261,7 @@ export function MessageActions({
 				<Button
 					variant="ghost"
 					size="icon"
-					className={cn(
-						"h-8 w-8 transition-colors",
-						feedback?.rating === "thumbs_up" &&
-							"text-green-600 hover:text-green-700",
-					)}
+					className="h-8 w-8 transition-colors"
 					onClick={() => handleFeedback("thumbs_up")}
 					aria-label="Like message"
 				>
@@ -281,11 +270,7 @@ export function MessageActions({
 				<Button
 					variant="ghost"
 					size="icon"
-					className={cn(
-						"h-8 w-8 transition-colors",
-						feedback?.rating === "thumbs_down" &&
-							"text-red-600 hover:text-red-700",
-					)}
+					className="h-8 w-8 transition-colors"
 					onClick={() => handleFeedback("thumbs_down")}
 					aria-label="Dislike message"
 				>
@@ -342,7 +327,7 @@ export function MessageActions({
 					isOpen={showFeedbackModal}
 					onClose={() => setShowFeedbackModal(false)}
 					messageId={message._id}
-					existingFeedback={feedback}
+					existingFeedback={null}
 				/>
 			)}
 		</>

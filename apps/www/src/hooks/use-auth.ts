@@ -1,9 +1,9 @@
 "use client";
 
-import { useAuth as useClerkAuth, useUser, useClerk } from "@clerk/nextjs";
+import { useClerk, useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
 import { useConvexAuth, useQuery } from "convex/react";
-import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
 
 /**
@@ -14,10 +14,13 @@ export function useAuthActions() {
 	const { signOut: clerkSignOut } = useClerk();
 	const router = useRouter();
 
-	const signIn = useCallback(async (_provider?: string) => {
-		// Redirect to Clerk sign-in
-		router.push("/sign-in");
-	}, [router]);
+	const signIn = useCallback(
+		async (_provider?: string) => {
+			// Redirect to Clerk sign-in
+			router.push("/sign-in");
+		},
+		[router],
+	);
 
 	const signOut = useCallback(async () => {
 		try {
@@ -39,7 +42,8 @@ export function useAuthActions() {
 export function useAuth() {
 	const { isLoaded: isClerkLoaded } = useClerkAuth();
 	const { user: clerkUser } = useUser();
-	const { isAuthenticated: isConvexAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
+	const { isAuthenticated: isConvexAuthenticated, isLoading: isConvexLoading } =
+		useConvexAuth();
 	const currentUser = useQuery(api.users.current);
 	const { signIn, signOut } = useAuthActions();
 
@@ -58,12 +62,14 @@ export function useAuth() {
 		signOut,
 
 		// User info helpers (prioritize Clerk data when available)
-		displayName: clerkUser?.fullName || clerkUser?.primaryEmailAddress?.emailAddress || currentUser?.name || currentUser?.email || "User",
+		displayName:
+			clerkUser?.fullName ||
+			clerkUser?.primaryEmailAddress?.emailAddress ||
+			currentUser?.email ||
+			"User",
 		email: clerkUser?.primaryEmailAddress?.emailAddress || currentUser?.email,
 		isAnonymous: false, // Clerk doesn't support anonymous auth
-		createdAt: currentUser?._creationTime
-			? new Date(currentUser._creationTime)
-			: null,
+		createdAt: null, // No longer available with simplified user object
 	};
 }
 

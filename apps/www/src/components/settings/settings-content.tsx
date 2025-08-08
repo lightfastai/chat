@@ -8,7 +8,10 @@ import { ProfileSection } from "./profile-section";
 export function SettingsContent() {
 	const { isAuthenticated } = useConvexAuth();
 	const user = useQuery(api.users.current, isAuthenticated ? {} : "skip");
-	const userSettings = useQuery(api.userSettings.getUserSettings, isAuthenticated ? {} : "skip");
+	const userSettings = useQuery(
+		api.userSettings.getUserSettings,
+		isAuthenticated ? {} : "skip",
+	);
 
 	if (!user) {
 		return null;

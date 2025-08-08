@@ -22,8 +22,11 @@
     "ui:add": "pnpm --filter=@lightfast/ui ui:add",
     "ui:diff": "pnpm --filter=@lightfast/ui ui:diff",
     "env:sync": "tsx scripts/sync-env.ts",
+    "env:sync:auto": "tsx scripts/sync-env.ts",
     "env:check": "pnpm exec convex env list",
-    "convex:dev": "pnpm exec convex dev"
+    "convex:dev": "pnpm exec convex dev",
+    "predev": "pnpm env:sync:auto",
+    "prebuild": "pnpm env:sync:auto"
   },
   "repository": {
     "type": "git",

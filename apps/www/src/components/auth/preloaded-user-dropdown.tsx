@@ -1,12 +1,8 @@
 "use client";
 
-import { siteConfig } from "@/lib/site-config";
 import { useAuthActions } from "@/hooks/use-auth";
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@lightfast/ui/components/ui/avatar";
+import { siteConfig } from "@/lib/site-config";
+import { Avatar, AvatarFallback } from "@lightfast/ui/components/ui/avatar";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
 	DropdownMenu,
@@ -69,7 +65,7 @@ export function PreloadedUserDropdown({
 		}
 	};
 
-	const displayName = currentUser?.name || currentUser?.email || "User";
+	const displayName = currentUser?.email || "User";
 	const displayEmail = currentUser?.email || "No email";
 
 	return (
@@ -77,13 +73,6 @@ export function PreloadedUserDropdown({
 			<DropdownMenuTrigger asChild>
 				<Button variant="ghost" className={cn("gap-2 h-10", className)}>
 					<Avatar className="w-6 h-6 flex-shrink-0">
-						{currentUser?.image && (
-							<AvatarImage
-								src={currentUser.image}
-								alt={displayName}
-								className="object-cover"
-							/>
-						)}
 						<AvatarFallback className="text-xs">
 							<User className="w-3 h-3" />
 						</AvatarFallback>

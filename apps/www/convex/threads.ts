@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.js";
 import { mutation, query } from "./_generated/server.js";
-import { getAuthenticatedUserId, getAuthenticatedClerkUserId } from "./lib/auth.js";
+import { getAuthenticatedClerkUserId } from "./lib/auth.js";
 import { getWithClerkOwnership } from "./lib/database.js";
 import {
 	clientIdValidator,
@@ -11,7 +11,6 @@ import {
 	modelIdValidator,
 	textPartValidator,
 } from "./validators.js";
-
 
 // List initial threads for preloading (first 20)
 export const list = query({
@@ -102,8 +101,7 @@ export const createThreadWithFirstMessages = mutation({
 		assistantMessageId: v.id("messages"),
 	}),
 	handler: async (ctx, args) => {
-		// Get both Convex and Clerk user IDs
-		const userId = await getAuthenticatedUserId(ctx);
+		// Get Clerk user ID directly (requires authentication)
 		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		// Check for collision if clientId is provided (extremely rare with nanoid)
@@ -142,7 +140,6 @@ export const createThreadWithFirstMessages = mutation({
 		const threadId = await ctx.db.insert("threads", {
 			clientId: args.clientThreadId,
 			title: "", // Empty title indicates it's being generated
-			userId: userId, // Keep for backward compatibility
 			clerkUserId: clerkUserId, // Direct Clerk user ID
 			// Initialize metadata with usage tracking
 			metadata: {
@@ -225,7 +222,7 @@ export const listPaginatedWithGrouping = query({
 		const threadsWithCategories = result.page.map((thread) => ({
 			...thread,
 			dateCategory: getDateCategory(thread._creationTime),
-			}));
+		}));
 
 		return {
 			page: threadsWithCategories,
@@ -242,7 +239,12 @@ export const get = query({
 	},
 	handler: async (ctx, args) => {
 		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
-		return await getWithClerkOwnership(ctx.db, "threads", args.threadId, clerkUserId);
+		return await getWithClerkOwnership(
+			ctx.db,
+			"threads",
+			args.threadId,
+			clerkUserId,
+		);
 	},
 });
 

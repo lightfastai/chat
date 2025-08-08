@@ -23,9 +23,11 @@ export default clerkMiddleware(async (auth, req) => {
 
 	// Redirect authenticated users away from auth pages
 	if (isSignInPage(req) && isAuthenticated) {
-		// Preserve the 'from' parameter if it exists
+		// Check for redirect_url parameter (used by our auth flow)
+		const redirectUrl = req.nextUrl.searchParams.get("redirect_url");
+		// Also check for 'from' parameter for backwards compatibility
 		const from = req.nextUrl.searchParams.get("from");
-		const redirectTo = from || "/chat";
+		const redirectTo = redirectUrl || from || "/chat";
 		return NextResponse.redirect(new URL(redirectTo, req.url));
 	}
 

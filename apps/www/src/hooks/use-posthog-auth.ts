@@ -10,24 +10,24 @@ import { useAuth } from "./use-auth";
  */
 export function usePostHogAuth() {
 	const posthog = usePostHog();
-	const { user, isAuthenticated } = useAuth();
+	const { user, isAuthenticated, displayName, email, isAnonymous } = useAuth();
 
 	useEffect(() => {
 		if (!posthog) return;
 
 		if (isAuthenticated && user) {
-			// Identify the user in PostHog
-			posthog.identify(user._id, {
-				email: user.email,
-				name: user.name,
-				isAnonymous: user.isAnonymous,
-				createdAt: user._creationTime,
+			// Identify the user in PostHog using clerkUserId
+			posthog.identify(user.clerkUserId, {
+				email: email,
+				displayName: displayName,
+				isAnonymous: isAnonymous,
+				// createdAt is null in the new user structure
 			});
 
 			// Set user properties that persist across sessions
 			posthog.people.set({
-				email: user.email,
-				name: user.name,
+				email: email,
+				displayName: displayName,
 			});
 		} else if (!isAuthenticated) {
 			// Reset PostHog identity on sign out

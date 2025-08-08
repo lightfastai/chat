@@ -17,7 +17,6 @@ interface ModelBranchDropdownProps {
 }
 
 export function ModelBranchDropdown(_props: ModelBranchDropdownProps) {
-
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>

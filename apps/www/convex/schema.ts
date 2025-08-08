@@ -36,7 +36,8 @@ export default defineSchema({
 		fileName: fileNameValidator,
 		fileType: mimeTypeValidator, // MIME type
 		fileSize: v.number(), // Size in bytes
-		uploadedBy: v.id("users"),
+		uploadedBy: v.optional(v.id("users")), // Optional for Clerk migration
+		clerkUploadedBy: v.optional(v.string()), // Clerk user ID
 		uploadedAt: v.number(),
 		// Optional metadata
 		metadata: fileMetadataValidator,
@@ -58,7 +59,7 @@ export default defineSchema({
 	threads: defineTable({
 		clientId: v.optional(clientIdValidator), // Client-generated ID for instant navigation
 		title: titleValidator,
-		userId: v.id("users"),
+		userId: v.optional(v.id("users")), // Optional for Clerk migration
 		clerkUserId: v.string(), // Clerk user ID for direct user identification (required)
 		pinned: v.optional(v.boolean()),
 		branchedFrom: branchInfoValidator,

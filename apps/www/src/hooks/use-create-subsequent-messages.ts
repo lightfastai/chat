@@ -19,7 +19,7 @@ export function useCreateSubsequentMessages() {
 		const { threadId, message, modelId } = args;
 
 		// If we don't have a user ID yet, we can't create optimistic messages
-		if (!currentUser?._id) {
+		if (!currentUser?.clerkUserId) {
 			console.error("No user ID found");
 			return;
 		}

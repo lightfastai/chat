@@ -10,7 +10,7 @@ export default function Page() {
 						card: "bg-background shadow-xl",
 					},
 				}}
-				redirectUrl="/chat"
+				afterSignInUrl="/chat"
 				signUpUrl="/sign-up"
 			/>
 		</div>

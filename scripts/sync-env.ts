@@ -22,6 +22,7 @@ const CONVEX_REQUIRED_VARS = [
   "JWKS",
   "AUTH_GITHUB_ID",
   "AUTH_GITHUB_SECRET",
+  "CLERK_JWT_ISSUER_DOMAIN",
 ] as const
 
 const CONVEX_OPTIONAL_VARS = [
@@ -266,6 +267,7 @@ function validateEnvironmentVariables(envVars: Record<string, string>): {
     "JWT_PRIVATE_KEY",
     "JWKS",
     "NEXT_PUBLIC_CONVEX_URL",
+    "CLERK_JWT_ISSUER_DOMAIN",
   ]
 
   for (const varName of nextJsRequiredVars) {
@@ -300,11 +302,55 @@ function validateEnvironmentVariables(envVars: Record<string, string>): {
 }
 
 /**
+ * Pull environment variables from Vercel
+ */
+function pullVercelEnvironment(): boolean {
+  try {
+    log.info("Pulling environment variables from Vercel...")
+    
+    // Check if vercel CLI is available
+    execSync("vercel --version", { stdio: "pipe" })
+    
+    // Check if .vercel/project.json exists (means project is linked)
+    const vercelProjectPath = path.resolve(process.cwd(), ".vercel/project.json")
+    try {
+      readFileSync(vercelProjectPath, "utf8")
+    } catch {
+      log.warning("Vercel project not linked. Run 'vercel link' first to enable auto-sync")
+      return false
+    }
+    
+    // Create .vercel directory if it doesn't exist
+    const vercelDir = path.resolve(process.cwd(), ".vercel")
+    try {
+      execSync(`mkdir -p "${vercelDir}"`, { stdio: "pipe" })
+    } catch {
+      // Directory might already exist
+    }
+    
+    // Pull environment variables to .vercel/.env.development.local
+    execSync("vercel env pull .vercel/.env.development.local --yes", {
+      stdio: ["inherit", "pipe", "pipe"],
+      encoding: "utf8",
+    })
+    
+    log.success("Environment variables pulled from Vercel successfully")
+    return true
+  } catch (error) {
+    log.warning("Could not pull from Vercel (this is optional)")
+    log.info("To enable Vercel sync: run 'vercel link' and 'npm i -g vercel'")
+    return false
+  }
+}
+
+/**
  * Find the .env.local file in possible locations
  */
 function findEnvFile(): string {
   const possiblePaths = [
-    // Current working directory (root)
+    // Check for Vercel env file first (preferred with with-env)
+    path.resolve(process.cwd(), ".vercel/.env.development.local"),
+    // Fallback to standard .env.local locations
     path.resolve(process.cwd(), ENV_FILE),
     // Parent directory (if running from subdirectory)
     path.resolve(process.cwd(), "..", ENV_FILE),
@@ -330,6 +376,9 @@ function findEnvFile(): string {
  */
 async function syncEnvironment(): Promise<void> {
   try {
+    // First, try to pull from Vercel (auto-sync)
+    pullVercelEnvironment()
+    
     // Find .env.local file
     const envPath = findEnvFile()
 
@@ -348,6 +397,7 @@ async function syncEnvironment(): Promise<void> {
       console.log("EXA_API_KEY=your_exa_api_key_here")
       console.log("AUTH_GITHUB_ID=your_github_oauth_client_id")
       console.log("AUTH_GITHUB_SECRET=your_github_oauth_client_secret")
+      console.log("CLERK_JWT_ISSUER_DOMAIN=your_clerk_domain.clerk.accounts.dev")
       console.log('JWT_PRIVATE_KEY="your_jwt_private_key_here"')
       console.log("JWKS='{\"keys\":[...]}'")
       process.exit(1)

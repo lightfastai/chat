@@ -53,7 +53,7 @@ export function TokenUsageHeaderWrapper() {
 
 	// Check authentication status
 	const { isAuthenticated } = useConvexAuth();
-	
+
 	// Resolve client ID to actual thread ID (skip if we have preloaded data or not authenticated)
 	const threadByClientId = useQuery(
 		api.threads.getByClientId,

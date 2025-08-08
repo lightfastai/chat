@@ -11,7 +11,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
-import { getAuthenticatedUserId, getAuthenticatedClerkUserId } from "./lib/auth.js";
+import { getAuthenticatedClerkUserId } from "./lib/auth.js";
 import type { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 import {
 	addErrorPartArgsValidator,
@@ -39,9 +39,9 @@ export const get = query({
 		messageId: v.id("messages"),
 	},
 	handler: async (ctx, args) => {
-		let userId;
+		let clerkUserId;
 		try {
-			userId = await getAuthenticatedUserId(ctx);
+			clerkUserId = await getAuthenticatedClerkUserId(ctx);
 		} catch {
 			return null;
 		}
@@ -53,7 +53,7 @@ export const get = query({
 
 		// Verify the user owns the thread this message belongs to
 		const thread = await ctx.db.get(message.threadId);
-		if (!thread || thread.userId !== userId) {
+		if (!thread || thread.clerkUserId !== clerkUserId) {
 			return null;
 		}
 
@@ -110,9 +110,9 @@ export const getThreadUsage = query({
 		messageCount: v.number(),
 	}),
 	handler: async (ctx, args) => {
-		let userId;
+		let clerkUserId;
 		try {
-			userId = await getAuthenticatedUserId(ctx);
+			clerkUserId = await getAuthenticatedClerkUserId(ctx);
 		} catch {
 			// Return default usage for unauthenticated users
 			return {
@@ -133,11 +133,11 @@ export const getThreadUsage = query({
 			messageCount: 0,
 		};
 
-		if (!userId) return defaultUsage;
+		if (!clerkUserId) return defaultUsage;
 
 		// Verify the user owns this thread
 		const thread = await ctx.db.get(args.threadId);
-		if (!thread || thread.userId !== userId) return defaultUsage;
+		if (!thread || thread.clerkUserId !== clerkUserId) return defaultUsage;
 
 		// Return usage from thread metadata (fast O(1) lookup!)
 		const usage = thread.metadata?.usage;
@@ -704,12 +704,11 @@ export const createSubsequentMessages = mutation({
 		assistantMessageId: v.id("messages"),
 	}),
 	handler: async (ctx, args) => {
-		const userId = await getAuthenticatedUserId(ctx);
 		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
-		// Verify the user owns this thread (check both IDs for compatibility)
+		// Verify the user owns this thread
 		const thread = await ctx.db.get(args.threadId);
-		if (!thread || (thread.userId !== userId && thread.clerkUserId !== clerkUserId)) {
+		if (!thread || thread.clerkUserId !== clerkUserId) {
 			throw new Error("Thread not found");
 		}
 

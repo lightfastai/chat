@@ -10,7 +10,12 @@ import {
 } from "@lightfast/ui/components/ui/sidebar";
 import { Skeleton } from "@lightfast/ui/components/ui/skeleton";
 import { getDateGroupOrder, groupByDate } from "@repo/utils/time";
-import { useMutation, usePaginatedQuery, useQuery, useConvexAuth } from "convex/react";
+import {
+	useConvexAuth,
+	useMutation,
+	usePaginatedQuery,
+	useQuery,
+} from "convex/react";
 import type { FunctionArgs } from "convex/server";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
@@ -87,7 +92,7 @@ export function InfiniteScrollThreadsList({
 }: InfiniteScrollThreadsListProps) {
 	// Check authentication status
 	const { isAuthenticated, isLoading: isAuthLoading } = useConvexAuth();
-	
+
 	const togglePinned = useMutation(
 		api.threads.togglePinned,
 	).withOptimisticUpdate((localStore, args) => {
@@ -182,8 +187,8 @@ export function InfiniteScrollThreadsList({
 	// Use separate query for pinned threads (non-paginated, always loaded)
 	// Only run query when authenticated
 	const pinnedThreads = useQuery(
-		api.threads.listPinned, 
-		isAuthenticated ? {} : "skip"
+		api.threads.listPinned,
+		isAuthenticated ? {} : "skip",
 	);
 
 	// Use paginated query ONLY for unpinned threads
@@ -248,7 +253,7 @@ export function InfiniteScrollThreadsList({
 			</div>
 		);
 	}
-	
+
 	// If not authenticated, show unauthenticated message
 	if (!isAuthenticated) {
 		return (
@@ -261,7 +266,7 @@ export function InfiniteScrollThreadsList({
 			</div>
 		);
 	}
-	
+
 	// Show empty state only if both queries have loaded and are confirmed empty
 	const pinnedLoaded = pinnedThreads !== undefined;
 	const pinnedEmpty = pinnedThreads?.length === 0;

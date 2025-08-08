@@ -18,7 +18,10 @@ interface FeedbackSummaryProps {
 
 export function FeedbackSummary({ threadId }: FeedbackSummaryProps) {
 	const { isAuthenticated } = useConvexAuth();
-	const feedback = useQuery(api.feedback.getThreadFeedback, isAuthenticated ? { threadId } : "skip");
+	const feedback = useQuery(
+		api.feedback.getThreadFeedback,
+		isAuthenticated ? { threadId } : "skip",
+	);
 
 	if (!feedback || feedback.length === 0) {
 		return null;

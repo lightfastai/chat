@@ -22,7 +22,7 @@ export function SiteHeader({
 	logoHref = "/",
 	githubUrl,
 	docsUrl,
-	signInHref = "/signin",
+	signInHref = "/sign-in",
 	showLogo = true,
 	showGitHub = true,
 	showDocs = true,

@@ -48,8 +48,10 @@ export const env = createEnv({
 	 */
 	client: {
 		// Clerk authentication
-		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, "Clerk publishable key is required"),
-		
+		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z
+			.string()
+			.min(1, "Clerk publishable key is required"),
+
 		// Convex URL for client-side connections
 		// This is the only Convex variable our app actually needs
 		NEXT_PUBLIC_CONVEX_URL: z.string().url(),
@@ -98,7 +100,8 @@ export const env = createEnv({
 		SENTRY_PROJECT: process.env.SENTRY_PROJECT,
 		SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
 		// Client-side
-		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+			process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 		NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
 		NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
 		NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,

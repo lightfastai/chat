@@ -51,8 +51,7 @@ export function CenteredChatStart({
 		? usePreloadedQuery(preloadedUser)
 		: null;
 
-	const userName =
-		preloadedUserData?.email || preloadedUserData?.name || email || displayName;
+	const userName = preloadedUserData?.email || email || displayName;
 
 	const handlePromptSelect = (prompt: string) => {
 		// Populate the chat input with the selected prompt

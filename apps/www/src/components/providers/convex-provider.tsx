@@ -1,11 +1,16 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
+import { Skeleton } from "@lightfast/ui/components/ui/skeleton";
+import {
+	AuthLoading,
+	Authenticated,
+	ConvexReactClient,
+	Unauthenticated,
+} from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
-import { ConvexReactClient, Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import type { ReactNode } from "react";
 import { env } from "../../env";
-import { Skeleton } from "@lightfast/ui/components/ui/skeleton";
 
 const convex = new ConvexReactClient(env.NEXT_PUBLIC_CONVEX_URL, {
 	verbose: true,

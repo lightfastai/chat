@@ -1,23 +1,16 @@
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@lightfast/ui/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@lightfast/ui/components/ui/avatar";
 import { Input } from "@lightfast/ui/components/ui/input";
 import { User } from "lucide-react";
-import type { Doc } from "../../../convex/_generated/dataModel";
 import { SettingsHeader } from "./settings-header";
 import { SettingsRow } from "./settings-row";
 
-export function ProfileSection({ user }: { user: Doc<"users"> }) {
-	const formatDate = (timestamp: number) => {
-		return new Date(timestamp).toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "long",
-			day: "numeric",
-		});
-	};
+// Define the shape of our simplified user object
+type SimplifiedUser = {
+	clerkUserId: string;
+	email: string | undefined;
+};
 
+export function ProfileSection({ user }: { user: SimplifiedUser }) {
 	return (
 		<div>
 			<SettingsHeader title="User Settings" />
@@ -28,13 +21,6 @@ export function ProfileSection({ user }: { user: Doc<"users"> }) {
 					description="This is your profile picture."
 				>
 					<Avatar className="h-10 w-10">
-						{user.image && (
-							<AvatarImage
-								src={user.image}
-								alt={user.name || "User"}
-								className="object-cover"
-							/>
-						)}
 						<AvatarFallback>
 							<User className="h-5 w-5" />
 						</AvatarFallback>
@@ -50,12 +36,9 @@ export function ProfileSection({ user }: { user: Doc<"users"> }) {
 					/>
 				</SettingsRow>
 
-				<SettingsRow
-					title="Member Since"
-					description="The date you joined the platform."
-				>
-					<div className="text-sm text-muted-foreground">
-						{formatDate(user._creationTime)}
+				<SettingsRow title="User ID" description="Your unique user identifier.">
+					<div className="text-sm text-muted-foreground font-mono">
+						{user.clerkUserId}
 					</div>
 				</SettingsRow>
 			</div>

@@ -35,8 +35,7 @@ export function ChatEmptyState({
 		? usePreloadedQuery(preloadedUser)
 		: null;
 
-	const userEmail =
-		preloadedUserData?.email || email || displayName || "there";
+	const userEmail = preloadedUserData?.email || email || displayName || "there";
 
 	return (
 		<div className="mb-6 px-3">
