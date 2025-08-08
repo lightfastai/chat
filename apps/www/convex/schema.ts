@@ -105,52 +105,18 @@ export default defineSchema({
 		.index("by_share_id", ["shareId"]),
 
 	messages: defineTable({
-		// @V2 Schema.
 		threadId: v.id("threads"),
 		parts: v.optional(messagePartsValidator),
 		status: v.optional(messageStatusValidator),
 		role: v.optional(roleValidator),
 		attachments: v.optional(v.array(v.id("files"))),
-		// New metadata structure
 		metadata: v.optional(messageMetadataValidator),
-		// @deprecated fields - Do not use in new code
-		messageType: v.optional(roleValidator),
+		// Legacy fields kept for compatibility
 		modelId: v.optional(modelIdValidator),
 		usedUserApiKey: v.optional(v.boolean()),
-		thinkingStartedAt: v.optional(v.number()),
-		thinkingCompletedAt: v.optional(v.number()),
 		model: v.optional(modelProviderValidator),
 		timestamp: v.optional(v.number()),
-		body: v.optional(v.string()),
-		isStreaming: v.optional(v.boolean()),
-		streamId: v.optional(v.string()),
-		isComplete: v.optional(v.boolean()),
-		streamVersion: v.optional(v.number()),
 		thinkingContent: v.optional(v.string()),
-		isThinking: v.optional(v.boolean()),
-		hasThinkingContent: v.optional(v.boolean()),
-		usage: v.optional(
-			v.object({
-				inputTokens: v.optional(v.number()),
-				outputTokens: v.optional(v.number()),
-				totalTokens: v.optional(v.number()),
-				reasoningTokens: v.optional(v.number()),
-				cachedInputTokens: v.optional(v.number()),
-			}),
-		),
-		streamChunks: v.optional(
-			v.array(
-				v.object({
-					chunkId: v.optional(v.string()),
-					id: v.optional(v.string()),
-					content: v.string(),
-					timestamp: v.number(),
-					sequence: v.optional(v.number()),
-					isThinking: v.optional(v.boolean()),
-				}),
-			),
-		),
-		lastChunkId: v.optional(v.string()),
 	}).index("by_thread", ["threadId"]),
 
 	feedback: defineTable({
