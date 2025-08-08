@@ -87,11 +87,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 		const body = (await request.json()) as HTTPStreamingRequest;
 		const { threadClientId, options, userMessageId, id } = body;
 
-		console.log("[streamChatResponse] body", body);
-		console.log(
-			"[streamChatResponse] webSearchEnabled =",
-			options?.webSearchEnabled,
-		);
 
 		// Validate required fields
 		if (!threadClientId) {
@@ -231,13 +226,15 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 				onChunk: async ({ chunk }) => {
 					// Handle Vercel AI SDK v5 chunk types
 					switch (chunk.type) {
-						case "text":
+						// Text streaming events
+						case "text-delta":
 							if (chunk.text) {
 								writer.appendText(assistantMessage._id, chunk.text);
 							}
 							break;
 
-						case "reasoning":
+						// Reasoning streaming events  
+						case "reasoning-delta":
 							if (chunk.text) {
 								writer.appendReasoning(assistantMessage._id, chunk.text);
 							}
@@ -268,6 +265,11 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 								// Handle unknown tool versions
 								console.warn(`Unknown tool name: ${inputToolName}`);
 							}
+							break;
+						}
+
+						case "tool-input-delta": {
+							// Handle tool input delta - we don't process these yet
 							break;
 						}
 
@@ -340,7 +342,6 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 						}
 
 						case "source":
-							console.log("source chunk", chunk);
 							// Buffer source chunks for batch writing
 							if (chunk.sourceType === "url") {
 								writer.appendSourceUrl(
@@ -362,7 +363,7 @@ export const streamChatResponse = httpAction(async (ctx, request) => {
 
 						default:
 							// Log unexpected chunk types for debugging
-							console.warn("Unexpected chunk type:", chunk.type, chunk);
+							console.warn("Unexpected chunk type:", chunk);
 					}
 				},
 				onStepFinish: async () => {

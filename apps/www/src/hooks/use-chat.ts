@@ -49,6 +49,7 @@ export function useChat({
 			try {
 				const token = await getToken({ template: "convex" });
 				setAuthToken(token);
+				console.log("foudn");
 			} catch (error) {
 				console.error("Failed to get auth token:", error);
 				setAuthToken(null);
@@ -87,13 +88,14 @@ export function useChat({
 	const chatId = clientId ?? nanoid();
 
 	// Use Vercel AI SDK with custom transport and preloaded messages
+	// IMPORTANT: We must provide transport, even if undefined, to prevent fallback to /api/chat
 	const {
 		messages: uiMessages,
 		status,
 		sendMessage: vercelSendMessage,
 	} = useVercelChat<LightfastUIMessage>({
 		id: chatId,
-		transport,
+		transport, // This can be undefined, which should disable sending
 		generateId: () => nanoid(),
 		messages: initialMessages,
 		onError: (error) => {
@@ -104,6 +106,12 @@ export function useChat({
 	// Adapt sendMessage to use Vercel AI SDK v5 with transport
 	const sendMessage = useCallback(
 		async (options: LightfastUIMessageOptions) => {
+			// Don't allow sending messages until we have a transport (authenticated)
+			if (!transport) {
+				console.error("Cannot send message: Authentication not ready");
+				return;
+			}
+
 			let userMessageId: string | undefined;
 			let assistantMessageId: string | undefined;
 
@@ -146,6 +154,7 @@ export function useChat({
 				return;
 			}
 
+
 			await vercelSendMessage(
 				{
 					role: "user",
@@ -171,6 +180,7 @@ export function useChat({
 			createThreadOptimistic,
 			createMessageOptimistic,
 			thread?._id,
+			transport,
 		],
 	);
 
