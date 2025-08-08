@@ -13,13 +13,17 @@
 		"typecheck": "tsc --noEmit",
 		"convex:dev": "convex dev --env-file=../../.env.local",
 		"convex:deploy": "convex deploy",
-		"with-env": "dotenv -e ../../.env.local --"
+		"with-env": "dotenv -e .vercel/.env.development.local --",
+		"migrate:clerk": "pnpm with-env node ../../migrate-to-clerk-v2.js",
+		"test:migration": "pnpm with-env node ../../test-migration.js",
+		"debug:clerk": "pnpm with-env node ../../debug-clerk-config.js"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "catalog:",
 		"@ai-sdk/openai": "catalog:",
 		"@ai-sdk/react": "catalog:",
 		"@auth/core": "^0.39.1",
+		"@clerk/backend": "^2.6.3",
 		"@convex-dev/auth": "^0.0.87",
 		"@hookform/resolvers": "^5.1.1",
 		"@lightfast/ai": "workspace:*",
