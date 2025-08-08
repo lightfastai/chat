@@ -67,6 +67,9 @@ export function MessageItem({
 			);
 		}
 
+		// Check for legacy body field first if parts is empty or missing
+		const hasLegacyBody = !message.parts?.length && (message as any).body;
+
 		// If message has parts, render them (even if empty initially)
 		if (message.parts && message.parts.length > 0) {
 			// First, sort all parts by timestamp if available
@@ -227,6 +230,37 @@ export function MessageItem({
 						// Any other part types we don't handle yet
 						return null;
 					})}
+				</div>
+			);
+		}
+
+		// Handle legacy body field if no parts are present
+		if (hasLegacyBody) {
+			const legacyBody = (message as any).body;
+			const legacyThinkingContent = (message as any).thinkingContent;
+
+			return (
+				<div className="space-y-2">
+					{/* Show thinking content if available */}
+					{isAssistant && legacyThinkingContent && (
+						<StreamingReasoningDisplay
+							isStreaming={false}
+							hasContent={true}
+							reasoningContent={legacyThinkingContent}
+							hasReasoningParts={true}
+						/>
+					)}
+
+					{/* Show main body content */}
+					<div>
+						{message.role === "assistant" ? (
+							<Markdown className="text-sm">{legacyBody}</Markdown>
+						) : (
+							<div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+								{legacyBody}
+							</div>
+						)}
+					</div>
 				</div>
 			);
 		}
