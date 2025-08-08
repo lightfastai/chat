@@ -123,10 +123,85 @@ export const modelIdToMetadata = migrations.define({
 });
 
 /**
- * Migration to clean up legacy fields after successful migration
+ * Migration to move usage field to metadata.usage
+ * Preserves token usage information in the new metadata structure
+ */
+export const usageToMetadata = migrations.define({
+  table: "messages",
+  migrateOne: async (ctx, message) => {
+    // Skip if no usage to migrate
+    if (!message.usage) {
+      return; // Nothing to migrate
+    }
+    
+    // Skip if metadata.usage already exists
+    if (message.metadata?.usage) {
+      return; // Already migrated
+    }
+    
+    // Create or update metadata with usage
+    const currentMetadata = message.metadata || {};
+    await ctx.db.patch(message._id, {
+      metadata: {
+        ...currentMetadata,
+        usage: message.usage,
+      },
+    });
+  },
+});
+
+/**
+ * Migration to clean up all deprecated fields
+ * Removes fields that have been migrated or are no longer needed
+ */
+export const cleanupDeprecatedFields = migrations.define({
+  table: "messages",
+  migrateOne: async (ctx, message) => {
+    // Check if has any deprecated fields to clean
+    const hasDeprecatedFields = !!(
+      message.body ||
+      message.streamId ||
+      message.hasThinkingContent ||
+      message.isComplete !== undefined ||
+      message.isStreaming !== undefined ||
+      message.isThinking !== undefined ||
+      message.lastChunkId ||
+      message.messageType ||
+      message.streamChunks ||
+      message.streamVersion ||
+      message.thinkingCompletedAt ||
+      message.thinkingStartedAt ||
+      message.usage
+    );
+    
+    if (!hasDeprecatedFields) {
+      return; // Nothing to clean
+    }
+    
+    // Remove all deprecated fields
+    await ctx.db.patch(message._id, {
+      body: undefined,
+      streamId: undefined,
+      hasThinkingContent: undefined,
+      isComplete: undefined,
+      isStreaming: undefined,
+      isThinking: undefined,
+      lastChunkId: undefined,
+      messageType: undefined,
+      streamChunks: undefined,
+      streamVersion: undefined,
+      thinkingCompletedAt: undefined,
+      thinkingStartedAt: undefined,
+      usage: undefined,
+    });
+  },
+});
+
+/**
+ * Migration to clean up legacy content fields after successful migration
  * Only run this after verifying bodyToParts has completed successfully
  */
-export const cleanupLegacyFields = migrations.define({
+export const cleanupLegacyContentFields = migrations.define({
   table: "messages",
   migrateOne: async (ctx, message) => {
     // Only clean if has parts (successfully migrated)
@@ -134,40 +209,24 @@ export const cleanupLegacyFields = migrations.define({
       return; // Skip messages without parts
     }
     
-    // Check if has any legacy fields to clean
-    const hasLegacyFields = !!(
+    // Check if has any legacy content fields to clean
+    const hasLegacyContentFields = !!(
       message.body ||
       message.thinkingContent ||
-      message.messageType ||
       message.modelId ||
-      message.streamChunks ||
-      message.isStreaming ||
-      message.streamId ||
-      message.isComplete ||
-      message.streamVersion ||
-      message.isThinking ||
-      message.hasThinkingContent ||
-      message.lastChunkId
+      message.streamId
     );
     
-    if (!hasLegacyFields) {
+    if (!hasLegacyContentFields) {
       return; // Nothing to clean
     }
     
-    // Remove all legacy fields
+    // Remove legacy content fields
     await ctx.db.patch(message._id, {
       body: undefined,
       thinkingContent: undefined,
-      messageType: undefined,
       modelId: undefined,
-      streamChunks: undefined,
-      isStreaming: undefined,
       streamId: undefined,
-      isComplete: undefined,
-      streamVersion: undefined,
-      isThinking: undefined,
-      hasThinkingContent: undefined,
-      lastChunkId: undefined,
     });
   },
 });
@@ -185,7 +244,9 @@ export const run = migrations.runner();
 export const runBodyToParts = migrations.runner(internal.migrations.bodyToParts);
 export const runMessageTypeToRole = migrations.runner(internal.migrations.messageTypeToRole);
 export const runModelIdToMetadata = migrations.runner(internal.migrations.modelIdToMetadata);
-export const runCleanupLegacyFields = migrations.runner(internal.migrations.cleanupLegacyFields);
+export const runUsageToMetadata = migrations.runner(internal.migrations.usageToMetadata);
+export const runCleanupDeprecatedFields = migrations.runner(internal.migrations.cleanupDeprecatedFields);
+export const runCleanupLegacyContentFields = migrations.runner(internal.migrations.cleanupLegacyContentFields);
 
 // Query to check migration status  
 // Since the component doesn't expose a direct status method,
@@ -205,6 +266,10 @@ export const status = query({
       needsMigration: v.number(),
       migrated: v.number(),
     }),
+    usageToMetadata: v.object({
+      needsMigration: v.number(),
+      migrated: v.number(),
+    }),
     total: v.number(),
   }),
   handler: async (ctx) => {
@@ -216,6 +281,8 @@ export const status = query({
     let messageTypeMigrated = 0;
     let modelIdNeedsMigration = 0;
     let modelIdMigrated = 0;
+    let usageNeedsMigration = 0;
+    let usageMigrated = 0;
     
     for (const msg of messages) {
       // Check body to parts migration
@@ -238,6 +305,13 @@ export const status = query({
       } else if (msg.metadata?.model || !msg.modelId) {
         modelIdMigrated++;
       }
+      
+      // Check usage to metadata migration
+      if (msg.usage && !msg.metadata?.usage) {
+        usageNeedsMigration++;
+      } else if (msg.metadata?.usage || !msg.usage) {
+        usageMigrated++;
+      }
     }
     
     return {
@@ -252,6 +326,10 @@ export const status = query({
       modelIdToMetadata: {
         needsMigration: modelIdNeedsMigration,
         migrated: modelIdMigrated,
+      },
+      usageToMetadata: {
+        needsMigration: usageNeedsMigration,
+        migrated: usageMigrated,
       },
       total: messages.length,
     };
