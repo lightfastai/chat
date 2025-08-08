@@ -50,7 +50,7 @@ export function SidebarUserMenu() {
 
 	const handleSignOut = async () => {
 		await signOut();
-		router.push("/signin");
+		router.push("/sign-in");
 	};
 
 	const displayName = currentUser?.name || currentUser?.email || "User";

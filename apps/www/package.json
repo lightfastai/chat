@@ -13,7 +13,7 @@
 		"typecheck": "tsc --noEmit",
 		"convex:dev": "convex dev --env-file=../../.env.local",
 		"convex:deploy": "convex deploy",
-		"with-env": "dotenv -e .vercel/.env.development.local --",
+		"with-env": "dotenv -e ../../.vercel/.env.development.local --",
 		"migrate:clerk": "pnpm with-env node ../../migrate-to-clerk-v2.js",
 		"test:migration": "pnpm with-env node ../../test-migration.js",
 		"debug:clerk": "pnpm with-env node ../../debug-clerk-config.js",

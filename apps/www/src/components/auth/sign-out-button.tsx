@@ -28,7 +28,7 @@ export function SignOutButton({
 	size = "default",
 	variant = "outline",
 	children,
-	redirectTo = "/signin",
+	redirectTo = "/sign-in",
 	showOnlyWhenAuthenticated = true,
 	onSignOutStart,
 	onSignOutComplete,
