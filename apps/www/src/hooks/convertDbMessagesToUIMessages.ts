@@ -180,102 +180,165 @@ export const convertUIMessageToDbParts = (
 export function convertDbMessagesToUIMessages(
 	dbMessages: Doc<"messages">[],
 ): LightfastUIMessage[] {
-	return dbMessages.map((msg) => ({
-		id: msg._id,
-		role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
-		createdAt: new Date(msg._creationTime),
-		parts: (msg.parts || [])
-			.map((part: DbMessagePart): LightfastUIMessagePart | null => {
-				switch (part.type) {
-					case "text":
-						return {
-							type: "text",
-							text: part.text,
-						};
+	return dbMessages.map((msg) => {
+		// Handle legacy format: Convert deprecated fields to parts array
+		let parts: LightfastUIMessagePart[] = [];
 
-					case "reasoning":
-						return {
-							type: "reasoning",
-							text: part.text,
-						};
+		// If message has the new parts array, use it
+		if (msg.parts && msg.parts.length > 0) {
+			parts = (msg.parts || [])
+				.map((part: DbMessagePart): LightfastUIMessagePart | null => {
+					switch (part.type) {
+						case "text":
+							return {
+								type: "text",
+								text: part.text,
+							};
 
-					case "error":
-						return {
-							type: "data-error",
-							data: {
-								errorMessage: part.errorMessage,
-								errorDetails: part.errorDetails,
-								timestamp: part.timestamp,
-							},
-						};
+						case "reasoning":
+							return {
+								type: "reasoning",
+								text: part.text,
+							};
 
-					case "tool-call":
-						// Map to the AI SDK's tool part format with proper type
-						// The type assertion is safe because we validate tool names in the database
-						return {
-							type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
-								? `tool-${T}`
-								: never,
-							toolCallId: part.toolCallId,
-							state: "input-available" as const,
-							input: part.args.input,
-						};
+						case "error":
+							return {
+								type: "data-error",
+								data: {
+									errorMessage: part.errorMessage,
+									errorDetails: part.errorDetails,
+									timestamp: part.timestamp,
+								},
+							};
 
-					case "tool-input-start":
-						return null; // Skip input-start parts for UI
+						case "tool-call":
+							// Map to the AI SDK's tool part format with proper type
+							// The type assertion is safe because we validate tool names in the database
+							return {
+								type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
+									? `tool-${T}`
+									: never,
+								toolCallId: part.toolCallId,
+								state: "input-available" as const,
+								input: part.args.input,
+							};
 
-					case "tool-result":
-						// Map to the AI SDK's tool part format with output
-						// The type assertion is safe because we validate tool names in the database
-						return {
-							type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
-								? `tool-${T}`
-								: never,
-							toolCallId: part.toolCallId,
-							state: "output-available" as const,
-							input: part.args.input,
-							output: part.args.output,
-						};
+						case "tool-input-start":
+							return null; // Skip input-start parts for UI
 
-					case "source-url":
-						return {
-							type: "source-url",
-							sourceId: part.sourceId,
-							url: part.url,
-							title: part.title,
-						};
+						case "tool-result":
+							// Map to the AI SDK's tool part format with output
+							// The type assertion is safe because we validate tool names in the database
+							return {
+								type: `tool-${part.args.toolName}` as keyof LightfastToolSchemas extends `tool-${infer T}`
+									? `tool-${T}`
+									: never,
+								toolCallId: part.toolCallId,
+								state: "output-available" as const,
+								input: part.args.input,
+								output: part.args.output,
+							};
 
-					case "source-document":
-						return {
-							type: "source-document",
-							sourceId: part.sourceId,
-							mediaType: part.mediaType,
-							title: part.title,
-							filename: part.filename,
-						};
+						case "source-url":
+							return {
+								type: "source-url",
+								sourceId: part.sourceId,
+								url: part.url,
+								title: part.title,
+							};
 
-					case "file":
-						return {
-							type: "file",
-							mediaType: part.mediaType,
-							filename: part.filename,
-							url: part.url,
-						};
+						case "source-document":
+							return {
+								type: "source-document",
+								sourceId: part.sourceId,
+								mediaType: part.mediaType,
+								title: part.title,
+								filename: part.filename,
+							};
 
-					case "raw":
-						// Raw parts are for debugging and shouldn't appear in UI
-						return null;
+						case "file":
+							return {
+								type: "file",
+								mediaType: part.mediaType,
+								filename: part.filename,
+								url: part.url,
+							};
 
-					default: {
-						// Handle any unknown part types
-						const exhaustiveCheck: never = part;
-						console.warn(
-							`Unknown message part type: ${(exhaustiveCheck as DbMessagePart).type}`,
-						);
-						return null;
+						case "raw":
+							// Raw parts are for debugging and shouldn't appear in UI
+							return null;
+
+						default: {
+							// Handle any unknown part types
+							const exhaustiveCheck: never = part;
+							console.warn(
+								`Unknown message part type: ${(exhaustiveCheck as DbMessagePart).type}`,
+							);
+							return null;
+						}
 					}
+				})
+				.filter((part): part is LightfastUIMessagePart => part !== null);
+		} else {
+			// Handle legacy format - convert deprecated fields to parts
+			const legacyParts: LightfastUIMessagePart[] = [];
+
+			// Handle thinkingContent (deprecated field)
+			if (msg.thinkingContent) {
+				legacyParts.push({
+					type: "reasoning",
+					text: msg.thinkingContent,
+				});
+			}
+
+			// Handle body (deprecated field) - main message content
+			if (msg.body) {
+				legacyParts.push({
+					type: "text",
+					text: msg.body,
+				});
+			}
+
+			// Handle streamChunks (deprecated field) - for streaming messages
+			if (msg.streamChunks && msg.streamChunks.length > 0) {
+				// Combine all chunks into text parts, separating thinking content
+				const thinkingChunks = msg.streamChunks
+					.filter((chunk) => chunk.isThinking)
+					.map((chunk) => chunk.content)
+					.join("");
+
+				const regularChunks = msg.streamChunks
+					.filter((chunk) => !chunk.isThinking)
+					.map((chunk) => chunk.content)
+					.join("");
+
+				if (thinkingChunks) {
+					legacyParts.push({
+						type: "reasoning",
+						text: thinkingChunks,
+					});
 				}
-			})
-			.filter((part): part is LightfastUIMessagePart => part !== null),
-	}));
+
+				if (regularChunks) {
+					legacyParts.push({
+						type: "text",
+						text: regularChunks,
+					});
+				}
+			}
+
+			// Use legacy parts if any were created, otherwise use empty array
+			parts = legacyParts;
+		}
+
+		return {
+			id: msg._id,
+			role:
+				(msg.role || msg.messageType || "assistant") === "user"
+					? ("user" as const)
+					: ("assistant" as const),
+			createdAt: new Date(msg._creationTime || msg.timestamp || Date.now()),
+			parts,
+		};
+	});
 }
