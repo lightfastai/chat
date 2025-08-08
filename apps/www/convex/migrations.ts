@@ -95,6 +95,34 @@ export const messageTypeToRole = migrations.define({
 });
 
 /**
+ * Migration to move modelId to metadata.model
+ * Preserves the model information in the new metadata structure
+ */
+export const modelIdToMetadata = migrations.define({
+  table: "messages",
+  migrateOne: async (ctx, message) => {
+    // Skip if no modelId to migrate
+    if (!message.modelId) {
+      return; // Nothing to migrate
+    }
+    
+    // Skip if metadata.model already exists
+    if (message.metadata?.model) {
+      return; // Already migrated
+    }
+    
+    // Create or update metadata with model
+    const currentMetadata = message.metadata || {};
+    await ctx.db.patch(message._id, {
+      metadata: {
+        ...currentMetadata,
+        model: message.modelId,
+      },
+    });
+  },
+});
+
+/**
  * Migration to clean up legacy fields after successful migration
  * Only run this after verifying bodyToParts has completed successfully
  */
@@ -111,6 +139,7 @@ export const cleanupLegacyFields = migrations.define({
       message.body ||
       message.thinkingContent ||
       message.messageType ||
+      message.modelId ||
       message.streamChunks ||
       message.isStreaming ||
       message.streamId ||
@@ -130,6 +159,7 @@ export const cleanupLegacyFields = migrations.define({
       body: undefined,
       thinkingContent: undefined,
       messageType: undefined,
+      modelId: undefined,
       streamChunks: undefined,
       isStreaming: undefined,
       streamId: undefined,
@@ -154,6 +184,7 @@ export const run = migrations.runner();
 // Individual runners for specific migrations
 export const runBodyToParts = migrations.runner(internal.migrations.bodyToParts);
 export const runMessageTypeToRole = migrations.runner(internal.migrations.messageTypeToRole);
+export const runModelIdToMetadata = migrations.runner(internal.migrations.modelIdToMetadata);
 export const runCleanupLegacyFields = migrations.runner(internal.migrations.cleanupLegacyFields);
 
 // Query to check migration status  
@@ -170,6 +201,10 @@ export const status = query({
       needsMigration: v.number(),
       migrated: v.number(),
     }),
+    modelIdToMetadata: v.object({
+      needsMigration: v.number(),
+      migrated: v.number(),
+    }),
     total: v.number(),
   }),
   handler: async (ctx) => {
@@ -179,6 +214,8 @@ export const status = query({
     let bodyToPartsMigrated = 0;
     let messageTypeNeedsMigration = 0;
     let messageTypeMigrated = 0;
+    let modelIdNeedsMigration = 0;
+    let modelIdMigrated = 0;
     
     for (const msg of messages) {
       // Check body to parts migration
@@ -194,6 +231,13 @@ export const status = query({
       } else {
         messageTypeNeedsMigration++;
       }
+      
+      // Check modelId to metadata migration
+      if (msg.modelId && !msg.metadata?.model) {
+        modelIdNeedsMigration++;
+      } else if (msg.metadata?.model || !msg.modelId) {
+        modelIdMigrated++;
+      }
     }
     
     return {
@@ -204,6 +248,10 @@ export const status = query({
       messageTypeToRole: {
         needsMigration: messageTypeNeedsMigration,
         migrated: messageTypeMigrated,
+      },
+      modelIdToMetadata: {
+        needsMigration: modelIdNeedsMigration,
+        migrated: modelIdMigrated,
       },
       total: messages.length,
     };
