@@ -86,16 +86,17 @@ export const updateApiKeys = mutation({
 		}
 
 		if (existingSettings) {
-			// Update existing settings
+			// Update existing settings and populate clerkUserId if missing (migration)
 			await ctx.db.patch(existingSettings._id, {
 				apiKeys,
+				clerkUserId: existingSettings.clerkUserId || clerkUserId, // Populate clerkUserId for legacy records
 				updatedAt: now,
 			});
 		} else {
-			// Create new settings
+			// Create new settings with clerkUserId
 			await ctx.db.insert("userSettings", {
 				userId,
-				clerkUserId,
+				clerkUserId: clerkUserId, // Include clerkUserId for new records
 				apiKeys,
 				createdAt: now,
 				updatedAt: now,
@@ -129,16 +130,17 @@ export const updatePreferences = mutation({
 		};
 
 		if (existingSettings) {
-			// Update existing settings
+			// Update existing settings and populate clerkUserId if missing (migration)
 			await ctx.db.patch(existingSettings._id, {
 				preferences,
+				clerkUserId: existingSettings.clerkUserId || clerkUserId, // Populate clerkUserId for legacy records
 				updatedAt: now,
 			});
 		} else {
-			// Create new settings
+			// Create new settings with clerkUserId
 			await ctx.db.insert("userSettings", {
 				userId,
-				clerkUserId,
+				clerkUserId: clerkUserId, // Include clerkUserId for new records
 				preferences,
 				createdAt: now,
 				updatedAt: now,
@@ -194,10 +196,18 @@ export const getDecryptedApiKeys = internalMutation({
 		}),
 	),
 	handler: async (ctx, { clerkUserId }) => {
-		const settings = await ctx.db
+		// Try to find settings by Clerk user ID first
+		let settings = await ctx.db
 			.query("userSettings")
 			.withIndex("by_clerk_user", (q) => q.eq("clerkUserId", clerkUserId))
 			.first();
+
+		// If not found by Clerk user ID, this might be a legacy record
+		// For now, return null since we can't map without the clerkUserId field populated
+		if (!settings) {
+			console.warn(`No userSettings found for Clerk user ID: ${clerkUserId}`);
+			return null;
+		}
 
 		if (!settings?.apiKeys) {
 			return null;

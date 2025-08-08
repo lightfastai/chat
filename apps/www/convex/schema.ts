@@ -46,7 +46,7 @@ export default defineSchema({
 
 	userSettings: defineTable({
 		userId: v.id("users"),
-		clerkUserId: v.string(), // Clerk user ID for direct user identification (required)
+		clerkUserId: v.optional(v.string()), // Clerk user ID for direct user identification (optional during migration)
 		apiKeys: userApiKeysValidator,
 		preferences: userPreferencesValidator,
 		createdAt: v.number(),
