@@ -1,7 +1,7 @@
 "use client";
 
 import { siteConfig } from "@/lib/site-config";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useAuthActions } from "@/hooks/use-auth";
 import {
 	Avatar,
 	AvatarFallback,

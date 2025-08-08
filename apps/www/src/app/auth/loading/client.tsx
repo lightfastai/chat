@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -10,10 +9,9 @@ interface AuthLoadingClientProps {
 }
 
 export function AuthLoadingClient({
-	provider,
+	provider: _provider,
 	redirectTo = "/chat",
 }: AuthLoadingClientProps) {
-	const { signIn } = useAuthActions();
 	const router = useRouter();
 	const hasInitiated = useRef(false);
 
@@ -22,37 +20,12 @@ export function AuthLoadingClient({
 		if (hasInitiated.current) return;
 		hasInitiated.current = true;
 
-		async function performSignIn() {
-			// Validate provider
-			if (!provider || (provider !== "github" && provider !== "anonymous")) {
-				router.push(`/signin?error=${encodeURIComponent("Invalid provider")}`);
-				return;
-			}
-
-			try {
-				// Add timeout to prevent infinite hanging
-				const signInPromise = signIn(provider, { redirectTo });
-				const timeoutPromise = new Promise((_, reject) =>
-					setTimeout(() => reject(new Error("Sign in timed out")), 10000),
-				);
-
-				await Promise.race([signInPromise, timeoutPromise]);
-
-				// For anonymous auth, we need to manually redirect
-				if (provider === "anonymous") {
-					router.push(redirectTo);
-				}
-				// For OAuth providers like GitHub, the browser will redirect automatically
-			} catch (err) {
-				console.error("Sign in error:", err);
-				router.push(
-					`/signin?error=${encodeURIComponent("Authentication failed")}`,
-				);
-			}
-		}
-
-		performSignIn();
-	}, [provider, redirectTo, signIn, router]);
+		// With Clerk, authentication is handled through their UI
+		// This loading page is no longer needed - redirect to sign-in
+		const url = new URL("/sign-in", window.location.origin);
+		url.searchParams.set("redirect_url", redirectTo);
+		router.push(url.toString());
+	}, [redirectTo, router]);
 
 	// This component is hidden - all UI is handled by the server component
 	return null;

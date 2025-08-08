@@ -14,7 +14,7 @@ export function useAuthActions() {
 	const { signOut: clerkSignOut } = useClerk();
 	const router = useRouter();
 
-	const signIn = useCallback(async (provider?: string) => {
+	const signIn = useCallback(async (_provider?: string) => {
 		// Redirect to Clerk sign-in
 		router.push("/sign-in");
 	}, [router]);
@@ -37,7 +37,7 @@ export function useAuthActions() {
  * Now uses Clerk for authentication
  */
 export function useAuth() {
-	const { isLoaded: isClerkLoaded, isSignedIn } = useClerkAuth();
+	const { isLoaded: isClerkLoaded } = useClerkAuth();
 	const { user: clerkUser } = useUser();
 	const { isAuthenticated: isConvexAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
 	const currentUser = useQuery(api.users.current);
