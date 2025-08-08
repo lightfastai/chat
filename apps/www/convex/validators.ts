@@ -166,15 +166,9 @@ export const roleValidator = v.union(
 );
 
 // Token usage validator
-export const tokenUsageValidator = v.optional(
-	v.object({
-		inputTokens: v.optional(v.number()),
-		outputTokens: v.optional(v.number()),
-		totalTokens: v.optional(v.number()),
-		reasoningTokens: v.optional(v.number()),
-		cachedInputTokens: v.optional(v.number()),
-	}),
-);
+// Note: Using v.any() temporarily to handle legacy data during migration
+// TODO: Revert to strict typing after deployment
+export const tokenUsageValidator = v.optional(v.any());
 
 // ===== File Validators =====
 // File name validator
