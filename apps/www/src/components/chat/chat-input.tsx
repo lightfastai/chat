@@ -521,19 +521,19 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          onClick={handleWebSearchToggle}
-                          variant={webSearchEnabled ? "default" : "ghost"}
+                          onClick={() => {}}
+                          disabled={true}
+                          variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="h-8 w-8 opacity-50 cursor-not-allowed"
                         >
                           <Globe className="w-4 h-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="bottom">
                         <p>
-                          {webSearchEnabled
-                            ? "Web search enabled - AI can search the web for current information"
-                            : "Enable web search for current information"}
+                          We've temporarily disabled this functionality. Check
+                          back soon!
                         </p>
                       </TooltipContent>
                     </Tooltip>
