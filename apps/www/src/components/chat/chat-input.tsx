@@ -25,7 +25,6 @@ import {
 	FileIcon,
 	Globe,
 	Image,
-	Loader2,
 	Paperclip,
 	X,
 } from "lucide-react";

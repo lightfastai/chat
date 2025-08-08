@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -12,6 +13,8 @@ import type { DbMessage, DbThread } from "../../convex/types";
 export function useCreateThreadWithFirstMessages() {
 	// Get the current user to use in optimistic updates
 	const currentUser = useQuery(api.users.current);
+	// Get the Clerk user for the clerkUserId field
+	const { user: clerkUser } = useUser();
 
 	return useMutation(
 		api.threads.createThreadWithFirstMessages,
@@ -20,7 +23,7 @@ export function useCreateThreadWithFirstMessages() {
 
 		// If we don't have a user ID yet, we can't create an optimistic thread
 		// This shouldn't happen in practice as the user should be authenticated
-		if (!currentUser?._id) {
+		if (!currentUser?._id || !clerkUser?.id) {
 			console.error("No user ID found");
 			return;
 		}
@@ -38,6 +41,7 @@ export function useCreateThreadWithFirstMessages() {
 			clientId: clientThreadId,
 			title: "",
 			userId: currentUser._id,
+			clerkUserId: clerkUser.id, // Use the actual Clerk user ID
 			pinned: undefined, // Match backend behavior - undefined means unpinned
 			branchedFrom: undefined,
 			isPublic: false,
