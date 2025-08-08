@@ -1,6 +1,6 @@
 "use client";
 
-import { usePreloadedQuery, useQuery } from "convex/react";
+import { useConvexAuth, usePreloadedQuery, useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
@@ -51,10 +51,13 @@ export function TokenUsageHeaderWrapper() {
 	const preloadedThread =
 		preloadedThreadByIdData || preloadedThreadByClientIdData;
 
-	// Resolve client ID to actual thread ID (skip if we have preloaded data)
+	// Check authentication status
+	const { isAuthenticated } = useConvexAuth();
+	
+	// Resolve client ID to actual thread ID (skip if we have preloaded data or not authenticated)
 	const threadByClientId = useQuery(
 		api.threads.getByClientId,
-		pathInfo.type === "clientId" && !preloadedThread
+		pathInfo.type === "clientId" && !preloadedThread && isAuthenticated
 			? { clientId: pathInfo.id }
 			: "skip",
 	);

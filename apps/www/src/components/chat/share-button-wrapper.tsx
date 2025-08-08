@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { usePreloadedQuery, useQuery } from "convex/react";
+import { useConvexAuth, usePreloadedQuery, useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useChatPreloadContext } from "./chat-preload-context";
 import { ShareButton } from "./share-button";
@@ -37,10 +37,13 @@ export function ShareButtonWrapper() {
 	const preloadedThread =
 		preloadedThreadByIdData || preloadedThreadByClientIdData;
 
-	// Get thread by clientId if needed (skip for settings and if preloaded)
+	// Check authentication status
+	const { isAuthenticated } = useConvexAuth();
+	
+	// Get thread by clientId if needed (skip for settings, if preloaded, or if not authenticated)
 	const threadByClientId = useQuery(
 		api.threads.getByClientId,
-		clientId && !isSettingsPage && !preloadedThread ? { clientId } : "skip",
+		clientId && !isSettingsPage && !preloadedThread && isAuthenticated ? { clientId } : "skip",
 	);
 
 	// Determine the actual Convex thread ID

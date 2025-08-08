@@ -5,7 +5,7 @@ import { useChat as useVercelChat } from "@ai-sdk/react";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { DEFAULT_MODEL_ID } from "@lightfast/ai/providers";
 import type { Preloaded } from "convex/react";
-import { usePreloadedQuery, useQuery } from "convex/react";
+import { useConvexAuth, usePreloadedQuery, useQuery } from "convex/react";
 import { useCallback } from "react";
 import { api } from "../../convex/_generated/api";
 import type {
@@ -34,11 +34,14 @@ export function useChat({
 	const authToken = useAuthToken();
 	const createThreadOptimistic = useCreateThreadWithFirstMessages();
 	const createMessageOptimistic = useCreateSubsequentMessages();
+	
+	// Check authentication status
+	const { isAuthenticated } = useConvexAuth();
 
-	// Query thread if we have a clientId
+	// Query thread if we have a clientId and are authenticated
 	const thread = useQuery(
 		api.threads.getByClientId,
-		clientId ? { clientId } : "skip",
+		clientId && isAuthenticated ? { clientId } : "skip",
 	);
 
 	// Extract data from preloaded queries if available
