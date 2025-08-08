@@ -1,7 +1,7 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { nanoid } from "nanoid";
 import { mutation, query } from "./_generated/server";
+import { getAuthenticatedUserId, getAuthenticatedClerkUserId } from "./lib/auth";
 import { shareIdValidator, shareSettingsValidator } from "./validators";
 
 export const shareThread = mutation({
@@ -15,17 +15,16 @@ export const shareThread = mutation({
 	},
 	returns: v.object({ shareId: shareIdValidator }),
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			throw new Error("Unauthorized");
-		}
+		const userId = await getAuthenticatedUserId(ctx);
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		const thread = await ctx.db.get(args.threadId);
 		if (!thread) {
 			throw new Error("Thread not found");
 		}
 
-		if (thread.userId !== userId) {
+		// Check ownership with both IDs for compatibility
+		if (thread.userId !== userId && thread.clerkUserId !== clerkUserId) {
 			throw new Error("Unauthorized: You don't own this thread");
 		}
 
@@ -68,17 +67,16 @@ export const unshareThread = mutation({
 	},
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			throw new Error("Unauthorized");
-		}
+		const userId = await getAuthenticatedUserId(ctx);
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		const thread = await ctx.db.get(args.threadId);
 		if (!thread) {
 			throw new Error("Thread not found");
 		}
 
-		if (thread.userId !== userId) {
+		// Check ownership with both IDs for compatibility
+		if (thread.userId !== userId && thread.clerkUserId !== clerkUserId) {
 			throw new Error("Unauthorized: You don't own this thread");
 		}
 
@@ -99,17 +97,16 @@ export const updateShareSettings = mutation({
 	},
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			throw new Error("Unauthorized");
-		}
+		const userId = await getAuthenticatedUserId(ctx);
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
 		const thread = await ctx.db.get(args.threadId);
 		if (!thread) {
 			throw new Error("Thread not found");
 		}
 
-		if (thread.userId !== userId) {
+		// Check ownership with both IDs for compatibility
+		if (thread.userId !== userId && thread.clerkUserId !== clerkUserId) {
 			throw new Error("Unauthorized: You don't own this thread");
 		}
 
@@ -245,13 +242,17 @@ export const getThreadShareInfo = query({
 		}),
 	),
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
+		let userId, clerkUserId;
+		try {
+			userId = await getAuthenticatedUserId(ctx);
+			clerkUserId = await getAuthenticatedClerkUserId(ctx);
+		} catch {
 			return null;
 		}
 
 		const thread = await ctx.db.get(args.threadId);
-		if (!thread || thread.userId !== userId) {
+		// Check ownership with both IDs for compatibility
+		if (!thread || (thread.userId !== userId && thread.clerkUserId !== clerkUserId)) {
 			return null;
 		}
 

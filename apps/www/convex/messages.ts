@@ -7,11 +7,11 @@
  * separate from utility functions.
  */
 
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.js";
 import { internalMutation, mutation, query } from "./_generated/server.js";
+import { getAuthenticatedUserId, getAuthenticatedClerkUserId } from "./lib/auth.js";
 import type { DbMessagePart, DbReasoningPart, DbTextPart } from "./types.js";
 import {
 	addErrorPartArgsValidator,
@@ -39,8 +39,10 @@ export const get = query({
 		messageId: v.id("messages"),
 	},
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
+		let userId;
+		try {
+			userId = await getAuthenticatedUserId(ctx);
+		} catch {
 			return null;
 		}
 
@@ -64,16 +66,18 @@ export const listByClientId = query({
 		clientId: clientIdValidator,
 	},
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
+		let clerkUserId;
+		try {
+			clerkUserId = await getAuthenticatedClerkUserId(ctx);
+		} catch {
 			return [];
 		}
 
 		// First get the thread by clientId
 		const thread = await ctx.db
 			.query("threads")
-			.withIndex("by_user_client", (q) =>
-				q.eq("userId", userId).eq("clientId", args.clientId),
+			.withIndex("by_clerk_user_client", (q) =>
+				q.eq("clerkUserId", clerkUserId).eq("clientId", args.clientId),
 			)
 			.first();
 
@@ -106,7 +110,20 @@ export const getThreadUsage = query({
 		messageCount: v.number(),
 	}),
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
+		let userId;
+		try {
+			userId = await getAuthenticatedUserId(ctx);
+		} catch {
+			// Return default usage for unauthenticated users
+			return {
+				totalInputTokens: 0,
+				totalOutputTokens: 0,
+				totalTokens: 0,
+				totalReasoningTokens: 0,
+				totalCachedInputTokens: 0,
+				messageCount: 0,
+			};
+		}
 		const defaultUsage = {
 			totalInputTokens: 0,
 			totalOutputTokens: 0,
@@ -687,14 +704,12 @@ export const createSubsequentMessages = mutation({
 		assistantMessageId: v.id("messages"),
 	}),
 	handler: async (ctx, args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			throw new Error("Not authenticated");
-		}
+		const userId = await getAuthenticatedUserId(ctx);
+		const clerkUserId = await getAuthenticatedClerkUserId(ctx);
 
-		// Verify the user owns this thread
+		// Verify the user owns this thread (check both IDs for compatibility)
 		const thread = await ctx.db.get(args.threadId);
-		if (!thread || thread.userId !== userId) {
+		if (!thread || (thread.userId !== userId && thread.clerkUserId !== clerkUserId)) {
 			throw new Error("Thread not found");
 		}
 

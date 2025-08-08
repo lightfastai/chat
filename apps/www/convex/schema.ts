@@ -104,6 +104,7 @@ export default defineSchema({
 		.index("by_clerk_user", ["clerkUserId"])
 		.index("by_client_id", ["clientId"])
 		.index("by_user_client", ["userId", "clientId"])
+		.index("by_clerk_user_client", ["clerkUserId", "clientId"])
 		.index("by_share_id", ["shareId"]),
 
 	messages: defineTable({

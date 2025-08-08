@@ -1,6 +1,6 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { getAuthenticatedUserId } from "./lib/auth";
 
 // Import proper encryption utilities
 import { decrypt, encrypt } from "./lib/services/encryption";
@@ -18,8 +18,10 @@ import {
 export const getUserSettings = query({
 	args: {},
 	handler: async (ctx) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
+		let userId;
+		try {
+			userId = await getAuthenticatedUserId(ctx);
+		} catch {
 			return null;
 		}
 
@@ -45,10 +47,7 @@ export const updateApiKeys = mutation({
 	},
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, { openaiKey, anthropicKey, openrouterKey }) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			throw new ConvexError("Unauthorized");
-		}
+		const userId = await getAuthenticatedUserId(ctx);
 
 		const existingSettings = await ctx.db
 			.query("userSettings")
@@ -113,10 +112,7 @@ export const updatePreferences = mutation({
 	},
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, { defaultModel, preferredProvider }) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			throw new ConvexError("Unauthorized");
-		}
+		const userId = await getAuthenticatedUserId(ctx);
 
 		const existingSettings = await ctx.db
 			.query("userSettings")
@@ -157,10 +153,7 @@ export const removeApiKey = mutation({
 	returns: v.object({ success: v.boolean() }),
 	handler: async (ctx, args) => {
 		const provider = args.provider;
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
-			throw new ConvexError("Unauthorized");
-		}
+		const userId = await getAuthenticatedUserId(ctx);
 
 		const existingSettings = await ctx.db
 			.query("userSettings")

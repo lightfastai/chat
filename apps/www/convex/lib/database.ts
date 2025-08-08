@@ -87,3 +87,67 @@ export async function deleteWithOwnership<T extends keyof DataModel>(
 	);
 	await db.delete(id);
 }
+
+/**
+ * Get a document by ID and verify ownership using Clerk user ID
+ * @throws ConvexError with code "NOT_FOUND" if document doesn't exist
+ * @throws ConvexError with code "FORBIDDEN" if user doesn't own the document
+ */
+export async function getWithClerkOwnership<T extends keyof DataModel>(
+	db: GenericDatabaseReader<DataModel>,
+	table: T,
+	id: Id<T>,
+	clerkUserId: string,
+): Promise<Doc<T>> {
+	const doc = await getOrThrow(db, table, id);
+
+	// Type-safe ownership check for Clerk user ID
+	if ("clerkUserId" in doc && doc.clerkUserId === clerkUserId) {
+		return doc;
+	}
+
+	requireAccess(false, `${table} with ID ${id}`);
+	return doc; // TypeScript needs this even though requireAccess throws
+}
+
+/**
+ * Update a document with Clerk ownership verification
+ * @throws ConvexError with code "NOT_FOUND" if document doesn't exist
+ * @throws ConvexError with code "FORBIDDEN" if user doesn't own the document
+ */
+export async function updateWithClerkOwnership<T extends keyof DataModel>(
+	db: GenericDatabaseWriter<DataModel>,
+	table: T,
+	id: Id<T>,
+	clerkUserId: string,
+	updates: Partial<Doc<T>>,
+): Promise<void> {
+	await getWithClerkOwnership(
+		db as GenericDatabaseReader<DataModel>,
+		table,
+		id,
+		clerkUserId,
+	);
+	// TypeScript requires the cast due to partial type variance
+	await db.patch(id, updates as Partial<Doc<T>>);
+}
+
+/**
+ * Delete a document with Clerk ownership verification
+ * @throws ConvexError with code "NOT_FOUND" if document doesn't exist
+ * @throws ConvexError with code "FORBIDDEN" if user doesn't own the document
+ */
+export async function deleteWithClerkOwnership<T extends keyof DataModel>(
+	db: GenericDatabaseWriter<DataModel>,
+	table: T,
+	id: Id<T>,
+	clerkUserId: string,
+): Promise<void> {
+	await getWithClerkOwnership(
+		db as GenericDatabaseReader<DataModel>,
+		table,
+		id,
+		clerkUserId,
+	);
+	await db.delete(id);
+}

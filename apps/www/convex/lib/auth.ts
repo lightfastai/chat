@@ -81,6 +81,31 @@ export async function getAuthenticatedUserId(
 }
 
 /**
+ * Get authenticated Clerk user ID
+ * Returns the Clerk user ID directly without mapping
+ * @throws ConvexError with code "UNAUTHORIZED" if not authenticated
+ */
+export async function getAuthenticatedClerkUserId(
+	ctx:
+		| GenericQueryCtx<DataModel>
+		| GenericMutationCtx<DataModel>
+		| GenericActionCtx<DataModel>,
+): Promise<string> {
+	// Get the Clerk user identity
+	const identity = await ctx.auth.getUserIdentity();
+	
+	if (!identity) {
+		throw new ConvexError({
+			code: "UNAUTHORIZED",
+			message: "Not authenticated",
+		});
+	}
+
+	// Return the Clerk user ID directly
+	return identity.subject;
+}
+
+/**
  * Check if a user owns a resource
  * @throws ConvexError with code "FORBIDDEN" if user doesn't own the resource
  */

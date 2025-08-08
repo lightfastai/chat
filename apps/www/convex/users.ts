@@ -1,6 +1,6 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { query } from "./_generated/server.js";
+import { getAuthenticatedUserId } from "./lib/auth.js";
 import {
 	emailValidator,
 	phoneValidator,
@@ -14,12 +14,14 @@ import {
 export const current = query({
 	args: {},
 	handler: async (ctx, _args) => {
-		const userId = await getAuthUserId(ctx);
-		if (!userId) {
+		try {
+			// Get the mapped Convex user ID using Clerk authentication
+			const userId = await getAuthenticatedUserId(ctx);
+			return await ctx.db.get(userId);
+		} catch {
+			// Return null for unauthenticated users
 			return null;
 		}
-
-		return await ctx.db.get(userId);
 	},
 });
 
