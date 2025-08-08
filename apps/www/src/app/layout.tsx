@@ -8,6 +8,7 @@ import { cn } from "@lightfast/ui/lib/utils";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "sonner";
+import { env } from "@/env";
 
 export const metadata: Metadata = {
 	title: {
@@ -84,7 +85,7 @@ export default function RootLayout({
 	children,
 }: { children: React.ReactNode }) {
 	return (
-		<ClerkProvider>
+		<ClerkProvider publishableKey={env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
 			<html lang="en" suppressHydrationWarning>
 				<body className={cn(fonts, "dark", "flex min-h-screen flex-col")}>
 					<ConvexClientProvider>{children}</ConvexClientProvider>
