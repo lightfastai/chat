@@ -493,7 +493,6 @@ If you find this project helpful, please consider:
 - 🐛 Reporting bugs and issues
 - 💡 Suggesting new features
 - 🤝 Contributing code or documentation
-
 ---
 
 **Built with ❤️ by the Lightfast team**
