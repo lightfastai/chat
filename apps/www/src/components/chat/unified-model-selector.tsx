@@ -1,25 +1,25 @@
 "use client";
 
 import {
-  type ModelId,
-  PROVIDER_ICONS,
-  getModelConfig,
-  getVisibleModels,
+	type ModelId,
+	PROVIDER_ICONS,
+	getModelConfig,
+	getVisibleModels,
 } from "@lightfast/ai/providers";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
 import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
+	Command,
+	CommandEmpty,
+	CommandInput,
+	CommandItem,
+	CommandList,
 } from "@lightfast/ui/components/ui/command";
 import { Icons } from "@lightfast/ui/components/ui/icons";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
 } from "@lightfast/ui/components/ui/popover";
 import { cn } from "@lightfast/ui/lib/utils";
 import { ChevronDown } from "lucide-react";

@@ -20,7 +20,10 @@ export function SharedChatView({ shareId }: SharedChatViewProps) {
 	);
 
 	// Show loading while checking access or loading data
-	if (threadCheck === undefined || (threadCheck?.allowed && sharedData === undefined)) {
+	if (
+		threadCheck === undefined ||
+		(threadCheck?.allowed && sharedData === undefined)
+	) {
 		return (
 			<div className="flex items-center justify-center h-screen">
 				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

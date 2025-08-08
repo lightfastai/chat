@@ -2,10 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { nanoid } from "nanoid";
 import { mutation, query } from "./_generated/server";
-import {
-	shareIdValidator,
-	shareSettingsValidator,
-} from "./validators";
+import { shareIdValidator, shareSettingsValidator } from "./validators";
 
 export const shareThread = mutation({
 	args: {

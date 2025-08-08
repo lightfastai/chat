@@ -13,13 +13,13 @@ import {
 	messageMetadataValidator,
 	messagePartsValidator,
 	messageStatusValidator,
-	messagesDeprecatedValidator,
 	mimeTypeValidator,
+	modelIdValidator,
+	modelProviderValidator,
 	roleValidator,
 	shareIdValidator,
 	shareSettingsValidator,
 	storageIdValidator,
-	threadDeprecatedValidator,
 	threadMetadataValidator,
 	titleValidator,
 	userAgentValidator,
@@ -64,7 +64,17 @@ export default defineSchema({
 		shareSettings: shareSettingsValidator,
 		metadata: v.optional(threadMetadataValidator),
 		// @deprecated fields - Do not use in new code
-		...threadDeprecatedValidator.fields,
+		createdAt: v.optional(v.number()),
+		isTitleGenerating: v.optional(v.boolean()),
+		lastMessageAt: v.optional(v.number()),
+		isGenerating: v.optional(v.boolean()),
+		usage: v.optional(
+			v.object({
+				inputTokens: v.optional(v.number()),
+				outputTokens: v.optional(v.number()),
+				totalTokens: v.optional(v.number()),
+			}),
+		),
 	})
 		.index("by_user", ["userId"])
 		.index("by_client_id", ["clientId"])
@@ -81,7 +91,41 @@ export default defineSchema({
 		// New metadata structure
 		metadata: v.optional(messageMetadataValidator),
 		// @deprecated fields - Do not use in new code
-		...messagesDeprecatedValidator.fields,
+		messageType: v.optional(roleValidator),
+		modelId: v.optional(modelIdValidator),
+		usedUserApiKey: v.optional(v.boolean()),
+		thinkingStartedAt: v.optional(v.number()),
+		thinkingCompletedAt: v.optional(v.number()),
+		model: v.optional(modelProviderValidator),
+		timestamp: v.optional(v.number()),
+		body: v.optional(v.string()),
+		isStreaming: v.optional(v.boolean()),
+		streamId: v.optional(v.string()),
+		isComplete: v.optional(v.boolean()),
+		streamVersion: v.optional(v.number()),
+		thinkingContent: v.optional(v.string()),
+		isThinking: v.optional(v.boolean()),
+		hasThinkingContent: v.optional(v.boolean()),
+		usage: v.optional(
+			v.object({
+				inputTokens: v.optional(v.number()),
+				outputTokens: v.optional(v.number()),
+				totalTokens: v.optional(v.number()),
+			}),
+		),
+		streamChunks: v.optional(
+			v.array(
+				v.object({
+					chunkId: v.optional(v.string()),
+					id: v.optional(v.string()),
+					content: v.string(),
+					timestamp: v.number(),
+					sequence: v.optional(v.number()),
+					isThinking: v.optional(v.boolean()),
+				}),
+			),
+		),
+		lastChunkId: v.optional(v.string()),
 	}).index("by_thread", ["threadId"]),
 
 	feedback: defineTable({
