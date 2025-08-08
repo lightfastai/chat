@@ -33,17 +33,20 @@ First, deploy the code with migration definitions and UI fallback:
 ```bash
 git pull origin main
 pnpm install
-npx convex deploy --prod
+
+# For production deployment, Convex uses your default deployment
+# Make sure you're deploying to the right environment
+npx convex deploy
 ```
 
 ### Step 2: Check Current State
 
 ```bash
-# Check migration status
-npx convex run --prod --query migrations:status
+# Check migration status (runs on your default deployment)
+npx convex run --query migrations:status
 
 # See how many messages need migration (optional)
-npx convex run --prod migrations:countLegacyMessages
+npx convex run migrations:countLegacyMessages
 ```
 
 ### Step 3: Run Migration
@@ -51,14 +54,15 @@ npx convex run --prod migrations:countLegacyMessages
 Use the production migration script for safety checks:
 
 ```bash
-./scripts/production-migration.sh --prod
+# The script will warn you about production
+./scripts/production-migration.sh --production
 ```
 
 Or run directly via CLI:
 
 ```bash
 # Run the body → parts migration
-npx convex run --prod migrations:runBodyToParts
+npx convex run migrations:runBodyToParts
 ```
 
 ### Step 4: Monitor Progress
@@ -67,10 +71,10 @@ The migration runs asynchronously. Monitor progress:
 
 ```bash
 # Check status repeatedly
-watch -n 5 'npx convex run --prod --query migrations:status'
+watch -n 5 'npx convex run --query migrations:status'
 
 # Or check manually
-npx convex run --prod --query migrations:status
+npx convex run --query migrations:status
 ```
 
 Expected output:
@@ -103,10 +107,10 @@ After confirming everything works:
 
 ```bash
 # Remove legacy fields permanently
-npx convex run --prod migrations:runCleanupLegacyFields
+npx convex run migrations:runCleanupLegacyFields
 
 # Monitor cleanup progress
-npx convex run --prod --query migrations:status
+npx convex run --query migrations:status
 ```
 
 ## Rollback Plan
@@ -127,18 +131,27 @@ Since legacy fields are preserved until cleanup, the original data remains intac
 
 ## Command Reference
 
+### Setting up for Production
+```bash
+# Convex uses your default deployment
+# To check which deployment you're using:
+npx convex dashboard
+
+# Migrations run on whichever deployment is currently active
+```
+
 ### Check Status
 ```bash
-npx convex run --prod --query migrations:status
+npx convex run --query migrations:status
 ```
 
 ### Run Migrations
 ```bash
 # Body to parts migration
-npx convex run --prod migrations:runBodyToParts
+npx convex run migrations:runBodyToParts
 
 # Cleanup legacy fields (after verification)
-npx convex run --prod migrations:runCleanupLegacyFields
+npx convex run migrations:runCleanupLegacyFields
 ```
 
 ### Using the Interactive Script
@@ -147,7 +160,7 @@ npx convex run --prod migrations:runCleanupLegacyFields
 ./scripts/production-migration.sh
 
 # Production (with safety prompts)
-./scripts/production-migration.sh --prod
+./scripts/production-migration.sh --production
 ```
 
 ## Troubleshooting

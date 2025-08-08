@@ -15,10 +15,11 @@ NC='\033[0m' # No Color
 # Check for production flag
 PROD_FLAG=""
 ENV_NAME="development"
-if [[ "$1" == "--prod" ]]; then
-    PROD_FLAG="--prod"
+if [[ "$1" == "--prod" || "$1" == "--production" ]]; then
+    PROD_FLAG=""  # Convex uses environment selection, not --prod flag
     ENV_NAME="PRODUCTION"
     echo -e "${RED}⚠️  PRODUCTION MODE ENABLED${NC}"
+    echo -e "${YELLOW}Make sure CONVEX_DEPLOYMENT is set to your production deployment${NC}"
 fi
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -30,7 +31,7 @@ echo ""
 # Function to check migration status
 check_status() {
     echo -e "${YELLOW}📊 Checking migration status...${NC}"
-    npx convex run $PROD_FLAG --no-push --query migrations:status
+    npx convex run --query migrations:status
     echo ""
 }
 
@@ -64,12 +65,12 @@ run_body_to_parts() {
     
     echo ""
     echo -e "${GREEN}Running migration...${NC}"
-    npx convex run $PROD_FLAG migrations:runBodyToParts
+    npx convex run migrations:runBodyToParts
     
     echo ""
     echo -e "${GREEN}✅ Migration started successfully!${NC}"
     echo -e "The migration runs asynchronously. Check status with:"
-    echo -e "  npx convex run $PROD_FLAG --query migrations:status"
+    echo -e "  npx convex run --query migrations:status"
 }
 
 # Function to run cleanup
@@ -103,7 +104,7 @@ run_cleanup() {
     
     echo ""
     echo -e "${GREEN}Running cleanup...${NC}"
-    npx convex run $PROD_FLAG migrations:runCleanupLegacyFields
+    npx convex run migrations:runCleanupLegacyFields
     
     echo ""
     echo -e "${GREEN}✅ Cleanup started successfully!${NC}"
