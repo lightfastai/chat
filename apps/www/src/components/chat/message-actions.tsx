@@ -5,7 +5,7 @@ import { useCopyToClipboard } from "@/lib/use-copy-to-clipboard";
 import { Badge } from "@lightfast/ui/components/ui/badge";
 import { Button } from "@lightfast/ui/components/ui/button";
 import { cn } from "@lightfast/ui/lib/utils";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import {
 	CheckIcon,
 	ClipboardIcon,
@@ -34,6 +34,7 @@ export function MessageActions({
 	const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
 	const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 	const { copy, isCopied } = useCopyToClipboard({ timeout: 2000 });
+	const { isAuthenticated } = useConvexAuth();
 
 	// Notify parent when dropdown state changes
 	React.useEffect(() => {
@@ -41,9 +42,10 @@ export function MessageActions({
 	}, [isDropdownOpen, onDropdownStateChange]);
 
 	// For Convex messages, we always have a valid ID
-	const feedback = useQuery(api.feedback.getUserFeedbackForMessage, {
-		messageId: message._id,
-	});
+	const feedback = useQuery(
+		api.feedback.getUserFeedbackForMessage,
+		isAuthenticated ? { messageId: message._id } : "skip",
+	);
 
 	const submitFeedback = useMutation(api.feedback.submitFeedback);
 	const removeFeedback = useMutation(api.feedback.removeFeedback);

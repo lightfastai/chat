@@ -1,13 +1,14 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ApiKeysSection } from "./api-keys-section";
 import { ProfileSection } from "./profile-section";
 
 export function SettingsContent() {
-	const user = useQuery(api.users.current);
-	const userSettings = useQuery(api.userSettings.getUserSettings);
+	const { isAuthenticated } = useConvexAuth();
+	const user = useQuery(api.users.current, isAuthenticated ? {} : "skip");
+	const userSettings = useQuery(api.userSettings.getUserSettings, isAuthenticated ? {} : "skip");
 
 	if (!user) {
 		return null;

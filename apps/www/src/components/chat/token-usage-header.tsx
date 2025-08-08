@@ -7,7 +7,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@lightfast/ui/components/ui/tooltip";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { Activity } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -29,13 +29,15 @@ function formatTokenCount(count: number): string {
 }
 
 export function TokenUsageHeader({ threadId }: TokenUsageHeaderProps) {
+	const { isAuthenticated } = useConvexAuth();
+
 	// Check if this is an optimistic thread ID (not a real Convex ID)
 	const isOptimisticThreadId = threadId !== "new" && !threadId.startsWith("k");
 
-	// Skip query for new chats or optimistic IDs
+	// Skip query for new chats, optimistic IDs, or when not authenticated
 	const usage = useQuery(
 		api.messages.getThreadUsage,
-		threadId === "new" || isOptimisticThreadId ? "skip" : { threadId },
+		threadId === "new" || isOptimisticThreadId || !isAuthenticated ? "skip" : { threadId },
 	);
 
 	// For new chats, show nothing

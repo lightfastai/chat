@@ -14,7 +14,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
-import { type Preloaded, usePreloadedQuery, useQuery } from "convex/react";
+import { type Preloaded, useConvexAuth, usePreloadedQuery, useQuery } from "convex/react";
 import { Activity, MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../../convex/_generated/api";
@@ -42,6 +42,7 @@ export function TokenUsageDialog({
 	preloadedThreadUsage,
 }: TokenUsageDialogProps) {
 	const [dialogOpen, setDialogOpen] = useState(false);
+	const { isAuthenticated } = useConvexAuth();
 
 	// Use preloaded usage data if available
 	const preloadedUsage = preloadedThreadUsage
@@ -51,12 +52,12 @@ export function TokenUsageDialog({
 	// Check if this is an optimistic thread ID (not a real Convex ID)
 	const isOptimisticThreadId = threadId !== "new" && !threadId.startsWith("k");
 
-	// Skip query for new chats, optimistic IDs, or if we have preloaded data
+	// Skip query for new chats, optimistic IDs, when not authenticated, or if we have preloaded data
 	const usage =
 		preloadedUsage ??
 		useQuery(
 			api.messages.getThreadUsage,
-			threadId === "new" || isOptimisticThreadId || preloadedUsage
+			threadId === "new" || isOptimisticThreadId || !isAuthenticated || preloadedUsage
 				? "skip"
 				: { threadId },
 		);

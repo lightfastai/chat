@@ -16,7 +16,7 @@ import {
 	DropdownMenuTrigger,
 } from "@lightfast/ui/components/ui/dropdown-menu";
 import { cn } from "@lightfast/ui/lib/utils";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { ChevronDown, LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,7 +40,8 @@ export function UserDropdown({
 	redirectAfterSignOut = true,
 }: UserDropdownProps) {
 	const { signOut } = useAuthActions();
-	const currentUser = useQuery(api.users.current);
+	const { isAuthenticated } = useConvexAuth();
+	const currentUser = useQuery(api.users.current, isAuthenticated ? {} : "skip");
 	const router = useRouter();
 
 	const handleSignOut = async () => {

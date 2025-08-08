@@ -7,7 +7,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@lightfast/ui/components/ui/card";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { MessageSquare, ThumbsDown, ThumbsUp } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -17,7 +17,8 @@ interface FeedbackSummaryProps {
 }
 
 export function FeedbackSummary({ threadId }: FeedbackSummaryProps) {
-	const feedback = useQuery(api.feedback.getThreadFeedback, { threadId });
+	const { isAuthenticated } = useConvexAuth();
+	const feedback = useQuery(api.feedback.getThreadFeedback, isAuthenticated ? { threadId } : "skip");
 
 	if (!feedback || feedback.length === 0) {
 		return null;

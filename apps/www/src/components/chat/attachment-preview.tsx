@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@lightfast/ui/components/ui/button";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { Download, ExternalLink, FileText, Image } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
@@ -13,7 +13,8 @@ interface AttachmentPreviewProps {
 type FileWithUrl = Doc<"files"> & { url: string | null };
 
 export function AttachmentPreview({ attachmentIds }: AttachmentPreviewProps) {
-	const files = useQuery(api.files.getFiles, { fileIds: attachmentIds });
+	const { isAuthenticated } = useConvexAuth();
+	const files = useQuery(api.files.getFiles, isAuthenticated ? { fileIds: attachmentIds } : "skip");
 
 	if (!files || files.length === 0) return null;
 

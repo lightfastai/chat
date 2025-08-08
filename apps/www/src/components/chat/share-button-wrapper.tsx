@@ -61,7 +61,7 @@ export function ShareButtonWrapper() {
 	// Query messages by clientId if we have one (skip for new chat)
 	const messagesByClientId = useQuery(
 		api.messages.listByClientId,
-		clientId && !preloadedMessagesData && !isNewChat ? { clientId } : "skip",
+		clientId && !preloadedMessagesData && !isNewChat && isAuthenticated ? { clientId } : "skip",
 	);
 
 	// Don't show share button on settings page

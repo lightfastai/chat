@@ -20,7 +20,7 @@ import {
 	SidebarMenuButton,
 	useSidebar,
 } from "@lightfast/ui/components/ui/sidebar";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import {
 	ChevronDown,
 	ExternalLink,
@@ -36,7 +36,8 @@ import { api } from "../../../../convex/_generated/api";
 export function SidebarUserMenu() {
 	const { signOut } = useAuthActions();
 	const router = useRouter();
-	const currentUser = useQuery(api.users.current);
+	const { isAuthenticated } = useConvexAuth();
+	const currentUser = useQuery(api.users.current, isAuthenticated ? {} : "skip");
 	const { state } = useSidebar();
 	const [open, setOpen] = useState(false);
 	const { getShortcut } = usePlatformShortcuts();

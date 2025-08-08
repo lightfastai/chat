@@ -14,7 +14,7 @@ import {
 import { Input } from "@lightfast/ui/components/ui/input";
 import { Label } from "@lightfast/ui/components/ui/label";
 import { Switch } from "@lightfast/ui/components/ui/switch";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Check, Copy, Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -36,12 +36,14 @@ export function ShareDialog({
 		showThinking: false,
 	});
 
+	const { isAuthenticated } = useConvexAuth();
+
 	// Check if this is an optimistic thread ID (not a real Convex ID)
 	const isOptimisticThreadId = !threadId.startsWith("k");
 
 	const shareInfo = useQuery(
 		api.share.getThreadShareInfo,
-		isOptimisticThreadId ? "skip" : { threadId },
+		isOptimisticThreadId || !isAuthenticated ? "skip" : { threadId },
 	);
 
 	const shareThread = useMutation(api.share.shareThread);

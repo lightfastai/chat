@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { api } from "../../../convex/_generated/api";
@@ -12,6 +12,7 @@ import { ChatMessages } from "./chat-messages";
 
 export function ChatInterface() {
 	const pathname = usePathname();
+	const { isAuthenticated } = useConvexAuth();
 
 	const pathInfo = useMemo(() => {
 		if (pathname === "/chat") {
@@ -38,7 +39,7 @@ export function ChatInterface() {
 
 	const dbMessages = useQuery(
 		api.messages.listByClientId,
-		currentClientId ? { clientId: currentClientId } : "skip",
+		currentClientId && isAuthenticated ? { clientId: currentClientId } : "skip",
 	);
 
 	const { messages, sendMessage, defaultModel } = useChat({
