@@ -494,6 +494,7 @@ If you find this project helpful, please consider:
 - 💡 Suggesting new features
 - 🤝 Contributing code or documentation
 
+
 ---
 
 **Built with ❤️ by the Lightfast team**
