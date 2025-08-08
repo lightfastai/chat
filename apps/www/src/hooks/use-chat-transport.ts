@@ -27,9 +27,15 @@ export function useChatTransport({
 	defaultModel: _defaultModel,
 }: UseChatTransportProps): ChatTransport<LightfastUIMessage> | undefined {
 	const transport = useMemo(() => {
+		console.log(`[useChatTransport] - Stream URL ${createStreamUrl()}`);
 		// Return undefined if not authenticated - this prevents transport creation
-		if (!authToken) return undefined;
-
+		if (!authToken) {
+			console.log(
+				"[useChatTransport] - authToken not found, transport not created.",
+			);
+			return;
+		}
+		console.log("[useChatTransport] - Found token!");
 		// @todo storngly type the body field.
 		return new DefaultChatTransport<LightfastUIMessage>({
 			api: createStreamUrl(),
