@@ -9,7 +9,6 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as cleanupDeprecatedFields from "../cleanupDeprecatedFields.js";
 import type * as env from "../env.js";
 import type * as feedback from "../feedback.js";
 import type * as files from "../files.js";
@@ -25,8 +24,6 @@ import type * as lib_error_handling from "../lib/error_handling.js";
 import type * as lib_errors from "../lib/errors.js";
 import type * as lib_services_encryption from "../lib/services/encryption.js";
 import type * as messages from "../messages.js";
-import type * as migrationRunners from "../migrationRunners.js";
-import type * as migrationStatus from "../migrationStatus.js";
 import type * as migrations from "../migrations.js";
 import type * as setup from "../setup.js";
 import type * as share from "../share.js";
@@ -53,7 +50,6 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  cleanupDeprecatedFields: typeof cleanupDeprecatedFields;
   env: typeof env;
   feedback: typeof feedback;
   files: typeof files;
@@ -69,8 +65,6 @@ declare const fullApi: ApiFromModules<{
   "lib/errors": typeof lib_errors;
   "lib/services/encryption": typeof lib_services_encryption;
   messages: typeof messages;
-  migrationRunners: typeof migrationRunners;
-  migrationStatus: typeof migrationStatus;
   migrations: typeof migrations;
   setup: typeof setup;
   share: typeof share;

@@ -56,6 +56,7 @@ export default defineSchema({
 		clientId: v.optional(clientIdValidator), // Client-generated ID for instant navigation
 		title: titleValidator,
 		userId: v.id("users"),
+		clerkUserId: v.optional(v.string()), // Clerk user ID for direct user identification
 		pinned: v.optional(v.boolean()),
 		branchedFrom: branchInfoValidator,
 		isPublic: v.optional(v.boolean()), // Whether the thread is publicly accessible
@@ -100,6 +101,7 @@ export default defineSchema({
 		),
 	})
 		.index("by_user", ["userId"])
+		.index("by_clerk_user", ["clerkUserId"])
 		.index("by_client_id", ["clientId"])
 		.index("by_user_client", ["userId", "clientId"])
 		.index("by_share_id", ["shareId"]),
