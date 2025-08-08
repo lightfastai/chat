@@ -142,9 +142,6 @@ importers:
       '@convex-dev/auth':
         specifier: ^0.0.87
         version: 0.0.87(@auth/core@0.39.1)(convex@1.24.8(react@19.1.0))(react@19.1.0)
-      '@convex-dev/migrations':
-        specifier: ^0.2.9
-        version: 0.2.9(convex@1.24.8(react@19.1.0))
       '@hookform/resolvers':
         specifier: ^5.1.1
         version: 5.1.1(react-hook-form@7.58.1(react@19.1.0))
@@ -699,11 +696,6 @@ packages:
     peerDependenciesMeta:
       react:
         optional: true
-
-  '@convex-dev/migrations@0.2.9':
-    resolution: {integrity: sha512-HfIv6/F8VbtJ1NVT2bQRTumJGdaqROl/+s5IOnubHm7vvgie0RjcfO6YiB7JoLFWwS19vjDQDKl63ihoA08zOA==}
-    peerDependencies:
-      convex: ~1.16.5 || >=1.17.0 <1.35.0
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -5810,10 +5802,6 @@ snapshots:
       server-only: 0.0.1
     optionalDependencies:
       react: 19.1.0
-
-  '@convex-dev/migrations@0.2.9(convex@1.24.8(react@19.1.0))':
-    dependencies:
-      convex: 1.24.8(react@19.1.0)
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
