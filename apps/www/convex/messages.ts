@@ -151,7 +151,6 @@ export const updateMessageError = internalMutation({
 		await ctx.db.patch(args.messageId, {
 			parts: [{ type: "text", text: args.errorMessage, timestamp: now }],
 			status: "error",
-			thinkingCompletedAt: now,
 		});
 		return null;
 	},
@@ -184,11 +183,8 @@ export const createErrorMessage = internalMutation({
 			},
 			// Keep legacy fields for backward compatibility during migration
 			timestamp: now,
-			messageType: "assistant",
 			model: args.provider,
 			modelId: args.modelId,
-			thinkingStartedAt: now,
-			thinkingCompletedAt: now,
 		});
 
 		return null;

@@ -181,12 +181,8 @@ export function convertDbMessagesToUIMessages(
 	dbMessages: Doc<"messages">[],
 ): LightfastUIMessage[] {
 	return dbMessages.map((msg) => {
-		// Handle legacy format: Convert deprecated fields to parts array
-		let parts: LightfastUIMessagePart[] = [];
-
-		// If message has the new parts array, use it
-		if (msg.parts && msg.parts.length > 0) {
-			parts = (msg.parts || [])
+		// Convert parts array to UI format
+		const parts: LightfastUIMessagePart[] = (msg.parts || [])
 				.map((part: DbMessagePart): LightfastUIMessagePart | null => {
 					switch (part.type) {
 						case "text":
@@ -279,64 +275,10 @@ export function convertDbMessagesToUIMessages(
 					}
 				})
 				.filter((part): part is LightfastUIMessagePart => part !== null);
-		} else {
-			// Handle legacy format - convert deprecated fields to parts
-			const legacyParts: LightfastUIMessagePart[] = [];
-
-			// Handle thinkingContent (deprecated field)
-			if (msg.thinkingContent) {
-				legacyParts.push({
-					type: "reasoning",
-					text: msg.thinkingContent,
-				});
-			}
-
-			// Handle body (deprecated field) - main message content
-			if (msg.body) {
-				legacyParts.push({
-					type: "text",
-					text: msg.body,
-				});
-			}
-
-			// Handle streamChunks (deprecated field) - for streaming messages
-			if (msg.streamChunks && msg.streamChunks.length > 0) {
-				// Combine all chunks into text parts, separating thinking content
-				const thinkingChunks = msg.streamChunks
-					.filter((chunk) => chunk.isThinking)
-					.map((chunk) => chunk.content)
-					.join("");
-
-				const regularChunks = msg.streamChunks
-					.filter((chunk) => !chunk.isThinking)
-					.map((chunk) => chunk.content)
-					.join("");
-
-				if (thinkingChunks) {
-					legacyParts.push({
-						type: "reasoning",
-						text: thinkingChunks,
-					});
-				}
-
-				if (regularChunks) {
-					legacyParts.push({
-						type: "text",
-						text: regularChunks,
-					});
-				}
-			}
-
-			// Use legacy parts if any were created, otherwise use empty array
-			parts = legacyParts;
-		}
 
 		return {
 			id: msg._id,
-			role:
-				(msg.role || msg.messageType || "assistant") === "user"
-					? ("user" as const)
-					: ("assistant" as const),
+			role: (msg.role || "assistant") === "user" ? ("user" as const) : ("assistant" as const),
 			createdAt: new Date(msg._creationTime || msg.timestamp || Date.now()),
 			parts,
 		};

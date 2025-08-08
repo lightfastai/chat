@@ -50,7 +50,7 @@ export const setupInitialData = mutation({
 		await ctx.db.insert("messages", {
 			threadId: threadId,
 			timestamp: now,
-			messageType: "assistant",
+			role: "assistant",
 			parts: [
 				{
 					type: "text",
@@ -75,22 +75,22 @@ export const setupInitialData = mutation({
 			{
 				text: "Hello! This is a sample message in the preview environment.",
 				timestamp: now + 1000,
-				messageType: "user" as const,
+				role: "user" as const,
 			},
 			{
 				text: "Preview deployments are great for testing features before production!",
 				timestamp: now + 2000,
-				messageType: "user" as const,
+				role: "user" as const,
 			},
 			{
 				text: "Each preview deployment gets its own fresh Convex backend with authentication support.",
 				timestamp: now + 3000,
-				messageType: "assistant" as const,
+				role: "assistant" as const,
 			},
 			{
 				text: "Try creating a new chat or exploring the existing conversation!",
 				timestamp: now + 4000,
-				messageType: "assistant" as const,
+				role: "assistant" as const,
 			},
 		];
 
@@ -98,7 +98,7 @@ export const setupInitialData = mutation({
 			await ctx.db.insert("messages", {
 				threadId: threadId,
 				timestamp: message.timestamp,
-				messageType: message.messageType,
+				role: message.role,
 				parts: [
 					{
 						type: "text",
