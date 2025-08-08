@@ -16,7 +16,8 @@
 		"with-env": "dotenv -e .vercel/.env.development.local --",
 		"migrate:clerk": "pnpm with-env node ../../migrate-to-clerk-v2.js",
 		"test:migration": "pnpm with-env node ../../test-migration.js",
-		"debug:clerk": "pnpm with-env node ../../debug-clerk-config.js"
+		"debug:clerk": "pnpm with-env node ../../debug-clerk-config.js",
+		"update:emails": "pnpm with-env node ../../update-clerk-emails.js"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "catalog:",
