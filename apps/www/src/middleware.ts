@@ -1,36 +1,44 @@
-import {
-	convexAuthNextjsMiddleware,
-	createRouteMatcher,
-	nextjsMiddlewareRedirect,
-} from "@convex-dev/auth/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const isSignInPage = createRouteMatcher(["/signin"]);
-const isProtectedRoute = createRouteMatcher(["/chat(.*)"]);
+const isPublicRoute = createRouteMatcher([
+	"/",
+	"/sign-in(.*)",
+	"/sign-up(.*)",
+	"/signin(.*)", // Keep old route for backward compatibility
+	"/api/health",
+	"/api/webhooks(.*)",
+]);
 
-export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-	const { pathname } = request.nextUrl;
+const isSignInPage = createRouteMatcher(["/sign-in", "/signin"]);
 
-	// Cache auth status for this request to avoid multiple checks
-	const isAuthenticated = await convexAuth.isAuthenticated();
+export default clerkMiddleware(async (auth, req) => {
+	const { pathname } = req.nextUrl;
+	const { userId } = await auth();
+	const isAuthenticated = !!userId;
 
 	// Redirect authenticated users from root to /chat
 	if (pathname === "/" && isAuthenticated) {
-		return nextjsMiddlewareRedirect(request, "/chat");
+		return NextResponse.redirect(new URL("/chat", req.url));
 	}
 
 	// Redirect authenticated users away from auth pages
-	if (isSignInPage(request) && isAuthenticated) {
+	if (isSignInPage(req) && isAuthenticated) {
 		// Preserve the 'from' parameter if it exists
-		const from = request.nextUrl.searchParams.get("from");
+		const from = req.nextUrl.searchParams.get("from");
 		const redirectTo = from || "/chat";
-		return nextjsMiddlewareRedirect(request, redirectTo);
+		return NextResponse.redirect(new URL(redirectTo, req.url));
 	}
 
-	// Redirect unauthenticated users to signin with preserved destination
-	if (isProtectedRoute(request) && !isAuthenticated) {
-		const url = new URL("/signin", request.url);
-		url.searchParams.set("from", pathname);
+	// Allow public routes
+	if (isPublicRoute(req)) {
+		return NextResponse.next();
+	}
+
+	// Redirect unauthenticated users to sign-in with preserved destination
+	if (!isAuthenticated) {
+		const url = new URL("/sign-in", req.url);
+		url.searchParams.set("redirect_url", pathname);
 		return NextResponse.redirect(url);
 	}
 

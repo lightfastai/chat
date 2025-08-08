@@ -1,39 +1,51 @@
 "use client";
 
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useAuth as useClerkAuth, useUser, useClerk } from "@clerk/nextjs";
 import { useConvexAuth, useQuery } from "convex/react";
 import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
 
 /**
- * Custom hook for auth functionality
- * Provides a unified interface for authentication operations
+ * Temporary hook to provide auth actions for migration
+ * This bridges Clerk auth with the existing component structure
  */
-export function useAuth() {
-	const { isAuthenticated, isLoading } = useConvexAuth();
-	const { signIn, signOut } = useAuthActions();
-	const currentUser = useQuery(api.users.current);
+export function useAuthActions() {
+	const { signOut: clerkSignOut } = useClerk();
+	const router = useRouter();
 
-	const handleSignIn = useCallback(
-		async (provider: "github" = "github") => {
-			try {
-				await signIn(provider);
-			} catch (error) {
-				console.error("Error signing in:", error);
-				throw error;
-			}
-		},
-		[signIn],
-	);
+	const signIn = useCallback(async (provider?: string) => {
+		// Redirect to Clerk sign-in
+		router.push("/sign-in");
+	}, [router]);
 
-	const handleSignOut = useCallback(async () => {
+	const signOut = useCallback(async () => {
 		try {
-			await signOut();
+			await clerkSignOut();
+			router.push("/");
 		} catch (error) {
 			console.error("Error signing out:", error);
 			throw error;
 		}
-	}, [signOut]);
+	}, [clerkSignOut, router]);
+
+	return { signIn, signOut };
+}
+
+/**
+ * Custom hook for auth functionality
+ * Now uses Clerk for authentication
+ */
+export function useAuth() {
+	const { isLoaded: isClerkLoaded, isSignedIn } = useClerkAuth();
+	const { user: clerkUser } = useUser();
+	const { isAuthenticated: isConvexAuthenticated, isLoading: isConvexLoading } = useConvexAuth();
+	const currentUser = useQuery(api.users.current);
+	const { signIn, signOut } = useAuthActions();
+
+	// Use Convex auth state for compatibility during migration
+	const isAuthenticated = isConvexAuthenticated;
+	const isLoading = !isClerkLoaded || isConvexLoading;
 
 	return {
 		// Auth state
@@ -42,13 +54,13 @@ export function useAuth() {
 		user: currentUser,
 
 		// Auth actions
-		signIn: handleSignIn,
-		signOut: handleSignOut,
+		signIn,
+		signOut,
 
-		// User info helpers
-		displayName: currentUser?.name || currentUser?.email || "User",
-		email: currentUser?.email,
-		isAnonymous: currentUser?.isAnonymous || false,
+		// User info helpers (prioritize Clerk data when available)
+		displayName: clerkUser?.fullName || clerkUser?.primaryEmailAddress?.emailAddress || currentUser?.name || currentUser?.email || "User",
+		email: clerkUser?.primaryEmailAddress?.emailAddress || currentUser?.email,
+		isAnonymous: false, // Clerk doesn't support anonymous auth
 		createdAt: currentUser?._creationTime
 			? new Date(currentUser._creationTime)
 			: null,

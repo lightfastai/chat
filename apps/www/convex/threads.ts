@@ -48,7 +48,7 @@ const USER_ID_TO_CLERK_MAPPING: Record<string, string> = {
 };
 
 // Helper function to get Clerk user ID from Convex user ID
-async function getClerkUserIdForUser(ctx: MutationCtx, userId: Id<"users">): Promise<string | undefined> {
+async function getClerkUserIdForUser(_ctx: MutationCtx, userId: Id<"users">): Promise<string | undefined> {
 	// Direct mapping from Convex user ID to Clerk user ID
 	return USER_ID_TO_CLERK_MAPPING[userId];
 }

@@ -1,30 +1,24 @@
-import GitHub from "@auth/core/providers/github";
-import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
-import { convexAuth } from "@convex-dev/auth/server";
-import { ConvexError } from "convex/values";
-import { env } from "./env.js";
+/**
+ * Authentication configuration
+ * This file is kept for backward compatibility during migration.
+ * Authentication is now handled by Clerk.
+ */
 
-// Enable anonymous authentication for any non-production environment
-const isNonProductionEnvironment = env.NODE_ENV !== "production";
+// Export empty functions to prevent breaking imports
+export const auth = () => {
+	throw new Error("Authentication has been migrated to Clerk. Please update your code.");
+};
 
-export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-	providers: [
-		GitHub,
-		// Only add Anonymous provider for non-production environments
-		...(isNonProductionEnvironment ? [Anonymous()] : []),
-	],
-	callbacks: {
-		async createOrUpdateUser(ctx, args) {
-			// Check if this is a new user (no existing user ID)
-			if (!args.existingUserId) {
-				// Block new user signups during migration
-				throw new ConvexError({
-					code: "SIGNUP_DISABLED",
-					message: "New user registrations are temporarily disabled during migration. Please try again later.",
-				});
-			}
-			// Allow existing users to sign in
-			return args.existingUserId;
-		},
-	},
-});
+export const signIn = () => {
+	throw new Error("Authentication has been migrated to Clerk. Please use Clerk's signIn.");
+};
+
+export const signOut = () => {
+	throw new Error("Authentication has been migrated to Clerk. Please use Clerk's signOut.");
+};
+
+export const store = {};
+
+export const isAuthenticated = () => {
+	throw new Error("Authentication has been migrated to Clerk. Please use Clerk's authentication checks.");
+};

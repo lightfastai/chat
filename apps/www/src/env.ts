@@ -14,6 +14,9 @@ export const env = createEnv({
 		// In production: CONVEX_DEPLOY_KEY is used
 		// We only need to validate what we actually use in our app
 
+		// Clerk authentication
+		CLERK_SECRET_KEY: z.string().min(1, "Clerk secret key is required"),
+
 		// AI API Keys for Convex backend
 		OPENAI_API_KEY: z.string().min(1, "OpenAI API key is required"),
 		ANTHROPIC_API_KEY: z
@@ -22,7 +25,7 @@ export const env = createEnv({
 		OPENROUTER_API_KEY: z.string().min(1, "OpenRouter API key is required"),
 		EXA_API_KEY: z.string().min(1, "Exa API key is required for web search"),
 
-		// GitHub OAuth for Convex Auth
+		// GitHub OAuth for Convex Auth (deprecated, kept for migration)
 		AUTH_GITHUB_ID: z.string().optional(),
 		AUTH_GITHUB_SECRET: z.string().optional(),
 		// DEPRECATED: SITE_URL is no longer used - was previously for OpenRouter HTTP headers
@@ -44,6 +47,9 @@ export const env = createEnv({
 	 * 💡 You'll get type errors if these are not prefixed with NEXT_PUBLIC_.
 	 */
 	client: {
+		// Clerk authentication
+		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, "Clerk publishable key is required"),
+		
 		// Convex URL for client-side connections
 		// This is the only Convex variable our app actually needs
 		NEXT_PUBLIC_CONVEX_URL: z.string().url(),
@@ -77,6 +83,7 @@ export const env = createEnv({
 	 */
 	runtimeEnv: {
 		// Server-side
+		CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
 		OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 		ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
 		OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
@@ -91,6 +98,7 @@ export const env = createEnv({
 		SENTRY_PROJECT: process.env.SENTRY_PROJECT,
 		SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
 		// Client-side
+		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 		NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
 		NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV,
 		NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,

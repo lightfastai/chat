@@ -1,10 +1,9 @@
 import { httpRouter } from "convex/server";
-import { auth } from "./auth";
 import { corsHandler, streamChatResponse } from "./httpStreaming";
 
 const http = httpRouter();
 
-auth.addHttpRoutes(http);
+// Authentication routes are now handled by Clerk, not Convex
 
 // HTTP streaming endpoint with modern AI SDK v5 support
 http.route({
