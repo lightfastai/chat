@@ -7,6 +7,8 @@ import { Migrations } from "@convex-dev/migrations";
 import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import type { DbMessagePart } from "./types";
+import { query } from "./_generated/server";
+import { v } from "convex/values";
 
 // Initialize migrations with type safety
 export const migrations = new Migrations<DataModel>(components.migrations);
@@ -64,6 +66,35 @@ export const bodyToParts = migrations.define({
 });
 
 /**
+ * Migration to convert messageType to role field
+ * Both fields have the same values: "user" or "assistant"
+ */
+export const messageTypeToRole = migrations.define({
+  table: "messages",
+  migrateOne: async (ctx, message) => {
+    // Skip if already has role
+    if (message.role) {
+      return; // Already migrated
+    }
+    
+    // Skip if no messageType to migrate
+    if (!message.messageType) {
+      // Default to "assistant" if neither field exists
+      // This matches the existing fallback logic in the codebase
+      await ctx.db.patch(message._id, {
+        role: "assistant",
+      });
+      return;
+    }
+    
+    // Migrate messageType to role
+    await ctx.db.patch(message._id, {
+      role: message.messageType,
+    });
+  },
+});
+
+/**
  * Migration to clean up legacy fields after successful migration
  * Only run this after verifying bodyToParts has completed successfully
  */
@@ -79,6 +110,7 @@ export const cleanupLegacyFields = migrations.define({
     const hasLegacyFields = !!(
       message.body ||
       message.thinkingContent ||
+      message.messageType ||
       message.streamChunks ||
       message.isStreaming ||
       message.streamId ||
@@ -97,6 +129,7 @@ export const cleanupLegacyFields = migrations.define({
     await ctx.db.patch(message._id, {
       body: undefined,
       thinkingContent: undefined,
+      messageType: undefined,
       streamChunks: undefined,
       isStreaming: undefined,
       streamId: undefined,
@@ -120,10 +153,62 @@ export const run = migrations.runner();
 
 // Individual runners for specific migrations
 export const runBodyToParts = migrations.runner(internal.migrations.bodyToParts);
+export const runMessageTypeToRole = migrations.runner(internal.migrations.messageTypeToRole);
 export const runCleanupLegacyFields = migrations.runner(internal.migrations.cleanupLegacyFields);
 
-// Status query to check migration progress
-export const { status } = migrations.api();
+// Query to check migration status  
+// Since the component doesn't expose a direct status method,
+// we can check progress by counting messages
+export const status = query({
+  args: {},
+  returns: v.object({
+    bodyToParts: v.object({
+      needsMigration: v.number(),
+      migrated: v.number(),
+    }),
+    messageTypeToRole: v.object({
+      needsMigration: v.number(),
+      migrated: v.number(),
+    }),
+    total: v.number(),
+  }),
+  handler: async (ctx) => {
+    const messages = await ctx.db.query("messages").collect();
+    
+    let bodyToPartsNeedsMigration = 0;
+    let bodyToPartsMigrated = 0;
+    let messageTypeNeedsMigration = 0;
+    let messageTypeMigrated = 0;
+    
+    for (const msg of messages) {
+      // Check body to parts migration
+      if (msg.parts && msg.parts.length > 0) {
+        bodyToPartsMigrated++;
+      } else if (msg.body || msg.thinkingContent) {
+        bodyToPartsNeedsMigration++;
+      }
+      
+      // Check messageType to role migration
+      if (msg.role) {
+        messageTypeMigrated++;
+      } else {
+        messageTypeNeedsMigration++;
+      }
+    }
+    
+    return {
+      bodyToParts: {
+        needsMigration: bodyToPartsNeedsMigration,
+        migrated: bodyToPartsMigrated,
+      },
+      messageTypeToRole: {
+        needsMigration: messageTypeNeedsMigration,
+        migrated: messageTypeMigrated,
+      },
+      total: messages.length,
+    };
+  },
+});
 
 // Export migration definitions for CLI access
 export default migrations;
