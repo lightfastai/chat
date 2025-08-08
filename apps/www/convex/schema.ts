@@ -73,6 +73,8 @@ export default defineSchema({
 				inputTokens: v.optional(v.number()),
 				outputTokens: v.optional(v.number()),
 				totalTokens: v.optional(v.number()),
+				reasoningTokens: v.optional(v.number()),
+				cachedInputTokens: v.optional(v.number()),
 			}),
 		),
 	})
@@ -111,6 +113,8 @@ export default defineSchema({
 				inputTokens: v.optional(v.number()),
 				outputTokens: v.optional(v.number()),
 				totalTokens: v.optional(v.number()),
+				reasoningTokens: v.optional(v.number()),
+				cachedInputTokens: v.optional(v.number()),
 			}),
 		),
 		streamChunks: v.optional(
