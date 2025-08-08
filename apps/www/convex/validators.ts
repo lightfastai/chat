@@ -236,6 +236,20 @@ export const threadUsageValidator = v.optional(
 		totalReasoningTokens: v.number(),
 		totalCachedInputTokens: v.number(),
 		messageCount: v.number(),
+		// Model-specific stats
+		modelStats: v.optional(
+			v.record(
+				v.string(),
+				v.object({
+					inputTokens: v.number(),
+					outputTokens: v.number(),
+					totalTokens: v.number(),
+					reasoningTokens: v.number(),
+					cachedInputTokens: v.number(),
+					messageCount: v.number(),
+				}),
+			),
+		),
 	}),
 );
 

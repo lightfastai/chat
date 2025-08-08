@@ -70,11 +70,32 @@ export default defineSchema({
 		isGenerating: v.optional(v.boolean()),
 		usage: v.optional(
 			v.object({
+				// Old simple format fields (for backward compatibility)
 				inputTokens: v.optional(v.number()),
 				outputTokens: v.optional(v.number()),
 				totalTokens: v.optional(v.number()),
 				reasoningTokens: v.optional(v.number()),
 				cachedInputTokens: v.optional(v.number()),
+				// New aggregated format fields
+				totalInputTokens: v.optional(v.number()),
+				totalOutputTokens: v.optional(v.number()),
+				totalReasoningTokens: v.optional(v.number()),
+				totalCachedInputTokens: v.optional(v.number()),
+				messageCount: v.optional(v.number()),
+				// Model-specific stats
+				modelStats: v.optional(
+					v.record(
+						v.string(),
+						v.object({
+							inputTokens: v.number(),
+							outputTokens: v.number(),
+							totalTokens: v.number(),
+							reasoningTokens: v.number(),
+							cachedInputTokens: v.number(),
+							messageCount: v.number(),
+						}),
+					),
+				),
 			}),
 		),
 	})
