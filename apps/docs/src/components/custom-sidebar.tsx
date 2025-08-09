@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { PageTree } from "fumadocs-core/server"
-import { cn } from "@/src/lib/utils"
+import { cn } from "@repo/ui/lib/utils"
 
 interface CustomSidebarProps {
   tree?: PageTree.Root
