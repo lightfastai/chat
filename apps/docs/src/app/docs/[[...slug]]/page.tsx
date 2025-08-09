@@ -1,6 +1,5 @@
 import { getPage, getPages } from "@/src/lib/source";
 import defaultMdxComponents from "fumadocs-ui/mdx";
-import { DocsBody, DocsPage } from "fumadocs-ui/page";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -19,12 +18,15 @@ export default async function Page({
 	const MDX = page.data.body;
 
 	return (
-		<DocsPage toc={page.data.toc}>
-			<DocsBody>
-				<h1>{page.data.title}</h1>
+		<article className="prose prose-neutral dark:prose-invert max-w-none">
+			<h1 className="text-4xl font-bold tracking-tight mb-4">{page.data.title}</h1>
+			{page.data.description && (
+				<p className="text-lg text-muted-foreground mb-8">{page.data.description}</p>
+			)}
+			<div className="prose-content">
 				<MDX components={{ ...defaultMdxComponents }} />
-			</DocsBody>
-		</DocsPage>
+			</div>
+		</article>
 	);
 }
 
