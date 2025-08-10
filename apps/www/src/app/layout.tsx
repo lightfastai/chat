@@ -89,8 +89,9 @@ export default function RootLayout({
 			publishableKey={env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 			afterSignInUrl="/chat"
 			afterSignUpUrl="/chat"
-			signInUrl="/sign-in"
-			signUpUrl="/sign-up"
+			afterSignOutUrl="https://lightfast.ai"
+			signInUrl={process.env.NODE_ENV === "production" ? "https://auth.lightfast.ai/sign-in" : "http://localhost:4104/sign-in"}
+			signUpUrl={process.env.NODE_ENV === "production" ? "https://auth.lightfast.ai/sign-up" : "http://localhost:4104/sign-up"}
 		>
 			<html lang="en" suppressHydrationWarning>
 				<body className={cn(fonts, "dark", "flex min-h-screen flex-col")}>

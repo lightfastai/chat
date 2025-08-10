@@ -9,7 +9,7 @@ import {
 	DialogTitle,
 } from "@lightfast/ui/components/ui/dialog";
 import Link from "next/link";
-import { SignInOptions } from "./sign-in-options";
+import { ExternalSignInButton } from "./external-sign-in-button";
 
 interface SignInDialogProps {
 	open: boolean;
@@ -35,11 +35,13 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
 							</p>
 						</div>
 
-						<SignInOptions
-							onSignInComplete={() => onOpenChange(false)}
-							buttonClassName="w-full h-12 text-base font-medium"
-							showAnimations={true}
-						/>
+						<ExternalSignInButton
+							className="w-full h-12 text-base font-medium"
+							size="lg"
+							variant="default"
+						>
+							Sign in with Lightfast Auth
+						</ExternalSignInButton>
 
 						<div className="mt-6 text-center">
 							<p className="text-xs text-muted-foreground">

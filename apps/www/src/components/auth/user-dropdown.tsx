@@ -15,7 +15,6 @@ import { cn } from "@lightfast/ui/lib/utils";
 import { useConvexAuth, useQuery } from "convex/react";
 import { ChevronDown, LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 
 interface UserDropdownProps {
@@ -33,7 +32,6 @@ export function UserDropdown({
 	showSettings = true,
 	settingsHref = "/chat/settings",
 	onSignOut,
-	redirectAfterSignOut = true,
 }: UserDropdownProps) {
 	const { signOut } = useAuthActions();
 	const { isAuthenticated } = useConvexAuth();
@@ -41,17 +39,14 @@ export function UserDropdown({
 		api.users.current,
 		isAuthenticated ? {} : "skip",
 	);
-	const router = useRouter();
 
 	const handleSignOut = async () => {
 		try {
 			onSignOut?.();
 			await signOut();
 
-			// Redirect to home page after successful signout
-			if (redirectAfterSignOut) {
-				router.push("/");
-			}
+			// Clerk will handle the redirect based on afterSignOutUrl in the provider
+			// which should redirect to the main site
 		} catch (error) {
 			console.error("Error signing out:", error);
 		}

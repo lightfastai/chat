@@ -3,13 +3,9 @@ import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
 	"/",
-	"/sign-in(.*)",
-	"/sign-up(.*)",
 	"/api/health",
 	"/api/webhooks(.*)",
 ]);
-
-const isSignInPage = createRouteMatcher(["/sign-in"]);
 
 export default clerkMiddleware(async (auth, req) => {
 	const { pathname } = req.nextUrl;
@@ -21,26 +17,19 @@ export default clerkMiddleware(async (auth, req) => {
 		return NextResponse.redirect(new URL("/chat", req.url));
 	}
 
-	// Redirect authenticated users away from auth pages
-	if (isSignInPage(req) && isAuthenticated) {
-		// Check for redirect_url parameter (used by our auth flow)
-		const redirectUrl = req.nextUrl.searchParams.get("redirect_url");
-		// Also check for 'from' parameter for backwards compatibility
-		const from = req.nextUrl.searchParams.get("from");
-		const redirectTo = redirectUrl || from || "/chat";
-		return NextResponse.redirect(new URL(redirectTo, req.url));
-	}
 
 	// Allow public routes
 	if (isPublicRoute(req)) {
 		return NextResponse.next();
 	}
 
-	// Redirect unauthenticated users to sign-in with preserved destination
+	// Redirect unauthenticated users to external auth with preserved destination
 	if (!isAuthenticated) {
-		const url = new URL("/sign-in", req.url);
-		url.searchParams.set("redirect_url", pathname);
-		return NextResponse.redirect(url);
+		const authUrl = process.env.NODE_ENV === "production" 
+			? "https://auth.lightfast.ai"
+			: "http://localhost:4104";
+		const redirectUrl = `${authUrl}/sign-in?redirect_url=${encodeURIComponent(req.url)}`;
+		return NextResponse.redirect(redirectUrl);
 	}
 
 	// Let Next.js handle all routing

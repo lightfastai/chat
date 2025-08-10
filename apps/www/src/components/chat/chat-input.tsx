@@ -98,7 +98,7 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
 
     const [attachments, setAttachments] = useState<FileAttachment[]>([])
     const [isUploading, setIsUploading] = useState(false)
-    const [webSearchEnabled, setWebSearchEnabled] = useState(false)
+    const [webSearchEnabled] = useState(false) // setWebSearchEnabled currently unused
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -410,17 +410,17 @@ const ChatInputComponent = forwardRef<HTMLTextAreaElement, ChatInputProps>(
       textareaRef.current?.focus()
     }, [])
 
-    const handleWebSearchToggle = useCallback(() => {
-      setWebSearchEnabled((prev) => {
-        console.log(
-          "ChatInput: toggling webSearchEnabled from",
-          prev,
-          "to",
-          !prev,
-        )
-        return !prev
-      })
-    }, [])
+    // const handleWebSearchToggle = useCallback(() => {
+    //   setWebSearchEnabled((prev) => {
+    //     console.log(
+    //       "ChatInput: toggling webSearchEnabled from",
+    //       prev,
+    //       "to",
+    //       !prev,
+    //     )
+    //     return !prev
+    //   })
+    // }, [])
 
     // Memoize computed values
     const canSend = useMemo(
